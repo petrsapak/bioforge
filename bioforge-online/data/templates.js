@@ -23,6 +23,9 @@ const TEMPLATES = {
                  [0, -2, 'thorn'], [2, -1, 'thorn'], [1, 1, 'thorn'], [-1, -1, 'thorn'], [-1, 2, 'gill'], [-2, 1, 'pore'], [0, 2, 'fat']]),
   starter:  tpl([[0, 0, 'nucleus'], [0, -1, 'thorn'], [1, -1, 'mouth'], [-1, 0, 'gill'], [1, 0, 'tissue'],
                  [-1, 1, 'cilia'], [0, 1, 'cilia'], [-1, 2, 'pore']]),
+  // the smallest prey, weaker than the starter: mote is harmless and runs when hurt, nipper has one thorn
+  mote:     tpl([[0, 0, 'nucleus'], [0, -1, 'mouth'], [1, 0, 'gill'], [0, 1, 'cilia'], [-1, 1, 'pore']]),
+  nipper:   tpl([[0, 0, 'nucleus'], [0, -1, 'thorn'], [1, -1, 'mouth'], [-1, 0, 'gill'], [0, 1, 'cilia'], [-1, 1, 'pore']]),
   // showcase builds, drawn as hex art (see art below); they cost more than the starting biomass
   eel: art([
     '    T M T',

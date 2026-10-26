@@ -6,8 +6,19 @@ function boot() {
   const $ = id => document.getElementById(id);
   // PANEL_W: menu width kept clear when centring the grid; the grid itself runs under the menu
   const PANEL_W = 320, ZOOM_MIN = 0.2, ZOOM_MAX = 5;
+  const GAME_SPEED = 2.5;                             // world and sandbox: game seconds per real second
   let zoom = 1.9, panX = 0, panY = 0, pan = null;      // editor view: wheel zooms, middle-drag pans
-  let mode = 'build', view = 0, wave = 1, budget = START_BUDGET, selected = 'muscle', hover = null, ended = false;
+  let mode = 'build', view = 0, selected = 'muscle', hover = null;
+  // level and XP, kept in this browser (proper saving comes with milestone 8); the level sets the biomass budget
+  const PROG_KEY = 'bioforge-progress';
+  let prog = newProgress();
+  try { prog = { ...prog, ...JSON.parse(localStorage.getItem(PROG_KEY)) }; } catch (e) {}
+  const saveProg = () => { try { localStorage.setItem(PROG_KEY, JSON.stringify(prog)); } catch (e) {} };
+  let budget = levelBiomass(prog.lvl);
+  let floaters = [], lvlBanner = null;                 // "+XP" texts in the world; the level-up banner ({ name, sub, t })
+  const BIOME = BIOMES.tidepool;                      // the open world the Fight button enters
+  let cam = { x: 0, y: 0 };                           // open world: the view's middle (world px), follows the player
+  let place = null, banner = 0, bigMap = false, bg = [14, 29, 36];   // where the camera is, its name banner's time left, M map, water rgb
   let design = new Map(TEMPLATES.starter.cells.map(b => [key(b.q, b.r), b.t]));
   let world = null, player = null, tank = null;
   let warns = [], warnHover = -1;                      // design warnings ({ text, keys }); the one under the mouse
@@ -23,7 +34,7 @@ function boot() {
   const blueprint = () => ({ cells: list() });
   // cost if the change f() were made (f changes the design; undo() puts it back)
   const costWith = (f, undo) => { f(); const c = cost(); undo(); return c; };
-  // Unlimited biomass: build as big as you like; Fight stays locked while over budget (the Sandbox takes any size)
+  // Unlimited biomass: build as big as you like; entering the world stays locked while over budget (the Sandbox takes any size)
   let freeBuild = false;
   try { freeBuild = localStorage.getItem('bioforge-free') === '1'; } catch (e) {}
   const cap = () => freeBuild ? Infinity : budget;
@@ -67,6 +78,7 @@ function boot() {
     const k = key(q, r);
     if (!inGrid(q, r) || design.has(k)) return false;
     if (reserved().has(k)) return false;               // kept free for a Bud's part
+    if (!freeBuild && CELL_LVL[selected] > prog.lvl) return false;   // not unlocked yet
     // anywhere: a cell off the body is planned and free; joining the body (maybe with planned cells) must fit the budget
     return costWith(() => design.set(k, selected), () => design.delete(k)) <= cap();
   }
@@ -217,7 +229,8 @@ function boot() {
     meta = new Map(o.cells.filter(b => b.tpl || b.bind).map(b => [key(b.q, b.r), { tpl: b.tpl, bind: b.bind, rot: b.rot, off: b.off, aim: b.aim }]));
     stamp = null; sel.clear(); focus = null;
     rebuildTank();
-    if (cost() > budget) $('info').textContent = `${label} costs ${fmt(cost())} biomass, you have ${budget}. Watch it here; to fight, remove cells or win more waves.`;
+    const why = buildCheck(blueprint(), prog.lvl);
+    if (why) $('info').textContent = `${label}: ${why}. Watch it here; to enter ${BIOME.name}, change it.`;
   }
   document.querySelectorAll('[data-tpl]').forEach(btn => btn.onclick = () => {
     const t = btn.dataset.tpl;
@@ -259,6 +272,7 @@ function boot() {
     if (!cells.length) why = 'Every hex there is already taken.';
     else if (cells.some(b => !inGrid(b.q, b.r))) why = 'Part of it is off the grid.';
     else if (cells.some(b => reserved().has(key(b.q, b.r)))) why = "It covers hexes kept free for a Bud's part.";
+    else if (!freeBuild && cells.some(b => CELL_LVL[b.t] > prog.lvl)) why = 'It has cells you have not unlocked yet.';
     else {                                             // off the body it is only planned; joining the body must fit the budget
       const after = costWith(() => { for (const b of cells) design.set(key(b.q, b.r), b.t); },
         () => { for (const b of cells) design.delete(key(b.q, b.r)); });
@@ -493,14 +507,16 @@ function boot() {
   function refreshPanel() {
     document.querySelectorAll('.pal').forEach(el => el.classList.toggle('sel', el.dataset.t === selected));
     document.querySelectorAll('[data-view]').forEach(el => el.classList.toggle('sel', +el.dataset.view === view));
-    $('budget').innerHTML = `Biomass: <b>${fmt(budget - cost())}</b> / ${budget}` + (freeBuild ? ' <span class="help">(unlimited: Fight needs it under budget, Sandbox takes any size)</span>' : '');
+    document.querySelectorAll('.pal').forEach(el => { const L = CELL_LVL[el.dataset.t]; el.classList.toggle('locked', L > prog.lvl); el.dataset.lock = 'Lv ' + L; });
+    $('budget').innerHTML = `Level <b>${prog.lvl}</b> · ${xpText()}<br>Biomass: <b>${fmt(budget - cost())}</b> / ${budget} · Cells ${list().length} / ${levelCells(prog.lvl)}` + (freeBuild ? ' <span class="help">(unlimited: entering the world needs it under budget, Sandbox takes any size)</span>' : '');
     $('freebuild').classList.toggle('sel', freeBuild);
     const d = CELLS[selected];
     for (const row of libRows) row.classList.toggle('sel', !!stamp && stamp.t === row._t);
     $('info').innerHTML = stamp
       ? `<b>Placing "${esc(stamp.t.name)}"</b> (${stamp.t.cells.length} cells, ${fmt(bpCost(stamp.t))} biomass)<br>Click to place it; off the body it stays planned until joined. Hexes already taken are skipped. Q/E rotate, right-click or Esc to stop.`
       : focus ? focusInfo()
-      : `<b>${d.name}</b> (${d.hp} HP${d.cond ? ', carries nerve signals' : ''}${d.fuel ? `, burns ${+(d.fuel * FUEL_K).toFixed(3)}/s` : ''})<br>${d.desc}`;
+      : `<b>${d.name}</b> (${d.hp} HP${d.cond ? ', carries nerve signals' : ''}${d.fuel ? `, burns ${+(d.fuel * FUEL_K).toFixed(3)}/s` : ''})<br>${d.desc}`
+        + (CELL_LVL[selected] > prog.lvl ? `<br><b>Unlocks at level ${CELL_LVL[selected]}.</b>` : '');
     const bz = document.getElementById('budaimreset');
     if (bz) bz.onclick = () => { delete metaOf(focus).aim; rebuildTank(); };
     const l = list();
@@ -513,9 +529,9 @@ function boot() {
     // hovering a warning outlines the cells it is about on the grid
     $('stats').onmouseover = e => { warnHover = e.target.dataset && e.target.dataset.w !== undefined ? +e.target.dataset.w : -1; };
     $('stats').onmouseleave = () => { warnHover = -1; };
-    const over = cost() > budget;
-    $('fight').disabled = over;
-    $('fight').textContent = over ? `Over budget by ${fmt(cost() - budget)}` : `Fight wave ${wave} ▶`;
+    const why = buildCheck(blueprint(), prog.lvl);
+    $('fight').disabled = !!why;
+    $('fight').textContent = why || `Enter ${BIOME.name} ▶`;
   }
 
   // sandbox: play any creature with no budget, click the water to spawn enemies, nobody wins or loses
@@ -529,29 +545,22 @@ function boot() {
   $('sbme').value = 'mine'; $('sbfoe').value = 'wiggler';
   const sbBlueprint = v => v === 'mine' ? blueprint() : TEMPLATES[v];
 
-  function removeCreature(w, cr) {
-    const gone = c => c.owner === cr;
-    w.cells = w.cells.filter(c => !gone(c)); w.bonds = w.bonds.filter(b => !gone(b.a));
-    w.angles = w.angles.filter(g => !gone(g.c)); w.links = w.links.filter(v => !gone(v.a));
-    w.creatures = w.creatures.filter(c => c !== cr);
-  }
-
   function spawnPlayer() {
     if (player) removeCreature(world, player);
     const bpo = sandbox ? sbBlueprint($('sbme').value) : blueprint();
     const ext = Math.max(...bpo.cells.map(b => Math.hypot(...hexPx(b.q, b.r))));
-    player = spawn(world, bpo, cv.width / 2, cv.height - Math.max(150, ext + 50), 0, 0);
+    player = world.map ? spawn(world, bpo, ...world.start, 0, 0) : spawn(world, bpo, cv.width / 2, cv.height - Math.max(150, ext + 50), 0, 0);
+    if (world.map) cam = { x: player.cx, y: player.cy };
     player.hp0 = player.cells.reduce((s, c) => s + c.max, 0);   // for the HUD's Body bar
   }
 
   function startBattle(sb) {
     sandbox = sb === true;
-    if (!sandbox && cost() > budget) return;
-    world = newWorld(cv.width, cv.height); player = null;
+    if (!sandbox && buildCheck(blueprint(), prog.lvl)) return;
+    world = sandbox ? newWorld(cv.width, cv.height) : makeWorld(BIOME); player = null; place = null; bigMap = false;
     spawnPlayer();
     if (sandbox) world.idle = $('sbai').textContent.endsWith('idle');
-    else waveBlueprints(wave).forEach((e, i, es) => spawn(world, e, cv.width * (i + 1) / (es.length + 1), 150, Math.PI, 1));
-    mode = 'battle'; ended = false; hideTip(); closeCtx(); stamp = pdrag = adrag = null;
+    mode = 'battle'; hideTip(); closeCtx(); stamp = pdrag = adrag = null;
     $('panel').style.display = $('preview').style.display = $('lib').style.display = $('dock').style.display = 'none'; $('hud').style.display = 'block'; $('msg').style.display = 'none';
     $('sbar').style.display = sandbox ? 'flex' : 'none';
   }
@@ -569,16 +578,6 @@ function boot() {
     mode = 'build'; world = null; sandbox = false; $('sbar').style.display = 'none';
     $('panel').style.display = $('preview').style.display = $('lib').style.display = 'flex'; $('dock').style.display = 'block'; $('hud').style.display = 'none'; $('msg').style.display = 'none';
     rebuildTank();
-  }
-
-  function endBattle(won) {
-    ended = true;
-    if (won) { wave++; budget += WAVE_BONUS; }
-    $('msg').innerHTML = won
-      ? `<h2>Wave cleared</h2>+${WAVE_BONUS} biomass. Evolve your creature further.<br><br><button class="big" id="again">Back to builder</button>`
-      : `<h2>Your creature died</h2>Rethink the design and try wave ${wave} again.<br><br><button class="big" id="again">Back to builder</button>`;
-    $('msg').style.display = 'block';
-    $('again').onclick = toBuild;
   }
 
   addEventListener('keydown', e => {
@@ -606,7 +605,8 @@ function boot() {
     if (mode !== 'battle') return;
     if (e.key === 'Escape') toBuild();
     if (e.key.toLowerCase() === 't') player.auto = !player.auto;
-    if (sandbox && e.key.toLowerCase() === 'r') spawnPlayer();
+    if (e.key.toLowerCase() === 'm' && world.map) bigMap = !bigMap;
+    if (e.key.toLowerCase() === 'r' && (sandbox || !player.alive)) spawnPlayer();   // open world: only once dead
   });
   addEventListener('keyup', e => {
     keys.delete(e.key.toLowerCase());
@@ -874,11 +874,27 @@ function boot() {
       starving: cs.filter(c => c.starve).length, poisoned: cs.filter(c => c.poison).length,
     };
   }
+  const xpText = () => prog.lvl >= LVL_MAX ? 'max level' : `${prog.xp} / ${xpNeed(prog.lvl)} XP`;
+  // XP for the enemies killed since last frame (single player: every kill is yours; the server will credit whoever hurt them)
+  function collectKills() {
+    for (const k of world.kills) {
+      const n = killXP(k.lvl, prog.lvl), ups = gainXP(prog, n);
+      floaters.push({ x: k.x, y: k.y, text: `+${n} XP`, t: 1.5 });
+      if (!ups.length) continue;
+      budget = levelBiomass(prog.lvl);
+      const cells = ups.flatMap(u => u.cells).map(t => CELLS[t].name);
+      lvlBanner = { name: `Level ${prog.lvl}!`, sub: `Biomass ${budget} · ${levelCells(prog.lvl)} cells` + (cells.length ? ` · Unlocked: ${cells.join(', ')}` : '') + ' · rebuild in the builder (Esc)', t: 5 };
+    }
+    if (world.kills.length) saveProg();
+    world.kills.length = 0;
+  }
   let hudKeys = '';
   function drawHud(left) {
     const v = vitals(player), dead = !player.alive;
-    $('hudwave').textContent = sandbox ? 'Sandbox' : `Wave ${wave}`;
-    $('hudfoes').textContent = `Enemies ${left}`;
+    $('hudlvl').style.display = sandbox ? 'none' : '';
+    $('hudlvl').textContent = `Lv ${prog.lvl} · ${xpText()}`;
+    $('hudwave').textContent = sandbox ? 'Sandbox' : `${world.name} · ${place ? place.name : ''} · ${Math.round(player.cx)}, ${Math.round(player.cy)}`;
+    $('hudfoes').textContent = sandbox ? `Enemies ${left}` : `Enemies ${left} near · ${world.mobs.length} in ${world.name} · ${Math.round(fps)} fps`;
     HUD_BARS.forEach((b, i) => {
       const x = clamp01(v.bars[i]);
       b.fill.style.width = (x * 100).toFixed(1) + '%'; b.val.textContent = Math.round(x * 100) + '%';
@@ -887,14 +903,15 @@ function boot() {
     $('huddead').style.display = dead ? 'block' : 'none';
     $('hudchips').innerHTML = (v.starving ? `<span class="c-starve">${v.starving} starving</span>` : '')
       + (v.poisoned ? `<span class="c-poison">${v.poisoned} poisoned</span>` : '') + (player.auto ? '<span class="c-auto">Autopilot</span>' : '');
-    const k = (sandbox ? '<b>Click</b> spawn &nbsp;<b>Right-click</b> remove &nbsp;<b>R</b> respawn<br>' : '')
-      + '<b>W</b><b>S</b> swim &nbsp;<b>A</b><b>D</b> turn &nbsp;<b>Space</b> fire &nbsp;<b>1–9</b> triggers<br><b>T</b> autopilot &nbsp;<b>Shift+1–6</b> view &nbsp;<b>Esc</b> builder';
+    const k = (sandbox ? '<b>Click</b> spawn &nbsp;<b>Right-click</b> remove &nbsp;<b>R</b> respawn<br>' : dead ? '<b>R</b> respawn at the start<br>' : '')
+      + '<b>W</b><b>S</b> swim &nbsp;<b>A</b><b>D</b> turn &nbsp;<b>Space</b> fire &nbsp;<b>1–9</b> triggers<br><b>T</b> autopilot &nbsp;' + (world.map ? '<b>M</b> map &nbsp;' : '') + '<b>Shift+1–6</b> view &nbsp;<b>Esc</b> builder';
     if (k !== hudKeys) $('hudkeys').innerHTML = hudKeys = k;
   }
 
-  let last = performance.now();
+  let last = performance.now(), fps = 60;
   function frame(now) {
-    const dt = Math.min(0.033, (now - last) / 1000); last = now;
+    const raw = (now - last) / 1000, dt = Math.min(0.05, raw); last = now;   // a slow frame past 20 fps slows the game down
+    fps += (1 / Math.max(raw, 1e-3) - fps) * 0.05;
     if (mode === 'build') {
       const L = layout();
       for (const cr of tank.creatures) if (!cr.debris) { cr.want = 0; }
@@ -909,13 +926,36 @@ function boot() {
       const k = n => keys.has(n);
       const turn = (k('d') || k('arrowright') ? 1 : 0) - (k('a') || k('arrowleft') ? 1 : 0);
       const fwd = (k('w') || k('arrowup') ? 1 : 0) - (k('s') || k('arrowdown') ? 1 : 0);
-      if (!ended) {
-        step(world, dt, { fwd, turn, ability: k(' '), held: digits });
-        if (!sandbox && !player.alive) endBattle(false);
-        else if (!sandbox && !world.creatures.some(c => c.team === 1 && !c.debris)) endBattle(true);
+      // game time runs GAME_SPEED x real time, in steps of at most 1/60 s so the springs stay stable
+      const n = Math.ceil(dt * GAME_SPEED * 60 - 1e-6), h = dt * GAME_SPEED / n;
+      for (let i = 0; i < n; i++) {
+        if (world.map) tickWorld(world, [player], h);
+        step(world, h, { fwd, turn, ability: k(' '), held: digits });
       }
-      drawWater(ctx, world, cv.width, cv.height);
-      drawWorld(ctx, world, view);
+      if (world.map) collectKills();
+      if (world.map) {                                 // open world: the camera eases after the player
+        if (player.alive) { const e = Math.min(1, dt * 6); cam.x += (player.cx - cam.x) * e; cam.y += (player.cy - cam.y) * e; }
+        const x0 = cam.x - cv.width / 2, y0 = cam.y - cv.height / 2;
+        const p = placeAt(world.map, cam.x, cam.y);
+        if (!place || p.name !== place.name) { place = p; banner = 3; }
+        const tint = p.region ? p.region.water : '#0e1d24', n = parseInt(tint.slice(1), 16), dk = p.landmark ? 0.6 : 1, e2 = Math.min(1, dt * 1.5);
+        bg = bg.map((v, i) => v + (((n >> (16 - 8 * i)) & 255) * dk - v) * e2);   // the water colour eases to the region's
+        drawWater(ctx, world, cv.width, cv.height, cam.x, cam.y, `rgb(${bg.map(Math.round)})`);
+        ctx.save(); ctx.translate(-x0, -y0);
+        drawMap(ctx, world, x0, y0, x0 + cv.width, y0 + cv.height);
+        drawWorld(ctx, world, view);
+        drawMobs(ctx, world, prog.lvl);
+        floaters = floaters.filter(f => (f.t -= dt) > 0);
+        drawFloaters(ctx, floaters);
+        ctx.restore();
+        drawMinimap(ctx, world, player, cam, cv.width - 196, 16, 180, cv.width, cv.height);
+        if (banner > 0) { banner -= dt; drawBanner(ctx, place, banner / 3, cv.width, 80); }
+        if (lvlBanner && (lvlBanner.t -= dt) > 0) drawBanner(ctx, lvlBanner, lvlBanner.t / 5, cv.width, cv.height * 0.3);
+        if (bigMap) { const sz = Math.min(cv.width, cv.height) - 120; drawMinimap(ctx, world, player, cam, (cv.width - sz) / 2, 60, sz, cv.width, cv.height, true); }
+      } else {
+        drawWater(ctx, world, cv.width, cv.height);
+        drawWorld(ctx, world, view);
+      }
       drawHud(world.creatures.filter(c => c.team === 1 && !c.debris).length);
     }
     requestAnimationFrame(frame);

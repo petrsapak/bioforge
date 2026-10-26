@@ -145,11 +145,130 @@ function drawCell(ctx, c, view) {
 }
 const performanceNow = () => (typeof performance !== 'undefined' ? performance.now() / 1000 : 0);
 
-function drawWater(ctx, w, w0, h0) {
-  ctx.fillStyle = '#0e1d24'; ctx.fillRect(0, 0, w0, h0);
+// ox, oy: camera position in the open world; the motes drift past at half speed (depth). bg: the water colour
+function drawWater(ctx, w, w0, h0, ox = 0, oy = 0, bg = '#0e1d24') {
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w0, h0);
   ctx.fillStyle = 'rgba(120,200,220,0.05)';
+  const mod = (v, m) => (v % m + m) % m;
   for (let i = 0; i < 60; i++) {
-    const x = (i * 137.5 + w.t * 6 * (1 + i % 3)) % w0, y = (i * 91.3 + Math.sin(w.t * 0.3 + i) * 20 + h0) % h0;
+    const x = mod(i * 137.5 + w.t * 6 * (1 + i % 3) - ox * 0.5, w0), y = mod(i * 91.3 + Math.sin(w.t * 0.3 + i) * 20 + h0 - oy * 0.5, h0);
     ctx.beginPath(); ctx.arc(x, y, 1 + i % 3, 0, TAU); ctx.fill();
   }
+}
+
+// ---------- Open world ----------
+// rocks, currents and the map edge inside the view box [x0, y0, x1, y1] (world px)
+function drawMap(ctx, w, x0, y0, x1, y1) {
+  const map = w.map;
+  ctx.strokeStyle = '#2c4a52'; ctx.lineWidth = 6; ctx.strokeRect(0, 0, map.w, map.h);
+  ctx.strokeStyle = 'rgba(150,220,235,0.18)'; ctx.lineWidth = 1.5;   // currents: streaks drifting the way the water flows
+  for (const u of map.currents) {
+    if (u.x + u.r < x0 || u.x - u.r > x1 || u.y + u.r < y0 || u.y - u.r > y1) continue;
+    const v = Math.hypot(u.vx, u.vy), dx = u.vx / v, dy = u.vy / v;
+    for (let i = 0; i < u.r / 12; i++) {
+      const a = i * 2.39996, rr = u.r * Math.sqrt((i * 0.618) % 1), along = ((w.t * v + i * 97) % (2 * u.r)) - u.r;
+      const px = u.x + Math.cos(a) * rr + dx * along * 0.3, py = u.y + Math.sin(a) * rr + dy * along * 0.3;
+      if ((px - u.x) ** 2 + (py - u.y) ** 2 > u.r * u.r) continue;
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + dx * 14, py + dy * 14); ctx.stroke();
+    }
+  }
+  const seen = (x, y, r) => x + r > x0 && x - r < x1 && y + r > y0 && y - r < y1;
+  ctx.textAlign = 'center';
+  for (const r of map.regions) if (seen(r.at[0], r.at[1], 900) && !map.landmarks.some(l => Math.hypot(l.x - r.at[0], l.y - r.at[1]) < 300)) {     // the region's name written large on the sea floor
+    ctx.fillStyle = 'rgba(200,235,240,0.06)'; ctx.font = 'bold 110px system-ui'; ctx.fillText(r.name, r.at[0], r.at[1]);
+  }
+  for (const l of map.landmarks) if (seen(l.x, l.y, l.r + 150)) {    // dark floor inside the ring, name over it
+    ctx.fillStyle = l.kind === 'cave' ? 'rgba(0,0,0,0.35)' : l.kind === 'lair' ? 'rgba(40,0,10,0.45)' : 'rgba(20,40,80,0.25)';
+    ctx.beginPath(); ctx.arc(l.x, l.y, l.r, 0, TAU); ctx.fill();
+    ctx.fillStyle = l.kind === 'lair' ? 'rgba(255,110,110,0.5)' : l.kind === 'arena' ? 'rgba(150,190,255,0.45)' : 'rgba(230,220,180,0.35)';
+    ctx.font = 'bold 44px system-ui'; ctx.fillText((LANDMARK_ICON[l.kind] || '') + ' ' + l.name, l.x, l.y);
+    if (l.desc) { ctx.font = '22px system-ui'; ctx.fillText(l.desc, l.x, l.y + 36); }
+  }
+  const pulse = 0.5 + 0.5 * Math.sin(w.t * 3);
+  for (const o of map.rocks) {
+    if (!seen(o.x, o.y, o.r)) continue;
+    if (o.gate) {                                     // the sealed boss door: glowing membrane
+      ctx.fillStyle = `rgba(180,30,60,${0.45 + 0.3 * pulse})`; ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, TAU); ctx.fill();
+      ctx.strokeStyle = '#ff7a8a'; ctx.lineWidth = 2; ctx.stroke(); continue;
+    }
+    const base = map.regions[o.k] ? map.regions[o.k].rock : '#3b5058';
+    ctx.fillStyle = o.ring ? shade(base, 0.45) : shade(base, 0.65); ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, TAU); ctx.fill();
+    ctx.strokeStyle = base; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = shade(base, o.ring ? 0.55 : 0.78); ctx.beginPath(); ctx.arc(o.x - o.r * 0.25, o.y - o.r * 0.25, o.r * 0.5, 0, TAU); ctx.fill();
+  }
+}
+const LANDMARK_ICON = { cave: '◖', lair: '☠', arena: '★' };
+// '#rrggbb' scaled toward black by k (cached: called for every rock each frame)
+const SHADE = new Map();
+function shade(hex, k) {
+  const id = hex + k;
+  if (!SHADE.has(id)) { const n = parseInt(hex.slice(1), 16); SHADE.set(id, `rgb(${(n >> 16) * k | 0},${(n >> 8 & 255) * k | 0},${(n & 255) * k | 0})`); }
+  return SHADE.get(id);
+}
+// the place's name in big letters across the screen, fading out (a = 0..1)
+function drawBanner(ctx, place, a, cw, y) {
+  ctx.globalAlpha = Math.min(1, a * 2); ctx.textAlign = 'center';
+  ctx.fillStyle = '#f2ead0'; ctx.font = 'bold 34px system-ui'; ctx.fillText(place.name, cw / 2, y);
+  ctx.fillStyle = '#b8c4c8'; ctx.font = '16px system-ui'; ctx.fillText(place.sub, cw / 2, y + 26);
+  ctx.globalAlpha = 1;
+}
+
+// over every awake enemy its level, coloured by how it compares to yours (lvl): grey (worth little) green white
+// orange red; above that a mark when not idle: ! chasing, ? fleeing, ~ going home
+const lvlColor = gap => gap <= -5 ? '#7d8790' : gap <= -2 ? '#7fd67f' : gap <= 1 ? '#e8ecef' : gap <= 3 ? '#f0a040' : '#ff5a4a';
+function drawMobs(ctx, w, lvl) {
+  ctx.textAlign = 'center';
+  for (const cr of w.mobs) {
+    if (cr.frozen || !cr.box) continue;
+    const s = cr.mob.state, L = cr.mob.sp.lvl;
+    ctx.font = 'bold 12px system-ui'; ctx.fillStyle = lvlColor(L - lvl); ctx.fillText('Lv ' + L, cr.cx, cr.box[1] - 6);
+    if (s === 'idle') continue;
+    ctx.font = 'bold 16px system-ui';
+    ctx.fillStyle = s === 'chase' ? '#ff6a5a' : s === 'flee' ? '#e8c547' : '#8a96a3';
+    ctx.fillText(s === 'chase' ? '!' : s === 'flee' ? '?' : '~', cr.cx, cr.box[1] - 22);
+  }
+}
+// rising "+12 XP" texts: { x, y, text, t } with t = seconds left
+function drawFloaters(ctx, list) {
+  ctx.textAlign = 'center'; ctx.font = 'bold 15px system-ui'; ctx.fillStyle = '#e8c547';
+  for (const f of list) { ctx.globalAlpha = Math.min(1, f.t); ctx.fillText(f.text, f.x, f.y - (1.5 - f.t) * 40); }
+  ctx.globalAlpha = 1;
+}
+
+// the whole map scaled into a size x size box at (x, y): regions, rocks, landmarks, spawners, awake enemies, you, and
+// the view (cam = its middle). big: the full map (M key), with every region and landmark named
+function drawMinimap(ctx, w, me, cam, x, y, size, vw, vh, big = false) {
+  const map = w.map, k = size / Math.max(map.w, map.h), g = REGION_G * k;
+  ctx.save(); ctx.translate(x, y);
+  ctx.fillStyle = 'rgba(8,16,20,0.9)'; ctx.fillRect(0, 0, map.w * k, map.h * k);
+  ctx.globalAlpha = 0.8;
+  for (let j = 0; j < map.rrows; j++) for (let i = 0; i < map.rcols; i++) {
+    const r = map.regions[map.rgrid[i + j * map.rcols]];
+    if (r) { ctx.fillStyle = r.water; ctx.fillRect(i * g, j * g, g + 0.5, g + 0.5); }
+  }
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = '#2c4a52'; ctx.lineWidth = 1; ctx.strokeRect(0, 0, map.w * k, map.h * k);
+  for (const o of map.rocks) {
+    ctx.fillStyle = o.gate ? '#d0405a' : map.regions[o.k] ? map.regions[o.k].rock : '#3b5058';
+    ctx.beginPath(); ctx.arc(o.x * k, o.y * k, Math.max(1, o.r * k), 0, TAU); ctx.fill();
+  }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#e8c547'; ctx.font = `${big ? 18 : 11}px system-ui`; ctx.fillText('⌂', map.start[0] * k, map.start[1] * k);
+  for (const l of map.landmarks) {
+    ctx.fillStyle = l.kind === 'lair' ? '#ff6a7a' : l.kind === 'arena' ? '#9ec0ff' : '#e6dcb4';
+    ctx.font = `bold ${big ? 18 : 11}px system-ui`; ctx.fillText(LANDMARK_ICON[l.kind] || '•', l.x * k, l.y * k);
+    if (big) { ctx.font = '12px system-ui'; ctx.fillText(l.name, l.x * k, l.y * k + 16); }
+  }
+  if (big) {
+    ctx.font = 'bold 14px system-ui'; ctx.fillStyle = 'rgba(240,235,215,0.85)';
+    for (const r of map.regions) if (!map.landmarks.some(l => Math.hypot(l.x - r.at[0], l.y - r.at[1]) < 300)) ctx.fillText(r.name, r.at[0] * k, r.at[1] * k);
+  }
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = 'rgba(255,106,90,0.35)';
+  for (const sp of map.spawners) ctx.fillRect(sp.x * k - 1.5, sp.y * k - 1.5, 3, 3);
+  ctx.fillStyle = '#ff6a5a';
+  for (const cr of w.mobs) if (!cr.frozen) ctx.fillRect(cr.cx * k - 1, cr.cy * k - 1, 2, 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.strokeRect((cam.x - vw / 2) * k, (cam.y - vh / 2) * k, vw * k, vh * k);
+  if (me.alive) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(me.cx * k, me.cy * k, 2.5, 0, TAU); ctx.fill(); }
+  ctx.restore();
 }

@@ -13,12 +13,12 @@ function app(tplNames) {
   const document = { getElementById: id => els[id] || (els[id] = mkEl(id)), createElement: () => mkEl('x'),
     querySelectorAll: s => s === '[data-tpl]' ? tpl : [] };
   const raf = [];
-  load({ document, window: {}, innerWidth: 1600, innerHeight: 900, performance: { now: () => Date.now() },
+  const ctx = load({ document, window: {}, innerWidth: 1600, innerHeight: 900, performance: { now: () => Date.now() },
     requestAnimationFrame: f => raf.push(f), addEventListener: (ev, f) => on('win', ev, f) });
   let t = Date.now();
   const run = n => { for (let i = 0; i < n; i++) { const f = raf.shift(); t += 16; f(t); } };
   const $ = id => document.getElementById(id);
-  return { els, $, fire, run, tpl, document };
+  return { els, $, fire, run, tpl, document, ctx };   // ctx: the game's global scope
 }
 
 let ok = true;

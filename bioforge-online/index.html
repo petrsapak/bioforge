@@ -21,14 +21,14 @@
     </div>
     <div class="row">
       <button class="small" id="savecr" title="Save the whole creature to My creatures in the Templates library">Save creature</button>
-      <button class="small" id="freebuild" title="Build without the biomass limit. Fight stays locked while over budget; the Sandbox takes any size">Unlimited biomass</button>
+      <button class="small" id="freebuild" title="Build without the biomass limit. Entering the world stays locked while over budget; the Sandbox takes any size">Unlimited biomass</button>
     </div>
   </div></details>
   <details data-node="info" open><summary>Selected</summary><div class="node"><div id="info"></div></div></details>
   <details data-node="view"><summary>View (Shift+1–6)</summary><div class="node"><div class="row" id="views"></div></div></details>
   <details data-node="help"><summary>Guide</summary><div class="node">
     <div class="sub">Soft-body cells. Nerves decide when cells act. Oxygen, energy, waste and the hormones that boost or heal spread from cell to cell through the whole body; Hearts speed that up near them.</div>
-    <div class="help">Cells: left-click place, right-click remove. Cells not connected to the Nucleus are only planned (faded, dashed): they cost nothing and are left out of the creature until you join them to the body. Top of the grid = front.<br>Grid: mouse wheel zooms, middle-drag pans, F shows the whole grid.<br>Templates: Ctrl+click cells to select them, right-click a selected cell to save them as a template. Click a saved part in the library to stamp it: Q/E rotate, click to place, right-click or Esc to stop.<br>Save creature (Edit) stores the whole creature, Bud parts, aims and key bindings included; click it under My creatures to load it.<br>Click a placed cell to set it up: drag a part from the library onto a Bud to make it grow that part, then drag the part's dots to move it, Q/E turn it around the Bud, drag the arrow tip to aim; a Command takes the number key (1–9) you press.<br>Builder: hold Space to fire Command and Eyespot cells; the grid shows signals and fluids live. Mouths are fed here.<br><br>Battle: W/S swim forward/back, A/D turn, Space fires unbound Command cells, 1–9 fire bound ones, T autopilot, Shift+1–6 view, Esc builder.<br>Sandbox: no budget. Pick yourself and an enemy in the top bar; click the water to spawn, right-click to remove, R respawns you.</div>
+    <div class="help">Cells: left-click place, right-click remove. Cells not connected to the Nucleus are only planned (faded, dashed): they cost nothing and are left out of the creature until you join them to the body. Top of the grid = front.<br>Grid: mouse wheel zooms, middle-drag pans, F shows the whole grid.<br>Templates: Ctrl+click cells to select them, right-click a selected cell to save them as a template. Click a saved part in the library to stamp it: Q/E rotate, click to place, right-click or Esc to stop.<br>Save creature (Edit) stores the whole creature, Bud parts, aims and key bindings included; click it under My creatures to load it.<br>Click a placed cell to set it up: drag a part from the library onto a Bud to make it grow that part, then drag the part's dots to move it, Q/E turn it around the Bud, drag the arrow tip to aim; a Command takes the number key (1–9) you press.<br>Builder: hold Space to fire Command and Eyespot cells; the grid shows signals and fluids live. Mouths are fed here.<br><br>World (Enter Tidepool): swim the open Tidepool, the camera follows you. Tidepool is split into named regions, each with its own enemies, water and rock colours; the name shows when you enter one. Caves (◖) hold a den of tougher enemies, ☠ The Maw is the sealed dungeon boss lair, ★ the Leviathan Ring is where the world boss will appear. The minimap (top right) shows regions, landmarks, spawn zones (dim red) and nearby enemies; M opens the full map with every name. Levels: killing enemies gives XP (Lv over each enemy: grey = worth little, white = your level, orange/red = tougher and worth more). Each level raises your biomass and cell limit and unlocks new cell types (locked ones show their level in the dock); rebuild in the builder to use them. Level is kept in this browser. Enemies notice you when you come close (!), chase you, give up and swim home when you get away or they stray too far (~), and some flee when hurt (?). W/S swim forward/back, A/D turn, Space fires unbound Command cells, 1–9 fire bound ones, T autopilot, M map, Shift+1–6 view, R respawns after death, Esc builder.<br>Sandbox: no budget. Pick yourself and an enemy in the top bar; click the water to spawn, right-click to remove, R respawns you.</div>
   </div></details>
 </div></details>
 </div>
@@ -62,7 +62,7 @@
       <button class="small" data-tpl="nettler">Nettler</button>
       <button class="small" data-tpl="puffer">Puffer</button>
     </div>
-    <div class="help">Showcase (cost more than you start with; try them in the Sandbox, Fight unlocks once you can afford them):</div>
+    <div class="help">Showcase (cost more than you start with; try them in the Sandbox, you can take them into the world once you can afford them):</div>
     <div class="row">
       <button class="small" data-tpl="eel" title="Pacemakers curl the tail into an S; eyespots fire the head nettles; Space releases adrenaline">Eel</button>
       <button class="small" data-tpl="jelly" title="A ring of bloaters pulses the bell; thorn tentacles trail behind; the eyespot cap stings">Jelly</button>
@@ -82,7 +82,7 @@
   <div class="row"><button class="small" id="ctxsave">Save template</button><button class="small" id="ctxclear">Clear selection</button></div>
 </div>
 <div id="hud">
-  <div id="hudtop"><div class="hchip" id="hudwave"></div><div class="hchip" id="hudfoes"></div></div>
+  <div id="hudtop"><div class="hchip" id="hudlvl"></div><div class="hchip" id="hudwave"></div><div class="hchip" id="hudfoes"></div></div>
   <div id="hudvit"><div id="huddead">You died · R respawns</div><div id="hudbars"></div><div id="hudchips"></div></div>
   <div id="hudkeys"></div>
 </div>
@@ -93,6 +93,9 @@
 <script src="data/cells.js"></script>
 <script src="data/tips.js"></script>
 <script src="data/templates.js"></script>
+<script src="data/biomes.js"></script>
+<script src="progress.js"></script>
+<script src="world.js"></script>
 <script src="render.js"></script>
 <script src="ui.js"></script>
 <script src="game.js"></script>

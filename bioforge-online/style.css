@@ -105,3 +105,5 @@ button.big:disabled { background: #4a3a38; color: #c9a9a0; cursor: default; }
 #tip b { color: #dfe4ea; }
 #tip .h { margin-top: 6px; color: #e8c547; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
 #tip .dim { color: #6f7b88; font-size: 12px; }
+.pal.locked canvas { opacity: 0.3; }
+.pal.locked::after { content: attr(data-lock); position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #e8c547; font: bold 11px system-ui; pointer-events: none; }

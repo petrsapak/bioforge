@@ -42,11 +42,30 @@ Each milestone ends with something playable and a test script.
    - Spatial hash for collisions. Only creatures within about 1.5 screens of the player are simulated; the rest sleep.
    - Spawn zones respawn enemies on a timer. Enemy AI has idle, aggro radius, chase, leash back to spawn and flee.
    - Test: 200+ enemies in the world at 60 fps; leashing works.
+   - ✅ Done 2026-10-26 (`world.js`, `data/biomes.js`, `tests/world.js`).
+     - 209 enemies in 49 spawn zones across 8 kinds, placed in rings by difficulty from the centre start. Map layout is generated from a seed.
+     - Sleeping enemies are taken out of the sim and put back unchanged. Sim time is about 2–6 ms per frame with 10–45 enemies awake.
+     - The spatial hash covers only rocks. Creature-vs-creature collisions are still checked pair by pair; that's fine for the awake counts here, but needed for the server in phase 3.
+     - Snare lines and eyespots still pass through rocks; globs don't.
+     - The wave arena is gone and the Fight button now enters Tidepool. Sandbox is unchanged.
+     - `ui.js` is not split yet. Splitting it makes sense with the hub, when the builder gets locked to town (milestone 5).
+   - **Places pass** (2026-10-26, after playtest feedback "world unremarkable, starters too big"):
+     - 11 named regions (nearest-centre areas), each with its own enemies, water colour and rock colour. Entering one shows its name as a banner; the HUD names it; M opens the full map with every name.
+     - Landmarks are rings of rock in the data: 4 caves with a den of tougher enemies, The Maw (dungeon boss lair, sealed until milestone 7) and the Leviathan Ring (world boss arena, empty for now). The start area is labelled Haven, where the hub goes in milestone 5.
+     - New smallest prey around the start: mote (5 cells, passive, runs when hurt) and nipper (6 cells, one thorn). 280 enemies in 65 spawn zones.
 3. **Progression.**
    - XP per kill, scaled by the level gap. A level curve.
    - Each level raises the biomass budget and the cap on cell count.
    - Cell types unlock by level or as boss drops.
    - Test: level 1→5 with expected XP; a design over budget is rejected.
+   - ✅ Done 2026-10-26 (`progress.js`, `tests/progress.js`).
+     - Levels 1–20. XP to next level = 30·L^1.7 (30, 98, 194, 317…). A kill gives 15·m^1.3 XP for a level m enemy, +15% per level above you (at most +50%), −20% per level below (at least 10%). 2 even-level kills for level 2, then 3–4 per level early on.
+     - Biomass 40 + 8 per level; cell cap 16 + 3 per level. The showcase builds fit around level 11.
+     - Cell types unlock by level (`CELL_LVL`): basic body, thorn, muscle, bloater, pacemaker and heart at 1, up to Bud at 10. Locked cells can't be placed (except with Unlimited biomass) and block entering the world.
+     - Enemy levels come from the biome zones (mote 1 … manta/crab 10; cave dens +1) and show over every enemy, coloured by the gap.
+     - Kills: the world logs every enemy death and the game credits them all to you. The phase 3 server needs real credit (who did the damage).
+     - Game speed: the world and sandbox run at 2.5x real time (`GAME_SPEED` in `ui.js`), stepped at most 1/60 s at a time, so the sim runs about 3 times per frame. The HUD shows fps.
+     - Level and XP are saved to localStorage now (key `bioforge-progress`) so a reload doesn't wipe them; full saving stays milestone 8.
 4. **Cells as inventory.** You own a count of each cell type, and a design can only use cells you own. Kills and quests drop cells as pickups.
    - This is required for the red-name cell drops in phase 3, so it goes in now.
    - Test: build/unbuild keeps counts right; loot pickup works.

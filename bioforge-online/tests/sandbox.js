@@ -32,5 +32,5 @@ run(600); check('9 enemy types brawl for 10s without error', true, $('hudfoes').
 key('Escape'); run(5);
 check('Esc back to builder', $('sbar').style.display === 'none' && $('hud').style.display === 'none');
 tpl[names.indexOf('wiggler')].onclick(); run(5); $('fight').onclick(); run(30);
-check('normal fight still spawns wave and hides sandbox bar', foes() >= 1 && $('sbar').style.display === 'none' && /Wave 1/.test($('hudwave').textContent));
+check('Enter Tidepool opens the world and hides sandbox bar', $('sbar').style.display === 'none' && /Tidepool/.test($('hudwave').textContent), $('hudwave').textContent + ' | ' + $('hudfoes').textContent);
 done();

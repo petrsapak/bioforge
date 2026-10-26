@@ -13,7 +13,7 @@ const NETTLE_R = 45, NETTLE_DMG = 4, NETTLE_CD = 0.5;
 // Snare: line reach (px), line speed, pull per px of stretch, pull cap, reel-in speed, shortest line, hold time, pause after
 const SNARE_LEN = 200, SNARE_V = 700, SNARE_K = 60, SNARE_F = 1500, SNARE_REEL = 150, SNARE_MIN = 3 * CR, SNARE_HOLD = 2.5, SNARE_CD = 1.5;
 const SPIT_DMG = 6, SPIT_V = 450, SPIT_R = 280, SPIT_CD = 0.7;   // Spitter: glob damage, speed, range, pause between globs
-const DEBRIS_DECAY = 6, DRONE_MIN = 0.05, START_BUDGET = 50, WAVE_BONUS = 15;
+const DEBRIS_DECAY = 6, DRONE_MIN = 0.05;
 // fluids: amounts per cell, flow between touching cells from high to low fill level (amount / capacity)
 const O = 0, S = 1, W = 2, R = 3, A = 4;
 const FLUIDS = [{ name: 'Oxygen', short: 'O₂', color: '#ff5560' }, { name: 'Energy', short: 'Energy', color: '#ffd23f' },
@@ -257,6 +257,7 @@ function forces(w) {
     A.fx += ax; A.fy += ay; B.fx += bx; B.fy += by; c.fx -= ax + bx; c.fy -= ay + by;
   }
   for (const c of w.cells) { c.fx -= DRAG_ISO * c.vx; c.fy -= DRAG_ISO * c.vy; }
+  if (w.map) for (const c of w.cells) currents(w.map, c);   // open world (world.js)
   // a Snare's line pulls its catch in hard; the Snare feels only part of it, so small prey comes to you
   for (const c of w.cells) {
     const t = c.line && c.line.tgt;
@@ -320,6 +321,7 @@ function integrate(w, h) {
     if (c.x > w.w - c.rad) { c.x = w.w - c.rad; c.vx = -Math.abs(c.vx) * 0.3; }
     if (c.y < c.rad) { c.y = c.rad; c.vy = Math.abs(c.vy) * 0.3; }
     if (c.y > w.h - c.rad) { c.y = w.h - c.rad; c.vy = -Math.abs(c.vy) * 0.3; }
+    if (w.map) rockHit(w.map, c);
   }
 }
 
@@ -500,6 +502,7 @@ function snareLine(w, c, dt) {
 function globs(w, dt) {
   w.globs = w.globs.filter(g => {
     g.x += g.vx * dt; g.y += g.vy * dt; g.life -= dt;
+    if (w.map && blocked(w.map, g.x, g.y, 0)) return false;
     for (const o of w.creatures) {
       const b = o.box;
       if (o.team === g.team || !b || g.x < b[0] - 4 || g.x > b[2] + 4 || g.y < b[1] - 4 || g.y > b[3] + 4) continue;
@@ -513,7 +516,7 @@ function globs(w, dt) {
 
 // food specks drift in the battle arena; a creature with a Mouth eats the specks that touch any of its cells (into a Mouth with room)
 function food(w, dt) {
-  if (!w.test) {
+  if (!w.test && !w.map) {                           // the open world puts food around players (world.js)
     w.foodT -= dt;
     if (w.foodT <= 0 && w.food.length < FOOD_MAX) {
       w.foodT = FOOD_EVERY;
@@ -595,6 +598,14 @@ function regrow(w, dt) {
   }
 }
 
+// take a creature (and its springs and fluid links) out of the world
+function removeCreature(w, cr) {
+  const gone = c => c.owner === cr;
+  w.cells = w.cells.filter(c => !gone(c)); w.bonds = w.bonds.filter(b => !gone(b.a));
+  w.angles = w.angles.filter(g => !gone(g.c)); w.links = w.links.filter(v => !gone(v.a));
+  w.creatures = w.creatures.filter(c => c !== cr);
+}
+
 function sparks(w, x, y, color, n) {
   for (let i = 0; i < n; i++) {
     const a = Math.random() * TAU, sp = 40 + Math.random() * 140;
@@ -617,7 +628,7 @@ function aiControl(w, cr) {
 
 function step(w, dt, input) {
   for (const cr of w.creatures) {
-    if (cr.debris) continue;
+    if (cr.debris || cr.mob) continue;              // open-world enemies are steered by world.js
     if (cr.team !== 0 && w.idle) { cr.sx = cr.sy = 0; cr.ability = false; }   // sandbox: enemies hold still
     else if (cr.ai || cr.auto) aiControl(w, cr);
     else if (input && 'fwd' in input) {
@@ -653,11 +664,3 @@ function step(w, dt, input) {
   w.zaps = w.zaps.filter(z => z.life > 0);
 }
 
-// ---------- Waves ----------
-function waveBlueprints(n) {
-  const T = TEMPLATES;
-  const hand = { 1: [T.wiggler], 2: [T.nettler], 3: [T.puffer], 4: [T.wiggler, T.nettler], 5: [T.squirter, T.puffer] };
-  if (hand[n]) return hand[n];
-  const pool = [T.wiggler, T.squirter, T.nettler, T.puffer];
-  return Array.from({ length: Math.min(6, n - 3) }, (_, i) => pool[(n + i) % pool.length]);
-}
