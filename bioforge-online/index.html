@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bioforge Online</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="panel">
+<div id="grip" title="Drag to move · drag the bottom-right corner to resize">• • •</div>
+<div id="tree">
+<details id="root" data-node="root" open><summary>BIOFORGE ONLINE</summary><div class="node">
+  <details data-node="creature" open><summary>Creature</summary><div class="node">
+    <div id="budget"></div>
+    <div id="stats"></div>
+  </div></details>
+  <details data-node="edit" open><summary>Edit</summary><div class="node">
+    <div class="row">
+      <button class="small" data-tpl="clear" title="Start over with just the Nucleus">Clear all</button>
+    </div>
+    <div class="row">
+      <button class="small" id="savecr" title="Save the whole creature to My creatures in the Templates library">Save creature</button>
+      <button class="small" id="freebuild" title="Build without the biomass limit. Fight stays locked while over budget; the Sandbox takes any size">Unlimited biomass</button>
+    </div>
+  </div></details>
+  <details data-node="info" open><summary>Selected</summary><div class="node"><div id="info"></div></div></details>
+  <details data-node="view"><summary>View (Shift+1–6)</summary><div class="node"><div class="row" id="views"></div></div></details>
+  <details data-node="help"><summary>Guide</summary><div class="node">
+    <div class="sub">Soft-body cells. Nerves decide when cells act. Oxygen, energy, waste and the hormones that boost or heal spread from cell to cell through the whole body; Hearts speed that up near them.</div>
+    <div class="help">Cells: left-click place, right-click remove. Cells not connected to the Nucleus are only planned (faded, dashed): they cost nothing and are left out of the creature until you join them to the body. Top of the grid = front.<br>Grid: mouse wheel zooms, middle-drag pans, F shows the whole grid.<br>Templates: Ctrl+click cells to select them, right-click a selected cell to save them as a template. Click a saved part in the library to stamp it: Q/E rotate, click to place, right-click or Esc to stop.<br>Save creature (Edit) stores the whole creature, Bud parts, aims and key bindings included; click it under My creatures to load it.<br>Click a placed cell to set it up: drag a part from the library onto a Bud to make it grow that part, then drag the part's dots to move it, Q/E turn it around the Bud, drag the arrow tip to aim; a Command takes the number key (1–9) you press.<br>Builder: hold Space to fire Command and Eyespot cells; the grid shows signals and fluids live. Mouths are fed here.<br><br>Battle: W/S swim forward/back, A/D turn, Space fires unbound Command cells, 1–9 fire bound ones, T autopilot, Shift+1–6 view, Esc builder.<br>Sandbox: no budget. Pick yourself and an enemy in the top bar; click the water to spawn, right-click to remove, R respawns you.</div>
+  </div></details>
+</div></details>
+</div>
+<button class="big" id="fight"></button>
+<button class="big" id="sandbox" title="Free play, no budget: pick any creature, click the water to spawn enemies">Sandbox ▶</button>
+</div>
+<div id="sbar">
+  <label>You <select id="sbme"></select></label>
+  <label>Spawn <select id="sbfoe"></select></label>
+  <span class="help">click the water</span>
+  <button class="small" id="sbai">Enemies: hunt</button>
+  <button class="small" id="sbclear">Clear enemies</button>
+  <button class="small" id="sbrespawn">Respawn me</button>
+  <button class="small" id="sbexit">Builder</button>
+</div>
+<div id="dock"><div id="dockin">
+  <div id="dockbar">Cells</div>
+  <div id="palette"></div>
+</div></div>
+<div id="preview">
+  <div id="pvbar" title="Drag to move · drag the bottom-right corner to resize"><span>Preview</span><button id="pvtoggle" title="Hide / show">–</button></div>
+  <canvas id="pv"></canvas>
+</div>
+<div id="lib">
+  <div id="libbar" title="Drag to move · drag the bottom-right corner to resize"><span>Templates</span><button id="libtoggle" title="Hide / show">–</button></div>
+  <div id="libbody">
+    <div class="libh">Built-in</div>
+    <div class="row">
+      <button class="small" data-tpl="wiggler">Wiggler</button>
+      <button class="small" data-tpl="squirter">Squirter</button>
+      <button class="small" data-tpl="nettler">Nettler</button>
+      <button class="small" data-tpl="puffer">Puffer</button>
+    </div>
+    <div class="help">Showcase (cost more than you start with; try them in the Sandbox, Fight unlocks once you can afford them):</div>
+    <div class="row">
+      <button class="small" data-tpl="eel" title="Pacemakers curl the tail into an S; eyespots fire the head nettles; Space releases adrenaline">Eel</button>
+      <button class="small" data-tpl="jelly" title="A ring of bloaters pulses the bell; thorn tentacles trail behind; the eyespot cap stings">Jelly</button>
+      <button class="small" data-tpl="manta" title="Both wings flap: bloaters on top swell while muscles underneath contract; Space fires the jets and adrenaline">Manta</button>
+      <button class="small" data-tpl="crab" title="Space snaps both pincers shut and fires the back jets; shell carapace">Crab</button>
+    </div>
+    <div class="libh">My creatures</div>
+    <div id="mycr"></div>
+    <div class="libh">My templates</div>
+    <div id="mylib"></div>
+    <div class="help">Ctrl+click cells to select, right-click a selected cell to save. Click a part to stamp it: Q/E rotate, click to place, right-click or Esc to stop. Drag a part onto a Bud to make the Bud grow it. Edit → Save creature saves the whole creature to My creatures; click one to load it (replaces the design). Saving under the same name overwrites.</div>
+  </div>
+</div>
+<div id="ctx">
+  <div id="ctxn"></div>
+  <input id="ctxname" maxlength="40" placeholder="Template name">
+  <div class="row"><button class="small" id="ctxsave">Save template</button><button class="small" id="ctxclear">Clear selection</button></div>
+</div>
+<div id="hud">
+  <div id="hudtop"><div class="hchip" id="hudwave"></div><div class="hchip" id="hudfoes"></div></div>
+  <div id="hudvit"><div id="huddead">You died · R respawns</div><div id="hudbars"></div><div id="hudchips"></div></div>
+  <div id="hudkeys"></div>
+</div>
+<div id="msg"></div>
+<div id="tip"></div>
+
+<script src="sim.js"></script>
+<script src="data/cells.js"></script>
+<script src="data/tips.js"></script>
+<script src="data/templates.js"></script>
+<script src="render.js"></script>
+<script src="ui.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+// sandbox: enter over budget, swap player, spawn/remove enemies by click, idle vs hunt, no win/lose, exit
+const { app, check, done } = require('./dom');
+const names = ['wiggler', 'squirter', 'nettler', 'puffer', 'clear', 'eel', 'jelly', 'manta', 'crab'];
+const { $, fire, run, tpl } = app(names);
+const foes = () => +/Enemies (\d+)/.exec($('hudfoes').textContent)[1];
+const alive = () => $('huddead').style.display === 'none';
+const click = (x, y, button = 0) => fire('game', 'mousedown', { clientX: x, clientY: y, button, preventDefault() {} });
+const key = k => fire('win', 'keydown', { key: k, preventDefault() {} });
+run(5);
+tpl[names.indexOf('eel')].onclick(); run(5);
+check('fight locked over budget', $('fight').disabled === true);
+$('sandbox').onclick(); run(10);
+check('sandbox starts over budget, empty arena', $('hud').style.display === 'block' && $('sbar').style.display === 'flex' && foes() === 0, $('hudwave').textContent);
+$('sbme').value = 'manta'; $('sbme').onchange(); run(30);
+check('swap player to manta, alive', alive());
+$('sbfoe').value = 'crab'; click(500, 200); $('sbfoe').value = 'jelly'; click(1100, 200); run(5);
+check('click spawns enemies', foes() === 2);
+$('sbai').onclick(); run(180);
+check('idle toggle label', $('sbai').textContent === 'Enemies: idle');
+click(500, 200, 2); run(2);
+check('idle crab still where spawned, right-click removes it', foes() === 1);
+$('sbai').onclick(); run(240);
+click(1100, 200, 2); run(2);
+check('hunting jelly moved away from spawn point (right-click misses)', foes() === 1);
+click(800, 900 - 160, 2); run(2);
+check('right-click on player does not remove it', alive());
+$('sbclear').onclick(); run(30);
+check('clear enemies, no win screen', foes() === 0 && $('msg').style.display !== 'block');
+key('r'); run(10); check('R respawns', alive());
+for (const n of ['wiggler', 'squirter', 'nettler', 'puffer', 'starter', 'eel', 'jelly', 'manta', 'crab']) { $('sbfoe').value = n; click(200 + Math.random() * 1200, 120 + Math.random() * 200); }
+run(600); check('9 enemy types brawl for 10s without error', true, $('hudfoes').textContent);
+key('Escape'); run(5);
+check('Esc back to builder', $('sbar').style.display === 'none' && $('hud').style.display === 'none');
+tpl[names.indexOf('wiggler')].onclick(); run(5); $('fight').onclick(); run(30);
+check('normal fight still spawns wave and hides sandbox bar', foes() >= 1 && $('sbar').style.display === 'none' && /Wave 1/.test($('hudwave').textContent));
+done();
