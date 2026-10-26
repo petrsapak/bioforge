@@ -64,6 +64,7 @@ Each milestone ends with something playable and a test script.
      - Cell types unlock by level (`CELL_LVL`): basic body, thorn, muscle, bloater, pacemaker and heart at 1, up to Bud at 10. Locked cells can't be placed (except with Unlimited biomass) and block entering the world.
      - Enemy levels come from the biome zones (mote 1 … manta/crab 10; cave dens +1) and show over every enemy, coloured by the gap.
      - Kills: the world logs every enemy death and the game credits them all to you. The phase 3 server needs real credit (who did the damage).
+     - Enemy AI after playtest: no heal on returning home (only Menders heal; an enemy that falls asleep far from every player is still reset home healed). Fleeing kinds flee once per fight at 60% speed, then turn back and fight; passive motes calm down where they are.
      - Game speed: the world and sandbox run at 2.5x real time (`GAME_SPEED` in `ui.js`), stepped at most 1/60 s at a time, so the sim runs about 3 times per frame. The HUD shows fps.
      - Level and XP are saved to localStorage now (key `bioforge-progress`) so a reload doesn't wipe them; full saving stays milestone 8.
 4. **Cells as inventory.** You own a count of each cell type, and a design can only use cells you own. Kills and quests drop cells as pickups.

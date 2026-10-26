@@ -107,7 +107,7 @@ const dummy = (w, x, y) => { const d = spawn(w, { cells: bp([[0, 0, 'nucleus'], 
   check('enemy notices the player and chases', chased);
   check('player got away: enemy gives up', mob.mob.state !== 'chase' && Math.hypot(me.cx - mob.cx, me.cy - mob.cy) > 300 * 2.5 - 10, mob.mob.state);
 }
-{ // the player stays just ahead, luring the enemy out: past the leash range it turns back, swims home, heals
+{ // the player stays just ahead, luring the enemy out: past the leash range it turns back and swims home
   const w = lab();
   const sp = w.map.spawners[0], mob = w.mobs[0];
   const me = dummy(w, sp.x + 700, sp.y);
@@ -124,7 +124,7 @@ const dummy = (w, x, y) => { const d = spawn(w, { cells: bp([[0, 0, 'nucleus'], 
   const home = Math.hypot(mob.cx - sp.x, mob.cy - sp.y);
   check('lured past the leash range, it turns back', leashed && far > LEASH_R - 50 && far < LEASH_R + 150, `went ${far.toFixed(0)} px out (leash ${LEASH_R}), ${(t / 60).toFixed(0)} s`);
   check('swims home and goes idle', mob.mob.state === 'idle' && home < sp.r, `${mob.mob.state}, ${home.toFixed(0)} px from home`);
-  check('back home with full health', hp(mob) >= mob.hp0 - 1e-6, `${hp(mob).toFixed(0)} / ${mob.hp0}`);
+  check('no free heal at home (it has no Mender)', hp(mob) < mob.hp0 - 10, `${hp(mob).toFixed(0)} / ${mob.hp0}`);
 }
 { // hurting it from outside its aggro range makes it come for you
   const w = lab();
@@ -148,6 +148,11 @@ const dummy = (w, x, y) => { const d = spawn(w, { cells: bp([[0, 0, 'nucleus'], 
   let d0 = Math.hypot(me.cx - mob.cx, me.cy - mob.cy);
   for (let i = 0; i < 90; i++) frame(w, [me]);
   check('low enemy flees', mob.mob.state === 'flee' && Math.hypot(me.cx - mob.cx, me.cy - mob.cy) > d0, `${mob.mob.state}, ${d0.toFixed(0)} -> ${Math.hypot(me.cx - mob.cx, me.cy - mob.cy).toFixed(0)}`);
+  check('it flees slower than it can swim', Math.hypot(mob.sx, mob.sy) < 0.7);
+  for (let i = 0; i < 60 * 4; i++) frame(w, [me]);
+  check('after fleeing once it turns back to fight', mob.mob.state === 'chase', mob.mob.state);
+  for (let i = 0; i < 60; i++) frame(w, [me]);
+  check('and does not flee again', mob.mob.state === 'chase', mob.mob.state);
 }
 { // a killed enemy comes back after the respawn time, once the player is not right there
   const w = lab();

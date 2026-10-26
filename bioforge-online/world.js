@@ -7,6 +7,7 @@ const WAKE_R = 1800, SLEEP_R = 2200;                  // enemies within WAKE_R o
 const TICK = 0.25;                                    // seconds between sleep/respawn/food checks
 const SPAWN_R = 250, RESPAWN_T = 25, SPAWN_HIDE = 1200;   // spawner radius, respawn delay, no respawn this close to a player
 const LEASH_R = 900, DROP_K = 2.5, FLEE_T = 4, WANDER = 0.35, BITE_R = 170;   // leash from home, give up at aggro * DROP_K
+const FLEE_K = 0.6;                                   // fleeing enemies swim at this share of their top speed, so you can catch them
 const AVOID_M = 100;                                  // enemies steer around rocks closer than this
 const FOOD_NEAR = 20, FOOD_R0 = 300, FOOD_R1 = 1200;  // food kept around each player
 
@@ -163,7 +164,7 @@ function sleep(w, cr) {
   cr.frozen = { bonds: w.bonds.filter(b => mine(b.a)), angles: w.angles.filter(g => mine(g.c)), links: w.links.filter(v => mine(v.a)) };
   removeCreature(w, cr);
   const m = cr.mob;
-  if (m && m.state !== 'idle') { goHome(cr); m.state = 'idle'; m.tgt = null; }
+  if (m && m.state !== 'idle') { goHome(cr); m.state = 'idle'; m.tgt = null; m.fled = false; }
 }
 function wake(w, cr) {
   for (const c of cr.cells) { c.vx = c.vy = c.fx = c.fy = 0; w.cells.push(c); }
@@ -212,7 +213,8 @@ function tickWorld(w, players, dt) {
 
 // ---------- Enemy AI ----------
 // idle: wander near the spawner; chase: a player came within aggro (or hurt it from further); flee: low health, for
-// the kinds that flee; leash: too far from home or the player got away: swim home ignoring everything, healed on arrival
+// the kinds that flee (once per fight: afterwards they turn back and fight; passive kinds calm down where they are);
+// leash: too far from home or the player got away: swim home ignoring everything. Nothing heals them but Menders.
 function brain(w, cr, players, dt) {
   const m = cr.mob, sp = m.sp;
   const hp = cr.cells.reduce((s, c) => s + c.hp, 0), hit = hp < m.hp - 0.5;
@@ -226,16 +228,17 @@ function brain(w, cr, players, dt) {
   else if (m.state === 'idle' && p && sp.aggro && (dist(p) < sp.aggro || hit && dist(p) < sp.aggro * DROP_K)) to('chase', p);
   if (m.state === 'chase') {
     if (!m.tgt.alive || dist(m.tgt) > sp.aggro * DROP_K || home > LEASH_R) to('leash', null);
-    else if (sp.flee && hp < cr.hp0 * sp.flee) to('flee', m.tgt);
+    else if (sp.flee && !m.fled && hp < cr.hp0 * sp.flee) { m.fled = true; to('flee', m.tgt); }
   }
-  if (m.state === 'flee' && (m.t > FLEE_T || !m.tgt.alive)) to('leash', null);
-  if (m.state === 'leash' && home < sp.r * 0.6) {
-    for (const c of cr.cells) c.hp = c.max;
-    m.hp = cr.cells.reduce((s, c) => s + c.hp, 0); to('idle', null);
+  if (m.state === 'flee' && (m.t > FLEE_T || !m.tgt.alive)) {
+    if (!sp.aggro) to('idle', null);
+    else if (m.tgt.alive && dist(m.tgt) < sp.aggro * DROP_K && home < LEASH_R) to('chase', m.tgt);
+    else to('leash', null);
   }
+  if (m.state === 'leash' && home < sp.r * 0.6) { m.fled = false; to('idle', null); }
   cr.ability = false;
   if (m.state === 'chase') { steer(w, cr, m.tgt.cx - cr.cx, m.tgt.cy - cr.cy, 1); cr.ability = dist(m.tgt) < BITE_R; }
-  else if (m.state === 'flee') steer(w, cr, cr.cx - m.tgt.cx, cr.cy - m.tgt.cy, 1);
+  else if (m.state === 'flee') steer(w, cr, cr.cx - m.tgt.cx, cr.cy - m.tgt.cy, FLEE_K);
   else if (m.state === 'leash') steer(w, cr, sp.x - cr.cx, sp.y - cr.cy, 1);
   else {                                              // wander to a random spot near home, rest, pick another
     m.goalT -= dt;
