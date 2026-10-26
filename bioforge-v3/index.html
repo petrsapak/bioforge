@@ -209,6 +209,9 @@ const G_NERVE = 25, LEAK = 0.4, PULSE_HZ = 1.4, SENSE_R = 120;
 const THORN_DMG = 5, THORN_SPD = 0.06, THORN_CD = 0.3;
 const BITE_DMG = 3, BITE_S = 0.5, BITE_CD = 0.4;
 const NETTLE_R = 45, NETTLE_DMG = 4, NETTLE_CD = 0.5;
+// Snare: line reach (px), line speed, pull per px of stretch, pull cap, reel-in speed, shortest line, hold time, pause after
+const SNARE_LEN = 200, SNARE_V = 700, SNARE_K = 60, SNARE_F = 1500, SNARE_REEL = 150, SNARE_MIN = 3 * CR, SNARE_HOLD = 2.5, SNARE_CD = 1.5;
+const SPIT_DMG = 6, SPIT_V = 450, SPIT_R = 280, SPIT_CD = 0.7;   // Spitter: glob damage, speed, range, pause between globs
 const DEBRIS_DECAY = 6, DRONE_MIN = 0.05, START_BUDGET = 50, WAVE_BONUS = 15;
 // fluids: amounts per cell, flow between touching cells from high to low fill level (amount / capacity)
 const O = 0, S = 1, W = 2, R = 3, A = 4;
@@ -218,6 +221,7 @@ const FLUIDS = [{ name: 'Oxygen', short: 'O₂', color: '#ff5560' }, { name: 'En
 const G_FLOW = 0.4, G_HEART = 2.5, G_MAX = 8, HEART_R = 3;    // conductance between touching cells, per beating heart near them, cap; heart reach in cells
 const START_FILL = 0.7, GILL_O2 = 0.25, GILL_SPD = 0.002, PORE_RATE = 0.8, TEST_FEED = 0.15;
 const POISON = 0.75, POISON_DMG = 6, REPAIR_RATE = 0.5, REPAIR_HP = 40;
+const REGROW_RATE = 0.08, REGROW_K = 0.2, REGROW_HP = 0.25;  // Mender regrowth: repair fluid drawn per second, fluid per biomass, start health
 const FUEL_K = 0.25;                              // global burn rate: every cell burns fuel * FUEL_K per second (lower = longer trips)
 const GROW_FUEL = 0.05, LAUNCH_V = 260, BUD_CD = 1;  // Bud: fuel per biomass grown, launch speed, pause before regrowing
 const ADR_GAIN = 8, ADR_K = 0.8, ADR_DECAY = 0.25;
@@ -249,7 +253,9 @@ const CELLS = {
   bloater:   C({ cat: 'Action', name: 'Bloater',   cost: 3, hp: 30, cond: true, fuel: 0.1, color: '#b77ee0', desc: 'Swells to 180% size on a nerve signal, shoving enemies away. Burns fuel.' }),
   siphon:    C({ cat: 'Action', name: 'Siphon',    cost: 4, hp: 25, cond: true, fuel: 0.15, color: '#5fb8e8', desc: 'Squirts water backwards on a nerve signal, pushing the creature forward. Thirsty.' }),
   nettle:    C({ cat: 'Action', name: 'Nettle',    cost: 5, hp: 25, cond: true, fuel: 0.12, color: '#a7b8ff', desc: 'On a nerve signal, stings every enemy cell close to it. Burns fuel while signalled.' }),
-  thorn:     C({ cat: 'Action', name: 'Thorn',     cost: 3, hp: 35, color: '#8fd16a', desc: 'Damages enemy cells it hits. Faster hits hurt more. Needs no fuel.' }),
+  snare:     C({ cat: 'Action', name: 'Snare',     cost: 5, hp: 30, cond: true, fuel: 0.1, color: '#b07a48', desc: `On a nerve signal, shoots a sticky line up to ${SNARE_LEN} px at the nearest enemy. If it catches a cell, it reels that enemy in for ${SNARE_HOLD} s. Burns fuel while firing and holding.` }),
+  spitter:   C({ cat: 'Action', name: 'Spitter',   cost: 4, hp: 25, cond: true, fuel: 0.12, color: '#c4ff5a', desc: `While signalled, spits an acid glob every ${SPIT_CD} s at the nearest enemy within ${SPIT_R} px (straight out if none). Burns fuel while signalled.` }),
+  thorn:     C({ cat: 'Action', name: 'Thorn',    cost: 3, hp: 35, color: '#8fd16a', desc: 'Damages enemy cells it hits. Faster hits hurt more. Needs no fuel.' }),
   bud:       C({ cat: 'Action', name: 'Bud',       cost: 4, hp: 30, cond: true, fuel: 0.4, color: '#c8e07a', desc: 'Grows a saved part on its outer side from O₂ and energy. A nerve signal shoots the finished part away from the body, then it grows a new one. The part has its own nerves and fluids: with a Pacemaker or Eyespot, Fat, Gills and working cells it moves and stings on its own until its fuel runs out, then rots.' }),
   gill:      C({ cat: 'Fluid',  name: 'Gill',      cost: 2, hp: 20, mass: 0.8, capO: 1, color: '#e07a8a', desc: 'Makes O₂ from the water, more while swimming fast. Works anywhere in the body.' }),
   mouth:     C({ cat: 'Fluid',  name: 'Mouth',     cost: 2, hp: 35, capS: 2, color: '#d98a6a', desc: 'Eats food specks that touch the body, and bites enemies and debris it touches, for energy. Leaves food alone while full.' }),
@@ -258,7 +264,7 @@ const CELLS = {
   airsac:    C({ cat: 'Fluid',  name: 'Air sac',   cost: 2, hp: 25, capO: 10, color: '#e8a0a8', desc: 'Reservoir. Holds 10x the O₂ of a working cell.' }),
   fat:       C({ cat: 'Fluid',  name: 'Fat',       cost: 2, hp: 30, mass: 1.3, capS: 10, color: '#f0e0a0', desc: 'Reservoir. Holds 10x the energy of a working cell. Plain cells only pass energy along, so this is where food ends up.' }),
   pore:      C({ cat: 'Fluid',  name: 'Pore',      cost: 2, hp: 20, color: '#7a6a48', desc: 'Dumps waste into the water. Must be on the surface. Working cells full of waste are poisoned.' }),
-  mender:    C({ cat: 'Gland',  name: 'Mender',    cost: 4, hp: 25, fuel: 0.12, color: '#58d858', desc: 'Turns O₂ and energy into repair fluid. Damaged cells that receive it heal.' }),
+  mender:    C({ cat: 'Gland',  name: 'Mender',    cost: 4, hp: 25, fuel: 0.12, color: '#58d858', desc: 'Turns O₂ and energy into repair fluid. Damaged cells that receive it heal, and lost cells regrow one at a time, nearest the Mender first.' }),
   adrenal:   C({ cat: 'Gland',  name: 'Adrenal',   cost: 3, hp: 25, cond: true, fuel: 0.2, color: '#e04090', desc: 'On a nerve signal, turns energy into adrenaline. Muscles, cilia, siphons, bloaters and nettles that receive it work up to 80% harder.' }),
 };
 
@@ -298,6 +304,10 @@ const TIPS = {
                ex: { cells: [[0, 0, 'nucleus'], [0, 1, 'command'], [-1, 2, 'siphon'], [0, 2, 'siphon'], [1, 1, 'fat']], space: 'Space held' } },
   nettle:    { use: 'Needs a nerve signal and fuel. Place it at the front or sides; it stings every enemy cell in a short range.',
                ex: { cells: [[0, 0, 'nucleus'], [0, -1, 'eyespot'], [-1, 0, 'nettle'], [1, -1, 'nettle'], [-1, 1, 'gill'], [1, 0, 'fat']], space: 'Enemy near', target: true } },
+  snare:     { use: 'Put it on the surface and give it a nerve signal (Eyespot or Command) and fuel. It aims at the nearest enemy and pulls what it catches toward itself, into your Thorns and Nettles. Heavy enemies pull you too.',
+               ex: { cells: [[0, 0, 'nucleus'], [0, -1, 'eyespot'], [1, -1, 'snare'], [-1, 0, 'thorn'], [-1, 1, 'gill'], [1, 0, 'fat']], space: 'Enemy near', target: true } },
+  spitter:   { use: 'Put it on the surface with a nerve signal and fuel. It aims by itself at the nearest enemy in range; several Spitters on one Command make a volley.',
+               ex: { cells: [[0, 0, 'nucleus'], [0, 1, 'command'], [1, -1, 'spitter'], [0, -1, 'spitter'], [-1, 1, 'gill'], [1, 0, 'fat']], space: 'Space held', target: true } },
   thorn:     { use: 'Place it on the outside. It needs no signal and no fuel. Swimming into enemies makes it hit harder.',
                ex: { cells: [[0, 0, 'nucleus'], [0, -1, 'thorn'], [1, -1, 'thorn'], [-1, 1, 'cilia'], [0, 1, 'cilia'], [-1, 0, 'gill'], [1, 0, 'fat']], swim: true } },
   bud:       { use: 'Put it on the surface, click it in the builder, then click a part in the Templates library to assign it. The body feeds it O₂ and energy; fire it with a Command or Eyespot. The part grows facing away from the body; thorns on it hit hard.',
@@ -319,7 +329,7 @@ const TIPS = {
                ex: { cells: [[0, 0, 'nucleus'], [0, 1, 'fat'], [-1, 1, 'muscle'], [-1, 2, 'muscle'], [0, 2, 'muscle'], [1, 1, 'pacemaker'], [-1, 0, 'gill']], view: 2 } },
   pore:      { use: 'Must be on the surface. Waste from the cells that burn fuel spreads to it; without one it builds up and poisons them (dashed ring).',
                ex: { cells: [[0, 0, 'nucleus'], [0, 1, 'pacemaker'], [-1, 2, 'muscle'], [0, 2, 'muscle'], [0, 3, 'pore'], [-1, 0, 'gill']], view: 3 } },
-  mender:    { use: 'Put it near the cells you want healed. Repair fluid spreads from cell to cell.',
+  mender:    { use: 'Put it near the cells you want healed. Repair fluid spreads from cell to cell. Destroyed cells grow back if they would touch the body.',
                ex: { cells: [[0, 0, 'nucleus'], [0, 1, 'mender'], [0, -1, 'shell'], [1, -1, 'shell'], [-1, 0, 'gill'], [1, 0, 'fat'], [-1, 1, 'heart']], view: 4, hurt: ['shell'] } },
   adrenal:   { use: 'Give it a nerve signal and energy. Adrenaline spreads from cell to cell and fades; cells nearest the Adrenal get the most.',
                ex: { cells: [[0, 0, 'nucleus'], [0, 1, 'command'], [1, 1, 'adrenal'], [1, 0, 'fat'], [0, 2, 'cilia'], [-1, 2, 'cilia'], [-1, 1, 'cilia']],
@@ -331,7 +341,7 @@ const tpl = list => ({ cells: bp(list) });
 // hex art: one letter per cell, each row shifted half a cell from the row above, N = nucleus
 const ART = { N: 'nucleus', t: 'tissue', S: 'shell', j: 'joint', c: 'cilia', n: 'nerve', g: 'ganglion', p: 'pacemaker', k: 'command',
               e: 'eyespot', m: 'muscle', b: 'bloater', s: 'siphon', x: 'nettle', T: 'thorn', G: 'gill', M: 'mouth', h: 'heart',
-              v: 'valve', a: 'airsac', f: 'fat', o: 'pore', r: 'mender', d: 'adrenal' };
+              v: 'valve', a: 'airsac', f: 'fat', o: 'pore', r: 'mender', d: 'adrenal', H: 'snare', P: 'spitter' };
 function art(rows) {
   const at = []; let n;
   rows.forEach((row, j) => [...row].forEach((ch, i) => { if (ART[ch]) { at.push([i, j, ART[ch]]); if (ch === 'N') n = [i, j]; } }));
@@ -405,14 +415,14 @@ const bpCost = o => o.cells.reduce((s, b) => s + CELLS[b.t].cost, 0);
 
 // ---------- World ----------
 // links: fluid connections, one per pair of touching cells in a creature (fluids move only along them)
-function newWorld(w, h) { return { cells: [], bonds: [], angles: [], links: [], creatures: [], zaps: [], sparks: [], food: [], foodT: 0, w, h, t: 0, test: false }; }
+function newWorld(w, h) { return { cells: [], bonds: [], angles: [], links: [], creatures: [], zaps: [], globs: [], sparks: [], food: [], foodT: 0, w, h, t: 0, test: false }; }
 const link = (w, a, b) => w.links.push({ a, b, open: true, G: G_FLOW });
 
 function spawn(w, bpo, x, y, a, team) {
   const cr = { team, cells: [], alive: true, ai: team !== 0, auto: false, debris: false, pump: 0,
                want: a, theta: a, sx: 0, sy: 0, ability: false, cx: x, cy: y };
   const map = new Map(), c = Math.cos(a), s = Math.sin(a);
-  cr.map = map;
+  cr.map = map; cr.plan = bpo.cells;                   // the design, for Menders to regrow lost cells from
   for (const b of bpo.cells) {
     const cell = makeCell(b.t, b.q, b.r, cr);
     if (b.bind) cell.bind = b.bind;
@@ -510,6 +520,7 @@ function growCell(w, cr, b, bud) {
   for (const n of nb) for (const [dq, dr] of NB) { const m = cellAt(cr, n.q + dq, n.r + dr); if (m) addAngle(w, n, cell, m); }
   cr.cells.push(cell); w.cells.push(cell); cr.map.set(key(b.q, b.r), cell);
   restFrame(cr); markExterior(w, cr);
+  return cell;
 }
 
 // cut a Bud's finished part loose and shoot it the way its front points, turned with the creature's heading
@@ -624,6 +635,15 @@ function forces(w) {
     A.fx += ax; A.fy += ay; B.fx += bx; B.fy += by; c.fx -= ax + bx; c.fy -= ay + by;
   }
   for (const c of w.cells) { c.fx -= DRAG_ISO * c.vx; c.fy -= DRAG_ISO * c.vy; }
+  // a Snare's line pulls its catch in hard; the Snare feels only part of it, so small prey comes to you
+  for (const c of w.cells) {
+    const t = c.line && c.line.tgt;
+    if (!t || t.dead) continue;
+    let dx = c.x - t.x, dy = c.y - t.y;
+    const d = Math.hypot(dx, dy) || 1e-6; dx /= d; dy /= d;
+    const f = Math.min(SNARE_F, SNARE_K * Math.max(0, d - c.line.rest)) * c.e * c.boost;
+    t.fx += f * dx; t.fy += f * dy; c.fx -= 0.3 * f * dx; c.fy -= 0.3 * f * dy;
+  }
 }
 
 function collisions(w, h) {
@@ -718,7 +738,8 @@ function activity(c) {
   if (c.piece) return 0;                              // a Bud's part sleeps until it is released
   switch (c.t) {
     case 'muscle': case 'bloater': case 'siphon': return V;
-    case 'nettle': case 'adrenal': return V > 0.5 ? 1 : 0;
+    case 'nettle': case 'adrenal': case 'spitter': return V > 0.5 ? 1 : 0;
+    case 'snare': return c.line || V > 0.5 ? 1 : 0;
     case 'cilia': return cr.sx || cr.sy ? 1 : 0;
     case 'heart': return 1;
     case 'mender': return c.f[R] < 0.9 * c.cap[R] ? 1 : 0;
@@ -810,8 +831,62 @@ function effectors(w, dt) {
       }
       if (hit) c.cd = NETTLE_CD;
     }
+    const armed = c.V > 0.5 && c.e > 0.3 && c.cd <= 0 && (!c.owner.debris || c.owner.shot);
+    if (c.t === 'snare') {
+      if (c.line) snareLine(w, c, dt);
+      else if (armed) { const [dx, dy] = aimAt(w, c, SNARE_LEN); c.line = { x: c.x, y: c.y, vx: dx * SNARE_V, vy: dy * SNARE_V, tgt: null, rest: 0, t: 0 }; }
+    }
+    if (c.t === 'spitter' && armed) {
+      const [dx, dy] = aimAt(w, c, SPIT_R);
+      w.globs.push({ x: c.x + dx * c.rad, y: c.y + dy * c.rad, vx: c.vx + dx * SPIT_V, vy: c.vy + dy * SPIT_V, team: c.owner.team, life: SPIT_R / SPIT_V, dmg: SPIT_DMG * p });
+      c.vx -= dx * 40; c.vy -= dy * 40; c.cd = SPIT_CD;
+    }
     if (c.owner.debris && !c.owner.fed) c.hp -= DEBRIS_DECAY * dt;   // released parts rot once their fuel is gone
   }
+}
+
+// unit vector from cell c to the nearest enemy cell within range, or straight out from its body if there is none
+function aimAt(w, c, range) {
+  let best = null, bd = range * range;
+  for (const o of w.creatures) {
+    if (o.team === c.owner.team || (o.debris && !o.shot)) continue;
+    for (const e of o.cells) { const d = (e.x - c.x) ** 2 + (e.y - c.y) ** 2; if (d < bd) { bd = d; best = e; } }
+  }
+  const dx = best ? best.x - c.x : c.x - c.owner.cx, dy = best ? best.y - c.y : c.y - c.owner.cy, l = Math.hypot(dx, dy) || 1;
+  return [dx / l, dy / l];
+}
+
+// a Snare's line flies out until it sticks to an enemy cell or runs out of reach; a caught cell is reeled in
+// (the pull itself is in forces) until the hold time is up, the line is stretched to twice its reach or either end dies
+function snareLine(w, c, dt) {
+  const L = c.line;
+  if (!L.tgt) {
+    L.x += L.vx * dt; L.y += L.vy * dt;
+    for (const o of w.creatures) if (o.team !== c.owner.team)
+      for (const e of o.cells) if ((e.x - L.x) ** 2 + (e.y - L.y) ** 2 < (e.rad + 4) ** 2) {
+        L.tgt = e; L.t = SNARE_HOLD; L.rest = Math.hypot(e.x - c.x, e.y - c.y);
+        hurt(e, 2); sparks(w, e.x, e.y, c.d.color, 4); return;
+      }
+    if (Math.hypot(L.x - c.x, L.y - c.y) > SNARE_LEN) { c.line = null; c.cd = SNARE_CD / 2; }
+    return;
+  }
+  L.t -= dt; L.rest = Math.max(SNARE_MIN, L.rest - SNARE_REEL * dt);
+  if (L.t <= 0 || L.tgt.dead || Math.hypot(L.tgt.x - c.x, L.tgt.y - c.y) > 2 * SNARE_LEN) { c.line = null; c.cd = SNARE_CD; }
+}
+
+// Spitter globs fly straight and burst on the first cell of another team they touch
+function globs(w, dt) {
+  w.globs = w.globs.filter(g => {
+    g.x += g.vx * dt; g.y += g.vy * dt; g.life -= dt;
+    for (const o of w.creatures) {
+      const b = o.box;
+      if (o.team === g.team || !b || g.x < b[0] - 4 || g.x > b[2] + 4 || g.y < b[1] - 4 || g.y > b[3] + 4) continue;
+      for (const e of o.cells) if ((e.x - g.x) ** 2 + (e.y - g.y) ** 2 < (e.rad + 4) ** 2) {
+        hurt(e, g.dmg); sparks(w, g.x, g.y, CELLS.spitter.color, 5); return false;
+      }
+    }
+    return g.life > 0;
+  });
 }
 
 // food specks drift in the battle arena; a creature with a Mouth eats the specks that touch any of its cells (into a Mouth with room)
@@ -876,6 +951,28 @@ function cleanup(w) {
   w.creatures = w.creatures.filter(c => c.alive && c.cells.length);
 }
 
+// Menders regrow lost cells of the design: they pool repair fluid and rebuild the missing cell nearest a Mender that
+// touches the body, one at a time; it swells to size from a quarter health and repair fluid heals the rest
+function regrow(w, dt) {
+  for (const cr of w.creatures) {
+    if (cr.debris || !cr.plan) continue;
+    const menders = cr.cells.filter(c => c.t === 'mender' && !c.piece);
+    const body = (q, r) => { const n = cellAt(cr, q, r); return n && !n.piece; };
+    const miss = cr.plan.filter(b => !cellAt(cr, b.q, b.r) && NB.some(([dq, dr]) => body(b.q + dq, b.r + dr)));
+    if (!menders.length || !miss.length) { cr.regrow = 0; continue; }
+    for (const m of menders) { const u = Math.min(m.f[R], REGROW_RATE * dt); m.f[R] -= u; cr.regrow = (cr.regrow || 0) + u; }
+    const near = b => Math.min(...menders.map(m => hexDist(m, b)));
+    const b = miss.reduce((a, x) => near(x) < near(a) ? x : a), need = REGROW_K * CELLS[b.t].cost;
+    if (cr.regrow < need) continue;
+    const cell = growCell(w, cr, b, null);
+    if (!cell) continue;
+    cr.regrow -= need; cell.hp = cell.max * REGROW_HP;
+    if (b.bind) cell.bind = b.bind;
+    if (b.t === 'bud' && b.tpl) cell.grow = { plan: budPlan(cr.plan, b), prog: 0, have: 0, done: false };
+    sparks(w, cell.x, cell.y, CELLS.mender.color, 6);
+  }
+}
+
 function sparks(w, x, y, color, n) {
   for (let i = 0; i < n; i++) {
     const a = Math.random() * TAU, sp = 40 + Math.random() * 140;
@@ -923,7 +1020,9 @@ function step(w, dt, input) {
   metabolism(w, dt);
   flow(w, dt);
   effectors(w, dt);
+  globs(w, dt);
   buds(w);
+  regrow(w, dt);
   food(w, dt);
   cleanup(w);
   for (const p of w.sparks) { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; p.vx *= 0.9; p.vy *= 0.9; }
@@ -955,6 +1054,14 @@ function drawWorld(ctx, w, view) {
     }
   }
   for (const c of w.cells) drawCell(ctx, c, view);
+  ctx.strokeStyle = '#e8d2a8'; ctx.lineWidth = 1.5;   // Snare lines, with a barb at the tip
+  for (const c of w.cells) if (c.line) {
+    const t = c.line.tgt, x = t ? t.x : c.line.x, y = t ? t.y : c.line.y;
+    ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(x, y); ctx.stroke();
+    ctx.fillStyle = c.d.color; ctx.beginPath(); ctx.arc(x, y, 3, 0, TAU); ctx.fill();
+  }
+  ctx.fillStyle = CELLS.spitter.color;
+  for (const g of w.globs) { ctx.beginPath(); ctx.arc(g.x, g.y, 3.5, 0, TAU); ctx.fill(); }
   ctx.strokeStyle = '#cfe9ff'; ctx.lineWidth = 2;
   for (const z of w.zaps) {
     ctx.beginPath(); ctx.moveTo(z.x0, z.y0);
@@ -1022,6 +1129,13 @@ function drawCell(ctx, c, view) {
   } else if (c.t === 'nettle') {
     ctx.strokeStyle = '#3f5aa0'; ctx.lineWidth = 2;
     for (const k of [0, 2.1, 4.2]) { const a = out + k; ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(c.x + Math.cos(a) * r * 0.7, c.y + Math.sin(a) * r * 0.7); ctx.stroke(); }
+  } else if (c.t === 'snare') {                         // a hook pointing out
+    ctx.strokeStyle = '#3a2410'; ctx.lineWidth = 2;
+    const hx = c.x + Math.cos(out) * r * 0.15, hy = c.y + Math.sin(out) * r * 0.15;
+    ctx.beginPath(); ctx.arc(hx, hy, r * 0.45, out + 0.6, out + 0.6 + 4.2); ctx.stroke();
+  } else if (c.t === 'spitter') {                       // a muzzle on the outer side, lit while ready to fire
+    ctx.fillStyle = c.cd <= 0 ? '#2e4a10' : '#1a2208';
+    ctx.beginPath(); ctx.arc(c.x + Math.cos(out) * r * 0.35, c.y + Math.sin(out) * r * 0.35, r * 0.38, 0, TAU); ctx.fill();
   } else if (c.t === 'gill') {
     ctx.strokeStyle = '#7a2a3a'; ctx.lineWidth = 1.5;
     for (const k of [-0.4, 0, 0.4]) { ctx.beginPath(); ctx.moveTo(c.x + k * r, c.y - r * 0.5); ctx.lineTo(c.x + k * r, c.y + r * 0.5); ctx.stroke(); }
@@ -1437,8 +1551,8 @@ function boot() {
     // the checks below look at the joined body only (this shadows the builder's design)
     const design = new Map(l.map(b => [key(b.q, b.r), b.t]));
     const gens = n('pacemaker') + n('command') + n('eyespot');
-    const nerveActs = ['muscle', 'bloater', 'siphon', 'nettle', 'adrenal', 'valve', 'bud'];
-    if (l.some(b => nerveActs.includes(b.t)) && !gens) push('Muscles, Bloaters, Siphons, Nettles, Adrenals, Valves and Buds need a nerve signal source (Pacemaker, Command or Eyespot).', ks(l.filter(b => nerveActs.includes(b.t))));
+    const nerveActs = ['muscle', 'bloater', 'siphon', 'nettle', 'snare', 'spitter', 'adrenal', 'valve', 'bud'];
+    if (l.some(b => nerveActs.includes(b.t)) && !gens) push('Muscles, Bloaters, Siphons, Nettles, Snares, Spitters, Adrenals, Valves and Buds need a nerve signal source (Pacemaker, Command or Eyespot).', ks(l.filter(b => nerveActs.includes(b.t))));
     const bs = l.filter(b => b.t === 'bud'), withPart = bs.filter(b => b.tpl), plans = withPart.map(b => budPlan(l, b));
     if (bs.some(b => !b.tpl)) push(`${bs.filter(b => !b.tpl).length} Bud(s) have no part to grow: click the Bud, then a part in the Templates library.`, ks(bs.filter(b => !b.tpl)));
     if (plans.some(p => !p.cells.length)) push(`${plans.filter(p => !p.cells.length).length} Bud(s) have no free side to grow on: put Buds on the surface.`, ks(withPart.filter((b, i) => !plans[i].cells.length)));
@@ -1448,7 +1562,7 @@ function boot() {
     if (deaf.length) push(`${deaf.length} Bud part(s) have Muscles, Nettles or the like but no Pacemaker or Eyespot of their own: a part's nerves are apart from the body's, so those cells do nothing.`, ks(deaf));
     const claimed = plans.flatMap(p => p.cells.map(c => key(c.q, c.r)));
     if (new Set(claimed).size < claimed.length) push('Two Buds grow parts onto the same hexes. Click a Bud and turn its part (Q/E) so they do not overlap.', [...new Set(claimed.filter((k, i) => claimed.indexOf(k) !== i))]);
-    if (!n('thorn') && !n('nettle') && !n('bloater') && !n('mouth')) push('No weapons: it cannot hurt anything.');
+    if (!n('thorn') && !n('nettle') && !n('bloater') && !n('mouth') && !n('spitter') && !n('snare')) push('No weapons: it cannot hurt anything.');
     const isCond = k => design.has(k) && CELLS[design.get(k)].cond;
     const live = new Set(), q = [];
     for (const [k, t] of design) if (CELLS[t].gen) { live.add(k); q.push(k); }
@@ -1621,7 +1735,7 @@ function boot() {
     const bpo = sandbox ? sbBlueprint($('sbme').value) : blueprint();
     const ext = Math.max(...bpo.cells.map(b => Math.hypot(...hexPx(b.q, b.r))));
     player = spawn(world, bpo, cv.width / 2, cv.height - Math.max(150, ext + 50), 0, 0);
-    player.n0 = player.cells.length;                   // for the HUD's Body bar
+    player.hp0 = player.cells.reduce((s, c) => s + c.max, 0);   // for the HUD's Body bar
   }
 
   function startBattle(sb) {
@@ -1927,7 +2041,7 @@ function boot() {
     pc.restore();
   }
 
-  // battle HUD bars: Core = Nucleus health, Body = cells left of those spawned, O2 / Energy = how full the body's stores are,
+  // battle HUD bars: Core = Nucleus health, Body = health of all cells vs. at spawn (lost cells count as 0), O2 / Energy = how full the body's stores are,
   // Waste = average over the working cells (bad when high); low = pulses red
   const HUD_BARS = [
     { name: 'Core', color: '#e8c547', low: v => v < 0.3 },
@@ -1949,7 +2063,7 @@ function boot() {
     const stock = i => cs.length ? sum(cs, c => c.f[i]) / sum(cs, c => c.cap[i]) : 0;
     const wk = cs.filter(c => c.d.fuel);
     return {
-      bars: [cr.alive && cr.core ? cr.core.hp / cr.core.max : 0, Math.min(1, cs.length / (cr.n0 || 1)), stock(O), stock(S),
+      bars: [cr.alive && cr.core ? cr.core.hp / cr.core.max : 0, sum(cs, c => Math.max(0, c.hp)) / (cr.hp0 || 1), stock(O), stock(S),
              wk.length ? sum(wk, c => clamp01(c.f[W] / c.cap[W])) / wk.length : 0],
       starving: cs.filter(c => c.starve).length, poisoned: cs.filter(c => c.poison).length,
     };
