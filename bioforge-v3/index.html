@@ -1,0 +1,2010 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bioforge v3</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0b1418; color: #dfe4ea; font: 14px/1.4 system-ui, sans-serif; overflow: hidden; user-select: none; }
+  canvas { display: block; }
+  #panel { position: absolute; top: 10px; left: 10px; width: 300px; max-height: calc(100vh - 20px); padding: 8px 10px 10px; display: flex; flex-direction: column;
+           background: #0e181dcc; border: 1px solid #23323a88; border-radius: 10px; backdrop-filter: blur(3px);
+           resize: both; overflow: hidden; min-width: 200px; min-height: 90px; max-width: calc(100vw - 20px); }
+  #tree { flex: 1 1 auto; overflow-y: auto; min-height: 0; }
+  #grip { margin: -4px -6px 4px; padding: 2px 0; text-align: center; color: #5d6b77; font-size: 10px; letter-spacing: 3px; cursor: move; border-radius: 4px; }
+  #grip:hover { background: #ffffff0d; color: #dfe4ea; }
+  #preview { position: absolute; top: 10px; right: 10px; width: 340px; height: 360px; display: flex; flex-direction: column;
+             background: #0e181dcc; border: 1px solid #23323a88; border-radius: 10px; backdrop-filter: blur(3px);
+             resize: both; overflow: hidden; min-width: 160px; min-height: 120px; }
+  #preview.collapsed { height: auto !important; min-height: 0; resize: none; }
+  #preview.collapsed #pv { display: none; }
+  #pvbar, #libbar { display: flex; align-items: center; padding: 5px 6px 5px 10px; cursor: move; color: #8a96a3; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+  #pvbar:hover, #libbar:hover { color: #dfe4ea; }
+  #pvbar span, #libbar span { flex: 1; }
+  #pvtoggle, #libtoggle { width: 22px; height: 20px; padding: 0; background: #1c2a31; color: inherit; border: 1px solid #2c3f48; border-radius: 4px; cursor: pointer; font: inherit; }
+  #pv { flex: 1 1 auto; min-height: 0; width: 100%; }
+  /* template library: right-side window, collapsible like the preview */
+  #lib { position: absolute; top: 380px; right: 10px; width: 240px; max-height: calc(100vh - 20px); display: flex; flex-direction: column;
+         background: #0e181dcc; border: 1px solid #23323a88; border-radius: 10px; backdrop-filter: blur(3px);
+         resize: both; overflow: hidden; min-width: 170px; min-height: 0; }
+  #lib.collapsed { height: auto !important; resize: none; }
+  #lib.collapsed #libbody { display: none; }
+  #libbody { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 0 8px 8px; }
+  .libh { margin: 6px 0 3px; color: #8a96a3; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+  .li { display: flex; align-items: center; gap: 6px; padding: 3px; border-radius: 5px; cursor: pointer; }
+  .li:hover { background: #ffffff0d; }
+  .li.sel { background: #2b2a1f; outline: 1px solid #e8c547; }
+  .li canvas { width: 40px; height: 40px; flex: none; background: #132228; border-radius: 4px; }
+  .li span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+  .li button.small { flex: none; padding: 2px 6px; }
+  #ctx { position: absolute; display: none; z-index: 20; width: 220px; padding: 8px; background: #0d1519f2; border: 1px solid #2c4650; border-radius: 7px; font-size: 13px; }
+  #ctx input { width: 100%; margin: 5px 0; padding: 4px 6px; background: #1c2a31; color: inherit; border: 1px solid #2c3f48; border-radius: 5px; font: inherit; user-select: text; }
+  details > summary { list-style: none; cursor: pointer; padding: 3px 2px; border-radius: 4px; color: #8a96a3; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+  details > summary::-webkit-details-marker { display: none; }
+  details > summary::before { content: '▸'; display: inline-block; width: 13px; color: #5d6b77; }
+  details[open] > summary::before { content: '▾'; }
+  details > summary:hover { background: #ffffff0d; color: #dfe4ea; }
+  .node { margin-left: 6px; padding: 2px 0 6px 9px; border-left: 1px solid #2a3b44; }
+  #root > summary { font-size: 17px; font-weight: 600; letter-spacing: 1px; color: #dfe4ea; text-transform: none; }
+  .sub { color: #8a96a3; font-size: 12px; margin-bottom: 8px; }
+  #budget { font-size: 16px; margin: 2px 0 4px; }
+  #budget b { color: #e8c547; }
+  button.small.sel { border-color: #e8c547; background: #2b2a1f; }
+  /* bottom cell dock: one collapsible section per category, cells as interlocking hexagons laid out to fit the window */
+  #dock { position: absolute; bottom: 10px; left: 10px; right: 10px; display: flex; justify-content: center; pointer-events: none; }
+  #dockin { pointer-events: auto; max-width: 100%; padding: 4px 12px 10px; background: #0e181dcc; border: 1px solid #23323a88; border-radius: 10px; backdrop-filter: blur(3px); }
+  #dockbar { display: flex; align-items: center; gap: 8px; cursor: pointer; color: #8a96a3; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; padding: 2px 0; }
+  #dockbar:hover { color: #dfe4ea; }
+  #dockbar::before { content: '▾'; color: #5d6b77; }
+  #dock.collapsed #dockbar::before { content: '▸'; }
+  #dock.collapsed #palette { display: none; }
+  #palette { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 6px 18px; }
+  #palette > details { flex: none; }
+  .hexes { position: relative; margin-top: 2px; }
+  .pal { position: absolute; padding: 2px; border: 0; background: #2c3f48; cursor: pointer; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+  .pal canvas { display: block; width: 100%; height: 100%; background: #132228; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+  .pal:hover { background: #5d6b77; }
+  .pal.sel { background: #e8c547; }
+  #info { margin: 2px 0; padding: 8px; background: #0d1519; border-radius: 6px; min-height: 64px; color: #b9c3cd; font-size: 13px; }
+  #stats { font-size: 12px; color: #b9c3cd; white-space: pre-line; }
+  #stats .warn { color: #e8875a; }
+  #stats .warn:hover { color: #ffb48f; }
+  .row { display: flex; gap: 4px; margin: 2px 0; flex-wrap: wrap; }
+  button.small { flex: 1; padding: 4px 5px; background: #1c2a31; color: inherit; border: 1px solid #2c3f48; border-radius: 5px; cursor: pointer; font: inherit; font-size: 12px; white-space: nowrap; }
+  button.big { width: 100%; padding: 10px; margin-top: 6px; background: #3d6b38; color: #fff; border: 0; border-radius: 6px; cursor: pointer; font: inherit; font-size: 15px; font-weight: 600; }
+  button.big:hover { background: #4a8044; }
+  button.big:disabled { background: #4a3a38; color: #c9a9a0; cursor: default; }
+  .help { color: #6f7b88; font-size: 12px; }
+  /* battle HUD: badges on top, vitals bars bottom-left, key hints bottom-right; clicks pass through to the game */
+  #hud { position: absolute; inset: 0; display: none; pointer-events: none; }
+  #hudtop { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; }
+  .hchip { padding: 4px 14px; background: #0e181dd9; border: 1px solid #2c4650; border-radius: 999px; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; box-shadow: 0 2px 10px #0007; }
+  #hudwave { color: #e8c547; font-size: 15px; }
+  #hudfoes { color: #ff8a7a; }
+  #hudvit { position: absolute; left: 14px; bottom: 14px; width: 270px; padding: 10px 12px 8px; background: #0e181dd9; border: 1px solid #2c4650; border-radius: 10px; box-shadow: 0 4px 18px #0009; }
+  .hbar { display: grid; grid-template-columns: 58px 1fr 40px; align-items: center; gap: 8px; margin: 5px 0; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #b9c3cd; }
+  .htrk { position: relative; height: 13px; background: #071013; border: 1px solid #2c3f48; border-radius: 3px; overflow: hidden; }
+  .htrk::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 9%, #0008 9% 10%); }
+  .hfill { height: 100%; width: 0; background: linear-gradient(#ffffff55, #ffffff00 55%), var(--c); box-shadow: 0 0 8px var(--c); transition: width .15s linear; }
+  .hval { text-align: right; font-variant-numeric: tabular-nums; color: #dfe4ea; }
+  .hbar.low .hfill { animation: hpulse .5s ease-in-out infinite alternate; }
+  .hbar.low .hval, .hbar.low .hlbl { color: #ff6a5a; }
+  @keyframes hpulse { from { opacity: 1; } to { opacity: .3; } }
+  #hudchips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  #hudchips span { padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
+  #hudchips .c-starve { background: #5a3a10; color: #ffc46a; }
+  #hudchips .c-poison { background: #3d4a12; color: #d8e070; }
+  #hudchips .c-auto { background: #1d3d4a; color: #7fd8ff; }
+  #huddead { display: none; margin: 4px 0; color: #ff6a5a; font-size: 14px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; text-align: center; }
+  #hudkeys { position: absolute; right: 14px; bottom: 14px; padding: 7px 10px; background: #0e181dbb; border: 1px solid #23323a; border-radius: 8px; font-size: 11px; color: #8a96a3; text-align: right; line-height: 1.9; }
+  #hudkeys b { display: inline-block; min-width: 14px; padding: 0 4px; margin-right: 2px; background: #1c2a31; border: 1px solid #2c4650; border-bottom-width: 2px; border-radius: 4px; color: #dfe4ea; font-size: 10px; line-height: 1.5; text-align: center; }
+  #msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 20px 28px; background: #121c21ee; border: 1px solid #23323a; border-radius: 10px; text-align: center; display: none; min-width: 280px; }
+  #msg h2 { margin: 0 0 10px; }
+  #sandbox { background: #2c4650; }
+  #sandbox:hover { background: #3a5a66; }
+  #sbar { position: absolute; top: 44px; left: 50%; transform: translateX(-50%); display: none; align-items: center; gap: 6px; padding: 6px 10px;
+          background: #0e181dcc; backdrop-filter: blur(3px); border: 1px solid #23323a; border-radius: 8px; font-size: 13px; white-space: nowrap; }
+  #sbar select { background: #1c2a31; color: inherit; border: 1px solid #2c3f48; border-radius: 5px; font: inherit; font-size: 12px; padding: 3px; }
+  #sbar button.small { flex: none; }
+  #tip canvas { display: block; margin-top: 4px; border: 1px solid #23323a; border-radius: 5px; }
+  #tip { position: absolute; display: none; max-width: 316px; padding: 9px 11px; background: #0d1519f2; border: 1px solid #2c4650; border-radius: 7px; font-size: 13px; color: #b9c3cd; pointer-events: none; z-index: 10; }
+  #tip b { color: #dfe4ea; }
+  #tip .h { margin-top: 6px; color: #e8c547; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+  #tip .dim { color: #6f7b88; font-size: 12px; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="panel">
+<div id="grip" title="Drag to move · drag the bottom-right corner to resize">• • •</div>
+<div id="tree">
+<details id="root" data-node="root" open><summary>BIOFORGE v3</summary><div class="node">
+  <details data-node="creature" open><summary>Creature</summary><div class="node">
+    <div id="budget"></div>
+    <div id="stats"></div>
+  </div></details>
+  <details data-node="edit" open><summary>Edit</summary><div class="node">
+    <div class="row">
+      <button class="small" data-tpl="clear" title="Start over with just the Nucleus">Clear all</button>
+    </div>
+    <div class="row">
+      <button class="small" id="savecr" title="Save the whole creature to My creatures in the Templates library">Save creature</button>
+      <button class="small" id="freebuild" title="Build without the biomass limit. Fight stays locked while over budget; the Sandbox takes any size">Unlimited biomass</button>
+    </div>
+  </div></details>
+  <details data-node="info" open><summary>Selected</summary><div class="node"><div id="info"></div></div></details>
+  <details data-node="view"><summary>View (Shift+1–6)</summary><div class="node"><div class="row" id="views"></div></div></details>
+  <details data-node="help"><summary>Guide</summary><div class="node">
+    <div class="sub">Soft-body cells. Nerves decide when cells act. Oxygen, energy, waste and the hormones that boost or heal spread from cell to cell through the whole body; Hearts speed that up near them.</div>
+    <div class="help">Cells: left-click place, right-click remove. Cells not connected to the Nucleus are only planned (faded, dashed): they cost nothing and are left out of the creature until you join them to the body. Top of the grid = front.<br>Grid: mouse wheel zooms, middle-drag pans, F shows the whole grid.<br>Templates: Ctrl+click cells to select them, right-click a selected cell to save them as a template. Click a saved part in the library to stamp it: Q/E rotate, click to place, right-click or Esc to stop.<br>Save creature (Edit) stores the whole creature, Bud parts, aims and key bindings included; click it under My creatures to load it.<br>Click a placed cell to set it up: drag a part from the library onto a Bud to make it grow that part, then drag the part's dots to move it, Q/E turn it around the Bud, drag the arrow tip to aim; a Command takes the number key (1–9) you press.<br>Builder: hold Space to fire Command and Eyespot cells; the grid shows signals and fluids live. Mouths are fed here.<br><br>Battle: W/S swim forward/back, A/D turn, Space fires unbound Command cells, 1–9 fire bound ones, T autopilot, Shift+1–6 view, Esc builder.<br>Sandbox: no budget. Pick yourself and an enemy in the top bar; click the water to spawn, right-click to remove, R respawns you.</div>
+  </div></details>
+</div></details>
+</div>
+<button class="big" id="fight"></button>
+<button class="big" id="sandbox" title="Free play, no budget: pick any creature, click the water to spawn enemies">Sandbox ▶</button>
+</div>
+<div id="sbar">
+  <label>You <select id="sbme"></select></label>
+  <label>Spawn <select id="sbfoe"></select></label>
+  <span class="help">click the water</span>
+  <button class="small" id="sbai">Enemies: hunt</button>
+  <button class="small" id="sbclear">Clear enemies</button>
+  <button class="small" id="sbrespawn">Respawn me</button>
+  <button class="small" id="sbexit">Builder</button>
+</div>
+<div id="dock"><div id="dockin">
+  <div id="dockbar">Cells</div>
+  <div id="palette"></div>
+</div></div>
+<div id="preview">
+  <div id="pvbar" title="Drag to move · drag the bottom-right corner to resize"><span>Preview</span><button id="pvtoggle" title="Hide / show">–</button></div>
+  <canvas id="pv"></canvas>
+</div>
+<div id="lib">
+  <div id="libbar" title="Drag to move · drag the bottom-right corner to resize"><span>Templates</span><button id="libtoggle" title="Hide / show">–</button></div>
+  <div id="libbody">
+    <div class="libh">Built-in</div>
+    <div class="row">
+      <button class="small" data-tpl="wiggler">Wiggler</button>
+      <button class="small" data-tpl="squirter">Squirter</button>
+      <button class="small" data-tpl="nettler">Nettler</button>
+      <button class="small" data-tpl="puffer">Puffer</button>
+    </div>
+    <div class="help">Showcase (cost more than you start with; try them in the Sandbox, Fight unlocks once you can afford them):</div>
+    <div class="row">
+      <button class="small" data-tpl="eel" title="Pacemakers curl the tail into an S; eyespots fire the head nettles; Space releases adrenaline">Eel</button>
+      <button class="small" data-tpl="jelly" title="A ring of bloaters pulses the bell; thorn tentacles trail behind; the eyespot cap stings">Jelly</button>
+      <button class="small" data-tpl="manta" title="Both wings flap: bloaters on top swell while muscles underneath contract; Space fires the jets and adrenaline">Manta</button>
+      <button class="small" data-tpl="crab" title="Space snaps both pincers shut and fires the back jets; shell carapace">Crab</button>
+    </div>
+    <div class="libh">My creatures</div>
+    <div id="mycr"></div>
+    <div class="libh">My templates</div>
+    <div id="mylib"></div>
+    <div class="help">Ctrl+click cells to select, right-click a selected cell to save. Click a part to stamp it: Q/E rotate, click to place, right-click or Esc to stop. Drag a part onto a Bud to make the Bud grow it. Edit → Save creature saves the whole creature to My creatures; click one to load it (replaces the design). Saving under the same name overwrites.</div>
+  </div>
+</div>
+<div id="ctx">
+  <div id="ctxn"></div>
+  <input id="ctxname" maxlength="40" placeholder="Template name">
+  <div class="row"><button class="small" id="ctxsave">Save template</button><button class="small" id="ctxclear">Clear selection</button></div>
+</div>
+<div id="hud">
+  <div id="hudtop"><div class="hchip" id="hudwave"></div><div class="hchip" id="hudfoes"></div></div>
+  <div id="hudvit"><div id="huddead">You died · R respawns</div><div id="hudbars"></div><div id="hudchips"></div></div>
+  <div id="hudkeys"></div>
+</div>
+<div id="msg"></div>
+<div id="tip"></div>
+
+<script>
+'use strict';
+// ---------- Tuning ----------
+const CR = 10, HX = 2 * CR, HY = CR * Math.sqrt(3), GR = 30;   // cell radius, hex spacing, grid radius
+const TAU = Math.PI * 2, SUB = 8;
+const K_RAD = 2500, D_RAD = 20, K_ANG = 150000, K_COL = 4000;
+const DRAG_ISO = 1.0, DRAG_N = 4;                              // water drag per cell / normal drag on outer membrane
+const SWIM_F = 90, CILIA_SWIM = 2.5, TURN_K = 10, TURN_D = 5, SIPHON_F = 600, TURN_RATE = 2.5;
+const G_NERVE = 25, LEAK = 0.4, PULSE_HZ = 1.4, SENSE_R = 120;
+const THORN_DMG = 5, THORN_SPD = 0.06, THORN_CD = 0.3;
+const BITE_DMG = 3, BITE_S = 0.5, BITE_CD = 0.4;
+const NETTLE_R = 45, NETTLE_DMG = 4, NETTLE_CD = 0.5;
+const DEBRIS_DECAY = 6, DRONE_MIN = 0.05, START_BUDGET = 50, WAVE_BONUS = 15;
+// fluids: amounts per cell, flow between touching cells from high to low fill level (amount / capacity)
+const O = 0, S = 1, W = 2, R = 3, A = 4;
+const FLUIDS = [{ name: 'Oxygen', short: 'O₂', color: '#ff5560' }, { name: 'Energy', short: 'Energy', color: '#ffd23f' },
+                { name: 'Waste', short: 'Waste', color: '#a89a3a' }, { name: 'Repair', short: 'Repair', color: '#5ef08a' },
+                { name: 'Adrenaline', short: 'Adren.', color: '#e05ad0' }];
+const G_FLOW = 0.4, G_HEART = 2.5, G_MAX = 8, HEART_R = 3;    // conductance between touching cells, per beating heart near them, cap; heart reach in cells
+const START_FILL = 0.7, GILL_O2 = 0.25, GILL_SPD = 0.002, PORE_RATE = 0.8, TEST_FEED = 0.15;
+const POISON = 0.75, POISON_DMG = 6, REPAIR_RATE = 0.5, REPAIR_HP = 40;
+const FUEL_K = 0.25;                              // global burn rate: every cell burns fuel * FUEL_K per second (lower = longer trips)
+const GROW_FUEL = 0.05, LAUNCH_V = 260, BUD_CD = 1;  // Bud: fuel per biomass grown, launch speed, pause before regrowing
+const ADR_GAIN = 8, ADR_K = 0.8, ADR_DECAY = 0.25;
+const FOOD_S = 1, FOOD_MAX = 14, FOOD_EVERY = 1.2, FOOD_DROP = 0.35;
+const NB = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
+const key = (q, r) => q + ',' + r;
+const hexPx = (q, r) => [HX * (q + r / 2), HY * r];
+const clamp01 = v => Math.max(0, Math.min(1, v));
+const rotHex = (q, r, n) => { for (let i = 0; i < (n % 6 + 6) % 6; i++) [q, r] = [-r, q + r]; return [q, r]; };   // 60° steps clockwise
+const adjHex = (A, B) => Math.abs(A.q - B.q) + Math.abs(A.r - B.r) + Math.abs(A.q + A.r - B.q - B.r) === 2;
+const wrap = a => ((a + Math.PI) % TAU + TAU) % TAU - Math.PI;
+
+// fuel = O2 + energy burned per second at full activity (each unit burned becomes one unit of waste)
+// cells that burn no fuel are pipes: they pass O2 and energy on to their neighbours but hold only a little (PIPE)
+const PIPE = 0.3;
+const C = (o) => ({ mass: 1, stiff: 1, rad: 1, swim: 1, cond: false, armor: 1, fuel: 0, capO: o.fuel ? 1 : PIPE, capS: o.fuel ? 1 : PIPE, ...o });
+const CELLS = {
+  nucleus:   C({ cat: 'Body',   name: 'Nucleus',   cost: 0, hp: 80, mass: 1.5, swim: 2, capO: 3, capS: 3, color: '#e8c547', desc: 'If it dies, the creature dies. Parts cut off from it float away and rot. Holds a small store of O₂ and energy.' }),
+  tissue:    C({ cat: 'Body',   name: 'Tissue',    cost: 1, hp: 30, color: '#7c8a6e', desc: 'Cheap filler. Holds shape and blocks nerve signals, so use it to separate nerve circuits.' }),
+  shell:     C({ cat: 'Body',   name: 'Shell',     cost: 2, hp: 90, mass: 2, stiff: 2, rad: 2, swim: 0.5, armor: 0.5, color: '#c9c2b0', desc: 'Armour. Takes half damage, very stiff and heavy.' }),
+  joint:     C({ cat: 'Body',   name: 'Joint',     cost: 1, hp: 25, mass: 0.8, stiff: 0.03, rad: 0.35, color: '#9fb58a', desc: 'A soft hinge. The body bends here, so tails and tentacles flop.' }),
+  cilia:     C({ cat: 'Body',   name: 'Cilia',     cost: 2, hp: 20, mass: 0.6, fuel: 0.05, color: '#6ac9a0', desc: 'Beating hairs. Swims 3.5x harder than a normal cell, but only while it is fed O₂ and energy.' }),
+  nerve:     C({ cat: 'Nerve',  name: 'Nerve',     cost: 1, hp: 20, mass: 0.8, cond: true, color: '#d8b86a', desc: 'Carries nerve signals between neighbours.' }),
+  ganglion:  C({ cat: 'Nerve',  name: 'Ganglion',  cost: 2, hp: 25, cond: true, cap: 10, color: '#c78f3c', desc: 'Carries signals but charges and discharges slowly. Use it to delay or smooth a signal.' }),
+  pacemaker: C({ cat: 'Nerve',  name: 'Pacemaker', cost: 3, hp: 25, cond: true, gen: 'pulse', color: '#f2e35b', desc: 'Fires on and off about 1.4 times per second.' }),
+  command:   C({ cat: 'Nerve',  name: 'Command',   cost: 2, hp: 25, cond: true, gen: 'key', color: '#f29b38', desc: 'Fires while you hold Space (the AI fires it when close).' }),
+  eyespot:   C({ cat: 'Nerve',  name: 'Eyespot',   cost: 3, hp: 20, cond: true, gen: 'prox', color: '#4fd1c5', desc: 'Fires when an enemy cell is near it.' }),
+  muscle:    C({ cat: 'Action', name: 'Muscle',    cost: 3, hp: 30, mass: 1.2, cond: true, fuel: 0.1, color: '#d9544f', desc: 'Contracts to 45% size on a nerve signal, pulling neighbours in and bending the body. Burns fuel.' }),
+  bloater:   C({ cat: 'Action', name: 'Bloater',   cost: 3, hp: 30, cond: true, fuel: 0.1, color: '#b77ee0', desc: 'Swells to 180% size on a nerve signal, shoving enemies away. Burns fuel.' }),
+  siphon:    C({ cat: 'Action', name: 'Siphon',    cost: 4, hp: 25, cond: true, fuel: 0.15, color: '#5fb8e8', desc: 'Squirts water backwards on a nerve signal, pushing the creature forward. Thirsty.' }),
+  nettle:    C({ cat: 'Action', name: 'Nettle',    cost: 5, hp: 25, cond: true, fuel: 0.12, color: '#a7b8ff', desc: 'On a nerve signal, stings every enemy cell close to it. Burns fuel while signalled.' }),
+  thorn:     C({ cat: 'Action', name: 'Thorn',     cost: 3, hp: 35, color: '#8fd16a', desc: 'Damages enemy cells it hits. Faster hits hurt more. Needs no fuel.' }),
+  bud:       C({ cat: 'Action', name: 'Bud',       cost: 4, hp: 30, cond: true, fuel: 0.4, color: '#c8e07a', desc: 'Grows a saved part on its outer side from O₂ and energy. A nerve signal shoots the finished part away from the body, then it grows a new one. The part has its own nerves and fluids: with a Pacemaker or Eyespot, Fat, Gills and working cells it moves and stings on its own until its fuel runs out, then rots.' }),
+  gill:      C({ cat: 'Fluid',  name: 'Gill',      cost: 2, hp: 20, mass: 0.8, capO: 1, color: '#e07a8a', desc: 'Makes O₂ from the water, more while swimming fast. Works anywhere in the body.' }),
+  mouth:     C({ cat: 'Fluid',  name: 'Mouth',     cost: 2, hp: 35, capS: 2, color: '#d98a6a', desc: 'Eats food specks that touch the body, and bites enemies and debris it touches, for energy. Leaves food alone while full.' }),
+  heart:     C({ cat: 'Fluid',  name: 'Heart',     cost: 3, hp: 30, fuel: 0.04, color: '#b8243a', desc: `Pumps. While fed, fluids flow about 7x faster between cells up to ${HEART_R} cells away from it.` }),
+  valve:     C({ cat: 'Fluid',  name: 'Valve',     cost: 2, hp: 25, cond: true, color: '#7d97a8', desc: 'Lets no fluid through unless it gets a nerve signal. Wall off a reservoir with Valves to release it on command.' }),
+  airsac:    C({ cat: 'Fluid',  name: 'Air sac',   cost: 2, hp: 25, capO: 10, color: '#e8a0a8', desc: 'Reservoir. Holds 10x the O₂ of a working cell.' }),
+  fat:       C({ cat: 'Fluid',  name: 'Fat',       cost: 2, hp: 30, mass: 1.3, capS: 10, color: '#f0e0a0', desc: 'Reservoir. Holds 10x the energy of a working cell. Plain cells only pass energy along, so this is where food ends up.' }),
+  pore:      C({ cat: 'Fluid',  name: 'Pore',      cost: 2, hp: 20, color: '#7a6a48', desc: 'Dumps waste into the water. Must be on the surface. Working cells full of waste are poisoned.' }),
+  mender:    C({ cat: 'Gland',  name: 'Mender',    cost: 4, hp: 25, fuel: 0.12, color: '#58d858', desc: 'Turns O₂ and energy into repair fluid. Damaged cells that receive it heal.' }),
+  adrenal:   C({ cat: 'Gland',  name: 'Adrenal',   cost: 3, hp: 25, cond: true, fuel: 0.2, color: '#e04090', desc: 'On a nerve signal, turns energy into adrenaline. Muscles, cilia, siphons, bloaters and nettles that receive it work up to 80% harder.' }),
+};
+
+// hover tooltips: how to use each cell, plus a live example build shown in a mini tank.
+// ex: cells [q, r, type], space = label while the demo holds Space,
+// swim = swims forward, target = dummy enemy in front, view = fluid shown (1 O2 .. 5 adrenaline),
+// hurt = cell types that start damaged, empty = cell types that start with no O2 or energy
+const TIPS = {
+  nucleus:   { use: 'Every creature has exactly one, placed for you. Keep it away from the front line and surround it with tough cells.',
+               ex: { cells: [[0, 0, 'nucleus'], [1, 0, 'shell'], [-1, 0, 'shell'], [0, 1, 'shell'], [0, -1, 'shell'], [1, -1, 'shell'], [-1, 1, 'shell'],
+                             [0, -2, 'thorn'], [2, -2, 'thorn'], [-1, -1, 'thorn']] } },
+  tissue:    { use: 'Fill gaps and add bulk. Put it between two nerve circuits so their signals do not mix.',
+               ex: { cells: [[0, 0, 'nucleus'], [0, 1, 'tissue'], [0, 2, 'tissue'], [-1, 1, 'pacemaker'], [-1, 2, 'muscle'], [1, 0, 'command'], [1, 1, 'siphon'],
+                             [-1, 0, 'gill'], [1, -1, 'fat']], space: 'Space held' } },
+  shell:     { use: 'Put it where hits land: the front and around the Nucleus. It is heavy, so too much makes you slow.',
+               ex: { cells: [[0, 0, 'nucleus'], [0, -1, 'shell'], [1, -1, 'shell'], [-1, 0, 'shell'], [0, -2, 'thorn'], [1, -2, 'thorn'], [0, 1, 'tissue']] } },
+  joint:     { use: 'Place it between the body and a tail or limb. Everything behind it can swing.',
+               ex: { cells: [[0, 0, 'nucleus'], [0, 1, 'joint'], [0, 2, 'tissue'], [0, 3, 'tissue'], [-1, 1, 'pacemaker'], [-1, 2, 'muscle'], [-1, 3, 'muscle'], [-1, 0, 'gill']] } },
+  cilia:     { use: 'Put them on the sides and back. They need O₂ and energy from the body (a Gill and Fat or a Mouth somewhere in it), otherwise they swim no better than a plain cell.',
+               ex: { cells: [[0, 0, 'nucleus'], [-1, 0, 'gill'], [1, 0, 'fat'], [-1, 1, 'cilia'], [0, 1, 'cilia'], [1, -1, 'pore']], swim: true } },
+  nerve:     { use: 'Chain it from a signal source (Pacemaker, Command, Eyespot) to the cells that should react. Signals only pass between cells that carry them.',
+               ex: { cells: [[0, 0, 'nucleus'], [1, -1, 'command'], [1, 0, 'nerve'], [1, 1, 'nerve'], [1, 2, 'siphon'], [0, 1, 'tissue'], [0, 2, 'tissue']], space: 'Space held' } },
+  ganglion:  { use: 'Put it in a nerve line to slow the signal down. Cells after it react later and more gently.',
+               ex: { cells: [[0, 0, 'nucleus'], [0, 1, 'pacemaker'], [0, 2, 'muscle'], [0, 3, 'ganglion'], [0, 4, 'muscle'], [1, 1, 'tissue'], [1, 2, 'tissue'], [1, 3, 'tissue']] } },
+  pacemaker: { use: 'Let it touch Muscles or Bloaters (or connect it with Nerves). They will cycle forever and burn fuel the whole time.',
+               ex: { cells: [[0, 0, 'nucleus'], [0, 1, 'tissue'], [0, 2, 'tissue'], [0, 3, 'tissue'], [-1, 1, 'pacemaker'], [-1, 2, 'muscle'], [-1, 3, 'muscle'], [-1, 4, 'muscle']] } },
+  command:   { use: 'Connect it to the cells you want on demand. In battle it fires while you hold Space; the AI fires it near enemies.',
+               ex: { cells: [[0, 0, 'nucleus'], [0, 1, 'command'], [-1, 2, 'siphon'], [0, 2, 'siphon'], [1, 1, 'siphon'], [-1, 1, 'fat']], space: 'Space held' } },
+  eyespot:   { use: 'Place it on the edge facing the enemy and connect it to weapons. They then fire by themselves.',
+               ex: { cells: [[0, 0, 'nucleus'], [0, -1, 'eyespot'], [1, -1, 'nettle'], [-1, 0, 'nettle'], [-1, 1, 'gill'], [1, 0, 'fat']], space: 'Enemy near', target: true } },
+  muscle:    { use: 'Needs a nerve signal and O₂ and energy from the body. Muscles on one side of a limb bend it to that side.',
+               ex: { cells: [[0, 0, 'nucleus'], [0, 1, 'tissue'], [0, 2, 'tissue'], [0, 3, 'tissue'], [-1, 1, 'pacemaker'], [-1, 2, 'muscle'], [-1, 3, 'muscle'], [-1, 4, 'muscle'], [-1, 0, 'gill']] } },
+  bloater:   { use: 'Needs a nerve signal and fuel. On the surface its swelling hits enemies; inside, it pushes the body apart.',
+               ex: { cells: [[0, 0, 'nucleus'], [0, -1, 'eyespot'], [1, -1, 'bloater'], [1, 0, 'bloater'], [-1, 0, 'bloater'], [0, -2, 'thorn'], [2, -1, 'thorn'], [-1, -1, 'thorn']],
+                     space: 'Enemy near', target: true } },
+  siphon:    { use: 'Needs a nerve signal and fuel. Place it at the back; it always pushes forward. It burns fuel fast, so give it a Fat or Air sac.',
+               ex: { cells: [[0, 0, 'nucleus'], [0, 1, 'command'], [-1, 2, 'siphon'], [0, 2, 'siphon'], [1, 1, 'fat']], space: 'Space held' } },
+  nettle:    { use: 'Needs a nerve signal and fuel. Place it at the front or sides; it stings every enemy cell in a short range.',
+               ex: { cells: [[0, 0, 'nucleus'], [0, -1, 'eyespot'], [-1, 0, 'nettle'], [1, -1, 'nettle'], [-1, 1, 'gill'], [1, 0, 'fat']], space: 'Enemy near', target: true } },
+  thorn:     { use: 'Place it on the outside. It needs no signal and no fuel. Swimming into enemies makes it hit harder.',
+               ex: { cells: [[0, 0, 'nucleus'], [0, -1, 'thorn'], [1, -1, 'thorn'], [-1, 1, 'cilia'], [0, 1, 'cilia'], [-1, 0, 'gill'], [1, 0, 'fat']], swim: true } },
+  bud:       { use: 'Put it on the surface, click it in the builder, then click a part in the Templates library to assign it. The body feeds it O₂ and energy; fire it with a Command or Eyespot. The part grows facing away from the body; thorns on it hit hard.',
+               ex: { cells: [[0, 0, 'nucleus'], [0, -1, 'bud'], [1, -1, 'command'], [-1, 0, 'gill'], [1, 0, 'fat'], [0, 1, 'heart']],
+                     tpl: { name: 'Spike', cells: [{ q: 0, r: 0, t: 'thorn' }, { q: 1, r: -1, t: 'thorn' }, { q: 0, r: -1, t: 'thorn' }] }, space: 'Space held' } },
+  gill:      { use: 'Put it anywhere in the body. Its O₂ spreads from cell to cell to everything that burns fuel; a Heart nearby spreads it faster.',
+               ex: { cells: [[0, 0, 'nucleus'], [-1, 0, 'gill'], [1, 0, 'gill'], [0, 1, 'heart'], [0, 2, 'pacemaker'], [-1, 2, 'muscle'], [-1, 3, 'muscle'], [0, 3, 'tissue']], view: 1 } },
+  mouth:     { use: 'Put it anywhere: the body eats the yellow food specks it swims over. To bite enemies and debris it must be on the surface. Add Fat to store what it eats.',
+               ex: { cells: [[0, 0, 'nucleus'], [0, -1, 'mouth'], [0, 1, 'fat'], [-1, 0, 'tissue'], [1, 0, 'tissue']], view: 2 } },
+  heart:     { use: `Keep it fed and near the cells that work hardest: it speeds up the flow within ${HEART_R} cells of itself. More hearts add up to a limit.`,
+               ex: { cells: [[0, 0, 'nucleus'], [0, -1, 'gill'], [-1, 0, 'heart'], [0, 1, 'tissue'], [0, 2, 'tissue'], [0, 3, 'tissue'], [0, 4, 'muscle'], [1, 3, 'pacemaker']], view: 1 } },
+  valve:     { use: 'Fluid cannot pass through it without a nerve signal. Make a reservoir touch the body only through Valves, then signal them to release it.',
+               ex: { cells: [[0, 0, 'nucleus'], [0, 1, 'command'], [1, 1, 'valve'], [2, 0, 'fat'], [-1, 2, 'siphon'], [0, 2, 'siphon']],
+                     space: 'Space held', view: 2, empty: ['siphon'] } },
+  airsac:    { use: 'Put it near Gills and the cells that need lots of O₂. It fills while you are calm and drains during heavy work.',
+               ex: { cells: [[0, 0, 'nucleus'], [-1, 0, 'gill'], [0, -1, 'airsac'], [1, -1, 'nettle'], [0, -2, 'nettle'], [1, -2, 'eyespot']],
+                     space: 'Enemy near', target: true, view: 1 } },
+  fat:       { use: 'Put it in the body near the cells that burn fuel. It is your main energy store for long fights; what the Mouth eats collects here.',
+               ex: { cells: [[0, 0, 'nucleus'], [0, 1, 'fat'], [-1, 1, 'muscle'], [-1, 2, 'muscle'], [0, 2, 'muscle'], [1, 1, 'pacemaker'], [-1, 0, 'gill']], view: 2 } },
+  pore:      { use: 'Must be on the surface. Waste from the cells that burn fuel spreads to it; without one it builds up and poisons them (dashed ring).',
+               ex: { cells: [[0, 0, 'nucleus'], [0, 1, 'pacemaker'], [-1, 2, 'muscle'], [0, 2, 'muscle'], [0, 3, 'pore'], [-1, 0, 'gill']], view: 3 } },
+  mender:    { use: 'Put it near the cells you want healed. Repair fluid spreads from cell to cell.',
+               ex: { cells: [[0, 0, 'nucleus'], [0, 1, 'mender'], [0, -1, 'shell'], [1, -1, 'shell'], [-1, 0, 'gill'], [1, 0, 'fat'], [-1, 1, 'heart']], view: 4, hurt: ['shell'] } },
+  adrenal:   { use: 'Give it a nerve signal and energy. Adrenaline spreads from cell to cell and fades; cells nearest the Adrenal get the most.',
+               ex: { cells: [[0, 0, 'nucleus'], [0, 1, 'command'], [1, 1, 'adrenal'], [1, 0, 'fat'], [0, 2, 'cilia'], [-1, 2, 'cilia'], [-1, 1, 'cilia']],
+                     space: 'Space held', swim: true, view: 5 } },
+};
+
+const bp = list => list.map(([q, r, t]) => ({ q, r, t }));
+const tpl = list => ({ cells: bp(list) });
+// hex art: one letter per cell, each row shifted half a cell from the row above, N = nucleus
+const ART = { N: 'nucleus', t: 'tissue', S: 'shell', j: 'joint', c: 'cilia', n: 'nerve', g: 'ganglion', p: 'pacemaker', k: 'command',
+              e: 'eyespot', m: 'muscle', b: 'bloater', s: 'siphon', x: 'nettle', T: 'thorn', G: 'gill', M: 'mouth', h: 'heart',
+              v: 'valve', a: 'airsac', f: 'fat', o: 'pore', r: 'mender', d: 'adrenal' };
+function art(rows) {
+  const at = []; let n;
+  rows.forEach((row, j) => [...row].forEach((ch, i) => { if (ART[ch]) { at.push([i, j, ART[ch]]); if (ch === 'N') n = [i, j]; } }));
+  return tpl(at.map(([i, j, t]) => [(i - n[0] - (j - n[1])) / 2, j - n[1], t]));
+}
+const TEMPLATES = {
+  wiggler:  tpl([[0, 0, 'nucleus'], [0, -1, 'thorn'], [1, -1, 'mouth'], [-1, 0, 'gill'], [1, 0, 'heart'], [1, 1, 'pore'],
+                 [-1, 1, 'muscle'], [0, 1, 'bloater'], [-2, 2, 'muscle'], [-1, 2, 'pacemaker'], [0, 2, 'bloater'],
+                 [-2, 3, 'muscle'], [-1, 3, 'bloater'], [-2, 4, 'joint'], [2, 0, 'fat']]),
+  squirter: tpl([[0, 0, 'nucleus'], [0, -1, 'thorn'], [1, -1, 'mouth'], [-1, 0, 'shell'], [1, 0, 'shell'],
+                 [0, 1, 'command'], [-1, 1, 'siphon'], [1, 1, 'gill'], [-1, 2, 'siphon'], [0, 2, 'siphon'], [1, 2, 'pore'], [-2, 2, 'fat']]),
+  nettler:  tpl([[0, 0, 'nucleus'], [0, -1, 'eyespot'], [1, -1, 'nettle'], [-1, 0, 'nettle'], [-1, -1, 'nettle'], [1, 0, 'nettle'],
+                 [-1, 1, 'gill'], [0, 1, 'pore'], [1, 1, 'heart']]),
+  puffer:   tpl([[0, 0, 'nucleus'], [0, -1, 'eyespot'], [1, -1, 'bloater'], [1, 0, 'bloater'], [0, 1, 'bloater'], [-1, 1, 'bloater'], [-1, 0, 'bloater'],
+                 [0, -2, 'thorn'], [2, -1, 'thorn'], [1, 1, 'thorn'], [-1, -1, 'thorn'], [-1, 2, 'gill'], [-2, 1, 'pore'], [0, 2, 'fat']]),
+  starter:  tpl([[0, 0, 'nucleus'], [0, -1, 'thorn'], [1, -1, 'mouth'], [-1, 0, 'gill'], [1, 0, 'tissue'],
+                 [-1, 1, 'cilia'], [0, 1, 'cilia'], [-1, 2, 'pore']]),
+  // showcase builds, drawn as hex art (see art below); they cost more than the starting biomass
+  eel: art([
+    '    T M T',
+    '   x e e x',
+    '  G f N f G',
+    '   a h r f',
+    '  c f d k c',
+    '   o t t o',
+    '    p t t',
+    '     m b',
+    '    m b',
+    '     p b',
+    '    m b',
+    '     b m',
+    '    b p',
+    '     b m',
+    '    b m',
+    '     j',
+    '    T']),
+  jelly: art([
+    '   M x e x M',
+    '    G t f t G',
+    '   b p h a p b',
+    '  b t r N f t b',
+    '   b p f t p b',
+    '    b b o b b',
+    '   j   j   j',
+    '    j   j   j',
+    '   j   j   j',
+    '    j   j   j',
+    '   T   T   T']),
+  manta: art([
+    '          T M T',
+    '         G h r G',
+    '  T b p b p N p b p b T',
+    '   m m m m f a f m m m m',
+    '          t k t',
+    '         o s s o',
+    '          c d c',
+    '           j j',
+    '            T']),
+  crab: art([
+    '  T           T',
+    ' b m         m b',
+    '  b m       m b',
+    '   b m T M T m b',
+    '    j k S S k j',
+    '   G S S N S S G',
+    '    a h r f h o',
+    '   c t s k s t c',
+    '    o   s s   o']),
+};
+const bpCost = o => o.cells.reduce((s, b) => s + CELLS[b.t].cost, 0);
+
+// ---------- World ----------
+// links: fluid connections, one per pair of touching cells in a creature (fluids move only along them)
+function newWorld(w, h) { return { cells: [], bonds: [], angles: [], links: [], creatures: [], zaps: [], sparks: [], food: [], foodT: 0, w, h, t: 0, test: false }; }
+const link = (w, a, b) => w.links.push({ a, b, open: true, G: G_FLOW });
+
+function spawn(w, bpo, x, y, a, team) {
+  const cr = { team, cells: [], alive: true, ai: team !== 0, auto: false, debris: false, pump: 0,
+               want: a, theta: a, sx: 0, sy: 0, ability: false, cx: x, cy: y };
+  const map = new Map(), c = Math.cos(a), s = Math.sin(a);
+  cr.map = map;
+  for (const b of bpo.cells) {
+    const cell = makeCell(b.t, b.q, b.r, cr);
+    if (b.bind) cell.bind = b.bind;
+    if (b.t === 'bud' && b.tpl) cell.grow = { plan: budPlan(bpo.cells, b), prog: 0, have: 0, done: false };
+    cr.cells.push(cell); w.cells.push(cell); map.set(key(b.q, b.r), cell);
+  }
+  restFrame(cr);
+  for (const cell of cr.cells) {
+    const lx = cell.ox - cr.rx, ly = cell.oy - cr.ry;
+    cell.x = x + lx * c - ly * s; cell.y = y + lx * s + ly * c;
+  }
+  // bonds: one per neighbour pair
+  for (const cell of cr.cells) for (const [dq, dr] of [[1, 0], [0, 1], [-1, 1]]) {
+    const n = map.get(key(cell.q + dq, cell.r + dr));
+    if (n) { w.bonds.push({ a: cell, b: n, k: K_RAD * Math.min(cell.d.rad, n.d.rad), ext: false }); link(w, cell, n); }
+  }
+  // angular springs at each cell for neighbour pairs that are not bonded to each other (keeps chains from folding)
+  for (const cell of cr.cells) {
+    const nbrs = NB.map(([dq, dr]) => map.get(key(cell.q + dq, cell.r + dr))).filter(Boolean);
+    for (let i = 0; i < nbrs.length; i++) for (let j = i + 1; j < nbrs.length; j++) addAngle(w, cell, nbrs[i], nbrs[j]);
+  }
+  w.creatures.push(cr);
+  markExterior(w, cr);
+  return cr;
+}
+
+function makeCell(t, q, r, cr) {
+  const d = CELLS[t], [px, py] = hexPx(q, r);
+  return { t, d, q, r, ox: px, oy: py, x: 0, y: 0, vx: 0, vy: 0, fx: 0, fy: 0,
+           hp: d.hp, max: d.hp, V: 0, dq: 0, scale: 1, rad: CR, cd: 0, flash: 0, owner: cr, dead: false,
+           cap: [d.capO, d.capS, 1, 1, 1], f: [d.capO * START_FILL, d.capS * START_FILL, 0, 0, 0],
+           e: 1, boost: 1, ext: false, starve: false, poison: false };
+}
+// angular spring at cell c between two of its neighbours that are not neighbours of each other (keeps chains from folding)
+function addAngle(w, c, A, B) {
+  if (adjHex(A, B)) return;
+  const ux = A.ox - c.ox, uy = A.oy - c.oy, vx = B.ox - c.ox, vy = B.oy - c.oy;
+  w.angles.push({ c, a: A, b: B, phi0: Math.atan2(ux * vy - uy * vx, ux * vx + uy * vy), k: K_ANG * c.d.stiff });
+}
+// the creature's live cell at (q, r), if any
+const cellAt = (cr, q, r) => { const c = cr.map && cr.map.get(key(q, r)); return c && !c.dead && c.owner === cr ? c : null; };
+
+// where a Bud grows its part: where the player placed it (b.off = part anchor relative to the Bud, b.rot = turn), or by
+// default turned so the part's front (top in the builder) points away from the body, attached on the Bud's most outward
+// free side. Hexes the body already uses are skipped. Cells come in growth order, nearest the Bud first.
+function budPlan(cells, b) {
+  const occ = new Set(cells.map(c => key(c.q, c.r)));
+  const free = NB.filter(([dq, dr]) => !occ.has(key(b.q + dq, b.r + dr)));
+  if (!b.tpl || !free.length) return { cells: [], blocked: b.tpl ? b.tpl.cells.length : 0, dir: [0, -1], rot: b.rot || 0 };
+  let ux, uy, rot;
+  if (b.rot !== undefined) { rot = b.rot; ux = Math.sin(rot * Math.PI / 3); uy = -Math.cos(rot * Math.PI / 3); }   // turned by the player
+  else {                                               // default: away from the body's middle
+    let mx = 0, my = 0;
+    for (const c of cells) { const [x, y] = hexPx(c.q, c.r); mx += x / cells.length; my += y / cells.length; }
+    const [bx, by] = hexPx(b.q, b.r);
+    ux = bx - mx; uy = by - my;
+    const ul = Math.hypot(ux, uy);
+    if (ul < 1e-6) { ux = 0; uy = -1; } else { ux /= ul; uy /= ul; }
+    rot = Math.round(Math.atan2(ux, -uy) / (Math.PI / 3));
+  }
+  const turned = b.tpl.cells.map(c => { const [q, r] = rotHex(c.q, c.r, rot); return { q, r, t: c.t }; });
+  let oq, orr;
+  if (b.off) { oq = b.q + b.off[0]; orr = b.r + b.off[1]; }
+  else {
+    const out = (q, r) => { const [x, y] = hexPx(q, r); return x * ux + y * uy; };
+    const [nq, nr] = free.reduce((a, d) => out(...d) > out(...a) ? d : a);
+    const back = turned.reduce((a, c) => out(c.q, c.r) < out(a.q, a.r) ? c : a);
+    oq = b.q + nq - back.q; orr = b.r + nr - back.r;
+  }
+  const has = new Map(turned.map(c => ({ q: c.q + oq, r: c.r + orr, t: c.t })).filter(c => !occ.has(key(c.q, c.r))).map(c => [key(c.q, c.r), c]));
+  const seen = new Set([key(b.q, b.r)]), order = [], queue = [[b.q, b.r]];
+  while (queue.length) {
+    const [q, r] = queue.shift();
+    for (const [dq, dr] of NB) {
+      const k = key(q + dq, r + dr);
+      if (has.has(k) && !seen.has(k)) { seen.add(k); order.push(has.get(k)); queue.push([q + dq, r + dr]); }
+    }
+  }
+  // dir (rest frame): the player's aim (b.aim, radians clockwise from the front) or else where the turned part's front points
+  const aim = b.aim !== undefined ? b.aim : rot * Math.PI / 3;
+  return { cells: order, blocked: b.tpl.cells.length - order.length, dir: [Math.sin(aim), -Math.cos(aim)], rot, off: [oq - b.q, orr - b.r] };
+}
+
+// add one grown cell to a living creature, next to its existing neighbours; it starts small and swells to size
+function growCell(w, cr, b, bud) {
+  const nb = NB.map(([dq, dr]) => cellAt(cr, b.q + dq, b.r + dr)).filter(Boolean);
+  if (!nb.length) return;
+  const cell = makeCell(b.t, b.q, b.r, cr), p = nb[0], c = Math.cos(cr.theta), s = Math.sin(cr.theta);
+  const lx = cell.ox - p.ox, ly = cell.oy - p.oy;
+  cell.x = p.x + lx * c - ly * s; cell.y = p.y + lx * s + ly * c; cell.vx = p.vx; cell.vy = p.vy;
+  cell.f = [0, 0, 0, 0, 0]; cell.scale = 0.3; cell.rad = CR * 0.3; cell.piece = bud;
+  // the body fills the growing part through every cell it touches (the Bud too); cut when it is fired
+  for (const n of nb) { w.bonds.push({ a: cell, b: n, k: K_RAD * Math.min(cell.d.rad, n.d.rad), ext: false }); link(w, cell, n); }
+  for (let i = 0; i < nb.length; i++) for (let j = i + 1; j < nb.length; j++) addAngle(w, cell, nb[i], nb[j]);
+  for (const n of nb) for (const [dq, dr] of NB) { const m = cellAt(cr, n.q + dq, n.r + dr); if (m) addAngle(w, n, cell, m); }
+  cr.cells.push(cell); w.cells.push(cell); cr.map.set(key(b.q, b.r), cell);
+  restFrame(cr); markExterior(w, cr);
+}
+
+// cut a Bud's finished part loose and shoot it the way its front points, turned with the creature's heading
+// (not from where the soft part happens to flop); the whole part gets one velocity so it flies without spinning; the body recoils
+function release(w, cr, bud) {
+  const piece = new Set(cr.cells.filter(c => c.piece === bud));
+  if (!piece.size) return;
+  const cut = (a, b) => piece.has(a) !== piece.has(b);
+  w.bonds = w.bonds.filter(b => !cut(b.a, b.b));
+  w.angles = w.angles.filter(g => !cut(g.c, g.a) && !cut(g.c, g.b));
+  w.links = w.links.filter(v => !cut(v.a, v.b));
+  cr.cells = cr.cells.filter(c => !piece.has(c));
+  const [ax, ay] = bud.grow.plan.dir;
+  const shot = { team: cr.team, cells: [...piece], alive: true, debris: true, shot: true, aim: Math.atan2(ax, -ay), pump: 0, want: 0, theta: 0, sx: 0, sy: 0, ability: false, cx: 0, cy: 0 };
+  let m = 0, vx = 0, vy = 0, mb = 0;
+  for (const c of piece) { c.owner = shot; c.piece = null; m += c.d.mass; vx += c.vx * c.d.mass; vy += c.vy * c.d.mass; }
+  for (const c of cr.cells) mb += c.d.mass;
+  const [dx, dy] = bud.grow.plan.dir, ct = Math.cos(cr.theta), st = Math.sin(cr.theta);
+  const ux = dx * ct - dy * st, uy = dx * st + dy * ct;
+  for (const c of piece) { c.vx = vx / m + ux * LAUNCH_V; c.vy = vy / m + uy * LAUNCH_V; }
+  for (const c of cr.cells) { c.vx -= ux * LAUNCH_V * m / mb; c.vy -= uy * LAUNCH_V * m / mb; }
+  restFrame(shot); markExterior(w, shot); restFrame(cr); markExterior(w, cr);
+  w.creatures.push(shot);
+  bud.cd = BUD_CD; bud.grow.prog = 0; bud.grow.done = false;
+  sparks(w, bud.x, bud.y, bud.d.color, 6);
+}
+
+// Buds turn burned fuel into their part one cell at a time; a nerve signal fires the finished part
+function buds(w) {
+  for (const c of [...w.cells]) {
+    if (c.t !== 'bud' || !c.grow || c.owner.debris || c.dead) continue;
+    const g = c.grow, cr = c.owner;
+    const next = g.plan.cells.find(b => !cellAt(cr, b.q, b.r));
+    g.done = !next;
+    if (next && g.prog >= GROW_FUEL * CELLS[next.t].cost) { g.prog -= GROW_FUEL * CELLS[next.t].cost; growCell(w, cr, next, c); }
+    g.have = g.plan.cells.filter(b => cellAt(cr, b.q, b.r)).length;
+    if (g.done && g.have && c.V > 0.5 && c.cd <= 0) release(w, cr, c);
+  }
+}
+
+// rest-shape centre (mass weighted), used to measure the creature's heading
+function restFrame(cr) {
+  let m = 0, x = 0, y = 0;
+  for (const c of cr.cells) { m += c.d.mass; x += c.ox * c.d.mass; y += c.oy * c.d.mass; }
+  cr.rx = x / m; cr.ry = y / m; cr.core = cr.cells.find(c => c.t === 'nucleus');
+}
+
+// a bond is on the outer membrane if fewer than two cells close a triangle over it; its cells touch the water
+function markExterior(w, cr) {
+  const adj = new Map(cr.cells.map(c => [c, new Set()]));
+  const mine = w.bonds.filter(b => b.a.owner === cr);
+  for (const c of cr.cells) c.ext = cr.cells.length < 3;
+  for (const b of mine) { adj.get(b.a).add(b.b); adj.get(b.b).add(b.a); }
+  for (const b of mine) {
+    let n = 0; for (const x of adj.get(b.a)) if (adj.get(b.b).has(x)) n++;
+    b.ext = n < 2;
+    if (b.ext) b.a.ext = b.b.ext = true;
+  }
+}
+
+// ---------- Simulation ----------
+function control(w, cr, h) {
+  let m = 0, cx = 0, cy = 0;
+  for (const c of cr.cells) { m += c.d.mass; cx += c.x * c.d.mass; cy += c.y * c.d.mass; }
+  cx /= m; cy /= m; cr.cx = cx; cr.cy = cy;
+  if (cr.debris && !cr.shot) return;
+  // a released Bud part (drone) does not steer and gets no free swimming: only its own cilia and siphons push it,
+  // the way it was fired (cr.aim = launch direction in its rest frame); muscles and bloaters move it through the water
+  const drone = cr.debris;
+  let sc = 0, dc = 0, L = 0, I = 0;
+  for (const c of cr.cells) {
+    const r0x = c.ox - cr.rx, r0y = c.oy - cr.ry, rx = c.x - cx, ry = c.y - cy;
+    sc += c.d.mass * (r0x * ry - r0y * rx); dc += c.d.mass * (r0x * rx + r0y * ry);
+    L += c.d.mass * (rx * c.vy - ry * c.vx); I += c.d.mass * (rx * rx + ry * ry);
+  }
+  cr.theta = Math.atan2(sc, dc);
+  const omega = L / (I || 1);
+  const err = wrap(cr.want - cr.theta), head = cr.theta + (cr.aim || 0);
+  const fwx = Math.sin(head), fwy = -Math.cos(head);
+  if (drone) { cr.sx = fwx; cr.sy = fwy; }
+  const turn = drone ? 0 : TURN_K * err - TURN_D * omega;
+  for (const c of cr.cells) {
+    const rx = c.x - cx, ry = c.y - cy;
+    const sw = (drone ? 0 : c.d.swim) + (c.t === 'cilia' ? CILIA_SWIM * c.e * c.boost : 0);
+    c.fx += c.d.mass * turn * -ry + SWIM_F * sw * cr.sx;
+    c.fy += c.d.mass * turn * rx + SWIM_F * sw * cr.sy;
+    if (c.t === 'siphon' && c.V > 0) { const p = SIPHON_F * clamp01(c.V) * c.e * c.boost; c.fx += fwx * p; c.fy += fwy * p; }
+  }
+}
+
+function forces(w) {
+  for (const b of w.bonds) {
+    const A = b.a, B = b.b;
+    let dx = B.x - A.x, dy = B.y - A.y;
+    const d = Math.hypot(dx, dy) || 1e-6; dx /= d; dy /= d;
+    const rvx = B.vx - A.vx, rvy = B.vy - A.vy;
+    const f = b.k * (d - A.rad - B.rad) + D_RAD * (rvx * dx + rvy * dy);
+    A.fx += f * dx; A.fy += f * dy; B.fx -= f * dx; B.fy -= f * dy;
+    if (b.ext) {                                     // outer membrane resists sideways motion through water
+      const nx = -dy, ny = dx, vn = ((A.vx + B.vx) * nx + (A.vy + B.vy) * ny) * 0.5;
+      const fn = -DRAG_N * vn * 0.5;
+      A.fx += fn * nx; A.fy += fn * ny; B.fx += fn * nx; B.fy += fn * ny;
+    }
+  }
+  for (const g of w.angles) {
+    const c = g.c, A = g.a, B = g.b;
+    const ux = A.x - c.x, uy = A.y - c.y, vx = B.x - c.x, vy = B.y - c.y;
+    const lu = Math.hypot(ux, uy) || 1e-6, lv = Math.hypot(vx, vy) || 1e-6;
+    const err = wrap(Math.atan2(ux * vy - uy * vx, ux * vx + uy * vy) - g.phi0);
+    const fa = g.k * err / (lu * lu), fb = g.k * err / (lv * lv);
+    const ax = -uy * fa, ay = ux * fa, bx = vy * fb, by = -vx * fb;   // rotate arms to close the error
+    A.fx += ax; A.fy += ay; B.fx += bx; B.fy += by; c.fx -= ax + bx; c.fy -= ay + by;
+  }
+  for (const c of w.cells) { c.fx -= DRAG_ISO * c.vx; c.fy -= DRAG_ISO * c.vy; }
+}
+
+function collisions(w, h) {
+  const cs = w.creatures;
+  for (const cr of cs) {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const c of cr.cells) { x0 = Math.min(x0, c.x - c.rad); y0 = Math.min(y0, c.y - c.rad); x1 = Math.max(x1, c.x + c.rad); y1 = Math.max(y1, c.y + c.rad); }
+    cr.box = [x0, y0, x1, y1];
+  }
+  for (let i = 0; i < cs.length; i++) for (let j = i + 1; j < cs.length; j++) {
+    const P = cs[i], Q = cs[j], p = P.box, q = Q.box;
+    if (p[2] < q[0] || q[2] < p[0] || p[3] < q[1] || q[3] < p[1]) continue;
+    const hostile = P.team !== Q.team;
+    for (const a of P.cells) for (const b of Q.cells) {
+      const dx = b.x - a.x, dy = b.y - a.y, rr = a.rad + b.rad;
+      if (dx * dx + dy * dy >= rr * rr) continue;
+      const d = Math.hypot(dx, dy) || 1e-6, nx = dx / d, ny = dy / d, f = K_COL * (rr - d);
+      a.fx -= f * nx; a.fy -= f * ny; b.fx += f * nx; b.fy += f * ny;
+      if (hostile) {
+        const sp = Math.hypot(b.vx - a.vx, b.vy - a.vy);
+        thornHit(w, a, b, sp); thornHit(w, b, a, sp);
+        bite(w, a, b); bite(w, b, a);
+      }
+    }
+  }
+}
+
+function thornHit(w, s, t, speed) {
+  if (s.t !== 'thorn' || s.cd > 0 || s.dead) return;
+  s.cd = THORN_CD;
+  hurt(t, THORN_DMG + THORN_SPD * speed);
+  sparks(w, (s.x + t.x) / 2, (s.y + t.y) / 2, '#ffffff', 4);
+}
+
+function bite(w, m, t) {
+  if (m.t !== 'mouth' || m.cd > 0 || m.dead || (m.owner.debris && !m.owner.shot)) return;
+  m.cd = BITE_CD;
+  hurt(t, BITE_DMG);
+  m.f[S] = Math.min(m.cap[S], m.f[S] + BITE_S);
+  sparks(w, (m.x + t.x) / 2, (m.y + t.y) / 2, FLUIDS[S].color, 3);
+}
+
+function hurt(c, dmg) { if (c.dead) return; c.hp -= dmg * c.d.armor; c.flash = 0.12; }
+
+function integrate(w, h) {
+  for (const c of w.cells) {
+    const m = c.d.mass;
+    c.vx += c.fx / m * h; c.vy += c.fy / m * h;
+    c.x += c.vx * h; c.y += c.vy * h;
+    c.fx = 0; c.fy = 0;
+    if (c.x < c.rad) { c.x = c.rad; c.vx = Math.abs(c.vx) * 0.3; }
+    if (c.x > w.w - c.rad) { c.x = w.w - c.rad; c.vx = -Math.abs(c.vx) * 0.3; }
+    if (c.y < c.rad) { c.y = c.rad; c.vy = Math.abs(c.vy) * 0.3; }
+    if (c.y > w.h - c.rad) { c.y = w.h - c.rad; c.vy = -Math.abs(c.vy) * 0.3; }
+  }
+}
+
+function genOut(w, c) {
+  const cr = c.owner;
+  if (c.piece) return 0;                              // signal sources in a growing Bud part wait for release
+  if (c.d.gen === 'pulse') return Math.sin(TAU * PULSE_HZ * w.t) > 0 ? 1 : 0;
+  if (cr.debris && !cr.shot) return 0;
+  // Command: a bound one fires on its number key for the player; unbound ones, the AI and the builder use Space / ability
+  const held = !!c.bind && !!cr.held && cr.held.has(c.bind);
+  if (c.d.gen === 'key') return (c.bind && !cr.ai && !cr.auto && !w.test ? held : cr.ability || held) ? 1 : 0;
+  if (w.test) return cr.ability ? 1 : 0;              // builder/demo worlds: Space also fires eyespots
+  for (const o of w.creatures) {
+    if (o.team === cr.team || o.debris) continue;
+    for (const e of o.cells) if ((e.x - c.x) ** 2 + (e.y - c.y) ** 2 < SENSE_R * SENSE_R) return 1;
+  }
+  return 0;
+}
+
+// Signal charge flows between nerve-conducting neighbours; signal sources hold their output.
+function nerves(w, dt) {
+  for (const c of w.cells) if (c.d.gen) c.out = genOut(w, c);
+  const n = 4, h = dt / n;
+  for (let k = 0; k < n; k++) {
+    for (const c of w.cells) { c.dq = 0; if (c.d.gen) c.V = c.out; }
+    for (const b of w.bonds) {                       // a growing Bud part has its own nerves, apart from the body's
+      if (!b.a.d.cond || !b.b.d.cond || (b.a.piece || null) !== (b.b.piece || null)) continue;
+      const I = G_NERVE * (b.b.V - b.a.V);
+      b.a.dq += I; b.b.dq -= I;
+    }
+    for (const c of w.cells) if (c.d.cond && !c.d.gen) c.V += (c.dq / (c.d.cap || 1) - LEAK * c.V) * h;
+  }
+}
+
+// how hard a fuel-burning cell is working this frame (0..1)
+function activity(c) {
+  const V = clamp01(c.V), cr = c.owner;
+  if (c.piece) return 0;                              // a Bud's part sleeps until it is released
+  switch (c.t) {
+    case 'muscle': case 'bloater': case 'siphon': return V;
+    case 'nettle': case 'adrenal': return V > 0.5 ? 1 : 0;
+    case 'cilia': return cr.sx || cr.sy ? 1 : 0;
+    case 'heart': return 1;
+    case 'mender': return c.f[R] < 0.9 * c.cap[R] ? 1 : 0;
+    case 'bud': return c.grow && !c.grow.done && c.cd <= 0 ? 1 : 0;
+  }
+  return 0;
+}
+
+// burn equal parts O2 and energy from the cell's own store; c.e = fraction of the demand it got
+function burn(c, need) {
+  const f = c.f;
+  if (need <= 0) { c.e = f[O] > 0.01 && f[S] > 0.01 ? 1 : 0; return 0; }
+  const take = Math.min(need, f[O], f[S]);
+  f[O] -= take; f[S] -= take; f[W] = Math.min(2 * c.cap[W], f[W] + take);
+  c.e = take / need;
+  return take;
+}
+
+// released Bud parts run on what they carry: they stay alive until their O2 or energy is used up, then rot
+function metabolism(w, dt) {
+  for (const c of w.cells) {
+    const f = c.f, cap = c.cap;
+    c.boost = 1 + ADR_K * clamp01(f[A] / cap[A]);
+    f[A] *= 1 - ADR_DECAY * dt;
+    c.poison = c.d.fuel > 0 && f[W] > POISON * cap[W];   // only working cells care about waste
+    if (c.poison) c.hp -= POISON_DMG * dt;
+    if (f[R] > 0 && c.hp < c.max) { const u = Math.min(f[R], REPAIR_RATE * dt); f[R] -= u; c.hp = Math.min(c.max, c.hp + u * REPAIR_HP); }
+    if (c.owner.debris && !c.owner.shot) continue;
+    if (c.d.fuel) {
+      const act = activity(c), got = burn(c, c.d.fuel * FUEL_K * act * dt);
+      c.starve = act > 0 && c.e < 0.4;
+      if (c.t === 'mender') f[R] += got / FUEL_K;              // glands make as much as before from less fuel
+      if (c.t === 'adrenal') f[A] += got * ADR_GAIN / FUEL_K;
+      if (c.t === 'bud' && c.grow) c.grow.prog += got;
+    }
+    if (c.t === 'gill') f[O] = Math.min(cap[O], f[O] + (GILL_O2 + GILL_SPD * Math.hypot(c.vx, c.vy)) * dt);
+    if (c.t === 'pore' && c.ext) f[W] = Math.max(0, f[W] - PORE_RATE * dt);
+    if (c.t === 'mouth' && w.test) f[S] = Math.min(cap[S], f[S] + TEST_FEED * dt);
+  }
+  // fed = it has a working cell and still carries O2 and energy somewhere (Fat, Air sacs, pipes, the cells themselves)
+  for (const cr of w.creatures) if (cr.shot) {
+    const has = i => cr.cells.reduce((s, c) => s + c.f[i], 0) > DRONE_MIN;
+    cr.fed = cr.cells.some(c => c.d.fuel) && has(O) && has(S);
+  }
+}
+
+// Fluids move between touching cells from the fuller one to the emptier one (by fill level).
+// A fed Heart speeds up every link with a cell within HEART_R cells of it; Valves without a signal let nothing through.
+const hexDist = (a, b) => (Math.abs(a.q - b.q) + Math.abs(a.r - b.r) + Math.abs(a.q + a.r - b.q - b.r)) / 2;
+function flow(w, dt) {
+  for (const c of w.cells) c.pump = 0;
+  for (const h of w.cells) if (h.t === 'heart' && h.e > 0)
+    for (const c of h.owner.cells) if (hexDist(c, h) <= HEART_R) c.pump += h.e;
+  for (const v of w.links) {
+    v.open = (v.a.t !== 'valve' || v.a.V > 0.5) && (v.b.t !== 'valve' || v.b.V > 0.5);
+    v.G = Math.min(G_MAX, G_FLOW + G_HEART * Math.max(v.a.pump, v.b.pump));
+  }
+  const n = 8, h = dt / n;                          // pipes hold little, so take small steps
+  for (let k = 0; k < n; k++) for (const v of w.links) {
+    if (!v.open) continue;
+    const a = v.a, b = v.b;
+    for (let i = 0; i < 5; i++) {
+      let fl = v.G * (a.f[i] / a.cap[i] - b.f[i] / b.cap[i]) * h;
+      fl = Math.max(-b.f[i], Math.min(a.f[i], fl));
+      a.f[i] -= fl; b.f[i] += fl;
+    }
+  }
+}
+
+function effectors(w, dt) {
+  for (const c of w.cells) {
+    c.cd -= dt; c.flash = Math.max(0, c.flash - dt);
+    const V = clamp01(c.V), p = c.e * c.boost;
+    let target = 1;
+    if (c.t === 'muscle') target = Math.max(0.35, 1 - 0.55 * V * p);
+    else if (c.t === 'bloater') target = Math.min(2, 1 + 0.8 * V * p);
+    const fast = c.t === 'bloater' ? target > c.scale : target < c.scale;   // snap on, slow recovery
+    c.scale += (target - c.scale) * Math.min(1, dt * (fast ? 16 : 4));
+    c.rad = CR * c.scale;
+    if (c.t === 'nettle' && c.V > 0.5 && c.e > 0.3 && c.cd <= 0 && (!c.owner.debris || c.owner.shot)) {
+      let hit = false;
+      for (const o of w.creatures) {
+        if (o.team === c.owner.team) continue;
+        for (const e of o.cells) {
+          if ((e.x - c.x) ** 2 + (e.y - c.y) ** 2 > NETTLE_R * NETTLE_R) continue;
+          hurt(e, NETTLE_DMG * p); hit = true;
+          w.zaps.push({ x0: c.x, y0: c.y, x1: e.x, y1: e.y, life: 0.15 });
+        }
+      }
+      if (hit) c.cd = NETTLE_CD;
+    }
+    if (c.owner.debris && !c.owner.fed) c.hp -= DEBRIS_DECAY * dt;   // released parts rot once their fuel is gone
+  }
+}
+
+// food specks drift in the battle arena; a creature with a Mouth eats the specks that touch any of its cells (into a Mouth with room)
+function food(w, dt) {
+  if (!w.test) {
+    w.foodT -= dt;
+    if (w.foodT <= 0 && w.food.length < FOOD_MAX) {
+      w.foodT = FOOD_EVERY;
+      w.food.push({ x: 30 + Math.random() * (w.w - 60), y: 30 + Math.random() * (w.h - 60) });
+    }
+  }
+  for (const p of w.food) { p.x += Math.sin(w.t * 0.7 + p.y * 0.01) * 4 * dt; p.y += Math.cos(w.t * 0.5 + p.x * 0.01) * 4 * dt; }
+  for (const cr of w.creatures) {
+    if (cr.debris && !cr.shot) continue;
+    const mouths = cr.cells.filter(c => c.t === 'mouth');
+    if (!mouths.length) continue;
+    w.food = w.food.filter(p => {
+      const m = mouths.find(c => c.f[S] <= c.cap[S] - FOOD_S / 2);
+      if (!m || !cr.cells.some(c => (p.x - c.x) ** 2 + (p.y - c.y) ** 2 <= (c.rad + 5) ** 2)) return true;
+      m.f[S] = Math.min(m.cap[S], m.f[S] + FOOD_S);
+      return false;
+    });
+  }
+}
+
+// Remove dead cells; split creatures into connected pieces. Pieces without the nucleus become debris.
+function cleanup(w) {
+  if (!w.cells.some(c => c.hp <= 0)) return;
+  const touched = new Set();
+  for (const c of w.cells) if (c.hp <= 0) {
+    c.dead = true; touched.add(c.owner); sparks(w, c.x, c.y, c.d.color, 10);
+    if (!w.test && Math.random() < FOOD_DROP) w.food.push({ x: c.x, y: c.y });
+  }
+  w.cells = w.cells.filter(c => !c.dead);
+  w.bonds = w.bonds.filter(b => !b.a.dead && !b.b.dead);
+  w.angles = w.angles.filter(g => !g.c.dead && !g.a.dead && !g.b.dead);
+  w.links = w.links.filter(v => !v.a.dead && !v.b.dead);
+  for (const cr of touched) {
+    const alive = cr.cells.filter(c => !c.dead);
+    const adj = new Map(alive.map(c => [c, []]));
+    for (const b of w.bonds) if (b.a.owner === cr) { adj.get(b.a).push(b.b); adj.get(b.b).push(b.a); }
+    const seen = new Set(), parts = [];
+    const coreAlive = cr.core && !cr.core.dead;
+    const roots = coreAlive ? [cr.core, ...alive] : alive;
+    for (const root of roots) {
+      if (seen.has(root)) continue;
+      const part = [root]; seen.add(root);
+      for (let i = 0; i < part.length; i++) for (const n of adj.get(part[i])) if (!seen.has(n)) { seen.add(n); part.push(n); }
+      parts.push(part);
+    }
+    const keep = coreAlive && !cr.debris ? parts.shift() : null;
+    cr.cells = keep || [];
+    if (!keep) cr.alive = false;
+    for (const part of parts) {
+      const d = { team: cr.debris ? cr.team : -1, shot: !!cr.shot, aim: cr.aim, cells: part, alive: true, debris: true, pump: 0, want: 0, theta: 0, sx: 0, sy: 0, ability: false, cx: 0, cy: 0 };
+      for (const c of part) c.owner = d;
+      restFrame(d); markExterior(w, d);
+      w.creatures.push(d);
+    }
+    if (keep) { restFrame(cr); markExterior(w, cr); }
+  }
+  w.creatures = w.creatures.filter(c => c.alive && c.cells.length);
+}
+
+function sparks(w, x, y, color, n) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * TAU, sp = 40 + Math.random() * 140;
+    w.sparks.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0.3 + Math.random() * 0.4, color });
+  }
+}
+
+function aiControl(w, cr) {
+  let tgt = null, td = Infinity;
+  for (const o of w.creatures) {
+    if (o.team === cr.team || o.debris) continue;
+    const d = Math.hypot(o.cx - cr.cx, o.cy - cr.cy);
+    if (d < td) { td = d; tgt = o; }
+  }
+  if (!tgt) { cr.sx = cr.sy = 0; cr.ability = false; return; }
+  const dx = (tgt.cx - cr.cx) / td, dy = (tgt.cy - cr.cy) / td;
+  cr.sx = dx; cr.sy = dy; cr.want = Math.atan2(dx, -dy);
+  cr.ability = td < 170;
+}
+
+function step(w, dt, input) {
+  for (const cr of w.creatures) {
+    if (cr.debris) continue;
+    if (cr.team !== 0 && w.idle) { cr.sx = cr.sy = 0; cr.ability = false; }   // sandbox: enemies hold still
+    else if (cr.ai || cr.auto) aiControl(w, cr);
+    else if (input && 'fwd' in input) {
+      // car-style: turn rotates the heading, fwd swims along it (negative = reverse without turning)
+      cr.ability = input.ability; cr.held = input.held;
+      cr.want = cr.theta + Math.max(-1, Math.min(1, wrap(cr.want + input.turn * TURN_RATE * dt - cr.theta)));
+      cr.sx = Math.sin(cr.want) * input.fwd; cr.sy = -Math.cos(cr.want) * input.fwd;
+    } else if (input) {
+      cr.sx = input.sx; cr.sy = input.sy; cr.ability = input.ability; cr.held = input.held;
+      if (input.sx || input.sy) cr.want = Math.atan2(input.sx, -input.sy);
+    }
+  }
+  const h = dt / SUB;
+  for (let i = 0; i < SUB; i++) {
+    for (const cr of w.creatures) control(w, cr, h);
+    forces(w);
+    collisions(w, h);
+    integrate(w, h);
+  }
+  w.t += dt;
+  nerves(w, dt);
+  metabolism(w, dt);
+  flow(w, dt);
+  effectors(w, dt);
+  buds(w);
+  food(w, dt);
+  cleanup(w);
+  for (const p of w.sparks) { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; p.vx *= 0.9; p.vy *= 0.9; }
+  w.sparks = w.sparks.filter(p => p.life > 0);
+  for (const z of w.zaps) z.life -= dt;
+  w.zaps = w.zaps.filter(z => z.life > 0);
+}
+
+// ---------- Waves ----------
+function waveBlueprints(n) {
+  const T = TEMPLATES;
+  const hand = { 1: [T.wiggler], 2: [T.nettler], 3: [T.puffer], 4: [T.wiggler, T.nettler], 5: [T.squirter, T.puffer] };
+  if (hand[n]) return hand[n];
+  const pool = [T.wiggler, T.squirter, T.nettler, T.puffer];
+  return Array.from({ length: Math.min(6, n - 3) }, (_, i) => pool[(n + i) % pool.length]);
+}
+
+// ---------- Rendering ----------
+const BODY = { 0: '#1f4a3a', 1: '#4a2430', '-1': '#2a2f33' };
+
+// view 0 = normal, 1..5 = fill level of one fluid
+function drawWorld(ctx, w, view) {
+  for (const cr of w.creatures) {
+    ctx.strokeStyle = BODY[cr.team]; ctx.lineCap = 'round';
+    for (const b of w.bonds) {
+      if (b.a.owner !== cr) continue;
+      ctx.lineWidth = Math.min(b.a.rad, b.b.rad) * 1.6;
+      ctx.beginPath(); ctx.moveTo(b.a.x, b.a.y); ctx.lineTo(b.b.x, b.b.y); ctx.stroke();
+    }
+  }
+  for (const c of w.cells) drawCell(ctx, c, view);
+  ctx.strokeStyle = '#cfe9ff'; ctx.lineWidth = 2;
+  for (const z of w.zaps) {
+    ctx.beginPath(); ctx.moveTo(z.x0, z.y0);
+    const mx = (z.x0 + z.x1) / 2 + (Math.random() - 0.5) * 14, my = (z.y0 + z.y1) / 2 + (Math.random() - 0.5) * 14;
+    ctx.lineTo(mx, my); ctx.lineTo(z.x1, z.y1); ctx.stroke();
+  }
+  ctx.fillStyle = '#d8e070';
+  for (const p of w.food) { ctx.beginPath(); ctx.arc(p.x, p.y, 2.5, 0, TAU); ctx.fill(); }
+  for (const p of w.sparks) { ctx.globalAlpha = Math.min(1, p.life * 3); ctx.fillStyle = p.color; ctx.fillRect(p.x - 1.5, p.y - 1.5, 3, 3); }
+  ctx.globalAlpha = 1;
+}
+
+function drawCell(ctx, c, view) {
+  const r = c.rad * 0.9, cr = c.owner;
+  if (view) {                                         // fluid map: fill = level of the chosen fluid
+    const i = view - 1;
+    ctx.globalAlpha = 1; ctx.fillStyle = '#1a2328';
+    ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, TAU); ctx.fill();
+    ctx.globalAlpha = 0.1 + 0.9 * clamp01(c.f[i] / c.cap[i]); ctx.fillStyle = FLUIDS[i].color; ctx.fill();
+    ctx.globalAlpha = 1; ctx.strokeStyle = c.d.color; ctx.lineWidth = 1.5; ctx.stroke();
+    return;
+  }
+  ctx.globalAlpha = 0.4 + 0.6 * clamp01(c.hp / c.max);
+  const out = Math.atan2(c.y - cr.cy, c.x - cr.cx);  // direction away from the body centre
+  if (c.t === 'thorn') {
+    ctx.fillStyle = c.d.color;
+    ctx.beginPath();
+    ctx.moveTo(c.x + Math.cos(out) * r * 1.9, c.y + Math.sin(out) * r * 1.9);
+    ctx.lineTo(c.x + Math.cos(out + 1.9) * r, c.y + Math.sin(out + 1.9) * r);
+    ctx.lineTo(c.x + Math.cos(out - 1.9) * r, c.y + Math.sin(out - 1.9) * r);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.fillStyle = c.d.color;
+  ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, TAU); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1.2; ctx.stroke();
+  // per-type detail
+  ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+  const reservoir = i => { ctx.fillStyle = FLUIDS[i].color; ctx.beginPath(); ctx.arc(c.x, c.y, r * 0.75 * Math.sqrt(clamp01(c.f[i] / c.cap[i])), 0, TAU); ctx.fill(); };
+  if (c.t === 'nucleus') {
+    const fx = Math.sin(cr.theta), fy = -Math.cos(cr.theta);
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(c.x + fx * r * 0.3, c.y + fy * r * 0.3, r * 0.45, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(c.x + fx * r * 0.5, c.y + fy * r * 0.5, r * 0.22, 0, TAU); ctx.fill();
+  } else if (c.t === 'muscle') {
+    for (const k of [-0.4, 0, 0.4]) { ctx.beginPath(); ctx.moveTo(c.x - r * 0.6, c.y + k * r); ctx.lineTo(c.x + r * 0.6, c.y + k * r); ctx.stroke(); }
+  } else if (c.t === 'shell') {
+    ctx.beginPath(); ctx.arc(c.x, c.y, r * 0.55, 0, TAU); ctx.stroke();
+  } else if (c.t === 'cilia') {
+    ctx.strokeStyle = c.d.color; ctx.lineWidth = 1;
+    for (const k of [-0.9, -0.3, 0.3, 0.9]) { const a = out + k; ctx.beginPath(); ctx.moveTo(c.x + Math.cos(a) * r, c.y + Math.sin(a) * r); ctx.lineTo(c.x + Math.cos(a) * r * 1.5, c.y + Math.sin(a) * r * 1.5); ctx.stroke(); }
+  } else if (c.t === 'nerve') {
+    ctx.beginPath(); ctx.arc(c.x, c.y, r * 0.3, 0, TAU); ctx.fill();
+  } else if (c.t === 'ganglion') {
+    ctx.fillRect(c.x - r * 0.5, c.y - r * 0.45, r * 0.25, r * 0.9); ctx.fillRect(c.x + r * 0.25, c.y - r * 0.45, r * 0.25, r * 0.9);
+  } else if (c.d.gen) {
+    ctx.fillStyle = c.V > 0.5 ? '#fff' : 'rgba(0,0,0,0.45)';
+    ctx.beginPath(); ctx.arc(c.x, c.y, r * (c.t === 'eyespot' ? 0.45 : 0.3), 0, TAU); ctx.fill();
+    if (c.t === 'eyespot' && cr.cx !== undefined) { ctx.strokeStyle = 'rgba(79,209,197,0.12)'; ctx.beginPath(); ctx.arc(c.x, c.y, SENSE_R, 0, TAU); ctx.stroke(); }
+  } else if (c.t === 'siphon') {
+    const bx = -Math.sin(cr.theta), by = Math.cos(cr.theta);
+    ctx.fillStyle = '#2f6d91'; ctx.beginPath(); ctx.arc(c.x + bx * r * 0.4, c.y + by * r * 0.4, r * 0.35, 0, TAU); ctx.fill();
+    if (c.V > 0.2 && c.e > 0.2) {
+      ctx.fillStyle = `rgba(160,220,255,${clamp01(c.V * c.e) * 0.7})`;
+      ctx.beginPath(); ctx.arc(c.x + bx * r * 1.6, c.y + by * r * 1.6, r * 0.5 * (0.7 + Math.random() * 0.5), 0, TAU); ctx.fill();
+    }
+  } else if (c.t === 'nettle') {
+    ctx.strokeStyle = '#3f5aa0'; ctx.lineWidth = 2;
+    for (const k of [0, 2.1, 4.2]) { const a = out + k; ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(c.x + Math.cos(a) * r * 0.7, c.y + Math.sin(a) * r * 0.7); ctx.stroke(); }
+  } else if (c.t === 'gill') {
+    ctx.strokeStyle = '#7a2a3a'; ctx.lineWidth = 1.5;
+    for (const k of [-0.4, 0, 0.4]) { ctx.beginPath(); ctx.moveTo(c.x + k * r, c.y - r * 0.5); ctx.lineTo(c.x + k * r, c.y + r * 0.5); ctx.stroke(); }
+  } else if (c.t === 'mouth') {
+    ctx.fillStyle = '#3a1a14';
+    ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.arc(c.x, c.y, r * 0.85, out - 0.6, out + 0.6); ctx.closePath(); ctx.fill();
+  } else if (c.t === 'heart') {
+    ctx.fillStyle = '#ff7a8a';
+    ctx.beginPath(); ctx.arc(c.x, c.y, r * (0.3 + 0.15 * c.e * Math.max(0, Math.sin(performanceNow() * 8))), 0, TAU); ctx.fill();
+  } else if (c.t === 'valve') {
+    ctx.fillStyle = c.V > 0.5 ? '#e8f4ff' : '#26323a';
+    ctx.beginPath(); ctx.moveTo(c.x - r * 0.6, c.y - r * 0.45); ctx.lineTo(c.x, c.y); ctx.lineTo(c.x - r * 0.6, c.y + r * 0.45); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(c.x + r * 0.6, c.y - r * 0.45); ctx.lineTo(c.x, c.y); ctx.lineTo(c.x + r * 0.6, c.y + r * 0.45); ctx.closePath(); ctx.fill();
+  } else if (c.t === 'airsac') {
+    reservoir(O);
+  } else if (c.t === 'fat') {
+    reservoir(S);
+  } else if (c.t === 'pore') {
+    ctx.strokeStyle = '#2a2014'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(c.x, c.y, r * 0.35, 0, TAU); ctx.stroke();
+  } else if (c.t === 'mender') {
+    ctx.fillStyle = '#fff'; ctx.fillRect(c.x - r * 0.15, c.y - r * 0.5, r * 0.3, r); ctx.fillRect(c.x - r * 0.5, c.y - r * 0.15, r, r * 0.3);
+  } else if (c.t === 'adrenal') {
+    ctx.fillStyle = '#5a0a30';
+    ctx.beginPath(); ctx.moveTo(c.x, c.y - r * 0.55); ctx.lineTo(c.x + r * 0.4, c.y); ctx.lineTo(c.x, c.y + r * 0.55); ctx.lineTo(c.x - r * 0.4, c.y); ctx.closePath(); ctx.fill();
+  } else if (c.t === 'bud') {                         // seed, with a ring that fills as the part grows (solid when ready)
+    const g = c.grow, n = g ? g.plan.cells.length : 0;
+    ctx.fillStyle = g && g.done && n ? '#fff' : '#4a5a20';
+    ctx.beginPath(); ctx.arc(c.x, c.y, r * 0.3, 0, TAU); ctx.fill();
+    if (n) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(c.x, c.y, r * 0.6, -Math.PI / 2, -Math.PI / 2 + TAU * g.have / n); ctx.stroke(); }
+  }
+  if (c.bind) {                                       // Command bound to a number key
+    ctx.globalAlpha = 1; ctx.fillStyle = '#111'; ctx.font = `bold ${r * 1.1 | 0}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(c.bind, c.x, c.y + 0.5); ctx.textBaseline = 'alphabetic';
+  }
+  if (c.d.cond && c.V > 0.03) {                     // nerve signal glow
+    ctx.globalAlpha = clamp01(c.V) * 0.55; ctx.fillStyle = '#fff6a0';
+    ctx.beginPath(); ctx.arc(c.x, c.y, r * 0.75, 0, TAU); ctx.fill();
+  }
+  if (c.f[A] > 0.05) {                              // adrenaline rim
+    ctx.globalAlpha = clamp01(c.f[A]); ctx.strokeStyle = FLUIDS[A].color; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(c.x, c.y, r + 1, 0, TAU); ctx.stroke();
+  }
+  if (c.starve) { ctx.globalAlpha = 0.5; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, TAU); ctx.fill(); }
+  if (c.poison) { ctx.globalAlpha = 0.9; ctx.strokeStyle = FLUIDS[W].color; ctx.lineWidth = 2; ctx.setLineDash([3, 2]); ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, TAU); ctx.stroke(); ctx.setLineDash([]); }
+  if (c.flash > 0) { ctx.globalAlpha = Math.min(1, c.flash * 8); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, TAU); ctx.fill(); }
+  ctx.globalAlpha = 1;
+}
+const performanceNow = () => (typeof performance !== 'undefined' ? performance.now() / 1000 : 0);
+
+function drawWater(ctx, w, w0, h0) {
+  ctx.fillStyle = '#0e1d24'; ctx.fillRect(0, 0, w0, h0);
+  ctx.fillStyle = 'rgba(120,200,220,0.05)';
+  for (let i = 0; i < 60; i++) {
+    const x = (i * 137.5 + w.t * 6 * (1 + i % 3)) % w0, y = (i * 91.3 + Math.sin(w.t * 0.3 + i) * 20 + h0) % h0;
+    ctx.beginPath(); ctx.arc(x, y, 1 + i % 3, 0, TAU); ctx.fill();
+  }
+}
+
+// ---------- App (browser only) ----------
+function boot() {
+  const cv = document.getElementById('game'), ctx = cv.getContext('2d');
+  const $ = id => document.getElementById(id);
+  // PANEL_W: menu width kept clear when centring the grid; the grid itself runs under the menu
+  const PANEL_W = 320, ZOOM_MIN = 0.2, ZOOM_MAX = 5;
+  let zoom = 1.9, panX = 0, panY = 0, pan = null;      // editor view: wheel zooms, middle-drag pans
+  let mode = 'build', view = 0, wave = 1, budget = START_BUDGET, selected = 'muscle', hover = null, ended = false;
+  let design = new Map(TEMPLATES.starter.cells.map(b => [key(b.q, b.r), b.t]));
+  let world = null, player = null, tank = null;
+  let warns = [], warnHover = -1;                      // design warnings ({ text, keys }); the one under the mouse
+  let sel = new Set(), stamp = null;                  // Ctrl+clicked hexes; the saved part being placed ({ t, rot })
+  let pdrag = null, adrag = null, libDrag = null, hoverPx = null;   // Bud part / aim being dragged, library part being dragged; cursor in grid px
+  let meta = new Map(), focus = null;            // per-cell extras by hex key ({ tpl } for Buds, { bind } for Commands); clicked cell
+  const keys = new Set(), digits = new Set();          // digits: number keys held, for bound Commands
+  const metaOf = k => { if (!meta.has(k)) meta.set(k, {}); return meta.get(k); };
+
+  // cells not connected to the Nucleus are only planned: drawn faded, free, left out of the creature until joined
+  const joined = () => reach(k => design.has(k));
+  const list = () => { const j = joined(); return [...design].filter(([k]) => j.has(k)).map(([k, t]) => { const [q, r] = k.split(',').map(Number); return { q, r, t, ...meta.get(k) }; }); };
+  const blueprint = () => ({ cells: list() });
+  // cost if the change f() were made (f changes the design; undo() puts it back)
+  const costWith = (f, undo) => { f(); const c = cost(); undo(); return c; };
+  // Unlimited biomass: build as big as you like; Fight stays locked while over budget (the Sandbox takes any size)
+  let freeBuild = false;
+  try { freeBuild = localStorage.getItem('bioforge-free') === '1'; } catch (e) {}
+  const cap = () => freeBuild ? Infinity : budget;
+  const cost = () => bpCost(blueprint());
+  const fmt = v => String(Math.round(v * 2) / 2);
+  const extent = () => 2 * Math.max(0, ...list().map(b => Math.hypot(...hexPx(b.q, b.r)))) + 2 * CR;   // design diameter in px
+  const layout = () => {
+    return { gx: PANEL_W + (cv.width - PANEL_W) / 2 + panX, gy: cv.height / 2 + panY };
+  };
+  // zoom so the whole hex grid fits right of the panel
+  function fitView() {
+    const w = cv.width - PANEL_W - 30, h = cv.height - 60;
+    zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, w / ((2 * GR + 1) * HX), h / ((2 * GR + 1) * HY + 30)));
+    panX = panY = 0;
+  }
+
+  function resize() { cv.width = innerWidth; cv.height = innerHeight; }
+  addEventListener('resize', () => { resize(); if (mode === 'build') rebuildTank(); }); resize();
+
+  function rebuildTank() {
+    const S = extent() + 160;                       // hidden sim: drives the live signals and fluids drawn on the grid
+    tank = newWorld(S, S); tank.test = true;
+    tank.t = performance.now() / 1000;
+    spawn(tank, blueprint(), S / 2, S / 2, 0, 0);
+    for (const k of sel) if (!design.has(k)) sel.delete(k);
+    for (const k of meta.keys()) if (!design.has(k)) meta.delete(k);
+    if (focus && !design.has(focus)) focus = null;
+    refreshPanel();
+  }
+
+  function pxToHex(x, y) {
+    const r = y / HY, q = x / HX - r / 2, s = -q - r;
+    let rq = Math.round(q), rr = Math.round(r), rs = Math.round(s);
+    const dq = Math.abs(rq - q), dr = Math.abs(rr - r), ds = Math.abs(rs - s);
+    if (dq > dr && dq > ds) rq = -rr - rs; else if (dr > ds) rr = -rq - rs;
+    return [rq, rr];
+  }
+  const inGrid = (q, r) => Math.max(Math.abs(q), Math.abs(r), Math.abs(q + r)) <= GR;
+
+  function canPlace(q, r) {
+    const k = key(q, r);
+    if (!inGrid(q, r) || design.has(k)) return false;
+    if (reserved().has(k)) return false;               // kept free for a Bud's part
+    // anywhere: a cell off the body is planned and free; joining the body (maybe with planned cells) must fit the budget
+    return costWith(() => design.set(k, selected), () => design.delete(k)) <= cap();
+  }
+
+  // hexes reachable from the nucleus through hexes where has(key) is true
+  function reach(has) {
+    const seen = new Set([key(0, 0)]), queue = [[0, 0]];
+    while (queue.length) {
+      const [cq, cr] = queue.pop();
+      for (const [dq, dr] of NB) { const k = key(cq + dq, cr + dr); if (has(k) && !seen.has(k)) { seen.add(k); queue.push([cq + dq, cr + dr]); } }
+    }
+    return seen;
+  }
+  // cells cut off from the nucleus stay, as planned cells
+  function removeAt(q, r) {
+    if (design.get(key(q, r)) === undefined || design.get(key(q, r)) === 'nucleus') return;
+    design.delete(key(q, r));
+  }
+
+  // cell dock: one collapsible section per category; each cell type is a hexagon showing the cell, its name and cost
+  const HEX_W = 54, HEX_H = Math.round(HEX_W * 2 / Math.sqrt(3)), HEX_GAP = 3;
+  const dockSecs = [];
+  for (const [t, d] of Object.entries(CELLS)) {
+    if (t === 'nucleus') continue;
+    if (!dockSecs.length || dockSecs[dockSecs.length - 1].cat !== d.cat) {
+      const br = document.createElement('details'), sm = document.createElement('summary'), box = document.createElement('div');
+      br.open = true; br.dataset.node = 'cat:' + d.cat; sm.textContent = d.cat; box.className = 'hexes';
+      br.appendChild(sm); br.appendChild(box); $('palette').appendChild(br);
+      br.addEventListener('toggle', () => layoutDock());
+      dockSecs.push({ cat: d.cat, br, box, items: [] });
+    }
+    const el = document.createElement('button'), cw = HEX_W - 4, ch = HEX_H - 4;
+    el.className = 'pal'; el.dataset.t = t;
+    el.style.width = HEX_W + 'px'; el.style.height = HEX_H + 'px';
+    el.innerHTML = `<canvas width="${cw * 2}" height="${ch * 2}"></canvas>`;
+    const ic = el.querySelector && el.querySelector('canvas');
+    if (ic) {                                          // drawn at 2x for sharp text
+      const g = ic.getContext('2d');
+      g.scale(2, 2);
+      g.save(); g.translate(cw / 2, ch * 0.4); g.scale(1.2, 1.2);
+      drawCell(g, { t, d, hp: 1, max: 1, V: 0, flash: 0, e: 1, f: [0, 0, 0, 0, 0], cap: [1, 1, 1, 1, 1], x: 0, y: 0, rad: CR, owner: { cx: 0, cy: 10, theta: 0 } }, 0);
+      g.restore();
+      g.globalAlpha = 1; g.textAlign = 'center';
+      g.fillStyle = '#dfe4ea'; g.font = '8px system-ui'; g.fillText(d.name, cw / 2, ch * 0.78);
+      g.fillStyle = '#e8c547'; g.font = 'bold 8px system-ui'; g.fillText(d.cost, cw / 2, 9);
+    }
+    el.onclick = () => { selected = t; stamp = null; refreshPanel(); };
+    dockSecs[dockSecs.length - 1].box.appendChild(el);
+    dockSecs[dockSecs.length - 1].items.push(el);
+  }
+  // honeycomb: every section uses the same number of rows, the fewest that fit the window width;
+  // odd rows are shifted half a hexagon so the rows interlock. Sections wrap if even that is too wide.
+  function layoutDock() {
+    const step = HEX_W + HEX_GAP, rowH = HEX_H * 0.75 + HEX_GAP, avail = innerWidth - 50;
+    const dims = (s, rows) => {
+      const cols = Math.ceil(s.items.length / rows), nr = Math.ceil(s.items.length / cols);
+      return { cols, nr, w: cols * step - HEX_GAP + (nr > 1 ? step / 2 : 0) };
+    };
+    const total = rows => dockSecs.reduce((a, s) => a + (s.br.open ? dims(s, rows).w : 70) + 18, 0);
+    let rows = 1;
+    while (rows < 6 && total(rows) > avail) rows++;
+    for (const s of dockSecs) {
+      const { cols, nr, w } = dims(s, rows);
+      s.items.forEach((el, i) => {
+        const r = Math.floor(i / cols), c = i % cols;
+        el.style.left = c * step + (r % 2 ? step / 2 : 0) + 'px';
+        el.style.top = r * rowH + 'px';
+      });
+      s.box.style.width = w + 'px'; s.box.style.height = HEX_H + (nr - 1) * rowH + 'px';
+    }
+  }
+  layoutDock();
+  addEventListener('resize', layoutDock);
+
+  // floating windows: dragged by a handle, resized from the corner; position, size and collapsed state are remembered
+  function floating(el, handle, store) {
+    let g = null;
+    try {
+      const b = JSON.parse(localStorage.getItem(store));
+      if (b) {
+        Object.assign(el.style, { left: b.x + 'px', top: b.y + 'px', right: 'auto', width: b.w + 'px', height: b.h ? b.h + 'px' : '' });
+        el.classList.toggle('collapsed', !!b.c);
+      }
+    } catch (e) {}
+    handle.addEventListener('mousedown', e => {
+      if (e.target.closest && e.target.closest('button')) return;
+      g = { mx: e.clientX, my: e.clientY, x: el.offsetLeft, y: el.offsetTop }; e.preventDefault();
+    });
+    addEventListener('mousemove', e => {
+      if (!g) return;
+      el.style.left = Math.max(0, Math.min(innerWidth - 60, g.x + e.clientX - g.mx)) + 'px';
+      el.style.top = Math.max(0, Math.min(innerHeight - 30, g.y + e.clientY - g.my)) + 'px';
+      el.style.right = 'auto';
+    });
+    const save = () => {
+      if (!el.offsetWidth) return;
+      const b = { x: el.offsetLeft, y: el.offsetTop, w: parseFloat(el.style.width) || el.offsetWidth, h: parseFloat(el.style.height) || 0, c: el.classList.contains('collapsed') };
+      try { localStorage.setItem(store, JSON.stringify(b)); } catch (e) {}
+    };
+    addEventListener('mouseup', () => { g = null; save(); });
+    return save;
+  }
+  floating($('panel'), $('grip'), 'bioforge-panel');
+  const savePreview = floating($('preview'), $('pvbar'), 'bioforge-preview');
+  const pvCollapsed = () => $('preview').classList.contains('collapsed');
+  $('pvtoggle').textContent = pvCollapsed() ? '+' : '–';
+  $('pvtoggle').onclick = () => {
+    $('preview').classList.toggle('collapsed');
+    $('pvtoggle').textContent = pvCollapsed() ? '+' : '–';
+    savePreview();
+  };
+  const saveLibWin = floating($('lib'), $('libbar'), 'bioforge-lib');
+  const libCollapsed = () => $('lib').classList.contains('collapsed');
+  $('libtoggle').textContent = libCollapsed() ? '+' : '–';
+  $('libtoggle').onclick = () => {
+    $('lib').classList.toggle('collapsed');
+    $('libtoggle').textContent = libCollapsed() ? '+' : '–';
+    saveLibWin();
+  };
+
+  try { $('dock').classList.toggle('collapsed', localStorage.getItem('bioforge-dock') === '1'); } catch (e) {}
+  $('dockbar').onclick = () => {
+    $('dock').classList.toggle('collapsed');
+    try { localStorage.setItem('bioforge-dock', $('dock').classList.contains('collapsed') ? '1' : '0'); } catch (e) {}
+  };
+
+  // remember which tree branches are open (per browser; optional)
+  let openState = {};
+  try { openState = JSON.parse(localStorage.getItem('bioforge-tree')) || {}; } catch (e) {}
+  document.querySelectorAll('details[data-node]').forEach(el => {
+    if (el.dataset.node in openState) el.open = openState[el.dataset.node];
+    el.addEventListener('toggle', () => {
+      openState[el.dataset.node] = el.open;
+      try { localStorage.setItem('bioforge-tree', JSON.stringify(openState)); } catch (e) {}
+    });
+  });
+  ['Normal', ...FLUIDS.map(f => f.short)].forEach((name, i) => {
+    const el = document.createElement('button');
+    el.className = 'small'; el.dataset.view = i; el.textContent = name;
+    el.onclick = () => { view = i; refreshPanel(); };
+    $('views').appendChild(el);
+  });
+  // replace the whole design (built-in templates and saved creatures); over-budget designs load but cannot fight
+  let lastName = '';                                   // name of the saved creature last loaded (offered when saving again)
+  function loadDesign(o, label) {
+    lastName = o.full ? o.name : '';
+    design = new Map(o.cells.map(b => [key(b.q, b.r), b.t]));
+    meta = new Map(o.cells.filter(b => b.tpl || b.bind).map(b => [key(b.q, b.r), { tpl: b.tpl, bind: b.bind, rot: b.rot, off: b.off, aim: b.aim }]));
+    stamp = null; sel.clear(); focus = null;
+    rebuildTank();
+    if (cost() > budget) $('info').textContent = `${label} costs ${fmt(cost())} biomass, you have ${budget}. Watch it here; to fight, remove cells or win more waves.`;
+  }
+  document.querySelectorAll('[data-tpl]').forEach(btn => btn.onclick = () => {
+    const t = btn.dataset.tpl;
+    loadDesign(t === 'clear' ? { cells: [{ q: 0, r: 0, t: 'nucleus' }] } : TEMPLATES[t], btn.textContent);
+  });
+
+  // ---------- template library: saved selections, stamped back onto the design as parts ----------
+  // saved part: cells relative to an anchor cell; a saved creature (has the Nucleus) is stored as-is
+  const LIB_KEY = 'bioforge-templates';
+  let lib = [], libRows = [];
+  try { lib = JSON.parse(localStorage.getItem(LIB_KEY)) || []; } catch (e) {}
+  const saveLib = () => { try { localStorage.setItem(LIB_KEY, JSON.stringify(lib)); } catch (e) {} };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+  function saveSelection(name) {
+    const cells = [...sel].filter(k => design.has(k)).map(k => { const [q, r] = k.split(',').map(Number); return { q, r, t: design.get(k), ...meta.get(k) }; });
+    if (!cells.length) return;
+    const full = cells.some(b => b.t === 'nucleus');
+    let a = { q: 0, r: 0 };
+    if (!full) {                                       // anchor: the cell nearest the middle, so the stamp hangs under the cursor
+      const px = cells.map(b => hexPx(b.q, b.r)), mx = px.reduce((s, p) => s + p[0], 0) / px.length, my = px.reduce((s, p) => s + p[1], 0) / px.length;
+      const d = px.map(p => (p[0] - mx) ** 2 + (p[1] - my) ** 2);
+      a = cells[d.indexOf(Math.min(...d))];
+    }
+    const t = { name, full, cells: cells.map(b => ({ q: b.q - a.q, r: b.r - a.r, t: b.t, tpl: b.tpl, bind: b.bind, rot: b.rot, off: b.off, aim: b.aim })) };
+    const old = lib.findIndex(x => x.name === name && !!x.full === full);   // same name: overwrite it
+    if (old >= 0) { if (stamp && stamp.t === lib[old]) stamp = null; lib[old] = t; } else lib.push(t);
+    sel.clear(); saveLib(); renderLib(); refreshPanel();
+    $('info').textContent = `${old >= 0 ? 'Overwrote' : 'Saved'} "${name}" in ${full ? 'My creatures' : 'My templates'}.`;
+  }
+
+  // the stamp's cells turned and moved to (q, r); hexes already taken are skipped
+  function stampAt(q, r) {
+    const at = (a, b) => { const [x, y] = rotHex(a, b, stamp.rot); return [q + x, r + y]; };
+    const cells = stamp.t.cells.map(b => { const [x, y] = at(b.q, b.r); return { q: x, r: y, t: b.t, tpl: b.tpl, bind: b.bind,
+      rot: b.rot === undefined ? undefined : b.rot + stamp.rot, off: b.off && rotHex(b.off[0], b.off[1], stamp.rot),
+      aim: b.aim === undefined ? undefined : b.aim + stamp.rot * Math.PI / 3 }; }).filter(b => !design.has(key(b.q, b.r)));
+    let why = '';
+    if (!cells.length) why = 'Every hex there is already taken.';
+    else if (cells.some(b => !inGrid(b.q, b.r))) why = 'Part of it is off the grid.';
+    else if (cells.some(b => reserved().has(key(b.q, b.r)))) why = "It covers hexes kept free for a Bud's part.";
+    else {                                             // off the body it is only planned; joining the body must fit the budget
+      const after = costWith(() => { for (const b of cells) design.set(key(b.q, b.r), b.t); },
+        () => { for (const b of cells) design.delete(key(b.q, b.r)); });
+      if (after > cap()) why = `Not enough biomass: it costs ${fmt(after - cost())}, you have ${fmt(budget - cost())} left.`;
+    }
+    return { cells, why };
+  }
+  function placeStamp(q, r) {
+    const s = stampAt(q, r);
+    if (s.why) { $('info').textContent = s.why; return; }
+    for (const b of s.cells) { design.set(key(b.q, b.r), b.t); if (b.tpl || b.bind) meta.set(key(b.q, b.r), { tpl: b.tpl, bind: b.bind, rot: b.rot, off: b.off, aim: b.aim }); }
+    rebuildTank();
+  }
+  function useTemplate(t) {
+    if (t.full) { loadDesign(t, t.name); return; }
+    if (focus && design.get(focus) === 'bud') { assignPart(focus, t); return; }   // a clicked Bud takes the part as what it grows
+    stamp = stamp && stamp.t === t ? null : { t, rot: 0 };   // clicking the active part again puts it down
+    refreshPanel();
+  }
+
+  // small picture of a template: one dot per cell in its colour
+  function thumb(cvs, t) {
+    const g = cvs.getContext('2d'), pts = t.cells.map(b => hexPx(b.q, b.r));
+    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    const k = Math.min(3, (cvs.width - 8) / (x1 - x0 + 2 * CR), (cvs.height - 8) / (y1 - y0 + 2 * CR));
+    g.clearRect(0, 0, cvs.width, cvs.height);
+    g.save(); g.translate(cvs.width / 2, cvs.height / 2); g.scale(k, k); g.translate(-(x0 + x1) / 2, -(y0 + y1) / 2);
+    t.cells.forEach((b, i) => { g.fillStyle = CELLS[b.t].color; g.beginPath(); g.arc(pts[i][0], pts[i][1], CR * 0.9, 0, TAU); g.fill(); });
+    g.restore();
+  }
+  function renderLib() {
+    $('mycr').innerHTML = lib.some(t => t.full) ? '' : '<div class="help">No creatures saved yet: Edit → Save creature.</div>';
+    $('mylib').innerHTML = lib.some(t => !t.full) ? '' : '<div class="help">Nothing saved yet.</div>';
+    libRows = lib.map(t => {
+      const box = $(t.full ? 'mycr' : 'mylib');
+      const row = document.createElement('div'), cvs = document.createElement('canvas'), nm = document.createElement('span');
+      const ren = document.createElement('button'), del = document.createElement('button');
+      row.className = 'li'; row._t = t;
+      row.title = t.full ? 'Click to load this creature' : 'Click to stamp this part onto your creature, or drag it onto a Bud to make the Bud grow it';
+      cvs.width = cvs.height = 80; thumb(cvs, t);
+      nm.textContent = `${t.name} (${t.cells.length}${t.full ? ', creature' : ''})`;
+      ren.className = del.className = 'small'; ren.textContent = '✎'; del.textContent = '✕'; ren.title = 'Rename'; del.title = 'Delete';
+      ren.onclick = e => {
+        e.stopPropagation();
+        const n = prompt(t.full ? 'Creature name' : 'Template name', t.name);
+        if (n && n.trim()) { t.name = n.trim().slice(0, 40); saveLib(); renderLib(); refreshPanel(); }
+      };
+      del.onclick = e => {
+        e.stopPropagation();
+        if (!confirm(`Delete ${t.full ? 'creature' : 'template'} "${t.name}"?`)) return;
+        lib = lib.filter(x => x !== t);
+        if (stamp && stamp.t === t) stamp = null;
+        saveLib(); renderLib(); refreshPanel();
+      };
+      row.onclick = () => useTemplate(t);
+      row.onmousedown = e => { if (e.button === 0 && !(e.target.closest && e.target.closest('button'))) { libDrag = t; e.preventDefault(); } };   // drag onto a Bud
+      for (const x of [cvs, nm, ren, del]) row.appendChild(x);
+      box.appendChild(row);
+      return row;
+    });
+  }
+  renderLib();
+
+  // right-click on a selected cell: name it and save
+  function openSave(x, y) {
+    $('ctxn').textContent = `${sel.size} selected cell${sel.size === 1 ? '' : 's'}${[...sel].some(k => design.get(k) === 'nucleus') ? ' (with the Nucleus: saves a whole creature)' : ''}`;
+    const whole = [...sel].some(k => design.get(k) === 'nucleus');
+    $('ctxname').value = whole ? lastName || `Creature ${lib.filter(t => t.full).length + 1}` : `Part ${lib.length + 1}`;
+    $('ctxsave').textContent = whole ? 'Save creature' : 'Save template';
+    Object.assign($('ctx').style, { display: 'block', left: Math.min(x, innerWidth - 230) + 'px', top: Math.min(y, innerHeight - 120) + 'px' });
+    $('ctxname').focus?.(); $('ctxname').select?.();
+  }
+  const closeCtx = () => { $('ctx').style.display = 'none'; };
+  $('ctxsave').onclick = () => { saveSelection($('ctxname').value.trim().slice(0, 40) || `Part ${lib.length + 1}`); closeCtx(); };
+  $('ctxclear').onclick = () => { sel.clear(); closeCtx(); };
+  // Save creature: select every cell and ask for a name (the name of the last loaded saved creature, to overwrite it)
+  $('savecr').onclick = e => { sel = new Set(design.keys()); openSave(e.clientX, e.clientY); };
+  $('freebuild').onclick = () => {
+    freeBuild = !freeBuild;
+    try { localStorage.setItem('bioforge-free', freeBuild ? '1' : '0'); } catch (e) {}
+    refreshPanel();
+  };
+  $('ctxname').addEventListener('keydown', e => { if (e.key === 'Enter') $('ctxsave').onclick(); if (e.key === 'Escape') closeCtx(); });
+  addEventListener('mousedown', e => { if (!(e.target && e.target.closest && e.target.closest('#ctx'))) closeCtx(); });
+  $('fight').onclick = startBattle;
+
+  // design checks: signals, Bud parts, and whether the body has O2, energy and a waste exit for its working cells
+  const allKeys = () => [...design.keys()];
+  // each warning: { text, keys } where keys are the hexes it is about (marked on the grid)
+  function warnings(l) {
+    const n = t => l.filter(b => b.t === t).length, warn = [], push = (text, keys = []) => warn.push({ text, keys });
+    const ks = bl => bl.map(b => key(b.q, b.r));
+    const planned = allKeys().filter(k => !l.some(b => key(b.q, b.r) === k));
+    if (planned.length) push(`${planned.length} planned cell(s) are not connected to the body: they are not part of the creature and cost nothing until you join them.`, planned);
+    // the checks below look at the joined body only (this shadows the builder's design)
+    const design = new Map(l.map(b => [key(b.q, b.r), b.t]));
+    const gens = n('pacemaker') + n('command') + n('eyespot');
+    const nerveActs = ['muscle', 'bloater', 'siphon', 'nettle', 'adrenal', 'valve', 'bud'];
+    if (l.some(b => nerveActs.includes(b.t)) && !gens) push('Muscles, Bloaters, Siphons, Nettles, Adrenals, Valves and Buds need a nerve signal source (Pacemaker, Command or Eyespot).', ks(l.filter(b => nerveActs.includes(b.t))));
+    const bs = l.filter(b => b.t === 'bud'), withPart = bs.filter(b => b.tpl), plans = withPart.map(b => budPlan(l, b));
+    if (bs.some(b => !b.tpl)) push(`${bs.filter(b => !b.tpl).length} Bud(s) have no part to grow: click the Bud, then a part in the Templates library.`, ks(bs.filter(b => !b.tpl)));
+    if (plans.some(p => !p.cells.length)) push(`${plans.filter(p => !p.cells.length).length} Bud(s) have no free side to grow on: put Buds on the surface.`, ks(withPart.filter((b, i) => !plans[i].cells.length)));
+    else if (plans.some(p => p.blocked)) push(`${plans.reduce((s, p) => s + p.blocked, 0)} cell(s) of Bud parts are blocked by the body and will not grow.`, ks(withPart.filter((b, i) => plans[i].blocked)));
+    // a part has its own nerves: what needs a signal in it needs a Pacemaker or Eyespot in the part too
+    const deaf = withPart.filter(b => b.tpl.cells.some(c => nerveActs.includes(c.t)) && !b.tpl.cells.some(c => c.t === 'pacemaker' || c.t === 'eyespot'));
+    if (deaf.length) push(`${deaf.length} Bud part(s) have Muscles, Nettles or the like but no Pacemaker or Eyespot of their own: a part's nerves are apart from the body's, so those cells do nothing.`, ks(deaf));
+    const claimed = plans.flatMap(p => p.cells.map(c => key(c.q, c.r)));
+    if (new Set(claimed).size < claimed.length) push('Two Buds grow parts onto the same hexes. Click a Bud and turn its part (Q/E) so they do not overlap.', [...new Set(claimed.filter((k, i) => claimed.indexOf(k) !== i))]);
+    if (!n('thorn') && !n('nettle') && !n('bloater') && !n('mouth')) push('No weapons: it cannot hurt anything.');
+    const isCond = k => design.has(k) && CELLS[design.get(k)].cond;
+    const live = new Set(), q = [];
+    for (const [k, t] of design) if (CELLS[t].gen) { live.add(k); q.push(k); }
+    while (q.length) {
+      const [cq, cr] = q.pop().split(',').map(Number);
+      for (const [dq, dr] of NB) { const k = key(cq + dq, cr + dr); if (isCond(k) && !live.has(k)) { live.add(k); q.push(k); } }
+    }
+    const unwired = [...design].filter(([k, t]) => nerveActs.includes(t) && !live.has(k)).map(([k]) => k);
+    if (gens && unwired.length) push(`${unwired.length} cell(s) that need a nerve signal are not connected to a signal source.`, unwired);
+    // fluids spread through the whole joined body (Valves counted as open)
+    const fueled = [...design].filter(([, t]) => CELLS[t].fuel).map(([k]) => k), fc = fueled.length;
+    if (fc && !n('gill')) push(`No Gill: the ${fc} fuel-burning cell(s) run out of O₂.`, fueled);
+    if (fc && !n('mouth') && !n('fat')) push(`No Mouth or Fat: the ${fc} fuel-burning cell(s) run out of energy.`, fueled);
+    if (fc && !n('pore')) push(`No Pore: waste builds up in the ${fc} fuel-burning cell(s) and poisons them.`, fueled);
+    const at = k => { const [q, r] = k.split(',').map(Number); return { q, r }; };
+    const enclosed = k => { const { q, r } = at(k); return NB.every(([dq, dr]) => design.has(key(q + dq, r + dr))); };
+    const buried = [...design].filter(([k, t]) => t === 'pore' && enclosed(k)).map(([k]) => k);
+    if (buried.length) push(`${buried.length} Pore cell(s) are buried inside the body and do nothing: Pores must touch the water.`, buried);
+    const hearts = [...design].filter(([, t]) => t === 'heart').map(([k]) => at(k));
+    const far = fueled.filter(k => !hearts.some(h => hexDist(at(k), h) <= HEART_R));
+    if (far.length) push(`${far.length} fuel-burning cell(s) are more than ${HEART_R} cells from a Heart: fluids reach them slowly.`, far);
+    return warn;
+  }
+
+  // Bud parts are edited directly on the grid: drag a part's dots to move it (pdrag), drag the arrow tip to aim (adrag),
+  // Q/E turn the part around its Bud (or in hand while dragging). A part from the library is dropped on a Bud (libDrag).
+  // hexes other Buds' parts will grow on (skip = one Bud to leave out)
+  function reserved(skip) {
+    const all = list(), s = new Set();
+    for (const b of all) if (b.t === 'bud' && b.tpl && key(b.q, b.r) !== skip) for (const c of budPlan(all, b).cells) s.add(key(c.q, c.r));
+    return s;
+  }
+  // the Bud k's part turned by rot with its middle cell at (q, r); why = reason it cannot go there
+  function partAt(k, rot, q, r) {
+    const [bq, br] = k.split(',').map(Number), m = meta.get(k);
+    const cells = m.tpl.cells.map(c => { const [x, y] = rotHex(c.q, c.r, rot); return { q: q + x, r: r + y, t: c.t }; });
+    const ks = new Set(cells.map(c => key(c.q, c.r))), others = reserved(k);
+    let why = '';
+    if (cells.some(c => !inGrid(c.q, c.r))) why = 'Part of it is off the grid.';
+    else if (cells.some(c => design.has(key(c.q, c.r)))) why = 'It covers cells of the body.';
+    else if (cells.some(c => others.has(key(c.q, c.r)))) why = "It covers another Bud's part.";
+    else {                                             // every cell must hang on the Bud through the part itself
+      const seen = new Set(), queue = [[bq, br]];
+      while (queue.length) {
+        const [cq, cr] = queue.pop();
+        for (const [dq, dr] of NB) { const k = key(cq + dq, cr + dr); if (ks.has(k) && !seen.has(k)) { seen.add(k); queue.push([cq + dq, cr + dr]); } }
+      }
+      if (seen.size < ks.size) why = 'It must touch the Bud, with every cell connected to it.';
+    }
+    return { cells, why, off: [q - bq, r - br] };
+  }
+  // put the Bud k's part at (q, r) turned by rot, if it fits; otherwise say why and keep it where it was
+  function setPart(k, rot, q, r) {
+    const p = partAt(k, rot, q, r);
+    if (p.why) { rebuildTank(); $('info').textContent = p.why; return false; }
+    Object.assign(metaOf(k), { rot: (rot % 6 + 6) % 6, off: p.off });
+    rebuildTank(); return true;
+  }
+  // the Bud's current part placement (also for Buds still on the automatic spot)
+  function partOf(k) {
+    const [q, r] = k.split(',').map(Number), m = meta.get(k), p = budPlan(list(), { q, r, ...m });
+    return { q, r, rot: p.rot, off: m.off || p.off };
+  }
+  // give Bud k a part from the library; it starts on the automatic spot next to the Bud, ready to drag
+  function assignPart(k, t) {
+    focus = k;
+    if (t.full || t.cells.some(b => b.t === 'bud')) { refreshPanel(); $('info').textContent = 'A Bud can only grow a part without a Nucleus or another Bud.'; return; }
+    const m = metaOf(k), [q, r] = k.split(',').map(Number);
+    m.tpl = { name: t.name, cells: t.cells.map(({ q, r, t }) => ({ q, r, t })) };
+    delete m.off; delete m.rot;
+    const p = budPlan(list(), { q, r, tpl: m.tpl });
+    if (p.off) { m.off = p.off; m.rot = (p.rot % 6 + 6) % 6; }
+    rebuildTank();
+  }
+  // turn the Bud k's part one 60° step around the Bud
+  function turnPart(k, d) {
+    const o = partOf(k);
+    if (!o.off) return;
+    const [x, y] = rotHex(o.off[0], o.off[1], d);
+    setPart(k, o.rot + d, o.q + x, o.r + y);
+  }
+  // aim arrow of a Bud: from just past the far end of its part, along its firing direction (grid pixels)
+  function aimArrow(all, b) {
+    const p = budPlan(all, b);
+    if (!p.cells.length) return null;
+    const [dx, dy] = p.dir, tip = Math.max(...p.cells.map(c => { const [x, y] = hexPx(c.q, c.r); return x * dx + y * dy; }));
+    const [bx, by] = hexPx(b.q, b.r), o = Math.max(CR, tip - (bx * dx + by * dy) + CR);
+    return { dx, dy, x0: bx + dx * o, y0: by + dy * o, x1: bx + dx * (o + 18), y1: by + dy * (o + 18) };
+  }
+  // what is under the cursor: the clicked Bud's arrow tip, or a cell of some Bud's part
+  function budHandle(q, r) {
+    const all = list();
+    if (focus && design.get(focus) === 'bud' && hoverPx) {
+      const a = aimArrow(all, all.find(c => key(c.q, c.r) === focus));
+      if (a && (hoverPx[0] - a.x1) ** 2 + (hoverPx[1] - a.y1) ** 2 < 12 * 12) return { k: focus, aim: true };
+    }
+    for (const b of all) if (b.t === 'bud' && b.tpl) {
+      const p = budPlan(all, b);
+      if (p.off && p.cells.some(c => c.q === q && c.r === r)) return { k: key(b.q, b.r), grab: [q - b.q - p.off[0], r - b.r - p.off[1]], rot: p.rot };
+    }
+    return null;
+  }
+
+  // info for the clicked cell: Buds show and take their part, Commands show and take their key
+  function focusInfo() {
+    const t = design.get(focus), d = CELLS[t], m = meta.get(focus) || {};
+    let s = `<b>${d.name}</b> (clicked cell; Esc to let go)<br>`;
+    if (t === 'bud') {
+      const p = m.tpl, secs = p ? bpCost(p) * GROW_FUEL / (d.fuel * FUEL_K) : 0;
+      s += p ? `Grows <b>${esc(p.name)}</b> (${p.cells.length} cells, about ${Math.round(secs)} s when well fed). ` : 'Grows nothing yet. ';
+      s += p ? 'Drag its dots to move it, Q/E turn it around the Bud, drag the arrow tip to aim. ' : '';
+      s += 'Drag a part from the Templates library onto a Bud (or click it while this Bud is clicked) to make it grow that. Fire it with a nerve signal once the ring is full.';
+      if (p) s += `<br><span class="help">${m.aim !== undefined ? `Fires at ${Math.round(((m.aim * 180 / Math.PI) % 360 + 360) % 360)}° (0° = straight ahead, clockwise).`
+          : "Fires the way the part's front (top in the library picture) points."}</span>`
+        + (m.aim !== undefined ? '<div class="row"><button class="small" id="budaimreset">Reset aim</button></div>' : '');
+    } else if (t === 'command') {
+      s += `Fires on <b>${m.bind ? 'key ' + m.bind : 'Space'}</b>. Press 1–9 to bind it to a number key, the same key again to go back to Space. The AI still fires it when close.`;
+    } else s += d.desc;
+    return s;
+  }
+
+  function refreshPanel() {
+    document.querySelectorAll('.pal').forEach(el => el.classList.toggle('sel', el.dataset.t === selected));
+    document.querySelectorAll('[data-view]').forEach(el => el.classList.toggle('sel', +el.dataset.view === view));
+    $('budget').innerHTML = `Biomass: <b>${fmt(budget - cost())}</b> / ${budget}` + (freeBuild ? ' <span class="help">(unlimited: Fight needs it under budget, Sandbox takes any size)</span>' : '');
+    $('freebuild').classList.toggle('sel', freeBuild);
+    const d = CELLS[selected];
+    for (const row of libRows) row.classList.toggle('sel', !!stamp && stamp.t === row._t);
+    $('info').innerHTML = stamp
+      ? `<b>Placing "${esc(stamp.t.name)}"</b> (${stamp.t.cells.length} cells, ${fmt(bpCost(stamp.t))} biomass)<br>Click to place it; off the body it stays planned until joined. Hexes already taken are skipped. Q/E rotate, right-click or Esc to stop.`
+      : focus ? focusInfo()
+      : `<b>${d.name}</b> (${d.hp} HP${d.cond ? ', carries nerve signals' : ''}${d.fuel ? `, burns ${+(d.fuel * FUEL_K).toFixed(3)}/s` : ''})<br>${d.desc}`;
+    const bz = document.getElementById('budaimreset');
+    if (bz) bz.onclick = () => { delete metaOf(focus).aim; rebuildTank(); };
+    const l = list();
+    const hp = l.reduce((s, b) => s + CELLS[b.t].hp, 0), mass = l.reduce((s, b) => s + CELLS[b.t].mass, 0);
+    const burnMax = l.reduce((s, b) => s + CELLS[b.t].fuel * FUEL_K, 0), gillO2 = l.filter(b => b.t === 'gill').length * GILL_O2;
+    const energy = l.reduce((s, b) => s + CELLS[b.t].capS * START_FILL, 0);
+    $('stats').innerHTML = `Cells: ${l.length}   Mass: ${mass.toFixed(1)}   HP: ${hp}`
+      + `\nMax burn: ${burnMax.toFixed(2)}/s   Gills: +${gillO2.toFixed(2)} O₂/s\nEnergy stock: ${energy.toFixed(1)}${l.some(b => b.t === 'mouth') ? ' + whatever the Mouth eats' : ' (no Mouth)'}`
+      + (warns = warnings(l)).map((w, i) => `\n<span class="warn" data-w="${i}">⚠ ${w.text}</span>`).join('');
+    // hovering a warning outlines the cells it is about on the grid
+    $('stats').onmouseover = e => { warnHover = e.target.dataset && e.target.dataset.w !== undefined ? +e.target.dataset.w : -1; };
+    $('stats').onmouseleave = () => { warnHover = -1; };
+    const over = cost() > budget;
+    $('fight').disabled = over;
+    $('fight').textContent = over ? `Over budget by ${fmt(cost() - budget)}` : `Fight wave ${wave} ▶`;
+  }
+
+  // sandbox: play any creature with no budget, click the water to spawn enemies, nobody wins or loses
+  let sandbox = false;
+  const SB_TPL = ['wiggler', 'squirter', 'nettler', 'puffer', 'starter', 'eel', 'jelly', 'manta', 'crab'];
+  for (const id of ['sbme', 'sbfoe']) for (const v of ['mine', ...SB_TPL]) {
+    const o = document.createElement('option');
+    o.value = v; o.textContent = v === 'mine' ? 'Your design' : v[0].toUpperCase() + v.slice(1);
+    $(id).appendChild(o);
+  }
+  $('sbme').value = 'mine'; $('sbfoe').value = 'wiggler';
+  const sbBlueprint = v => v === 'mine' ? blueprint() : TEMPLATES[v];
+
+  function removeCreature(w, cr) {
+    const gone = c => c.owner === cr;
+    w.cells = w.cells.filter(c => !gone(c)); w.bonds = w.bonds.filter(b => !gone(b.a));
+    w.angles = w.angles.filter(g => !gone(g.c)); w.links = w.links.filter(v => !gone(v.a));
+    w.creatures = w.creatures.filter(c => c !== cr);
+  }
+
+  function spawnPlayer() {
+    if (player) removeCreature(world, player);
+    const bpo = sandbox ? sbBlueprint($('sbme').value) : blueprint();
+    const ext = Math.max(...bpo.cells.map(b => Math.hypot(...hexPx(b.q, b.r))));
+    player = spawn(world, bpo, cv.width / 2, cv.height - Math.max(150, ext + 50), 0, 0);
+    player.n0 = player.cells.length;                   // for the HUD's Body bar
+  }
+
+  function startBattle(sb) {
+    sandbox = sb === true;
+    if (!sandbox && cost() > budget) return;
+    world = newWorld(cv.width, cv.height); player = null;
+    spawnPlayer();
+    if (sandbox) world.idle = $('sbai').textContent.endsWith('idle');
+    else waveBlueprints(wave).forEach((e, i, es) => spawn(world, e, cv.width * (i + 1) / (es.length + 1), 150, Math.PI, 1));
+    mode = 'battle'; ended = false; hideTip(); closeCtx(); stamp = pdrag = adrag = null;
+    $('panel').style.display = $('preview').style.display = $('lib').style.display = $('dock').style.display = 'none'; $('hud').style.display = 'block'; $('msg').style.display = 'none';
+    $('sbar').style.display = sandbox ? 'flex' : 'none';
+  }
+
+  const sbBtn = (id, f) => $(id).onclick = e => { f(); e?.currentTarget?.blur?.(); };   // blur so Space doesn't re-press it
+  sbBtn('sandbox', () => startBattle(true));
+  sbBtn('sbai', () => { world.idle = !world.idle; $('sbai').textContent = `Enemies: ${world.idle ? 'idle' : 'hunt'}`; });
+  sbBtn('sbclear', () => world.creatures.filter(c => c.team !== 0).forEach(c => removeCreature(world, c)));
+  sbBtn('sbrespawn', spawnPlayer);
+  sbBtn('sbexit', () => toBuild());
+  $('sbme').onchange = e => { spawnPlayer(); e?.target?.blur?.(); };
+  $('sbfoe').onchange = e => e?.target?.blur?.();
+
+  function toBuild() {
+    mode = 'build'; world = null; sandbox = false; $('sbar').style.display = 'none';
+    $('panel').style.display = $('preview').style.display = $('lib').style.display = 'flex'; $('dock').style.display = 'block'; $('hud').style.display = 'none'; $('msg').style.display = 'none';
+    rebuildTank();
+  }
+
+  function endBattle(won) {
+    ended = true;
+    if (won) { wave++; budget += WAVE_BONUS; }
+    $('msg').innerHTML = won
+      ? `<h2>Wave cleared</h2>+${WAVE_BONUS} biomass. Evolve your creature further.<br><br><button class="big" id="again">Back to builder</button>`
+      : `<h2>Your creature died</h2>Rethink the design and try wave ${wave} again.<br><br><button class="big" id="again">Back to builder</button>`;
+    $('msg').style.display = 'block';
+    $('again').onclick = toBuild;
+  }
+
+  addEventListener('keydown', e => {
+    if (e.target && e.target.tagName === 'INPUT') return;   // typing a template name
+    keys.add(e.key.toLowerCase());
+    if (e.key === ' ') e.preventDefault();
+    // Shift+1..6 = fluid view; 1..9 = bound Command triggers (with a Command clicked in the builder: bind it)
+    const dig = /^Digit[0-9]$/.test(e.code || '') ? e.code[5] : /^[0-9]$/.test(e.key) ? e.key : null;
+    if (dig && e.shiftKey) { if (dig >= '1' && dig <= '6') { view = +dig - 1; if (mode === 'build') refreshPanel(); } }
+    else if (dig && dig !== '0') {
+      digits.add(dig);
+      if (mode === 'build' && focus && design.get(focus) === 'command' && !e.repeat) {
+        const m = metaOf(focus); m.bind = m.bind === dig ? undefined : dig;
+        rebuildTank();
+      }
+    }
+    if (mode === 'build' && e.key.toLowerCase() === 'f') fitView();
+    if (mode === 'build' && e.key === 'Escape') { if (pdrag || adrag) pdrag = adrag = null; else { stamp = null; sel.clear(); focus = null; } closeCtx(); refreshPanel(); }
+    if (mode === 'build' && 'qe'.includes(e.key.toLowerCase()) && e.key.length === 1) {
+      const d = e.key.toLowerCase() === 'e' ? 1 : -1;
+      if (stamp) stamp.rot += d;
+      else if (pdrag) { pdrag.rot += d; pdrag.grab = rotHex(pdrag.grab[0], pdrag.grab[1], d); }   // turn it in hand
+      else if (focus && design.get(focus) === 'bud' && meta.get(focus)?.tpl) turnPart(focus, d);
+    }
+    if (mode !== 'battle') return;
+    if (e.key === 'Escape') toBuild();
+    if (e.key.toLowerCase() === 't') player.auto = !player.auto;
+    if (sandbox && e.key.toLowerCase() === 'r') spawnPlayer();
+  });
+  addEventListener('keyup', e => {
+    keys.delete(e.key.toLowerCase());
+    const dig = /^Digit[0-9]$/.test(e.code || '') ? e.code[5] : /^[0-9]$/.test(e.key) ? e.key : null;
+    if (dig) digits.delete(dig);
+  });
+  const hexAt = e => { const L = layout(); return pxToHex((e.clientX - L.gx) / zoom, (e.clientY - L.gy) / zoom); };
+  cv.addEventListener('mousemove', e => {
+    if (pan) { panX = pan.x + e.clientX - pan.mx; panY = pan.y + e.clientY - pan.my; }
+    hover = mode === 'build' ? hexAt(e) : null;
+    if (mode === 'build') { const L = layout(); hoverPx = [(e.clientX - L.gx) / zoom, (e.clientY - L.gy) / zoom]; }
+  });
+  addEventListener('mouseup', e => {
+    if (mode === 'build' && hover) {
+      if (pdrag) setPart(pdrag.k, pdrag.rot, hover[0] - pdrag.grab[0], hover[1] - pdrag.grab[1]);   // drop the dragged part
+      if (adrag && hoverPx) {                          // aim from the Bud toward where the arrow tip was let go
+        const [bx, by] = hexPx(...adrag.split(',').map(Number)), dx = hoverPx[0] - bx, dy = hoverPx[1] - by;
+        if (dx * dx + dy * dy > 4) metaOf(adrag).aim = Math.atan2(dx, -dy);
+        rebuildTank();
+      }
+      if (libDrag && e.target === cv && design.get(key(...hover)) === 'bud') assignPart(key(...hover), libDrag);
+    }
+    pan = pdrag = adrag = libDrag = null;
+  });
+  cv.addEventListener('wheel', e => {                  // zoom toward the cursor
+    if (mode !== 'build') return;
+    e.preventDefault();
+    const L = layout(), z = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoom * Math.exp(-e.deltaY * 0.0015)));
+    panX += (e.clientX - L.gx) * (1 - z / zoom); panY += (e.clientY - L.gy) * (1 - z / zoom);
+    zoom = z;
+  }, { passive: false });
+  cv.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    if (mode === 'build' && !stamp && sel.has(key(...hexAt(e)))) openSave(e.clientX, e.clientY);
+  });
+  // tooltip after the cursor rests 1 s on a placed cell or a palette button
+  let tipKey = null, tipSince = 0, mouseX = 0, mouseY = 0;
+  const hideTip = () => { tipSince = performance.now(); $('tip').style.display = 'none'; demo = null; };
+  addEventListener('mousemove', e => {
+    mouseX = e.clientX; mouseY = e.clientY;
+    let k = null;
+    const pal = e.target && e.target.closest && e.target.closest('.pal');
+    if (pal) k = 'p:' + pal.dataset.t;
+    else if (e.target === cv && mode === 'build') { const [q, r] = hexAt(e); if (design.has(key(q, r))) k = 'g:' + key(q, r); }
+    if (k !== tipKey) { tipKey = k; hideTip(); }
+  });
+  addEventListener('mousedown', hideTip);
+  function updateTip(now) {
+    const el = $('tip');
+    if (!tipKey || mode !== 'build' || now - tipSince < 1000 || el.style.display === 'block') return;
+    const t = tipKey[0] === 'p' ? tipKey.slice(2) : design.get(tipKey.slice(2)), d = CELLS[t];
+    if (!d) return;
+    const facts = [`cost ${d.cost}`, `${d.hp} HP`, d.cond && 'carries nerve signals', d.fuel && `burns ${+(d.fuel * FUEL_K).toFixed(3)}/s`].filter(Boolean).join(' · ');
+    el.innerHTML = `<b>${d.name}</b> <span class="dim">${facts}</span><br>${d.desc}<div class="h">How to use</div>${TIPS[t].use}`
+      + `<div class="h">Example</div><canvas id="democv" width="${DEMO_W}" height="${DEMO_H}"></canvas>`;
+    el.style.display = 'block';
+    el.style.left = Math.max(8, Math.min(mouseX + 16, innerWidth - el.offsetWidth - 8)) + 'px';
+    el.style.top = Math.max(8, Math.min(mouseY + 16, innerHeight - el.offsetHeight - 8)) + 'px';
+    startDemo(t);
+  }
+
+  // live mini tank inside the tooltip, running the cell's example build; restarts every DEMO_RESET seconds
+  const DEMO_W = 288, DEMO_H = 190, DEMO_RESET = 8;
+  let demo = null;
+  function startDemo(t) {
+    const ex = TIPS[t].ex, cells = bp(ex.cells);
+    if (ex.tpl) for (const b of cells) if (b.t === 'bud') b.tpl = ex.tpl;
+    const w = newWorld(DEMO_W, DEMO_H); w.test = true;
+    const cr = spawn(w, { cells }, DEMO_W / 2, DEMO_H / 2 + 10, 0, 0);
+    for (const c of cr.cells) {
+      if (ex.hurt && ex.hurt.includes(c.t)) c.hp = c.max * 0.1;
+      if (ex.empty && ex.empty.includes(c.t)) c.f[O] = c.f[S] = 0;
+    }
+    if (ex.target) {                                   // dummy enemy just in front of the creature
+      const front = Math.min(...cr.cells.map(c => c.y));
+      spawn(w, { cells: bp([[0, 0, 'tissue'], [1, 0, 'tissue'], [0, 1, 'tissue']]) }, DEMO_W / 2, front - 30, 0, 1).ai = false;
+    }
+    demo = { t, ex, w, cr, time: 0, cv: $('democv') };
+  }
+  function runDemo(dt) {
+    if (!demo) return;
+    const { ex, w, cr } = demo;
+    demo.time += dt;
+    if (demo.time > DEMO_RESET) { startDemo(demo.t); return; }
+    const hold = !!ex.space && demo.time % 2 > 1;      // the demo presses Space every other second
+    step(w, dt, { sx: 0, sy: ex.swim ? -1 : 0, ability: hold });
+    if (cr.alive) for (const c of w.cells) { c.x += (DEMO_W / 2 - cr.cx) * 0.05; c.y += (DEMO_H / 2 + 10 - cr.cy) * 0.05; }
+    const g = demo.cv.getContext('2d');
+    drawWater(g, w, DEMO_W, DEMO_H);
+    drawWorld(g, w, ex.view || 0);
+    g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.setLineDash([3, 3]); g.globalAlpha = 0.55 + 0.45 * Math.sin(demo.time * 5);
+    for (const c of cr.cells) if (c.t === demo.t) { g.beginPath(); g.arc(c.x, c.y, c.rad + 3, 0, TAU); g.stroke(); }
+    g.setLineDash([]); g.globalAlpha = 1; g.font = '11px system-ui';
+    if (ex.space) {
+      g.textAlign = 'left'; g.fillStyle = hold ? '#e8c547' : '#6f7b88';
+      g.fillText(hold ? `● ${ex.space}` : ex.space === 'Space held' ? '○ Space released' : '○ No enemy', 6, 14);
+    }
+    if (ex.view) { g.textAlign = 'right'; g.fillStyle = FLUIDS[ex.view - 1].color; g.fillText(`${FLUIDS[ex.view - 1].name} view`, DEMO_W - 6, 14); }
+  }
+
+  cv.addEventListener('mousedown', e => {
+    if (mode === 'battle' && sandbox) {
+      const x = e.clientX, y = e.clientY;
+      if (e.button === 0) {                             // spawn the chosen enemy here, facing the player
+        spawn(world, sbBlueprint($('sbfoe').value), x, y, Math.atan2(player.cx - x, y - player.cy), 1);
+      } else if (e.button === 2) {                      // remove the enemy (or debris) under the cursor
+        const hit = world.cells.find(c => c.owner !== player && (c.x - x) ** 2 + (c.y - y) ** 2 < (c.rad + 4) ** 2);
+        if (hit) removeCreature(world, hit.owner);
+      }
+      return;
+    }
+    if (mode !== 'build') return;
+    if (e.button === 1) { e.preventDefault(); pan = { x: panX, y: panY, mx: e.clientX, my: e.clientY }; return; }
+    const [q, r] = hexAt(e), k = key(q, r);
+    if (e.button === 0 && !stamp && !(e.ctrlKey || e.metaKey)) {   // grab a Bud's arrow tip or part
+      const h = budHandle(q, r);
+      if (h) { focus = h.k; if (h.aim) adrag = h.k; else pdrag = h; refreshPanel(); return; }
+    }
+    if (stamp) { if (e.button === 2) { stamp = null; refreshPanel(); } else placeStamp(q, r); return; }
+    if (e.button === 0 && (e.ctrlKey || e.metaKey)) { if (design.has(k) && !sel.delete(k)) sel.add(k); return; }
+    if (e.button === 2 && sel.has(k)) return;          // the context menu opens on this cell instead (see contextmenu)
+    if (e.button === 0 && design.has(k)) { focus = k; refreshPanel(); return; }   // inspect / set up a placed cell
+    if (e.button === 2) removeAt(q, r);
+    else if (canPlace(q, r)) { design.set(key(q, r), selected); focus = selected === 'bud' || selected === 'command' ? k : null; }   // ready to set up
+    else return;
+    rebuildTank();
+  });
+
+  function hexPath(x, y, s) {
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) { const a = Math.PI / 6 + i * Math.PI / 3; ctx.lineTo(x + Math.cos(a) * s, y + Math.sin(a) * s); }
+    ctx.closePath();
+  }
+
+  function drawBuild() {
+    ctx.fillStyle = '#0b1418'; ctx.fillRect(0, 0, cv.width, cv.height);
+    const L = layout();
+    // hex grid with the design (static), cells showing the tank's live nerve signals and fluids
+    ctx.save(); ctx.translate(L.gx, L.gy); ctx.scale(zoom, zoom);
+    const pad = HX * zoom;                             // skip hexes outside the screen
+    for (let q = -GR; q <= GR; q++) for (let r = -GR; r <= GR; r++) {
+      if (!inGrid(q, r)) continue;
+      const [x, y] = hexPx(q, r), sx = L.gx + x * zoom, sy = L.gy + y * zoom;
+      if (sx < -pad || sx > cv.width + pad || sy < -pad || sy > cv.height + pad) continue;
+      hexPath(x, y, HX / Math.sqrt(3) - 0.6);
+      const hov = !stamp && !pdrag && !adrag && !libDrag && hover && hover[0] === q && hover[1] === r;
+      ctx.fillStyle = !hov ? '#132228' : canPlace(q, r) ? 'rgba(120,220,120,0.3)' : 'rgba(230,90,90,0.25)';
+      ctx.fill();
+    }
+    const live = new Map(tank.cells.map(c => [key(c.q, c.r), c])), joinedK = joined();
+    for (const [k, t] of design) {
+      const [q, r] = k.split(',').map(Number), [x, y] = hexPx(q, r), tc = live.get(k), plan = !joinedK.has(k);
+      // static copy of the live tank cell drawn at its grid slot; thorns and mouths face away from the nucleus
+      const fallback = { t, d: CELLS[t], hp: 1, max: 1, V: 0, flash: 0, e: 1, f: [0, 0, 0, 0, 0], cap: [1, 1, 1, 1, 1] };
+      drawCell(ctx, { ...(tc || fallback), x, y, rad: CR, owner: { cx: 0, cy: 0, theta: 0 } }, view);
+      if (plan) {                                      // planned (not joined to the body): washed out, dashed outline
+        hexPath(x, y, HX / Math.sqrt(3) - 0.6); ctx.fillStyle = 'rgba(19,34,40,0.6)'; ctx.fill();
+        hexPath(x, y, HX / Math.sqrt(3) - 1.2); ctx.strokeStyle = '#8a96a3'; ctx.lineWidth = 1; ctx.setLineDash([2, 2]); ctx.stroke(); ctx.setLineDash([]);
+      }
+    }
+    ctx.lineCap = 'round';
+    // where each Bud's part will grow (dots; brighter for the clicked Bud) and its firing arrow (tip = drag handle)
+    const all = list();
+    for (const b of all) if (b.t === 'bud' && b.tpl) {
+      const k = key(b.q, b.r), mine = k === focus;
+      if (pdrag && pdrag.k === k) continue;            // drawn under the cursor instead
+      const p = budPlan(all, b);
+      for (const c of p.cells) {
+        const [x, y] = hexPx(c.q, c.r);
+        ctx.globalAlpha = mine ? 0.55 : 0.25; ctx.fillStyle = CELLS[c.t].color; ctx.beginPath(); ctx.arc(x, y, CR * 0.7, 0, TAU); ctx.fill();
+        if (mine) { ctx.globalAlpha = 0.8; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.setLineDash([2, 2]); hexPath(x, y, HX / Math.sqrt(3) - 1.2); ctx.stroke(); ctx.setLineDash([]); }
+      }
+      const a = aimArrow(all, b);
+      if (!a) continue;
+      let { dx, dy, x0, y0, x1, y1 } = a;
+      if (adrag === k && hoverPx) {                    // being aimed: point at the cursor
+        const [bx, by] = hexPx(b.q, b.r), l = Math.hypot(hoverPx[0] - bx, hoverPx[1] - by) || 1;
+        dx = (hoverPx[0] - bx) / l; dy = (hoverPx[1] - by) / l;
+        x0 = bx + dx * CR; y0 = by + dy * CR; x1 = hoverPx[0]; y1 = hoverPx[1];
+      }
+      ctx.globalAlpha = mine ? 0.95 : 0.5; ctx.strokeStyle = '#c8e07a'; ctx.lineWidth = mine ? 2 : 1.5;
+      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1);
+      ctx.moveTo(x1 - dx * 6 - dy * 4, y1 - dy * 6 + dx * 4); ctx.lineTo(x1, y1); ctx.lineTo(x1 - dx * 6 + dy * 4, y1 - dy * 6 - dx * 4); ctx.stroke();
+      if (mine) { ctx.fillStyle = '#c8e07a'; ctx.beginPath(); ctx.arc(x1, y1, 3.5, 0, TAU); ctx.fill(); }   // grab here to aim
+    }
+    ctx.globalAlpha = 1;
+    if (focus) { const [x, y] = hexPx(...focus.split(',').map(Number)); hexPath(x, y, HX / Math.sqrt(3) - 0.6); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke(); }
+    // Ctrl+click selection: dashed gold outlines
+    ctx.strokeStyle = '#e8c547'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 2]);
+    for (const k of sel) { const [x, y] = hexPx(...k.split(',').map(Number)); hexPath(x, y, HX / Math.sqrt(3) - 1.2); ctx.stroke(); }
+    ctx.setLineDash([]);
+    // cells some warning is about: small orange "!"; the warning under the mouse outlines its cells
+    const hot = new Set(warns[warnHover] ? warns[warnHover].keys : []);
+    ctx.font = 'bold 6px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const k of new Set(warns.flatMap(w => w.keys))) {
+      const [x, y] = hexPx(...k.split(',').map(Number)), bx = x + CR * 0.6, by = y - CR * 0.6;
+      ctx.globalAlpha = warnHover < 0 || hot.has(k) ? 1 : 0.35;
+      ctx.fillStyle = '#e8875a'; ctx.beginPath(); ctx.arc(bx, by, 3.2, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#0b1418'; ctx.fillText('!', bx, by + 0.3);
+    }
+    ctx.globalAlpha = 1; ctx.textBaseline = 'alphabetic';
+    ctx.strokeStyle = '#ffb48f'; ctx.lineWidth = 2.5;
+    for (const k of hot) { const [x, y] = hexPx(...k.split(',').map(Number)); hexPath(x, y, HX / Math.sqrt(3) - 0.6); ctx.stroke(); }
+    // library part dragged over the grid: say where to drop it
+    if (libDrag && hoverPx) {
+      const onBud = hover && design.get(key(...hover)) === 'bud';
+      ctx.fillStyle = onBud ? '#c8e07a' : '#8a96a3'; ctx.font = '6px system-ui'; ctx.textAlign = 'left';
+      ctx.fillText(onBud ? `Drop: this Bud grows "${libDrag.name}"` : 'Drop it on a Bud', hoverPx[0] + 8, hoverPx[1] - 6);
+    }
+    // Bud part being dragged / part being stamped: ghost under the cursor, green if it fits, red if not
+    if ((pdrag || stamp) && hover) {
+      const s = pdrag ? partAt(pdrag.k, pdrag.rot, hover[0] - pdrag.grab[0], hover[1] - pdrag.grab[1]) : stampAt(hover[0], hover[1]), ok = !s.why;
+      for (const b of s.cells) {
+        const [x, y] = hexPx(b.q, b.r);
+        hexPath(x, y, HX / Math.sqrt(3) - 0.6); ctx.fillStyle = ok ? 'rgba(120,220,120,0.3)' : 'rgba(230,90,90,0.3)'; ctx.fill();
+        ctx.globalAlpha = 0.6; ctx.fillStyle = CELLS[b.t].color; ctx.beginPath(); ctx.arc(x, y, CR * 0.8, 0, TAU); ctx.fill(); ctx.globalAlpha = 1;
+      }
+    }
+    ctx.fillStyle = '#6f7b88'; ctx.font = '7px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText('▲ FRONT', 0, -GR * HY - 14);
+    if (view) { ctx.fillStyle = FLUIDS[view - 1].color; ctx.fillText(`showing ${FLUIDS[view - 1].name} level`, 0, GR * HY + 20); }
+    ctx.restore();
+    ctx.fillStyle = '#6f7b88'; ctx.font = '12px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText('Wheel: zoom · Middle-drag: pan · F: whole grid', cv.width / 2, 20);
+    drawPreview();
+  }
+
+  // the hidden sim drawn into the floating preview window, scaled to fit
+  function drawPreview() {
+    const pv = $('pv'), w = pv.clientWidth, h = pv.clientHeight;
+    if (pvCollapsed() || !w || !h) return;
+    if (pv.width !== w || pv.height !== h) { pv.width = w; pv.height = h; }
+    const pc = pv.getContext('2d'), k = Math.min(w / tank.w, h / tank.h);
+    pc.fillStyle = '#0b1418'; pc.fillRect(0, 0, w, h);
+    pc.save(); pc.translate((w - tank.w * k) / 2, (h - tank.h * k) / 2); pc.scale(k, k);
+    drawWater(pc, tank, tank.w, tank.h);
+    drawWorld(pc, tank, view);
+    pc.restore();
+  }
+
+  // battle HUD bars: Core = Nucleus health, Body = cells left of those spawned, O2 / Energy = how full the body's stores are,
+  // Waste = average over the working cells (bad when high); low = pulses red
+  const HUD_BARS = [
+    { name: 'Core', color: '#e8c547', low: v => v < 0.3 },
+    { name: 'Body', color: '#7fd18a', low: v => v < 0.4 },
+    { name: 'O₂', color: FLUIDS[O].color, low: v => v < 0.2 },
+    { name: 'Energy', color: FLUIDS[S].color, low: v => v < 0.2 },
+    { name: 'Waste', color: '#b8a040', low: v => v > 0.6 },
+  ].map(b => {
+    const row = document.createElement('div'), lbl = document.createElement('span'), trk = document.createElement('div');
+    const fill = document.createElement('div'), val = document.createElement('span');
+    row.className = 'hbar'; lbl.className = 'hlbl'; trk.className = 'htrk'; fill.className = 'hfill'; val.className = 'hval';
+    lbl.textContent = b.name; fill.style.setProperty?.('--c', b.color);
+    trk.appendChild(fill); for (const x of [lbl, trk, val]) row.appendChild(x);
+    $('hudbars').appendChild(row);
+    return { ...b, row, fill, val };
+  });
+  function vitals(cr) {
+    const cs = cr.cells, sum = (l, g) => l.reduce((s, c) => s + g(c), 0);
+    const stock = i => cs.length ? sum(cs, c => c.f[i]) / sum(cs, c => c.cap[i]) : 0;
+    const wk = cs.filter(c => c.d.fuel);
+    return {
+      bars: [cr.alive && cr.core ? cr.core.hp / cr.core.max : 0, Math.min(1, cs.length / (cr.n0 || 1)), stock(O), stock(S),
+             wk.length ? sum(wk, c => clamp01(c.f[W] / c.cap[W])) / wk.length : 0],
+      starving: cs.filter(c => c.starve).length, poisoned: cs.filter(c => c.poison).length,
+    };
+  }
+  let hudKeys = '';
+  function drawHud(left) {
+    const v = vitals(player), dead = !player.alive;
+    $('hudwave').textContent = sandbox ? 'Sandbox' : `Wave ${wave}`;
+    $('hudfoes').textContent = `Enemies ${left}`;
+    HUD_BARS.forEach((b, i) => {
+      const x = clamp01(v.bars[i]);
+      b.fill.style.width = (x * 100).toFixed(1) + '%'; b.val.textContent = Math.round(x * 100) + '%';
+      b.row.classList.toggle('low', !dead && b.low(x));
+    });
+    $('huddead').style.display = dead ? 'block' : 'none';
+    $('hudchips').innerHTML = (v.starving ? `<span class="c-starve">${v.starving} starving</span>` : '')
+      + (v.poisoned ? `<span class="c-poison">${v.poisoned} poisoned</span>` : '') + (player.auto ? '<span class="c-auto">Autopilot</span>' : '');
+    const k = (sandbox ? '<b>Click</b> spawn &nbsp;<b>Right-click</b> remove &nbsp;<b>R</b> respawn<br>' : '')
+      + '<b>W</b><b>S</b> swim &nbsp;<b>A</b><b>D</b> turn &nbsp;<b>Space</b> fire &nbsp;<b>1–9</b> triggers<br><b>T</b> autopilot &nbsp;<b>Shift+1–6</b> view &nbsp;<b>Esc</b> builder';
+    if (k !== hudKeys) $('hudkeys').innerHTML = hudKeys = k;
+  }
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.033, (now - last) / 1000); last = now;
+    if (mode === 'build') {
+      const L = layout();
+      for (const cr of tank.creatures) if (!cr.debris) { cr.want = 0; }
+      step(tank, dt, { sx: 0, sy: 0, ability: keys.has(' '), held: digits });
+      // keep the hidden creature in the middle of its world
+      const pc = tank.creatures.find(c => !c.debris);
+      if (pc) for (const c of tank.cells) { c.x += (tank.w / 2 - pc.cx) * 0.05; c.y += (tank.h / 2 - pc.cy) * 0.05; }
+      drawBuild();
+      updateTip(now);
+      runDemo(dt);
+    } else {
+      const k = n => keys.has(n);
+      const turn = (k('d') || k('arrowright') ? 1 : 0) - (k('a') || k('arrowleft') ? 1 : 0);
+      const fwd = (k('w') || k('arrowup') ? 1 : 0) - (k('s') || k('arrowdown') ? 1 : 0);
+      if (!ended) {
+        step(world, dt, { fwd, turn, ability: k(' '), held: digits });
+        if (!sandbox && !player.alive) endBattle(false);
+        else if (!sandbox && !world.creatures.some(c => c.team === 1 && !c.debris)) endBattle(true);
+      }
+      drawWater(ctx, world, cv.width, cv.height);
+      drawWorld(ctx, world, view);
+      drawHud(world.creatures.filter(c => c.team === 1 && !c.debris).length);
+    }
+    requestAnimationFrame(frame);
+  }
+  rebuildTank();
+  requestAnimationFrame(frame);
+}
+
+if (typeof window !== 'undefined') boot();
+</script>
+</body>
+</html>

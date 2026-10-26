@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bioforge v2 Cells</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0b1418; color: #dfe4ea; font: 14px/1.4 system-ui, sans-serif; overflow: hidden; user-select: none; }
+  canvas { display: block; }
+  #panel { position: absolute; top: 0; left: 0; bottom: 0; width: 300px; padding: 14px; background: #121c21; border-right: 1px solid #23323a; overflow-y: auto; }
+  #panel h1 { margin: 0 0 4px; font-size: 20px; letter-spacing: 1px; }
+  .sub { color: #8a96a3; font-size: 12px; margin-bottom: 10px; }
+  #budget { font-size: 16px; margin: 8px 0; }
+  #budget b { color: #e8c547; }
+  .cat { color: #6f7b88; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin: 8px 0 2px; }
+  .pal { display: flex; align-items: center; gap: 8px; width: 100%; margin: 2px 0; padding: 5px 8px; background: #19262c; color: inherit; border: 1px solid #263840; border-radius: 6px; cursor: pointer; font: inherit; text-align: left; }
+  .pal:hover { background: #20313a; }
+  .pal.sel { border-color: #e8c547; background: #2b2a1f; }
+  .pal .sw { width: 14px; height: 14px; border-radius: 50%; flex: none; }
+  .pal .cost { margin-left: auto; color: #8a96a3; }
+  #info { margin: 10px 0; padding: 8px; background: #0d1519; border-radius: 6px; min-height: 64px; color: #b9c3cd; font-size: 13px; }
+  #stats { font-size: 13px; color: #b9c3cd; white-space: pre-line; }
+  #stats .warn { color: #e8875a; }
+  .row { display: flex; gap: 5px; margin: 10px 0 6px; flex-wrap: wrap; }
+  button.small { flex: 1; padding: 5px; background: #1c2a31; color: inherit; border: 1px solid #2c3f48; border-radius: 5px; cursor: pointer; font: inherit; font-size: 12px; }
+  button.big { width: 100%; padding: 10px; margin-top: 6px; background: #3d6b38; color: #fff; border: 0; border-radius: 6px; cursor: pointer; font: inherit; font-size: 15px; font-weight: 600; }
+  button.big:hover { background: #4a8044; }
+  .help { margin-top: 10px; color: #6f7b88; font-size: 12px; }
+  #hud { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); padding: 6px 14px; background: #121c21cc; border-radius: 6px; font-size: 13px; display: none; white-space: nowrap; }
+  #msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 20px 28px; background: #121c21ee; border: 1px solid #23323a; border-radius: 10px; text-align: center; display: none; min-width: 280px; }
+  #msg h2 { margin: 0 0 10px; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="panel">
+  <h1>BIOFORGE v2</h1>
+  <div class="sub">Soft-body cells, electrical signals. Wire generators to muscles and watch it come alive in the test tank.</div>
+  <div id="budget"></div>
+  <div id="palette"></div>
+  <div id="info"></div>
+  <div id="stats"></div>
+  <div class="row">
+    <button class="small" data-tpl="wiggler">Wiggler</button>
+    <button class="small" data-tpl="jetter">Jetter</button>
+    <button class="small" data-tpl="shocker">Shocker</button>
+    <button class="small" data-tpl="puffer">Puffer</button>
+    <button class="small" data-tpl="clear">Clear</button>
+  </div>
+  <button class="big" id="fight"></button>
+  <div class="help">Left-click: place cell (must touch the body)<br>Right-click: remove cell<br>Top of the grid = front.<br>Test tank: hold Space to fire triggers and sensors.<br><br>Battle: WASD swim, Space ability (trigger cells), T autopilot, Esc builder.</div>
+</div>
+<div id="hud"></div>
+<div id="msg"></div>
+
+<script>
+'use strict';
+// ---------- Tuning ----------
+const CR = 10, HX = 2 * CR, HY = CR * Math.sqrt(3), GR = 5;   // cell radius, hex spacing, grid radius
+const TAU = Math.PI * 2, SUB = 8;
+const K_RAD = 2500, D_RAD = 20, K_ANG = 150000, K_COL = 4000;
+const DRAG_ISO = 1.0, DRAG_N = 4;                              // water drag per cell / normal drag on outer membrane
+const SWIM_F = 90, TURN_K = 10, TURN_D = 5, JET_F = 600;
+const G_WIRE = 25, LEAK = 0.4, PULSE_HZ = 1.4, SENSE_R = 120;
+const SPIKE_DMG = 5, SPIKE_SPD = 0.06, SPIKE_CD = 0.3;
+const SHOCK_R = 45, SHOCK_DMG = 4, SHOCK_CD = 0.5;
+const DEBRIS_DECAY = 6, START_BUDGET = 40, WAVE_BONUS = 15;
+const NB = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
+const key = (q, r) => q + ',' + r;
+const hexPx = (q, r) => [HX * (q + r / 2), HY * r];
+const clamp01 = v => Math.max(0, Math.min(1, v));
+const wrap = a => ((a + Math.PI) % TAU + TAU) % TAU - Math.PI;
+
+const C = (o) => ({ mass: 1, stiff: 1, rad: 1, swim: 1, cond: false, cap: 1, armor: 1, ...o });
+const CELLS = {
+  core:      C({ cat: 'Body',   name: 'Core',      cost: 0, hp: 80, mass: 1.5, swim: 2, color: '#e8c547', desc: 'The nucleus. If it dies, the creature dies. Any part cut off from it floats away and rots.' }),
+  basic:     C({ cat: 'Body',   name: 'Basic',     cost: 1, hp: 30, color: '#7c8a6e', desc: 'Cheap filler. Holds shape and does not conduct electricity, so use it to insulate circuits.' }),
+  hard:      C({ cat: 'Body',   name: 'Hard',      cost: 2, hp: 90, mass: 2, stiff: 2, rad: 2, swim: 0.5, armor: 0.5, color: '#c9c2b0', desc: 'Armour. Takes half damage, very stiff and heavy.' }),
+  fin:       C({ cat: 'Body',   name: 'Fin',       cost: 2, hp: 20, mass: 0.6, swim: 3.5, color: '#6ac9a0', desc: 'Swims 3.5x harder than a normal cell. Light and fragile. Every cell pushes in the swim direction, so fins are your speed.' }),
+  flex:      C({ cat: 'Body',   name: 'Flex',      cost: 1, hp: 25, mass: 0.8, stiff: 0.03, rad: 0.35, color: '#9fb58a', desc: 'A soft hinge. Lets the body bend here, which makes tails and tentacles flop.' }),
+  wire:      C({ cat: 'Signal', name: 'Wire',      cost: 1, hp: 20, mass: 0.8, cond: true, color: '#d8b86a', desc: 'Conducts voltage between neighbours.' }),
+  capacitor: C({ cat: 'Signal', name: 'Capacitor', cost: 2, hp: 25, cond: true, cap: 10, color: '#c78f3c', desc: 'Conducts, but holds a lot of charge, so it fills and drains slowly. Use it to delay or smooth a signal and make waves travel along a tail.' }),
+  pulse:     C({ cat: 'Signal', name: 'Pulse',     cost: 3, hp: 25, cond: true, gen: 'pulse', color: '#f2e35b', desc: 'Generator. Switches between 1 V and 0 V about 1.4 times per second. When off, it drains its circuit.' }),
+  trigger:   C({ cat: 'Signal', name: 'Trigger',   cost: 2, hp: 25, cond: true, gen: 'key', color: '#f29b38', desc: 'Generator. Outputs 1 V while you hold Space (the AI fires it when close).' }),
+  sensor:    C({ cat: 'Signal', name: 'Sensor',    cost: 3, hp: 20, cond: true, gen: 'prox', color: '#4fd1c5', desc: 'Generator. Outputs 1 V when an enemy cell is near it.' }),
+  muscle:    C({ cat: 'Action', name: 'Muscle',    cost: 3, hp: 30, mass: 1.2, cond: true, color: '#d9544f', desc: 'Shrinks to 40% size at 1 V. This pulls its neighbours closer, so muscles on one side bend the body. A wagging tail pushes water.' }),
+  inflate:   C({ cat: 'Action', name: 'Inflating', cost: 3, hp: 30, cond: true, color: '#b77ee0', desc: 'Swells to 200% size at 1 V. It shoves enemies away and pushes the body apart.' }),
+  jet:       C({ cat: 'Action', name: 'Jet',       cost: 4, hp: 25, cond: true, color: '#5fb8e8', desc: 'Pushes the creature forward while it has voltage.' }),
+  shock:     C({ cat: 'Action', name: 'Shocking',  cost: 5, hp: 25, cond: true, color: '#9ad0ff', desc: 'Above 0.5 V, it zaps every enemy cell close to it.' }),
+  spike:     C({ cat: 'Action', name: 'Spiky',     cost: 3, hp: 35, color: '#8fd16a', desc: 'Damages enemy cells it touches. Harder hits deal more damage.' }),
+};
+
+const bp = list => list.map(([q, r, t]) => ({ q, r, t }));
+const TEMPLATES = {
+  wiggler: bp([[0, 0, 'core'], [0, -1, 'spike'], [1, -1, 'spike'], [-1, 0, 'basic'], [1, 0, 'basic'],
+               [-1, 1, 'muscle'], [0, 1, 'inflate'], [-2, 2, 'muscle'], [-1, 2, 'pulse'], [0, 2, 'inflate'],
+               [-2, 3, 'muscle'], [-1, 3, 'inflate'], [-2, 4, 'flex']]),
+  jetter:  bp([[0, 0, 'core'], [0, -1, 'spike'], [1, -1, 'spike'], [-1, 0, 'hard'], [1, 0, 'hard'],
+               [0, 1, 'trigger'], [-1, 1, 'jet'], [1, 1, 'basic'], [-1, 2, 'jet'], [0, 2, 'jet']]),
+  shocker: bp([[0, 0, 'core'], [0, -1, 'sensor'], [1, -1, 'shock'], [-1, 0, 'shock'], [-1, -1, 'shock'], [1, 0, 'shock'],
+               [-1, 1, 'basic'], [0, 1, 'basic']]),
+  puffer:  bp([[0, 0, 'core'], [0, -1, 'sensor'], [1, -1, 'inflate'], [1, 0, 'inflate'], [0, 1, 'inflate'], [-1, 1, 'inflate'], [-1, 0, 'inflate'],
+               [0, -2, 'spike'], [2, -1, 'spike'], [1, 1, 'spike'], [-1, 2, 'spike'], [-2, 1, 'spike'], [-1, -1, 'spike']]),
+  starter: bp([[0, 0, 'core'], [0, -1, 'spike'], [1, -1, 'spike'], [-1, 0, 'basic'], [1, 0, 'basic'],
+               [-1, 1, 'fin'], [0, 1, 'fin'], [-1, 2, 'basic']]),
+};
+const bpCost = list => list.reduce((s, b) => s + CELLS[b.t].cost, 0);
+
+// ---------- World ----------
+function newWorld(w, h) { return { cells: [], bonds: [], angles: [], creatures: [], zaps: [], sparks: [], w, h, t: 0, test: false }; }
+
+function spawn(w, list, x, y, a, team) {
+  const cr = { team, cells: [], alive: true, ai: team !== 0, auto: false, debris: false,
+               want: a, theta: a, sx: 0, sy: 0, ability: false, cx: x, cy: y };
+  const map = new Map(), c = Math.cos(a), s = Math.sin(a);
+  for (const b of list) {
+    const d = CELLS[b.t], [px, py] = hexPx(b.q, b.r);
+    const cell = { t: b.t, d, q: b.q, r: b.r, ox: px, oy: py, x: 0, y: 0, vx: 0, vy: 0, fx: 0, fy: 0,
+                   hp: d.hp, max: d.hp, V: 0, dq: 0, scale: 1, rad: CR, cd: 0, flash: 0, owner: cr, dead: false };
+    cr.cells.push(cell); w.cells.push(cell); map.set(key(b.q, b.r), cell);
+  }
+  restFrame(cr);
+  for (const cell of cr.cells) {
+    const lx = cell.ox - cr.rx, ly = cell.oy - cr.ry;
+    cell.x = x + lx * c - ly * s; cell.y = y + lx * s + ly * c;
+  }
+  // bonds: one per neighbour pair
+  for (const cell of cr.cells) for (const [dq, dr] of [[1, 0], [0, 1], [-1, 1]]) {
+    const n = map.get(key(cell.q + dq, cell.r + dr));
+    if (n) w.bonds.push({ a: cell, b: n, k: K_RAD * Math.min(cell.d.rad, n.d.rad), ext: false });
+  }
+  // angular springs at each cell for neighbour pairs that are not bonded to each other (keeps chains from folding)
+  for (const cell of cr.cells) {
+    const nbrs = NB.map(([dq, dr]) => map.get(key(cell.q + dq, cell.r + dr))).filter(Boolean);
+    for (let i = 0; i < nbrs.length; i++) for (let j = i + 1; j < nbrs.length; j++) {
+      const A = nbrs[i], B = nbrs[j];
+      if (Math.abs(A.q - B.q) + Math.abs(A.r - B.r) + Math.abs(A.q + A.r - B.q - B.r) === 2) continue; // adjacent
+      const ux = A.ox - cell.ox, uy = A.oy - cell.oy, vx = B.ox - cell.ox, vy = B.oy - cell.oy;
+      w.angles.push({ c: cell, a: A, b: B, phi0: Math.atan2(ux * vy - uy * vx, ux * vx + uy * vy), k: K_ANG * cell.d.stiff });
+    }
+  }
+  w.creatures.push(cr);
+  markExterior(w, cr);
+  return cr;
+}
+
+// rest-shape centre (mass weighted), used to measure the creature's heading
+function restFrame(cr) {
+  let m = 0, x = 0, y = 0;
+  for (const c of cr.cells) { m += c.d.mass; x += c.ox * c.d.mass; y += c.oy * c.d.mass; }
+  cr.rx = x / m; cr.ry = y / m; cr.core = cr.cells.find(c => c.t === 'core');
+}
+
+// a bond is on the outer membrane if fewer than two cells close a triangle over it
+function markExterior(w, cr) {
+  const adj = new Map(cr.cells.map(c => [c, new Set()]));
+  const mine = w.bonds.filter(b => b.a.owner === cr);
+  for (const b of mine) { adj.get(b.a).add(b.b); adj.get(b.b).add(b.a); }
+  for (const b of mine) { let n = 0; for (const x of adj.get(b.a)) if (adj.get(b.b).has(x)) n++; b.ext = n < 2; }
+}
+
+// ---------- Simulation ----------
+function control(w, cr, h) {
+  let m = 0, cx = 0, cy = 0;
+  for (const c of cr.cells) { m += c.d.mass; cx += c.x * c.d.mass; cy += c.y * c.d.mass; }
+  cx /= m; cy /= m; cr.cx = cx; cr.cy = cy;
+  if (cr.debris) return;
+  let sc = 0, dc = 0, L = 0, I = 0;
+  for (const c of cr.cells) {
+    const r0x = c.ox - cr.rx, r0y = c.oy - cr.ry, rx = c.x - cx, ry = c.y - cy;
+    sc += c.d.mass * (r0x * ry - r0y * rx); dc += c.d.mass * (r0x * rx + r0y * ry);
+    L += c.d.mass * (rx * c.vy - ry * c.vx); I += c.d.mass * (rx * rx + ry * ry);
+  }
+  cr.theta = Math.atan2(sc, dc);
+  const omega = L / (I || 1);
+  const err = wrap(cr.want - cr.theta);
+  const fwx = Math.sin(cr.theta), fwy = -Math.cos(cr.theta);
+  const turn = TURN_K * err - TURN_D * omega;
+  for (const c of cr.cells) {
+    const rx = c.x - cx, ry = c.y - cy;
+    c.fx += c.d.mass * turn * -ry + SWIM_F * c.d.swim * cr.sx;
+    c.fy += c.d.mass * turn * rx + SWIM_F * c.d.swim * cr.sy;
+    if (c.t === 'jet' && c.V > 0) { c.fx += fwx * JET_F * clamp01(c.V); c.fy += fwy * JET_F * clamp01(c.V); }
+  }
+}
+
+function forces(w) {
+  for (const b of w.bonds) {
+    const A = b.a, B = b.b;
+    let dx = B.x - A.x, dy = B.y - A.y;
+    const d = Math.hypot(dx, dy) || 1e-6; dx /= d; dy /= d;
+    const rvx = B.vx - A.vx, rvy = B.vy - A.vy;
+    const f = b.k * (d - A.rad - B.rad) + D_RAD * (rvx * dx + rvy * dy);
+    A.fx += f * dx; A.fy += f * dy; B.fx -= f * dx; B.fy -= f * dy;
+    if (b.ext) {                                     // outer membrane resists sideways motion through water
+      const nx = -dy, ny = dx, vn = ((A.vx + B.vx) * nx + (A.vy + B.vy) * ny) * 0.5;
+      const fn = -DRAG_N * vn * 0.5;
+      A.fx += fn * nx; A.fy += fn * ny; B.fx += fn * nx; B.fy += fn * ny;
+    }
+  }
+  for (const g of w.angles) {
+    const c = g.c, A = g.a, B = g.b;
+    const ux = A.x - c.x, uy = A.y - c.y, vx = B.x - c.x, vy = B.y - c.y;
+    const lu = Math.hypot(ux, uy) || 1e-6, lv = Math.hypot(vx, vy) || 1e-6;
+    const err = wrap(Math.atan2(ux * vy - uy * vx, ux * vx + uy * vy) - g.phi0);
+    const fa = g.k * err / (lu * lu), fb = g.k * err / (lv * lv);
+    const ax = -uy * fa, ay = ux * fa, bx = vy * fb, by = -vx * fb;   // rotate arms to close the error
+    A.fx += ax; A.fy += ay; B.fx += bx; B.fy += by; c.fx -= ax + bx; c.fy -= ay + by;
+  }
+  for (const c of w.cells) { c.fx -= DRAG_ISO * c.vx; c.fy -= DRAG_ISO * c.vy; }
+}
+
+function collisions(w, h) {
+  const cs = w.creatures;
+  for (const cr of cs) {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const c of cr.cells) { x0 = Math.min(x0, c.x - c.rad); y0 = Math.min(y0, c.y - c.rad); x1 = Math.max(x1, c.x + c.rad); y1 = Math.max(y1, c.y + c.rad); }
+    cr.box = [x0, y0, x1, y1];
+  }
+  for (let i = 0; i < cs.length; i++) for (let j = i + 1; j < cs.length; j++) {
+    const P = cs[i], Q = cs[j], p = P.box, q = Q.box;
+    if (p[2] < q[0] || q[2] < p[0] || p[3] < q[1] || q[3] < p[1]) continue;
+    const hostile = P.team !== Q.team;
+    for (const a of P.cells) for (const b of Q.cells) {
+      const dx = b.x - a.x, dy = b.y - a.y, rr = a.rad + b.rad;
+      if (dx * dx + dy * dy >= rr * rr) continue;
+      const d = Math.hypot(dx, dy) || 1e-6, nx = dx / d, ny = dy / d, f = K_COL * (rr - d);
+      a.fx -= f * nx; a.fy -= f * ny; b.fx += f * nx; b.fy += f * ny;
+      if (hostile) {
+        const sp = Math.hypot(b.vx - a.vx, b.vy - a.vy);
+        spikeHit(w, a, b, sp); spikeHit(w, b, a, sp);
+      }
+    }
+  }
+}
+
+function spikeHit(w, s, t, speed) {
+  if (s.t !== 'spike' || s.cd > 0 || s.dead) return;
+  s.cd = SPIKE_CD;
+  hurt(t, SPIKE_DMG + SPIKE_SPD * speed);
+  sparks(w, (s.x + t.x) / 2, (s.y + t.y) / 2, '#ffffff', 4);
+}
+
+function hurt(c, dmg) { if (c.dead) return; c.hp -= dmg * c.d.armor; c.flash = 0.12; }
+
+function integrate(w, h) {
+  for (const c of w.cells) {
+    const m = c.d.mass;
+    c.vx += c.fx / m * h; c.vy += c.fy / m * h;
+    c.x += c.vx * h; c.y += c.vy * h;
+    c.fx = 0; c.fy = 0;
+    if (c.x < c.rad) { c.x = c.rad; c.vx = Math.abs(c.vx) * 0.3; }
+    if (c.x > w.w - c.rad) { c.x = w.w - c.rad; c.vx = -Math.abs(c.vx) * 0.3; }
+    if (c.y < c.rad) { c.y = c.rad; c.vy = Math.abs(c.vy) * 0.3; }
+    if (c.y > w.h - c.rad) { c.y = w.h - c.rad; c.vy = -Math.abs(c.vy) * 0.3; }
+  }
+}
+
+function genOut(w, c) {
+  const cr = c.owner;
+  if (c.d.gen === 'pulse') return Math.sin(TAU * PULSE_HZ * w.t) > 0 ? 1 : 0;
+  if (cr.debris) return 0;
+  if (c.d.gen === 'key') return cr.ability ? 1 : 0;
+  if (w.test) return cr.ability ? 1 : 0;              // test tank: Space also fires sensors
+  for (const o of w.creatures) {
+    if (o.team === cr.team || o.debris) continue;
+    for (const e of o.cells) if ((e.x - c.x) ** 2 + (e.y - c.y) ** 2 < SENSE_R * SENSE_R) return 1;
+  }
+  return 0;
+}
+
+// Charge flows between conductive neighbours; generators hold their output voltage.
+function electric(w, dt) {
+  for (const c of w.cells) if (c.d.gen) c.out = genOut(w, c);
+  const n = 4, h = dt / n;
+  for (let k = 0; k < n; k++) {
+    for (const c of w.cells) { c.dq = 0; if (c.d.gen) c.V = c.out; }
+    for (const b of w.bonds) {
+      if (!b.a.d.cond || !b.b.d.cond) continue;
+      const I = G_WIRE * (b.b.V - b.a.V);
+      b.a.dq += I; b.b.dq -= I;
+    }
+    for (const c of w.cells) if (c.d.cond && !c.d.gen) c.V += (c.dq / c.d.cap - LEAK * c.V) * h;
+  }
+}
+
+function effectors(w, dt) {
+  for (const c of w.cells) {
+    c.cd -= dt; c.flash = Math.max(0, c.flash - dt);
+    let target = 1;
+    if (c.t === 'muscle') target = 1 - 0.6 * clamp01(c.V);
+    else if (c.t === 'inflate') target = 1 + clamp01(c.V);
+    const fast = c.t === 'inflate' ? target > c.scale : target < c.scale;   // snap on, slow recovery
+    c.scale += (target - c.scale) * Math.min(1, dt * (fast ? 16 : 4));
+    c.rad = CR * c.scale;
+    if (c.t === 'shock' && c.V > 0.5 && c.cd <= 0 && !c.owner.debris) {
+      let hit = false;
+      for (const o of w.creatures) {
+        if (o.team === c.owner.team) continue;
+        for (const e of o.cells) {
+          if ((e.x - c.x) ** 2 + (e.y - c.y) ** 2 > SHOCK_R * SHOCK_R) continue;
+          hurt(e, SHOCK_DMG); hit = true;
+          w.zaps.push({ x0: c.x, y0: c.y, x1: e.x, y1: e.y, life: 0.15 });
+        }
+      }
+      if (hit) c.cd = SHOCK_CD;
+    }
+    if (c.owner.debris) c.hp -= DEBRIS_DECAY * dt;
+  }
+}
+
+// Remove dead cells; split creatures into connected pieces. Pieces without the core become debris.
+function cleanup(w) {
+  if (!w.cells.some(c => c.hp <= 0)) return;
+  const touched = new Set();
+  for (const c of w.cells) if (c.hp <= 0) { c.dead = true; touched.add(c.owner); sparks(w, c.x, c.y, c.d.color, 10); }
+  w.cells = w.cells.filter(c => !c.dead);
+  w.bonds = w.bonds.filter(b => !b.a.dead && !b.b.dead);
+  w.angles = w.angles.filter(g => !g.c.dead && !g.a.dead && !g.b.dead);
+  for (const cr of touched) {
+    const alive = cr.cells.filter(c => !c.dead);
+    const adj = new Map(alive.map(c => [c, []]));
+    for (const b of w.bonds) if (b.a.owner === cr) { adj.get(b.a).push(b.b); adj.get(b.b).push(b.a); }
+    const seen = new Set(), parts = [];
+    const coreAlive = cr.core && !cr.core.dead;
+    const roots = coreAlive ? [cr.core, ...alive] : alive;
+    for (const root of roots) {
+      if (seen.has(root)) continue;
+      const part = [root]; seen.add(root);
+      for (let i = 0; i < part.length; i++) for (const n of adj.get(part[i])) if (!seen.has(n)) { seen.add(n); part.push(n); }
+      parts.push(part);
+    }
+    const keep = coreAlive && !cr.debris ? parts.shift() : null;
+    cr.cells = keep || [];
+    if (!keep) cr.alive = false;
+    for (const part of parts) {
+      const d = { team: -1, cells: part, alive: true, debris: true, want: 0, theta: 0, sx: 0, sy: 0, ability: false, cx: 0, cy: 0 };
+      for (const c of part) c.owner = d;
+      restFrame(d); markExterior(w, d);
+      w.creatures.push(d);
+    }
+    if (keep) { restFrame(cr); markExterior(w, cr); }
+  }
+  w.creatures = w.creatures.filter(c => c.alive && c.cells.length);
+}
+
+function sparks(w, x, y, color, n) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * TAU, sp = 40 + Math.random() * 140;
+    w.sparks.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0.3 + Math.random() * 0.4, color });
+  }
+}
+
+function aiControl(w, cr) {
+  let tgt = null, td = Infinity;
+  for (const o of w.creatures) {
+    if (o.team === cr.team || o.debris) continue;
+    const d = Math.hypot(o.cx - cr.cx, o.cy - cr.cy);
+    if (d < td) { td = d; tgt = o; }
+  }
+  if (!tgt) { cr.sx = cr.sy = 0; cr.ability = false; return; }
+  const dx = (tgt.cx - cr.cx) / td, dy = (tgt.cy - cr.cy) / td;
+  cr.sx = dx; cr.sy = dy; cr.want = Math.atan2(dx, -dy);
+  cr.ability = td < 170;
+}
+
+function step(w, dt, input) {
+  for (const cr of w.creatures) {
+    if (cr.debris) continue;
+    if (cr.ai || cr.auto) aiControl(w, cr);
+    else if (input) {
+      cr.sx = input.sx; cr.sy = input.sy; cr.ability = input.ability;
+      if (input.sx || input.sy) cr.want = Math.atan2(input.sx, -input.sy);
+    }
+  }
+  const h = dt / SUB;
+  for (let i = 0; i < SUB; i++) {
+    for (const cr of w.creatures) control(w, cr, h);
+    forces(w);
+    collisions(w, h);
+    integrate(w, h);
+  }
+  w.t += dt;
+  electric(w, dt);
+  effectors(w, dt);
+  cleanup(w);
+  for (const p of w.sparks) { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; p.vx *= 0.9; p.vy *= 0.9; }
+  w.sparks = w.sparks.filter(p => p.life > 0);
+  for (const z of w.zaps) z.life -= dt;
+  w.zaps = w.zaps.filter(z => z.life > 0);
+}
+
+// ---------- Waves ----------
+function waveBlueprints(n) {
+  const T = TEMPLATES;
+  const hand = { 1: [T.wiggler], 2: [T.shocker], 3: [T.puffer], 4: [T.wiggler, T.shocker], 5: [T.jetter, T.puffer] };
+  if (hand[n]) return hand[n];
+  const pool = [T.wiggler, T.jetter, T.shocker, T.puffer];
+  return Array.from({ length: Math.min(6, n - 3) }, (_, i) => pool[(n + i) % pool.length]);
+}
+
+// ---------- Rendering ----------
+const BODY = { 0: '#1f4a3a', 1: '#4a2430', '-1': '#2a2f33' };
+
+function drawWorld(ctx, w) {
+  for (const cr of w.creatures) {
+    ctx.strokeStyle = BODY[cr.team]; ctx.lineCap = 'round';
+    for (const b of w.bonds) {
+      if (b.a.owner !== cr) continue;
+      ctx.lineWidth = Math.min(b.a.rad, b.b.rad) * 1.6;
+      ctx.beginPath(); ctx.moveTo(b.a.x, b.a.y); ctx.lineTo(b.b.x, b.b.y); ctx.stroke();
+    }
+  }
+  for (const c of w.cells) drawCell(ctx, c);
+  ctx.strokeStyle = '#cfe9ff'; ctx.lineWidth = 2;
+  for (const z of w.zaps) {
+    ctx.beginPath(); ctx.moveTo(z.x0, z.y0);
+    const mx = (z.x0 + z.x1) / 2 + (Math.random() - 0.5) * 14, my = (z.y0 + z.y1) / 2 + (Math.random() - 0.5) * 14;
+    ctx.lineTo(mx, my); ctx.lineTo(z.x1, z.y1); ctx.stroke();
+  }
+  for (const p of w.sparks) { ctx.globalAlpha = Math.min(1, p.life * 3); ctx.fillStyle = p.color; ctx.fillRect(p.x - 1.5, p.y - 1.5, 3, 3); }
+  ctx.globalAlpha = 1;
+}
+
+function drawCell(ctx, c) {
+  const r = c.rad * 0.9, cr = c.owner;
+  ctx.globalAlpha = 0.4 + 0.6 * clamp01(c.hp / c.max);
+  if (c.t === 'spike') {
+    const ox = c.x - cr.cx, oy = c.y - cr.cy, a = Math.atan2(oy, ox);
+    ctx.fillStyle = c.d.color;
+    ctx.beginPath();
+    ctx.moveTo(c.x + Math.cos(a) * r * 1.9, c.y + Math.sin(a) * r * 1.9);
+    ctx.lineTo(c.x + Math.cos(a + 1.9) * r, c.y + Math.sin(a + 1.9) * r);
+    ctx.lineTo(c.x + Math.cos(a - 1.9) * r, c.y + Math.sin(a - 1.9) * r);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.fillStyle = c.d.color;
+  ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, TAU); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1.2; ctx.stroke();
+  // per-type detail
+  ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+  if (c.t === 'core') {
+    const fx = Math.sin(cr.theta), fy = -Math.cos(cr.theta);
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(c.x + fx * r * 0.3, c.y + fy * r * 0.3, r * 0.45, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(c.x + fx * r * 0.5, c.y + fy * r * 0.5, r * 0.22, 0, TAU); ctx.fill();
+  } else if (c.t === 'muscle') {
+    for (const k of [-0.4, 0, 0.4]) { ctx.beginPath(); ctx.moveTo(c.x - r * 0.6, c.y + k * r); ctx.lineTo(c.x + r * 0.6, c.y + k * r); ctx.stroke(); }
+  } else if (c.t === 'hard') {
+    ctx.beginPath(); ctx.arc(c.x, c.y, r * 0.55, 0, TAU); ctx.stroke();
+  } else if (c.t === 'wire') {
+    ctx.beginPath(); ctx.arc(c.x, c.y, r * 0.3, 0, TAU); ctx.fill();
+  } else if (c.t === 'capacitor') {
+    ctx.fillRect(c.x - r * 0.5, c.y - r * 0.45, r * 0.25, r * 0.9); ctx.fillRect(c.x + r * 0.25, c.y - r * 0.45, r * 0.25, r * 0.9);
+  } else if (c.t === 'pulse' || c.t === 'trigger' || c.t === 'sensor') {
+    ctx.fillStyle = c.V > 0.5 ? '#fff' : 'rgba(0,0,0,0.45)';
+    ctx.beginPath(); ctx.arc(c.x, c.y, r * (c.t === 'sensor' ? 0.45 : 0.3), 0, TAU); ctx.fill();
+    if (c.t === 'sensor' && cr.cx !== undefined) { ctx.strokeStyle = 'rgba(79,209,197,0.12)'; ctx.beginPath(); ctx.arc(c.x, c.y, SENSE_R, 0, TAU); ctx.stroke(); }
+  } else if (c.t === 'jet') {
+    const bx = -Math.sin(cr.theta), by = Math.cos(cr.theta);
+    ctx.fillStyle = '#2f6d91'; ctx.beginPath(); ctx.arc(c.x + bx * r * 0.4, c.y + by * r * 0.4, r * 0.35, 0, TAU); ctx.fill();
+    if (c.V > 0.2) {
+      ctx.fillStyle = `rgba(160,220,255,${clamp01(c.V) * 0.7})`;
+      ctx.beginPath(); ctx.arc(c.x + bx * r * 1.6, c.y + by * r * 1.6, r * 0.5 * (0.7 + Math.random() * 0.5), 0, TAU); ctx.fill();
+    }
+  } else if (c.t === 'shock') {
+    ctx.strokeStyle = '#2f5f8a'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(c.x - r * 0.3, c.y - r * 0.5); ctx.lineTo(c.x + r * 0.15, c.y); ctx.lineTo(c.x - r * 0.15, c.y); ctx.lineTo(c.x + r * 0.3, c.y + r * 0.5); ctx.stroke();
+  }
+  if (c.d.cond && c.V > 0.03) {                     // voltage glow
+    ctx.globalAlpha = clamp01(c.V) * 0.55; ctx.fillStyle = '#fff6a0';
+    ctx.beginPath(); ctx.arc(c.x, c.y, r * 0.75, 0, TAU); ctx.fill();
+  }
+  if (c.flash > 0) { ctx.globalAlpha = Math.min(1, c.flash * 8); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, TAU); ctx.fill(); }
+  ctx.globalAlpha = 1;
+}
+
+function drawWater(ctx, w, w0, h0) {
+  ctx.fillStyle = '#0e1d24'; ctx.fillRect(0, 0, w0, h0);
+  ctx.fillStyle = 'rgba(120,200,220,0.05)';
+  for (let i = 0; i < 60; i++) {
+    const x = (i * 137.5 + w.t * 6 * (1 + i % 3)) % w0, y = (i * 91.3 + Math.sin(w.t * 0.3 + i) * 20 + h0) % h0;
+    ctx.beginPath(); ctx.arc(x, y, 1 + i % 3, 0, TAU); ctx.fill();
+  }
+}
+
+// ---------- App (browser only) ----------
+function boot() {
+  const cv = document.getElementById('game'), ctx = cv.getContext('2d');
+  const $ = id => document.getElementById(id);
+  const PANEL_W = 300, EZ = 1.9;                       // editor zoom
+  let mode = 'build', wave = 1, budget = START_BUDGET, selected = 'muscle', hover = null, ended = false;
+  let design = new Map(TEMPLATES.starter.map(b => [key(b.q, b.r), b.t]));
+  let world = null, player = null, tank = null;
+  const keys = new Set();
+
+  const list = () => [...design].map(([k, t]) => { const [q, r] = k.split(',').map(Number); return { q, r, t }; });
+  const cost = () => bpCost(list());
+  const layout = () => {
+    const free = cv.width - PANEL_W;
+    const tankS = Math.min(380, free * 0.38, cv.height - 80);
+    return { gx: PANEL_W + (free - tankS) * 0.45, gy: cv.height / 2, tx: cv.width - tankS - 30, ty: (cv.height - tankS) / 2, ts: tankS };
+  };
+
+  function resize() { cv.width = innerWidth; cv.height = innerHeight; }
+  addEventListener('resize', () => { resize(); if (mode === 'build') rebuildTank(); }); resize();
+
+  function rebuildTank() {
+    const L = layout();
+    tank = newWorld(L.ts, L.ts); tank.test = true;
+    tank.t = performance.now() / 1000;
+    spawn(tank, list(), L.ts / 2, L.ts / 2, 0, 0);
+    refreshPanel();
+  }
+
+  function pxToHex(x, y) {
+    const r = y / HY, q = x / HX - r / 2, s = -q - r;
+    let rq = Math.round(q), rr = Math.round(r), rs = Math.round(s);
+    const dq = Math.abs(rq - q), dr = Math.abs(rr - r), ds = Math.abs(rs - s);
+    if (dq > dr && dq > ds) rq = -rr - rs; else if (dr > ds) rr = -rq - rs;
+    return [rq, rr];
+  }
+  const inGrid = (q, r) => Math.max(Math.abs(q), Math.abs(r), Math.abs(q + r)) <= GR;
+
+  function canPlace(q, r) {
+    if (!inGrid(q, r) || design.has(key(q, r))) return false;
+    if (cost() + CELLS[selected].cost > budget) return false;
+    return NB.some(([dq, dr]) => design.has(key(q + dq, r + dr)));
+  }
+
+  function removeAt(q, r) {
+    if (design.get(key(q, r)) === undefined || design.get(key(q, r)) === 'core') return;
+    design.delete(key(q, r));
+    const seen = new Set([key(0, 0)]), queue = [[0, 0]];
+    while (queue.length) {
+      const [cq, cr] = queue.pop();
+      for (const [dq, dr] of NB) { const k = key(cq + dq, cr + dr); if (design.has(k) && !seen.has(k)) { seen.add(k); queue.push([cq + dq, cr + dr]); } }
+    }
+    for (const k of [...design.keys()]) if (!seen.has(k)) design.delete(k);
+  }
+
+  // palette
+  let lastCat = '';
+  for (const [t, d] of Object.entries(CELLS)) {
+    if (t === 'core') continue;
+    if (d.cat !== lastCat) { const h = document.createElement('div'); h.className = 'cat'; h.textContent = d.cat; $('palette').appendChild(h); lastCat = d.cat; }
+    const el = document.createElement('button');
+    el.className = 'pal'; el.dataset.t = t;
+    el.innerHTML = `<span class="sw" style="background:${d.color}"></span>${d.name}<span class="cost">${d.cost}</span>`;
+    el.onclick = () => { selected = t; refreshPanel(); };
+    $('palette').appendChild(el);
+  }
+  document.querySelectorAll('[data-tpl]').forEach(btn => btn.onclick = () => {
+    const t = btn.dataset.tpl, l = t === 'clear' ? [{ q: 0, r: 0, t: 'core' }] : TEMPLATES[t];
+    if (bpCost(l) > budget) { $('info').textContent = `Not enough biomass for ${t} (${bpCost(l)} needed).`; return; }
+    design = new Map(l.map(b => [key(b.q, b.r), b.t]));
+    rebuildTank();
+  });
+  $('fight').onclick = startBattle;
+
+  function refreshPanel() {
+    document.querySelectorAll('.pal').forEach(el => el.classList.toggle('sel', el.dataset.t === selected));
+    $('budget').innerHTML = `Biomass: <b>${budget - cost()}</b> / ${budget}`;
+    const d = CELLS[selected];
+    $('info').innerHTML = `<b>${d.name}</b> (${d.hp} HP${d.cond ? ', conducts' : ''})<br>${d.desc}`;
+    const l = list(), n = t => l.filter(b => b.t === t).length;
+    const hp = l.reduce((s, b) => s + CELLS[b.t].hp, 0), mass = l.reduce((s, b) => s + CELLS[b.t].mass, 0);
+    const warn = [];
+    const gens = n('pulse') + n('trigger') + n('sensor');
+    const acts = n('muscle') + n('inflate') + n('jet') + n('shock');
+    if (acts && !gens) warn.push('Effectors need a generator (Pulse, Trigger or Sensor) to do anything.');
+    if (!n('spike') && !n('shock') && !n('inflate')) warn.push('No weapons: it cannot hurt anything.');
+    // effectors not reachable from any generator through conductive cells
+    const isCond = k => design.has(k) && CELLS[design.get(k)].cond;
+    const live = new Set(), q = [];
+    for (const [k, t] of design) if (CELLS[t].gen) { live.add(k); q.push(k); }
+    while (q.length) {
+      const [cq, cr] = q.pop().split(',').map(Number);
+      for (const [dq, dr] of NB) { const k = key(cq + dq, cr + dr); if (isCond(k) && !live.has(k)) { live.add(k); q.push(k); } }
+    }
+    const dead = [...design].filter(([k, t]) => ['muscle', 'inflate', 'jet', 'shock'].includes(t) && !live.has(k)).length;
+    if (gens && dead) warn.push(`${dead} effector(s) are not wired to a generator.`);
+    $('stats').innerHTML = `Cells: ${l.length}   Mass: ${mass.toFixed(1)}   HP: ${hp}` + warn.map(w => `\n<span class="warn">⚠ ${w}</span>`).join('');
+    $('fight').textContent = `Fight wave ${wave} ▶`;
+  }
+
+  function startBattle() {
+    world = newWorld(cv.width, cv.height);
+    player = spawn(world, list(), cv.width / 2, cv.height - 150, 0, 0);
+    const es = waveBlueprints(wave);
+    es.forEach((e, i) => spawn(world, e, cv.width * (i + 1) / (es.length + 1), 150, Math.PI, 1));
+    mode = 'battle'; ended = false;
+    $('panel').style.display = 'none'; $('hud').style.display = 'block'; $('msg').style.display = 'none';
+  }
+
+  function toBuild() {
+    mode = 'build'; world = null;
+    $('panel').style.display = 'block'; $('hud').style.display = 'none'; $('msg').style.display = 'none';
+    rebuildTank();
+  }
+
+  function endBattle(won) {
+    ended = true;
+    if (won) { wave++; budget += WAVE_BONUS; }
+    $('msg').innerHTML = won
+      ? `<h2>Wave cleared</h2>+${WAVE_BONUS} biomass. Evolve your creature further.<br><br><button class="big" id="again">Back to builder</button>`
+      : `<h2>Your creature died</h2>Rethink the design and try wave ${wave} again.<br><br><button class="big" id="again">Back to builder</button>`;
+    $('msg').style.display = 'block';
+    $('again').onclick = toBuild;
+  }
+
+  addEventListener('keydown', e => {
+    keys.add(e.key.toLowerCase());
+    if (e.key === ' ') e.preventDefault();
+    if (mode !== 'battle') return;
+    if (e.key === 'Escape') toBuild();
+    if (e.key.toLowerCase() === 't') player.auto = !player.auto;
+  });
+  addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
+  const hexAt = e => { const L = layout(); return pxToHex((e.clientX - L.gx) / EZ, (e.clientY - L.gy) / EZ); };
+  cv.addEventListener('mousemove', e => { hover = mode === 'build' ? hexAt(e) : null; });
+  cv.addEventListener('contextmenu', e => e.preventDefault());
+  cv.addEventListener('mousedown', e => {
+    if (mode !== 'build') return;
+    const [q, r] = hexAt(e);
+    if (e.button === 2) removeAt(q, r);
+    else if (canPlace(q, r)) design.set(key(q, r), selected);
+    else return;
+    rebuildTank();
+  });
+
+  function hexPath(x, y, s) {
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) { const a = Math.PI / 6 + i * Math.PI / 3; ctx.lineTo(x + Math.cos(a) * s, y + Math.sin(a) * s); }
+    ctx.closePath();
+  }
+
+  function drawBuild() {
+    ctx.fillStyle = '#0b1418'; ctx.fillRect(0, 0, cv.width, cv.height);
+    const L = layout();
+    // hex grid with the design (static), cells coloured by the tank's live voltage
+    ctx.save(); ctx.translate(L.gx, L.gy); ctx.scale(EZ, EZ);
+    for (let q = -GR; q <= GR; q++) for (let r = -GR; r <= GR; r++) {
+      if (!inGrid(q, r)) continue;
+      const [x, y] = hexPx(q, r);
+      hexPath(x, y, HX / Math.sqrt(3) - 0.6);
+      const hov = hover && hover[0] === q && hover[1] === r;
+      ctx.fillStyle = hov ? (canPlace(q, r) ? 'rgba(120,220,120,0.3)' : 'rgba(230,90,90,0.25)') : '#132228';
+      ctx.fill();
+    }
+    const live = new Map(tank.cells.map(c => [key(c.q, c.r), c]));
+    for (const [k, t] of design) {
+      const [q, r] = k.split(',').map(Number), [x, y] = hexPx(q, r), tc = live.get(k);
+      // static copy of the live tank cell (for voltage glow), drawn at its grid slot; spikes point away from the core
+      drawCell(ctx, { ...(tc || { t, d: CELLS[t], hp: 1, max: 1, V: 0, flash: 0 }), x, y, rad: CR, owner: { cx: 0, cy: 0, theta: 0 } });
+    }
+    ctx.fillStyle = '#6f7b88'; ctx.font = '7px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText('▲ FRONT', 0, -GR * HY - 14);
+    ctx.restore();
+    // test tank (live physics)
+    ctx.save(); ctx.translate(L.tx, L.ty);
+    drawWater(ctx, tank, L.ts, L.ts);
+    drawWorld(ctx, tank);
+    ctx.strokeStyle = '#2c4650'; ctx.lineWidth = 2; ctx.strokeRect(0, 0, L.ts, L.ts);
+    ctx.fillStyle = '#8a96a3'; ctx.font = '12px system-ui'; ctx.textAlign = 'left';
+    ctx.fillText('TEST TANK (hold Space)', 0, -8);
+    ctx.restore();
+  }
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.033, (now - last) / 1000); last = now;
+    if (mode === 'build') {
+      const L = layout();
+      for (const cr of tank.creatures) if (!cr.debris) { cr.want = 0; }
+      step(tank, dt, { sx: 0, sy: 0, ability: keys.has(' ') });
+      // keep the creature in the middle of the tank
+      const pc = tank.creatures.find(c => !c.debris);
+      if (pc) for (const c of tank.cells) { c.x += (L.ts / 2 - pc.cx) * 0.05; c.y += (L.ts / 2 - pc.cy) * 0.05; }
+      drawBuild();
+    } else {
+      const k = n => keys.has(n);
+      let sx = (k('d') || k('arrowright') ? 1 : 0) - (k('a') || k('arrowleft') ? 1 : 0);
+      let sy = (k('s') || k('arrowdown') ? 1 : 0) - (k('w') || k('arrowup') ? 1 : 0);
+      const l = Math.hypot(sx, sy) || 1;
+      if (!ended) {
+        step(world, dt, { sx: sx / l, sy: sy / l, ability: k(' ') });
+        if (!player.alive) endBattle(false);
+        else if (!world.creatures.some(c => c.team === 1)) endBattle(true);
+      }
+      drawWater(ctx, world, cv.width, cv.height);
+      drawWorld(ctx, world);
+      const left = world.creatures.filter(c => c.team === 1).length;
+      $('hud').textContent = `Wave ${wave} · Enemies: ${left} · WASD swim · Space ability · T autopilot [${player.auto ? 'ON' : 'off'}] · Esc builder`;
+    }
+    requestAnimationFrame(frame);
+  }
+  rebuildTank();
+  requestAnimationFrame(frame);
+}
+
+if (typeof window !== 'undefined') boot();
+</script>
+</body>
+</html>

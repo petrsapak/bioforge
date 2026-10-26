@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bioforge Prototype</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0f1317; color: #dfe4ea; font: 14px/1.4 system-ui, sans-serif; overflow: hidden; user-select: none; }
+  canvas { display: block; }
+  #panel { position: absolute; top: 0; left: 0; bottom: 0; width: 300px; padding: 14px; background: #171d23; border-right: 1px solid #2a323b; overflow-y: auto; }
+  #panel h1 { margin: 0 0 4px; font-size: 20px; letter-spacing: 1px; }
+  .sub { color: #8a96a3; font-size: 12px; margin-bottom: 12px; }
+  #budget { font-size: 16px; margin: 8px 0; }
+  #budget b { color: #e8c547; }
+  .pal { display: flex; align-items: center; gap: 8px; width: 100%; margin: 3px 0; padding: 6px 8px; background: #1f262e; color: inherit; border: 1px solid #2d3640; border-radius: 6px; cursor: pointer; font: inherit; text-align: left; }
+  .pal:hover { background: #26303a; }
+  .pal.sel { border-color: #e8c547; background: #2b2a1f; }
+  .pal .sw { width: 16px; height: 16px; border-radius: 4px; flex: none; }
+  .pal .cost { margin-left: auto; color: #8a96a3; }
+  #info { margin: 10px 0; padding: 8px; background: #11161b; border-radius: 6px; min-height: 70px; color: #b9c3cd; font-size: 13px; }
+  #stats { font-size: 13px; color: #b9c3cd; white-space: pre-line; }
+  #stats .warn { color: #e8875a; }
+  .row { display: flex; gap: 6px; margin: 10px 0 6px; flex-wrap: wrap; }
+  button.small { flex: 1; padding: 5px; background: #222b34; color: inherit; border: 1px solid #333e49; border-radius: 5px; cursor: pointer; font: inherit; font-size: 12px; }
+  button.big { width: 100%; padding: 10px; margin-top: 6px; background: #3d6b38; color: #fff; border: 0; border-radius: 6px; cursor: pointer; font: inherit; font-size: 15px; font-weight: 600; }
+  button.big:hover { background: #4a8044; }
+  .help { margin-top: 10px; color: #6f7b88; font-size: 12px; }
+  #hud { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); padding: 6px 14px; background: #171d23cc; border-radius: 6px; font-size: 13px; display: none; white-space: nowrap; }
+  #msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 20px 28px; background: #171d23ee; border: 1px solid #2a323b; border-radius: 10px; text-align: center; display: none; min-width: 280px; }
+  #msg h2 { margin: 0 0 10px; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="panel">
+  <h1>BIOFORGE</h1>
+  <div class="sub">Grow a creature from living blocks, then send it to fight.</div>
+  <div id="budget"></div>
+  <div id="palette"></div>
+  <div id="info"></div>
+  <div id="stats"></div>
+  <div class="row">
+    <button class="small" data-tpl="crawler">Crawler</button>
+    <button class="small" data-tpl="turret">Turret</button>
+    <button class="small" data-tpl="ram">Ram</button>
+    <button class="small" data-tpl="clear">Clear</button>
+  </div>
+  <button class="big" id="fight"></button>
+  <div class="help">Left-click: place block (must touch the body)<br>Right-click: remove block<br>The top of the grid is the creature's front.<br><br>In battle: W/S thrust, A/D turn, T autopilot, Esc back to builder.</div>
+</div>
+<div id="hud"></div>
+<div id="msg"></div>
+
+<script>
+'use strict';
+// ---------- Tuning ----------
+const S = 24, R = 4;                 // block size in px, grid spans -R..R
+const TAU = Math.PI * 2;
+const MUSCLE_T = 1.0, MUSCLE_F = 1100, CRAWL_F = 250, MUSCLE_TORQUE = 0.35;
+const LIN_DRAG = 1.6, ANG_DRAG = 5, TURN_ACC = 14;
+const SPIT_T = 1.6, SPIT_RANGE = 340, SPIT_SPEED = 420, SPIT_DMG = 9;
+const PUFF_T = 3.0, PUFF_ON = 0.8, PUFF_R = S * 2.6, PUFF_DMG = 5, PUFF_J = 1800;
+const SPIKE_CD = 0.35, SPIKE_DMG = 5, SPIKE_SPEED_DMG = 0.06;
+const START_BUDGET = 30, WAVE_BONUS = 12;
+const ADJ = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+const key = (x, y) => x + ',' + y;
+
+const BLOCKS = {
+  core:    { name: 'Core',    cost: 0, hp: 60, mass: 2,   color: '#e8c547', desc: 'The brain. If it dies, the creature dies. Any block that loses its connection to the core falls off.' },
+  muscle:  { name: 'Muscle',  cost: 3, hp: 25, mass: 1,   color: '#d9544f', desc: 'Contracts and expands in a loop. Each expansion pushes the creature forward. Rows pulse in a wave from tail to head. Muscles off the centre line make the creature veer.' },
+  armor:   { name: 'Bone',    cost: 2, hp: 70, mass: 2.5, color: '#c9c2b0', desc: 'Tough and heavy. Takes half damage from spikes. Shields what sits behind it, but slows you down.' },
+  spike:   { name: 'Spike',   cost: 3, hp: 30, mass: 1,   color: '#8fd16a', desc: 'Hurts any enemy block it touches. Damage grows with impact speed, so ram things. Points away from the core.' },
+  spitter: { name: 'Spitter', cost: 5, hp: 20, mass: 1.2, color: '#5fb8e8', desc: 'Swells as it pumps acid, then spits at the nearest enemy block within range.' },
+  puffer:  { name: 'Puffer',  cost: 4, hp: 35, mass: 1.2, color: '#b77ee0', desc: 'Inflates every few seconds, blasting nearby enemies away and dealing light damage. It takes up more space while inflated.' },
+  heart:   { name: 'Heart',   cost: 4, hp: 15, mass: 0.8, color: '#ff7aa8', desc: 'Beats. Adjacent muscles, spitters and puffers cycle 50% faster. Fragile.' },
+};
+
+const bpFrom = list => list.map(([x, y, t]) => ({ x, y, t }));
+const TEMPLATES = {
+  crawler: bpFrom([[0, 0, 'core'], [0, -1, 'spike'], [0, 1, 'muscle'], [0, 2, 'muscle']]),
+  turret:  bpFrom([[0, 0, 'core'], [-1, 0, 'spitter'], [1, 0, 'spitter'], [0, -1, 'armor'], [0, 1, 'muscle']]),
+  ram:     bpFrom([[0, 0, 'core'], [-1, -1, 'armor'], [0, -1, 'armor'], [1, -1, 'armor'], [-1, -2, 'spike'], [0, -2, 'spike'], [1, -2, 'spike'],
+                   [-1, 0, 'heart'], [1, 0, 'armor'], [-1, 1, 'muscle'], [0, 1, 'muscle'], [1, 1, 'muscle'], [0, 2, 'muscle']]),
+  starter: bpFrom([[0, 0, 'core'], [0, -1, 'spike'], [0, 1, 'muscle'], [0, 2, 'muscle'], [-1, 0, 'armor'], [1, 0, 'armor']]),
+};
+
+// ---------- World ----------
+const W = { units: [], shots: [], debris: [], sparks: [], rings: [], w: 1200, h: 800 };
+
+function newBlock(gx, gy, t) {
+  const hp = BLOCKS[t].hp;
+  return { gx, gy, t, hp, max: hp, scale: 1, flash: 0, hitCd: 0, on: false, aim: 0,
+           phase: ((gy * 0.15) % 1 + 1) % 1, timer: Math.random() * 0.5,
+           dir: [0, -1], lx: 0, ly: 0, rx: 0, ry: 0, wx: 0, wy: 0, r: S / 2 };
+}
+
+function makeUnit(bp, x, y, a, team) {
+  const u = { team, x, y, a, vx: 0, vy: 0, w: 0, thrust: 0, turn: 0, alive: true, ai: team !== 0, auto: false,
+              blocks: bp.map(b => newBlock(b.x, b.y, b.t)) };
+  computeLinks(u);
+  recalcMass(u);
+  place(u);
+  return u;
+}
+
+// Adjacency-driven properties: heart boosts, spike facing.
+function computeLinks(u) {
+  const occ = new Map(u.blocks.map(b => [key(b.gx, b.gy), b]));
+  for (const b of u.blocks) {
+    b.boosted = b.t !== 'heart' && ADJ.some(([dx, dy]) => occ.get(key(b.gx + dx, b.gy + dy))?.t === 'heart');
+    if (b.t === 'spike') {
+      const out = ADJ.filter(([dx, dy]) => !occ.has(key(b.gx + dx, b.gy + dy)))
+        .sort((p, q) => (q[0] * b.gx + q[1] * b.gy - q[1] * 0.01) - (p[0] * b.gx + p[1] * b.gy - p[1] * 0.01));
+      b.dir = out[0] || [0, -1];
+    }
+  }
+}
+
+// Mass, centre of mass, inertia. Keeps the creature's world position stable when blocks are lost.
+function recalcMass(u) {
+  let m = 0, cx = 0, cy = 0;
+  for (const b of u.blocks) { const mb = BLOCKS[b.t].mass; m += mb; cx += b.gx * S * mb; cy += b.gy * S * mb; }
+  cx /= m; cy /= m;
+  if (u.comx !== undefined) {
+    const dx = cx - u.comx, dy = cy - u.comy, c = Math.cos(u.a), s = Math.sin(u.a);
+    u.x += dx * c - dy * s; u.y += dx * s + dy * c;
+  }
+  u.comx = cx; u.comy = cy; u.mass = m;
+  let I = 0, rad = 0;
+  for (const b of u.blocks) {
+    const mb = BLOCKS[b.t].mass;
+    b.lx = b.gx * S - cx; b.ly = b.gy * S - cy;
+    I += mb * (b.lx * b.lx + b.ly * b.ly + S * S / 6);
+    rad = Math.max(rad, Math.hypot(b.lx, b.ly) + S);
+  }
+  u.I = I; u.R = rad;
+  u.muscles = u.blocks.filter(b => b.t === 'muscle').length;
+}
+
+function place(u) {
+  const c = Math.cos(u.a), s = Math.sin(u.a);
+  for (const b of u.blocks) {
+    b.rx = b.lx * c - b.ly * s; b.ry = b.lx * s + b.ly * c;
+    b.wx = u.x + b.rx; b.wy = u.y + b.ry;
+    b.r = S * (b.t === 'puffer' ? 0.48 * b.scale : b.t === 'spike' ? 0.62 : 0.48);
+  }
+}
+
+function impulse(u, rx, ry, jx, jy) {
+  u.vx += jx / u.mass; u.vy += jy / u.mass;
+  u.w += (rx * jy - ry * jx) / u.I;
+}
+
+function damage(u, b, d) {
+  if (b.hp <= 0) return;
+  b.hp -= d; b.flash = 0.12;
+}
+
+function nearestEnemyBlock(u, x, y, range) {
+  let best = null, bd = range * range;
+  for (const v of W.units) {
+    if (v.team === u.team || !v.alive) continue;
+    for (const b of v.blocks) {
+      const d = (b.wx - x) ** 2 + (b.wy - y) ** 2;
+      if (d < bd) { bd = d; best = b; }
+    }
+  }
+  return best;
+}
+
+function puffBlast(u, p) {
+  W.rings.push({ x: p.wx, y: p.wy, r: S * 0.5, max: PUFF_R, life: 0.3 });
+  for (const v of W.units) {
+    if (v.team === u.team || !v.alive) continue;
+    if (Math.hypot(v.x - p.wx, v.y - p.wy) > v.R + PUFF_R) continue;
+    let near = null, nd = Infinity;
+    for (const b of v.blocks) {
+      const d = Math.hypot(b.wx - p.wx, b.wy - p.wy);
+      if (d < PUFF_R + b.r) { damage(v, b, PUFF_DMG); if (d < nd) { nd = d; near = b; } }
+    }
+    if (near) {
+      const nx = (near.wx - p.wx) / (nd || 1), ny = (near.wy - p.wy) / (nd || 1);
+      impulse(v, near.rx, near.ry, nx * PUFF_J, ny * PUFF_J);
+      impulse(u, p.rx, p.ry, -nx * PUFF_J * 0.3, -ny * PUFF_J * 0.3);
+    }
+  }
+}
+
+// Block mechanics + propulsion for one creature.
+function stepUnit(u, dt) {
+  const c = Math.cos(u.a), s = Math.sin(u.a), fx = s, fy = -c;   // forward = local -y
+  let Fx = 0, Fy = 0, T = 0;
+  if (u.thrust) { Fx += fx * CRAWL_F * u.thrust; Fy += fy * CRAWL_F * u.thrust; }
+  for (const b of u.blocks) {
+    b.flash = Math.max(0, b.flash - dt); b.hitCd -= dt;
+    const rate = b.boosted ? 1.5 : 1;
+    if (b.t === 'muscle') {
+      b.phase = (b.phase + dt * rate / MUSCLE_T) % 1;
+      const ph = b.phase * TAU;
+      b.scale = 1 + 0.22 * Math.sin(ph);
+      if (u.thrust && Math.cos(ph) > 0) {                          // expanding half of the cycle pushes
+        const f = MUSCLE_F * rate * u.thrust, px = fx * f, py = fy * f;
+        Fx += px; Fy += py; T += (b.rx * py - b.ry * px) * MUSCLE_TORQUE;
+      }
+    } else if (b.t === 'heart') {
+      b.phase = (b.phase + dt * 1.2) % 1;
+      b.scale = 1 + 0.18 * Math.max(0, Math.sin(b.phase * TAU * 2));
+    } else if (b.t === 'spitter') {
+      b.timer = Math.min(SPIT_T, b.timer + dt * rate);
+      b.scale = 0.8 + 0.35 * b.timer / SPIT_T;
+      const tgt = nearestEnemyBlock(u, b.wx, b.wy, SPIT_RANGE);
+      if (tgt) b.aim = Math.atan2(tgt.wy - b.wy, tgt.wx - b.wx);
+      if (tgt && b.timer >= SPIT_T) {
+        const dx = Math.cos(b.aim), dy = Math.sin(b.aim);
+        W.shots.push({ x: b.wx + dx * S * 0.5, y: b.wy + dy * S * 0.5, vx: dx * SPIT_SPEED + u.vx * 0.4, vy: dy * SPIT_SPEED + u.vy * 0.4, team: u.team, life: 1.2 });
+        impulse(u, b.rx, b.ry, -dx * 60, -dy * 60);
+        b.timer = 0;
+      }
+    } else if (b.t === 'puffer') {
+      b.timer = (b.timer + dt * rate) % PUFF_T;
+      const on = b.timer > PUFF_T - PUFF_ON;
+      if (on && !b.on) puffBlast(u, b);
+      b.on = on;
+      b.scale += ((on ? 1.7 : 1) - b.scale) * Math.min(1, dt * 14);
+    }
+  }
+  const turnFactor = (0.5 + 0.5 * Math.min(u.muscles, 6) / 6) / Math.sqrt(Math.max(1, u.mass / 5));
+  u.vx += Fx / u.mass * dt; u.vy += Fy / u.mass * dt;
+  u.w += (T / u.I + u.turn * TURN_ACC * turnFactor) * dt;
+  u.vx *= Math.exp(-LIN_DRAG * dt); u.vy *= Math.exp(-LIN_DRAG * dt); u.w *= Math.exp(-ANG_DRAG * dt);
+  u.x += u.vx * dt; u.y += u.vy * dt; u.a += u.w * dt;
+}
+
+// Block-vs-block contacts between creatures: rigid-body impulses + spike damage.
+function collide(u, v) {
+  if (Math.hypot(u.x - v.x, u.y - v.y) > u.R + v.R) return;
+  const enemies = u.team !== v.team;
+  for (const a of u.blocks) for (const b of v.blocks) {
+    let nx = b.wx - a.wx, ny = b.wy - a.wy;
+    const d = Math.hypot(nx, ny), pen = a.r + b.r - d;
+    if (pen <= 0) continue;
+    nx /= d || 1; ny /= d || 1;
+    const k = u.mass / (u.mass + v.mass);
+    u.x -= nx * pen * (1 - k) * 0.5; u.y -= ny * pen * (1 - k) * 0.5;
+    v.x += nx * pen * k * 0.5;       v.y += ny * pen * k * 0.5;
+    const rvx = (v.vx - v.w * b.ry) - (u.vx - u.w * a.ry);
+    const rvy = (v.vy + v.w * b.rx) - (u.vy + u.w * a.rx);
+    const vn = rvx * nx + rvy * ny;
+    if (vn < 0) {
+      const ca = a.rx * ny - a.ry * nx, cb = b.rx * ny - b.ry * nx;
+      const j = -1.3 * vn / (1 / u.mass + 1 / v.mass + ca * ca / u.I + cb * cb / v.I);
+      impulse(u, a.rx, a.ry, -nx * j, -ny * j);
+      impulse(v, b.rx, b.ry, nx * j, ny * j);
+    }
+    if (enemies) {
+      const speed = Math.hypot(rvx, rvy);
+      spikeHit(u, a, v, b, speed);
+      spikeHit(v, b, u, a, speed);
+    }
+  }
+}
+
+function spikeHit(su, s, tu, t, speed) {
+  if (s.t !== 'spike' || s.hitCd > 0 || s.hp <= 0) return;
+  s.hitCd = SPIKE_CD;
+  damage(tu, t, (SPIKE_DMG + SPIKE_SPEED_DMG * speed) * (t.t === 'armor' ? 0.5 : 1));
+  burst((s.wx + t.wx) / 2, (s.wy + t.wy) / 2, '#ffffff', 4);
+}
+
+function walls(u) {
+  let px = 0, py = 0;
+  for (const b of u.blocks) {
+    px = Math.max(px, b.r - b.wx); px = Math.min(px, W.w - b.r - b.wx);
+    py = Math.max(py, b.r - b.wy); py = Math.min(py, W.h - b.r - b.wy);
+  }
+  if (px) { u.x += px; if (px * u.vx < 0) u.vx *= -0.3; }
+  if (py) { u.y += py; if (py * u.vy < 0) u.vy *= -0.3; }
+}
+
+// Remove dead blocks; anything cut off from the core falls off as debris.
+function cleanup(u) {
+  if (!u.blocks.some(b => b.hp <= 0)) return;
+  for (const b of u.blocks) if (b.hp <= 0) burst(b.wx, b.wy, BLOCKS[b.t].color, 12);
+  const core = u.blocks.find(b => b.t === 'core');
+  if (core.hp <= 0) {
+    u.alive = false;
+    for (const b of u.blocks) if (b.hp > 0) toDebris(u, b);
+    u.blocks = [];
+    return;
+  }
+  const alive = u.blocks.filter(b => b.hp > 0);
+  const occ = new Map(alive.map(b => [key(b.gx, b.gy), b]));
+  const seen = new Set([core]), queue = [core];
+  while (queue.length) {
+    const b = queue.pop();
+    for (const [dx, dy] of ADJ) {
+      const n = occ.get(key(b.gx + dx, b.gy + dy));
+      if (n && !seen.has(n)) { seen.add(n); queue.push(n); }
+    }
+  }
+  for (const b of alive) if (!seen.has(b)) toDebris(u, b);
+  u.blocks = alive.filter(b => seen.has(b));
+  computeLinks(u);
+  recalcMass(u);
+}
+
+function toDebris(u, b) {
+  W.debris.push({ x: b.wx, y: b.wy, a: u.a, w: (Math.random() - 0.5) * 6,
+    vx: u.vx - u.w * b.ry + (Math.random() - 0.5) * 120, vy: u.vy + u.w * b.rx + (Math.random() - 0.5) * 120,
+    b: { ...b, flash: 0 }, life: 2.5 });
+}
+
+function burst(x, y, color, n) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * TAU, sp = 40 + Math.random() * 160;
+    W.sparks.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0.3 + Math.random() * 0.4, color });
+  }
+}
+
+const wrap = a => ((a + Math.PI) % TAU + TAU) % TAU - Math.PI;
+
+function aiControl(u) {
+  let tgt = null, td = Infinity;
+  for (const v of W.units) {
+    if (v.team === u.team || !v.alive) continue;
+    const d = Math.hypot(v.x - u.x, v.y - u.y);
+    if (d < td) { td = d; tgt = v; }
+  }
+  if (!tgt) { u.thrust = 0; u.turn = 0; return; }
+  let desired = Math.atan2(tgt.x - u.x, -(tgt.y - u.y));
+  const ranged = u.blocks.some(b => b.t === 'spitter') && !u.blocks.some(b => b.t === 'spike');
+  let go = true;
+  if (ranged) {
+    if (td < 200) desired += Math.PI;
+    else if (td < 280) go = false;
+  }
+  const diff = wrap(desired - u.a);
+  u.turn = Math.max(-1, Math.min(1, diff * 2));
+  u.thrust = go && Math.abs(diff) < 0.9 ? 1 : 0;
+}
+
+function simStep(dt, input) {
+  for (const u of W.units) {
+    if (u.ai || u.auto) aiControl(u);
+    else if (input) { u.thrust = input.thrust; u.turn = input.turn; }
+    place(u);
+    stepUnit(u, dt);
+  }
+  for (const u of W.units) place(u);
+  for (let i = 0; i < W.units.length; i++)
+    for (let j = i + 1; j < W.units.length; j++) collide(W.units[i], W.units[j]);
+  for (const u of W.units) { place(u); walls(u); }
+
+  for (const sh of W.shots) {
+    sh.x += sh.vx * dt; sh.y += sh.vy * dt; sh.life -= dt;
+    for (const v of W.units) {
+      if (v.team === sh.team || sh.life <= 0 || Math.hypot(v.x - sh.x, v.y - sh.y) > v.R + 4) continue;
+      for (const b of v.blocks) {
+        if (Math.hypot(b.wx - sh.x, b.wy - sh.y) < b.r + 4) {
+          damage(v, b, SPIT_DMG);
+          const sp = Math.hypot(sh.vx, sh.vy) || 1;
+          impulse(v, b.rx, b.ry, sh.vx / sp * 40, sh.vy / sp * 40);
+          burst(sh.x, sh.y, '#5fb8e8', 6);
+          sh.life = 0;
+          break;
+        }
+      }
+    }
+  }
+  W.shots = W.shots.filter(s => s.life > 0 && s.x > 0 && s.y > 0 && s.x < W.w && s.y < W.h);
+
+  for (const u of W.units) cleanup(u);
+  W.units = W.units.filter(u => u.alive);
+
+  for (const d of W.debris) {
+    d.x += d.vx * dt; d.y += d.vy * dt; d.a += d.w * dt; d.life -= dt;
+    d.vx *= Math.exp(-2 * dt); d.vy *= Math.exp(-2 * dt);
+  }
+  W.debris = W.debris.filter(d => d.life > 0);
+  for (const p of W.sparks) { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; p.vx *= 0.9; p.vy *= 0.9; }
+  W.sparks = W.sparks.filter(p => p.life > 0);
+  for (const r of W.rings) { r.life -= dt; r.r += (r.max - r.r) * Math.min(1, dt * 18); }
+  W.rings = W.rings.filter(r => r.life > 0);
+}
+
+// ---------- Waves ----------
+function randomBlueprint(budget) {
+  const m = new Map([[key(0, 0), 'core'], [key(0, 1), 'muscle']]);
+  budget -= BLOCKS.muscle.cost;
+  const types = ['muscle', 'muscle', 'armor', 'spike', 'spike', 'spitter', 'puffer', 'heart'];
+  for (let tries = 0; tries < 300 && budget >= 2; tries++) {
+    const t = types[Math.floor(Math.random() * types.length)];
+    if (BLOCKS[t].cost > budget) continue;
+    const cells = [...m.keys()].map(k => k.split(',').map(Number));
+    const [cx, cy] = cells[Math.floor(Math.random() * cells.length)];
+    const [dx, dy] = ADJ[Math.floor(Math.random() * 4)];
+    const nx = cx + dx, ny = cy + dy;
+    if (Math.abs(nx) > 2 || Math.abs(ny) > 3 || m.has(key(nx, ny))) continue;
+    if (t === 'spike' && ny > 0 && Math.random() < 0.8) continue;
+    if (t === 'muscle' && ny < 0 && Math.random() < 0.6) continue;
+    m.set(key(nx, ny), t);
+    budget -= BLOCKS[t].cost;
+  }
+  return [...m].map(([k, t]) => { const [x, y] = k.split(',').map(Number); return { x, y, t }; });
+}
+
+function waveBlueprints(n) {
+  const T = TEMPLATES;
+  const hand = { 1: [T.crawler], 2: [T.crawler, T.crawler], 3: [T.turret, T.crawler], 4: [T.ram] };
+  if (hand[n]) return hand[n];
+  const count = 1 + Math.floor(n / 3);
+  return Array.from({ length: count }, () => randomBlueprint(Math.round((12 + n * 6) / count) + 6));
+}
+
+// ---------- Rendering ----------
+function drawBlock(ctx, b, unitAngle) {
+  const d = BLOCKS[b.t], h = S * 0.46;
+  ctx.globalAlpha = 0.35 + 0.65 * Math.max(0, b.hp) / b.max;
+  ctx.fillStyle = d.color;
+  ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+  ctx.lineWidth = 1.5;
+  const box = (sx, sy, rad) => { ctx.beginPath(); ctx.roundRect(-h * sx, -h * sy, 2 * h * sx, 2 * h * sy, rad); ctx.fill(); ctx.stroke(); };
+  const circle = r => { ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.fill(); ctx.stroke(); };
+  switch (b.t) {
+    case 'core':
+      box(1, 1, 7);
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, -h * 0.25, 5, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(0, -h * 0.4, 2.5, 0, TAU); ctx.fill();
+      break;
+    case 'muscle': {
+      const sy = b.scale, sx = 1 - (sy - 1) * 0.6;         // longer = thinner
+      box(sx, sy, 5);
+      ctx.strokeStyle = 'rgba(80,10,10,0.6)';
+      for (let i = -1; i <= 1; i++) { ctx.beginPath(); ctx.moveTo(-h * sx * 0.8, i * h * sy * 0.45); ctx.lineTo(h * sx * 0.8, i * h * sy * 0.45); ctx.stroke(); }
+      break;
+    }
+    case 'armor':
+      box(1, 1, 3);
+      ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+      ctx.beginPath(); ctx.moveTo(-h * 0.6, -h * 0.6); ctx.lineTo(h * 0.6, h * 0.6); ctx.moveTo(h * 0.6, -h * 0.6); ctx.lineTo(-h * 0.6, h * 0.6); ctx.stroke();
+      break;
+    case 'spike':
+      ctx.save(); ctx.rotate(Math.atan2(b.dir[1], b.dir[0]));
+      ctx.beginPath(); ctx.moveTo(-h, -h * 0.9); ctx.lineTo(h * 1.5, 0); ctx.lineTo(-h, h * 0.9); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.restore();
+      break;
+    case 'spitter':
+      circle(h * 0.8 * b.scale);
+      ctx.save(); ctx.rotate(b.aim - unitAngle);
+      ctx.fillStyle = '#2f6d91'; ctx.fillRect(0, -3, h * 1.1, 6);
+      ctx.restore();
+      break;
+    case 'puffer':
+      circle(h * 1.05 * b.scale);
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      for (let i = 0; i < 5; i++) { const a = i * TAU / 5; ctx.beginPath(); ctx.arc(Math.cos(a) * h * 0.55 * b.scale, Math.sin(a) * h * 0.55 * b.scale, 2, 0, TAU); ctx.fill(); }
+      break;
+    case 'heart':
+      circle(h * 0.85 * b.scale);
+      ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.beginPath(); ctx.arc(-h * 0.25, -h * 0.25, h * 0.2, 0, TAU); ctx.fill();
+      break;
+  }
+  if (b.boosted) { ctx.strokeStyle = 'rgba(255,122,168,0.8)'; ctx.lineWidth = 1; ctx.strokeRect(-h - 1, -h - 1, 2 * h + 2, 2 * h + 2); }
+  if (b.flash > 0) { ctx.globalAlpha = Math.min(1, b.flash * 8); ctx.fillStyle = '#fff'; ctx.fillRect(-h, -h, 2 * h, 2 * h); }
+  ctx.globalAlpha = 1;
+}
+
+function drawUnit(ctx, u) {
+  ctx.save(); ctx.translate(u.x, u.y); ctx.rotate(u.a);
+  // order so inflated puffers / spikes render on top
+  const order = { muscle: 0, armor: 0, heart: 0, core: 1, spitter: 1, spike: 2, puffer: 3 };
+  for (const b of [...u.blocks].sort((p, q) => order[p.t] - order[q.t])) {
+    ctx.save(); ctx.translate(b.lx, b.ly); drawBlock(ctx, b, u.a); ctx.restore();
+  }
+  ctx.restore();
+  // team ring
+  ctx.strokeStyle = u.team === 0 ? 'rgba(120,220,120,0.25)' : 'rgba(230,90,90,0.25)';
+  ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(u.x, u.y, u.R - S * 0.3, 0, TAU); ctx.stroke();
+}
+
+function drawBattle(ctx) {
+  ctx.fillStyle = '#12171c'; ctx.fillRect(0, 0, W.w, W.h);
+  ctx.strokeStyle = '#1a2128'; ctx.lineWidth = 1;
+  for (let x = 0; x < W.w; x += 48) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, W.h); ctx.stroke(); }
+  for (let y = 0; y < W.h; y += 48) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W.w, y); ctx.stroke(); }
+  for (const d of W.debris) {
+    ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.a); ctx.globalAlpha = Math.min(1, d.life);
+    d.b.hp = d.b.max * Math.min(1, d.life) * 0.5; drawBlock(ctx, d.b, d.a); ctx.restore();
+  }
+  for (const u of W.units) drawUnit(ctx, u);
+  for (const r of W.rings) { ctx.strokeStyle = `rgba(183,126,224,${r.life * 3})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, TAU); ctx.stroke(); }
+  ctx.fillStyle = '#7fd0ff';
+  for (const s of W.shots) { ctx.beginPath(); ctx.arc(s.x, s.y, 4, 0, TAU); ctx.fill(); }
+  for (const p of W.sparks) { ctx.globalAlpha = Math.min(1, p.life * 3); ctx.fillStyle = p.color; ctx.fillRect(p.x - 1.5, p.y - 1.5, 3, 3); }
+  ctx.globalAlpha = 1;
+}
+
+// ---------- App (browser only) ----------
+function boot() {
+  const cv = document.getElementById('game'), ctx = cv.getContext('2d');
+  const $ = id => document.getElementById(id);
+  const PANEL_W = 300, CS = 44;                    // editor cell size
+  let mode = 'build', wave = 1, budget = START_BUDGET, selected = 'muscle', hover = null, player = null, ended = false;
+  let bp = new Map(TEMPLATES.starter.map(b => [key(b.x, b.y), b.t]));
+  let preview;
+  const keys = new Set();
+
+  const bpList = () => [...bp].map(([k, t]) => { const [x, y] = k.split(',').map(Number); return { x, y, t }; });
+  const cost = () => [...bp.values()].reduce((s, t) => s + BLOCKS[t].cost, 0);
+  const gridCenter = () => [PANEL_W + (cv.width - PANEL_W) / 2, cv.height / 2];
+
+  function resize() { cv.width = innerWidth; cv.height = innerHeight; W.w = cv.width; W.h = cv.height; }
+  addEventListener('resize', resize); resize();
+
+  function rebuildPreview() { preview = makeUnit(bpList(), 0, 0, 0, 0); refreshPanel(); }
+
+  function canPlace(x, y) {
+    if (Math.abs(x) > R || Math.abs(y) > R || bp.has(key(x, y))) return false;
+    if (cost() + BLOCKS[selected].cost > budget) return false;
+    return ADJ.some(([dx, dy]) => bp.has(key(x + dx, y + dy)));
+  }
+
+  function removeAt(x, y) {
+    if (!bp.has(key(x, y)) || bp.get(key(x, y)) === 'core') return;
+    bp.delete(key(x, y));
+    const seen = new Set([key(0, 0)]), q = [[0, 0]];
+    while (q.length) {
+      const [cx, cy] = q.pop();
+      for (const [dx, dy] of ADJ) { const k = key(cx + dx, cy + dy); if (bp.has(k) && !seen.has(k)) { seen.add(k); q.push([cx + dx, cy + dy]); } }
+    }
+    for (const k of [...bp.keys()]) if (!seen.has(k)) bp.delete(k);
+  }
+
+  // palette
+  for (const [t, d] of Object.entries(BLOCKS)) {
+    if (t === 'core') continue;
+    const el = document.createElement('button');
+    el.className = 'pal'; el.dataset.t = t;
+    el.innerHTML = `<span class="sw" style="background:${d.color}"></span>${d.name}<span class="cost">${d.cost}</span>`;
+    el.onclick = () => { selected = t; refreshPanel(); };
+    $('palette').appendChild(el);
+  }
+  document.querySelectorAll('[data-tpl]').forEach(btn => btn.onclick = () => {
+    const t = btn.dataset.tpl;
+    const list = t === 'clear' ? [{ x: 0, y: 0, t: 'core' }] : TEMPLATES[t];
+    if (list.reduce((s, b) => s + BLOCKS[b.t].cost, 0) > budget) { $('info').textContent = `Not enough biomass for the ${t} template.`; return; }
+    bp = new Map(list.map(b => [key(b.x, b.y), b.t]));
+    rebuildPreview();
+  });
+  $('fight').onclick = startBattle;
+
+  function refreshPanel() {
+    document.querySelectorAll('.pal').forEach(el => el.classList.toggle('sel', el.dataset.t === selected));
+    $('budget').innerHTML = `Biomass: <b>${budget - cost()}</b> / ${budget}`;
+    $('info').innerHTML = `<b>${BLOCKS[selected].name}</b> (${BLOCKS[selected].hp} HP, mass ${BLOCKS[selected].mass})<br>${BLOCKS[selected].desc}`;
+    const u = preview, list = bpList(), count = t => list.filter(b => b.t === t).length;
+    const rate = u.blocks.filter(b => b.t === 'muscle').reduce((s, b) => s + (b.boosted ? 1.5 : 1), 0);
+    const speed = ((rate * MUSCLE_F * 0.5 + CRAWL_F) / u.mass / LIN_DRAG) | 0;
+    const hp = list.reduce((s, b) => s + BLOCKS[b.t].hp, 0);
+    let txt = `Blocks: ${list.length}   Mass: ${u.mass.toFixed(1)}   HP: ${hp}\nTop speed ≈ ${speed} px/s\nSpikes ${count('spike')} · Spitters ${count('spitter')} · Puffers ${count('puffer')}`;
+    const warn = [];
+    if (!count('muscle')) warn.push('No muscles: the creature can only crawl slowly.');
+    if (!count('spike') && !count('spitter') && !count('puffer')) warn.push('No weapons: it cannot hurt anything.');
+    const off = u.blocks.filter(b => b.t === 'muscle').reduce((s, b) => s + b.lx, 0);
+    if (Math.abs(off) > S * 0.5) warn.push('Muscles are off-centre: it will veer ' + (off > 0 ? 'left' : 'right') + '.');
+    $('stats').innerHTML = txt + warn.map(w => `\n<span class="warn">⚠ ${w}</span>`).join('');
+    $('fight').textContent = `Fight wave ${wave} ▶`;
+  }
+
+  function startBattle() {
+    W.units = []; W.shots = []; W.debris = []; W.sparks = []; W.rings = [];
+    player = makeUnit(bpList(), W.w / 2, W.h - 140, 0, 0);
+    W.units.push(player);
+    const es = waveBlueprints(wave);
+    es.forEach((e, i) => W.units.push(makeUnit(e, W.w * (i + 1) / (es.length + 1), 140, Math.PI, 1)));
+    mode = 'battle'; ended = false;
+    $('panel').style.display = 'none'; $('hud').style.display = 'block'; $('msg').style.display = 'none';
+  }
+
+  function toBuild() {
+    mode = 'build'; W.units = []; W.shots = []; W.debris = []; W.sparks = []; W.rings = [];
+    $('panel').style.display = 'block'; $('hud').style.display = 'none'; $('msg').style.display = 'none';
+    rebuildPreview();
+  }
+
+  function endBattle(won) {
+    ended = true;
+    if (won) { wave++; budget += WAVE_BONUS; }
+    $('msg').innerHTML = won
+      ? `<h2>Wave cleared</h2>+${WAVE_BONUS} biomass. Your design is kept, so grow it further.<br><br><button class="big" id="again">Back to builder</button>`
+      : `<h2>Your creature died</h2>Rethink the design and try wave ${wave} again.<br><br><button class="big" id="again">Back to builder</button>`;
+    $('msg').style.display = 'block';
+    $('again').onclick = toBuild;
+  }
+
+  // input
+  addEventListener('keydown', e => {
+    keys.add(e.key.toLowerCase());
+    if (mode !== 'battle') return;
+    if (e.key === 'Escape') toBuild();
+    if (e.key.toLowerCase() === 't' && player) player.auto = !player.auto;
+  });
+  addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
+  const cellAt = e => { const [cx, cy] = gridCenter(); return [Math.round((e.clientX - cx) / CS), Math.round((e.clientY - cy) / CS)]; };
+  cv.addEventListener('mousemove', e => { hover = mode === 'build' ? cellAt(e) : null; });
+  cv.addEventListener('contextmenu', e => e.preventDefault());
+  cv.addEventListener('mousedown', e => {
+    if (mode !== 'build') return;
+    const [x, y] = cellAt(e);
+    if (e.button === 2) removeAt(x, y);
+    else if (canPlace(x, y)) bp.set(key(x, y), selected);
+    else return;
+    rebuildPreview();
+  });
+
+  function drawBuild() {
+    ctx.fillStyle = '#12171c'; ctx.fillRect(0, 0, cv.width, cv.height);
+    const [cx, cy] = gridCenter();
+    ctx.save(); ctx.translate(cx, cy);
+    for (let x = -R; x <= R; x++) for (let y = -R; y <= R; y++) {
+      ctx.fillStyle = (x + y) % 2 ? '#181f26' : '#1b232b';
+      ctx.fillRect(x * CS - CS / 2, y * CS - CS / 2, CS, CS);
+    }
+    if (hover && Math.abs(hover[0]) <= R && Math.abs(hover[1]) <= R) {
+      ctx.fillStyle = canPlace(...hover) ? 'rgba(120,220,120,0.25)' : 'rgba(230,90,90,0.18)';
+      ctx.fillRect(hover[0] * CS - CS / 2, hover[1] * CS - CS / 2, CS, CS);
+    }
+    ctx.fillStyle = '#6f7b88'; ctx.font = '13px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText('▲ FRONT', 0, -R * CS - CS * 0.8);
+    ctx.scale(CS / S, CS / S);
+    for (const b of preview.blocks) { ctx.save(); ctx.translate(b.gx * S, b.gy * S); drawBlock(ctx, b, 0); ctx.restore(); }
+    ctx.restore();
+  }
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.033, (now - last) / 1000); last = now;
+    if (mode === 'build') {
+      place(preview); stepUnit(preview, dt);
+      preview.x = preview.y = preview.a = preview.vx = preview.vy = preview.w = 0;
+      drawBuild();
+    } else {
+      const k = n => keys.has(n);
+      const input = {
+        thrust: (k('w') || k('arrowup')) ? 1 : (k('s') || k('arrowdown')) ? -0.4 : 0,
+        turn: ((k('d') || k('arrowright')) ? 1 : 0) - ((k('a') || k('arrowleft')) ? 1 : 0),
+      };
+      if (!ended) {
+        for (let i = 0; i < 2; i++) simStep(dt / 2, input);
+        if (!player.alive) endBattle(false);
+        else if (!W.units.some(u => u.team === 1)) endBattle(true);
+      }
+      drawBattle(ctx);
+      const left = W.units.filter(u => u.team === 1).length;
+      $('hud').textContent = `Wave ${wave} · Enemies left: ${left} · W/S thrust · A/D turn · T autopilot [${player.auto ? 'ON' : 'off'}] · Esc builder`;
+    }
+    requestAnimationFrame(frame);
+  }
+  rebuildPreview();
+  requestAnimationFrame(frame);
+}
+
+if (typeof window !== 'undefined') boot();
+</script>
+</body>
+</html>
