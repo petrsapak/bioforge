@@ -63,7 +63,7 @@ const BANNED = [
   [/typeName\s*[!=]==/, 'a type-name check (use a behaviour field in data/cells.js)'],
 ];
 for (const file of SIM_FILES) {
-  const lines = fs.readFileSync(path.join(ROOT, file), 'utf8').split('\n');
+  const lines = fs.readFileSync(path.join(ROOT, file), 'utf8').split(/\r?\n/);
   const problems = [];
   lines.forEach((line, i) => {
     const code = line.replace(/\/\/.*$/, '');               // comments may name what is banned

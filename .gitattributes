@@ -1,0 +1,5 @@
+# Line endings: CRLF in the working tree on every machine, LF inside the repository.
+* text=auto eol=crlf
+*.png binary
+*.jpg binary
+*.ico binary
