@@ -89,11 +89,13 @@
       <span><b>.</b></span><span>one step</span>
       <span><b>,</b></span><span>slow motion</span>
       <span><b>R</b></span><span>respawn</span>
+      <span><b>T</b></span><span>signal traces on / off</span>
     </div>
     <div class="keys-title">Level</div>
     <div class="keys-grid">
       <span><b>P</b> <b>.</b> <b>,</b></span><span>pause, one step, slow motion</span>
       <span><b>R</b></span><span>retry</span>
+      <span><b>T</b></span><span>signal traces on / off</span>
       <span><b>Esc</b></span><span>back to the builder</span>
     </div>
   </div>
@@ -183,7 +185,7 @@
 </div>
 <div id="hud">
   <div id="hud-top"><div class="hud-chip" id="hud-fps"></div><div class="hud-chip" id="hud-mode"></div><div class="hud-chip" id="hud-enemies"></div></div>
-  <div id="hud-vitals"><div id="hud-dead">You died · R respawns</div><div id="hud-bars"></div><div id="hud-chips"></div></div>
+  <div id="hud-vitals"><div id="hud-probes"><div class="probes-title">Signals <span>T hides</span></div><canvas id="probe-canvas" width="246" height="17"></canvas><div id="probe-more"></div></div><div id="hud-dead">You died · R respawns</div><div id="hud-bars"></div><div id="hud-chips"></div></div>
   <div id="hud-keys"></div>
 </div>
 
@@ -222,6 +224,7 @@
 <script src="toolbar.js"></script>
 <script src="builderview.js"></script>
 <script src="tooltip.js"></script>
+<script src="probes.js"></script>
 <script src="sandbox.js"></script>
 <script src="levelview.js"></script>
 <script src="music.js"></script>

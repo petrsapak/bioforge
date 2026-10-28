@@ -6,7 +6,7 @@ const { load } = require('./load');
 const { startApp } = require('./dom');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['LEVELS', 'TEMPLATES', 'runLevel', 'levelScore', 'levelLimits', 'buildCheck',
-  'createDesignCell', 'createNeuron', 'isLevelLightOn']);
+  'createDesignCell', 'createNeuron', 'isLevelLightOn', 'isLevelOpen']);
 
 const cell = (q, r, typeName, extra = {}) => sim.createDesignCell(q, r, typeName, extra);
 const fibre = (fromQ, fromR, toQ, toR) => ({ from: { q: fromQ, r: fromR }, to: { q: toQ, r: toR } });
@@ -15,10 +15,21 @@ const pacemakerNucleus = () => cell(0, 0, 'nucleus', { neuron: sim.createNeuron(
 const eyesAndSiphons = [cell(0, -1, 'lighteye'), cell(1, -1, 'lighteye'), cell(-1, 1, 'siphon'), cell(0, 1, 'siphon')];
 const CROSSED = [fibre(0, -1, 0, 1), fibre(1, -1, -1, 1)];
 const SAME_SIDE = [fibre(0, -1, -1, 1), fibre(1, -1, 0, 1)];
-// both Light eyes into the Nucleus, which holds a neuron of this kind and drives both Siphons
-function eyesThroughNucleus(neuronKind) {
-  return { cells: [cell(0, 0, 'nucleus', { neuron: sim.createNeuron(neuronKind) }), ...eyesAndSiphons],
+// Both Light eyes into the Nucleus, which holds a neuron of this kind and drives both Siphons. leftEyeNeuron: a
+// neuron in the left eye, or none.
+function eyesThroughNucleus(neuronKind, leftEyeNeuron = null) {
+  const leftEye = cell(0, -1, 'lighteye', leftEyeNeuron ? { neuron: leftEyeNeuron } : {});
+  const nucleus = cell(0, 0, 'nucleus', { neuron: sim.createNeuron(neuronKind) });
+  return { cells: [nucleus, leftEye, ...eyesAndSiphons.slice(1)],
     fibres: [fibre(0, -1, 0, 0), fibre(1, -1, 0, 0), fibre(0, 0, -1, 1), fibre(0, 0, 0, 1)] };
+}
+// Both Light eyes into a Synapse in the Nucleus, the Nucleus into an Inhibitor in a Tissue cell on its right, and
+// that cell to both Siphons; a plain Tissue cell on the left keeps the body even.
+function eyesThroughSynapse(threshold) {
+  const nucleus = cell(0, 0, 'nucleus', { neuron: { kind: 'synapse', setting: threshold } });
+  const inhibitorCell = cell(1, 0, 'tissue', { neuron: sim.createNeuron('inhibitor') });
+  return { cells: [nucleus, ...eyesAndSiphons, inhibitorCell, cell(-1, 0, 'tissue')],
+    fibres: [fibre(0, -1, 0, 0), fibre(1, -1, 0, 0), fibre(0, 0, 1, 0), fibre(1, 0, -1, 1), fibre(1, 0, 0, 1)] };
 }
 const SOLUTIONS = {
   'first-stroke': { cells: [pacemakerNucleus(), cell(-1, 1, 'siphon'), cell(0, 1, 'siphon')],
@@ -30,6 +41,8 @@ const SOLUTIONS = {
   hunt: { cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons], fibres: CROSSED },
   freeze: eyesThroughNucleus('inhibitor'),
   'false-start': eyesThroughNucleus('latch'),
+  metronome: eyesThroughNucleus('inhibitor', { kind: 'delay', setting: 3 }),
+  dock: eyesThroughSynapse(1.5),
 };
 // the wrong tool for each level: it must not win
 const WRONG_TOOLS = {
@@ -39,6 +52,8 @@ const WRONG_TOOLS = {
   hunt: SOLUTIONS.shade,
   freeze: SOLUTIONS.lighthouse,
   'false-start': SOLUTIONS.freeze,
+  metronome: SOLUTIONS.freeze,
+  dock: SOLUTIONS.freeze,
 };
 
 for (const level of sim.LEVELS) {
@@ -55,12 +70,19 @@ for (const level of sim.LEVELS) {
 }
 
 const levelById = id => sim.LEVELS.find(level => level.id === id);
+const dockRuns = [1, 2].map(threshold => sim.runLevel(levelById('dock'), eyesThroughSynapse(threshold)));
+check('"Dock": the Synapse\'s threshold matters: 1 stops short of the ring, 2 never stops',
+  dockRuns.every(run => run.outcome === 'lost'), dockRuns.map(run => run.player.centerY.toFixed(0)).join());
 const blinking = levelById('freeze').light;
 check('a blinking light is on for 2 s, off for 3 s, and round again',
   [0.5, 2.5, 4.9, 5.1].map(time => sim.isLevelLightOn(blinking, time)).join() === 'true,false,false,true');
 const flashing = levelById('false-start').light;
 check('a flashing light shines once, for half a second at 4 s',
   [3.9, 4.2, 4.6, 9.2].map(time => sim.isLevelLightOn(flashing, time)).join() === 'false,true,false,false');
+
+check('levels open in order: the first always, the next once the one before is won',
+  sim.isLevelOpen({}, 0) && !sim.isLevelOpen({}, 1) && sim.isLevelOpen({ 'first-stroke': { stars: 1 } }, 1) &&
+  !sim.isLevelOpen({ 'first-stroke': { stars: 1 } }, 2));
 
 const firstLevel = sim.LEVELS[0];
 const firstTime = sim.runLevel(firstLevel, SOLUTIONS['first-stroke']).time;
@@ -82,6 +104,12 @@ const headings = listed.filter(child => child.className === 'chapter-heading');
 check('the levels sheet lists every level under its chapter', byId('levels-sheet').style.display === 'flex' &&
   rows.length === readGlobal('LEVELS.length') && headings.length === 2 &&
   headings[1].textContent === 'Chapter 2: Memory and logic', `${rows.length} rows, ${headings.length} headings`);
+check('at first only level 1 is open: the others are locked and say which win opens them',
+  !rows[0].className.includes('locked') && rows.slice(1).every(row => row.className.includes('locked')) &&
+  rows[1].innerHTML.includes('Win “First stroke” to open it.'), rows[1].innerHTML);
+rows[1].onclick();
+check('a locked level can\'t be chosen', byId('level-card').style.display === 'none' &&
+  byId('levels-sheet').style.display === 'flex');
 rows[0].onclick();
 check('choosing a level closes the sheet and shows its card with its limits',
   byId('levels-sheet').style.display === 'none' && byId('level-card').style.display === 'block' &&
@@ -111,6 +139,11 @@ const kept = JSON.parse(storage.items['bioforge-lab-level-results'] || '{}');
 check('the win is kept as the best result', kept['first-stroke'] && kept['first-stroke'].stars === 1,
   JSON.stringify(kept));
 byId('result-next').onclick();
+byId('show-levels').onclick();
+const rowsAfterWin = byId('levels-list').children.filter(child => child.className.startsWith('level-row'));
+check('the win opens level 2, and only level 2', !rowsAfterWin[1].className.includes('locked') &&
+  rowsAfterWin[2].className.includes('locked'));
+byId('show-levels').onclick();
 check('Next level goes back to the builder with level 2 chosen', byId('hud').style.display === 'none' &&
   byId('level-card-title').innerHTML.includes('Lighthouse') && byId('level-result').style.display === 'none');
 byId('level-leave').onclick();

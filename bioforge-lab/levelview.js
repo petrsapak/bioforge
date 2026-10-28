@@ -8,7 +8,7 @@ const GOAL_COLOR = '127,224,160';                         // r,g,b of the goal r
 const GOAL_PULSE_RATE = 2;                                // rad/s of the goal ring's breathing
 const DARK_LAMP_RADIUS = 9;                               // px in the arena: a light that is off
 const LEVEL_KEYS_HELP = '<b>Space</b> <b>1–9</b> Command neurons &nbsp;<b>P</b> pause &nbsp;<b>.</b> one step ' +
-  '&nbsp;<b>,</b> speed<br><b>R</b> retry &nbsp;<b>Esc</b> builder';
+  '&nbsp;<b>,</b> speed<br><b>T</b> signals &nbsp;<b>R</b> retry &nbsp;<b>Esc</b> builder';
 
 // the toolbar button, the levels sheet, the level card's buttons, the level bar and the result box
 function setUpLevels(app) {
@@ -39,7 +39,8 @@ function setUpLevels(app) {
 }
 
 // ---------- Choosing a level ----------
-// The sheet lists the levels with their best stars; a click chooses one and closes it.
+// The sheet lists the levels with their best stars; a click on an open one chooses it and closes the sheet. A
+// locked level says which win opens it.
 function toggleLevelsSheet(app) {
   const sheet = byId('levels-sheet');
   const isOpen = sheet.style.display === 'flex';
@@ -49,12 +50,16 @@ function toggleLevelsSheet(app) {
   list.innerHTML = '';
   LEVELS.forEach((level, i) => {
     if (i === 0 || LEVELS[i - 1].chapter !== level.chapter) list.appendChild(chapterHeading(level.chapter));
+    const isOpen = isLevelOpen(app.levelResults, i);
     const row = document.createElement('button');
-    row.className = 'level-row' + (level === app.level ? ' selected' : '');
-    row.innerHTML = `<span class="level-number">${i + 1}</span><span class="level-name">${level.name}</span>` +
+    row.className = 'level-row' + (level === app.level ? ' selected' : '') + (isOpen ? '' : ' locked');
+    const brief = isOpen ? level.brief : `Win “${LEVELS[i - 1].name}” to open it.`;
+    row.innerHTML = `<span class="level-number">${isOpen ? i + 1 : '🔒'}</span>` +
+      `<span class="level-name">${level.name}</span>` +
       `<span class="level-stars">${starsHtml(bestResult(app, level))}</span>` +
-      `<span class="level-brief">${level.brief}</span>`;
+      `<span class="level-brief">${brief}</span>`;
     row.onclick = () => {
+      if (!isOpen) return;
       chooseLevel(app, level);
       sheet.style.display = 'none';
     };
@@ -130,6 +135,7 @@ function startLevelRun(app) {
 function retryLevel(app) {
   app.levelRun = startLevel(app.level, app.levelDesign);
   noteSpawnHealth(app.levelRun.player);
+  resetProbes(app.probes, app.levelRun.player);
   app.paused = false;
   app.stepRequested = false;
   byId('level-result').style.display = 'none';
@@ -141,7 +147,10 @@ function stepLevelMode(app, dt) {
   const run = app.levelRun;
   if (run.outcome) return;
   const input = { ability: app.keysHeld.has(' '), heldKeys: app.digitsHeld };
-  runTimeControlled(app, dt, stepTime => stepLevel(run, stepTime, input));
+  runTimeControlled(app, dt, stepTime => {
+    stepLevel(run, stepTime, input);
+    recordProbes(app.probes, run.world);
+  });
   if (run.outcome) showLevelResult(app, run);
 }
 
@@ -215,18 +224,22 @@ function drawLevelMode(app) {
   drawDarkLamp(context, run);
   drawLight(context, world.light);
   drawWorld(context, world, app.fluidView);
+  drawProbeTags(app, context);
   context.restore();
   context.strokeStyle = '#2c4650';
   context.lineWidth = 2;
   context.strokeRect(view.offsetX, view.offsetY, world.width * view.scale, world.height * view.scale);
+  drawProbes(app, world);
   showLevelHud(app, run);
 }
 
-// What the goal looks like: a breathing ring to swim into, or one round the light to stay inside.
+// What the goal looks like: a breathing ring to swim into or rest in, or one round the light to stay inside.
 function drawLevelGoal(context, run) {
   const goal = run.level.goal;
   const pulse = 0.5 + 0.5 * Math.sin(run.world.time * GOAL_PULSE_RATE);
-  if (goal.kind === 'reach') drawGoalRing(context, goal.x, goal.y, goal.radius, GOAL_COLOR, pulse);
+  if (goal.kind === 'reach' || goal.kind === 'restIn') {
+    drawGoalRing(context, goal.x, goal.y, goal.radius, GOAL_COLOR, pulse);
+  }
   if (goal.kind === 'stayNear' && run.world.light) {
     drawGoalRing(context, run.world.light.x, run.world.light.y, goal.radius, GOAL_COLOR, pulse);
   }
@@ -281,5 +294,6 @@ function stillnessRule(run) {
 function goalProgress(run) {
   const goal = run.level.goal;
   if (goal.kind === 'stayNear') return `Near the light ${run.goalTime.toFixed(1)} / ${goal.seconds} s`;
+  if (goal.kind === 'restIn') return `At rest in the ring ${run.goalTime.toFixed(1)} / ${goal.seconds} s`;
   return 'Reach the ring';
 }

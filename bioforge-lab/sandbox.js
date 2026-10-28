@@ -13,7 +13,7 @@ const SANDBOX_SPEEDS = [1, 0.5, 0.25];                    // game seconds per re
 const SANDBOX_KEYS_HELP = '<b>Mouse</b> is the light (Light eyes)<br>' +
   '<b>Click</b> spawn &nbsp;<b>Right-click</b> remove &nbsp;<b>R</b> respawn<br>' +
   '<b>Space</b> <b>1–9</b> Command neurons &nbsp;<b>P</b> pause &nbsp;<b>.</b> one step &nbsp;<b>,</b> speed<br>' +
-  '<b>Shift+1–6</b> view &nbsp;<b>Esc</b> builder';
+  '<b>T</b> signals &nbsp;<b>Shift+1–6</b> view &nbsp;<b>Esc</b> builder';
 
 // the top bar: who you play, what a click spawns, and the enemy, clear, respawn and exit buttons
 function setUpSandboxBar(app) {
@@ -80,6 +80,7 @@ function spawnSandboxPlayer(app) {
   app.player = spawn(app.world, design, app.canvas.width / 2, y, 0, 0);
   app.player.autonomous = true;                           // it moves only by its wiring: nothing steers it
   noteSpawnHealth(app.player);
+  resetProbes(app.probes, app.player);
 }
 
 function toggleEnemiesIdle(app) {
@@ -117,7 +118,10 @@ function trackSandboxLight(app, event) {
 function stepSandbox(app, dt) {
   app.world.light = app.sandboxLight;
   const input = { ability: app.keysHeld.has(' '), heldKeys: app.digitsHeld };
-  runTimeControlled(app, dt, stepTime => step(app.world, stepTime, input));
+  runTimeControlled(app, dt, stepTime => {
+    step(app.world, stepTime, input);
+    recordProbes(app.probes, app.world);
+  });
 }
 
 // pauses or resumes the sandbox
@@ -170,6 +174,8 @@ function drawSandbox(app) {
   drawWater(app.context, app.world, app.canvas.width, app.canvas.height);
   drawLight(app.context, app.world.light);
   drawWorld(app.context, app.world, app.fluidView);
+  drawProbeTags(app, app.context);
+  drawProbes(app, app.world);
   showSandboxHud(app);
 }
 

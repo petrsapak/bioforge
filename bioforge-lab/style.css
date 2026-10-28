@@ -297,6 +297,14 @@ details > summary:hover { background: #ffffff0d; color: #dfe4ea; }
 .hud-bar.low .hud-fill { animation: low-pulse .5s ease-in-out infinite alternate; }
 .hud-bar.low .hud-value, .hud-bar.low .hud-label { color: #ff6a5a; }
 @keyframes low-pulse { from { opacity: 1; } to { opacity: .3; } }
+#hud-probes { display: none; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #23323a; }
+.probes-title {
+  display: flex; justify-content: space-between; margin-bottom: 4px; color: #9fb3c0; font-size: 11px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase;
+}
+.probes-title span { color: #5d6b77; letter-spacing: 0; text-transform: none; font-weight: 400; }
+#probe-canvas { display: block; width: 246px; }
+#probe-more { color: #5d6b77; font-size: 10px; }
 #hud-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
 #hud-chips span {
   padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: .5px;
@@ -351,6 +359,9 @@ details > summary:hover { background: #ffffff0d; color: #dfe4ea; }
 .chapter-heading { color: #9fb3c0; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
   margin: 6px 0 0; }
 .level-row.selected { border-color: #e8c547; background: #2b2a1f; }
+.level-row.locked { opacity: 0.5; cursor: default; }
+.level-row.locked:hover { border-color: transparent; }
+.level-row.locked .level-number { font-size: 14px; }
 .level-number { grid-row: span 2; color: #7fe0a0; font-size: 18px; font-weight: 800; text-align: center; }
 .level-name { color: #dfe4ea; font-weight: 700; }
 .level-brief { grid-column: 2 / 4; color: #8a96a3; font-size: 12px; }

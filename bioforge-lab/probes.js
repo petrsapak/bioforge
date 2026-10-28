@@ -1,0 +1,116 @@
+'use strict';
+// Signal probes for Sandbox and level runs: a live trace of what the player's senses, neurons and signalled cells do,
+// one lane per cell, with a matching number tag on each probed cell in the water (browser only).
+
+const PROBE_SECONDS = 6;                                  // game s of trace shown across a lane
+const PROBE_MAX_LANES = 8;
+const PROBE_LANE_HEIGHT = 17;                             // px (canvas units) per lane
+const PROBE_LABEL_WIDTH = 78;                             // px (canvas units) left of the traces for the lane names
+const PROBE_TAG_RADIUS = 6;                               // px in the world: the number tag on a probed cell
+const PROBE_GROUPS = ['sense', 'neuron', 'action'];      // lane order: senses first, then neurons, then actions
+
+function createProbes() {
+  return { creature: null, lanes: [], hiddenCount: 0 };      // hiddenCount: probe-worthy cells beyond the lanes
+}
+
+// Which lane group a cell belongs to, or null when its signal says nothing a player wired: a sense organ, a cell
+// holding a neuron, or a cell that acts on a signal.
+function probeGroup(cell) {
+  if (cell.type.senses) return 'sense';
+  if (cell.neuron) return 'neuron';
+  if (cell.type.needsSignal) return 'action';
+  return null;
+}
+
+// Starts probing this creature's cells afresh (null: nothing to probe).
+function resetProbes(probes, creature) {
+  probes.creature = creature;
+  probes.lanes = [];
+  if (!creature) return;
+  const candidates = creature.cells
+    .map((cell, index) => ({ cell, index, group: probeGroup(cell) }))
+    .filter(candidate => candidate.group);
+  candidates.sort((first, second) => PROBE_GROUPS.indexOf(first.group) - PROBE_GROUPS.indexOf(second.group) ||
+    first.index - second.index);
+  probes.hiddenCount = Math.max(0, candidates.length - PROBE_MAX_LANES);
+  probes.lanes = candidates.slice(0, PROBE_MAX_LANES).map((candidate, i) => createProbeLane(candidate.cell, i + 1));
+}
+
+function createProbeLane(cell, number) {
+  const neuronSymbol = cell.neuron ? ' ' + NEURONS[cell.neuron.kind].symbol : '';
+  return { cell, number, label: `${number} ${cell.type.name}${neuronSymbol}`, color: cell.type.color, samples: [] };
+}
+
+// Notes every lane's signal at the world's time; called after each sim step. Old samples drop off the left.
+function recordProbes(probes, world) {
+  for (const lane of probes.lanes) {
+    lane.samples.push({ time: world.time, value: lane.cell.dead ? 0 : lane.cell.signal });
+    while (lane.samples.length && lane.samples[0].time < world.time - PROBE_SECONDS) lane.samples.shift();
+  }
+}
+
+// T: shows or hides the probes, remembered between visits
+function toggleProbes(app) {
+  app.isProbesShown = !app.isProbesShown;
+  writeStorage('probes-shown', app.isProbesShown);
+}
+
+// The trace panel above the vitals: each lane's name, a baseline and its signal over the last PROBE_SECONDS.
+function drawProbes(app, world) {
+  const panel = byId('hud-probes');
+  const probes = app.probes;
+  const isShown = app.isProbesShown && probes.lanes.length > 0;
+  panel.style.display = isShown ? 'block' : 'none';
+  if (!isShown) return;
+  const canvas = byId('probe-canvas');
+  const height = probes.lanes.length * PROBE_LANE_HEIGHT;
+  if (canvas.height !== height) canvas.height = height;
+  const context = canvas.getContext('2d');
+  const traceWidth = canvas.width - PROBE_LABEL_WIDTH;
+  const startTime = world.time - PROBE_SECONDS;
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.font = '10px sans-serif';
+  context.textBaseline = 'middle';
+  probes.lanes.forEach((lane, i) => {
+    const bottom = (i + 1) * PROBE_LANE_HEIGHT - 3;
+    const top = i * PROBE_LANE_HEIGHT + 3;
+    context.fillStyle = '#b9c3cd';
+    context.fillText(lane.label, 0, (top + bottom) / 2);
+    context.strokeStyle = '#23323a';
+    context.lineWidth = 1;
+    context.beginPath();
+    context.moveTo(PROBE_LABEL_WIDTH, bottom + 0.5);
+    context.lineTo(canvas.width, bottom + 0.5);
+    context.stroke();
+    context.strokeStyle = lane.color;
+    context.lineWidth = 1.5;
+    context.beginPath();
+    lane.samples.forEach((sample, j) => {
+      const x = PROBE_LABEL_WIDTH + (sample.time - startTime) / PROBE_SECONDS * traceWidth;
+      const y = bottom - clamp01(sample.value) * (bottom - top);
+      if (j === 0) context.moveTo(x, y);
+      else context.lineTo(x, y);
+    });
+    context.stroke();
+  });
+  byId('probe-more').textContent = probes.hiddenCount ? `+${probes.hiddenCount} more not shown` : '';
+}
+
+// the lane numbers on the probed cells, in world coordinates (the caller sets up any arena transform)
+function drawProbeTags(app, context) {
+  if (!app.isProbesShown) return;
+  context.font = 'bold 8px sans-serif';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  for (const lane of app.probes.lanes) {
+    const cell = lane.cell;
+    if (cell.dead || !cell.creature.alive) continue;
+    const x = cell.x + cell.radius * 0.7;
+    const y = cell.y - cell.radius * 0.7;
+    context.fillStyle = '#0e181de6';
+    fillCircle(context, x, y, PROBE_TAG_RADIUS);
+    context.fillStyle = '#dfe4ea';
+    context.fillText(String(lane.number), x, y + 0.5);
+  }
+  context.textAlign = 'start';
+}

@@ -12,7 +12,9 @@
 //   creatures: others in the arena: { design (a LEVEL_CREATURES or TEMPLATES name), x, y, heading, behaviour }.
 //     behaviour 'wired': it moves only by its own wiring; 'hunt': the AI steers it at the player
 //   goal: { kind: 'reach', x, y, radius } swim the creature's centre into the ring;
-//     { kind: 'stayNear', radius, seconds } stay that close to the light for that long in all
+//     { kind: 'stayNear', radius, seconds } stay that close to the light for that long in all;
+//     { kind: 'restIn', x, y, radius, speed, seconds } stay in the ring, slower than speed (px/s), that long without
+//     a break
 //   stillWhileLit: { speed, grace }: lost when the player swims faster than speed (px/s) while the light has been
 //     on longer than grace (game s)
 //   stillUntilLit: { speed }: lost when the player swims faster than speed (px/s) before the light's flash
@@ -105,6 +107,30 @@ const LEVELS = [
     stillUntilLit: { speed: 10 },
     goal: TOP_RING,
     timeLimit: 30, par: { seconds: 16, biomass: 20 },
+  }),
+  createLevel({
+    id: 'metronome', chapter: 2, name: 'Metronome',
+    brief: 'Swim to the ring. The light comes on every 4 s, and this time you must already be still when it does: ' +
+      'there is no moment to coast to a stop.',
+    hint: 'The Freeze build stops too late. Give one Light eye a Delay neuron: its late copy of a flash comes back ' +
+      'just before the next flash, and the Inhibitor stops you in time. Try a delay between 2.5 and 3 s; the ' +
+      'longer, the more you swim.',
+    limits: { budget: 30 },
+    light: { ...WATCHER_LIGHT, blink: { on: 1.5, off: 2.5 } },
+    stillWhileLit: { speed: 10, grace: 0.25 },
+    goal: TOP_RING,
+    timeLimit: 45, par: { seconds: 20, biomass: 20 },
+  }),
+  createLevel({
+    id: 'dock', chapter: 2, name: 'Dock',
+    brief: 'Swim toward the light, but stop short of it: come to rest in the ring for 2 s.',
+    hint: 'The nearer the light, the brighter your eyes. A Synapse is on once its inputs add up to its threshold: ' +
+      'wire both Light eyes into a Synapse, the Synapse into an Inhibitor in another cell, and that cell to both ' +
+      'Siphons. Raise the threshold until you stop in the ring. Keep the body even, or it turns.',
+    limits: { budget: 30 },
+    light: { x: 700, y: 60, range: 900 },
+    goal: { kind: 'restIn', x: 700, y: 200, radius: 70, speed: 10, seconds: 2 },
+    timeLimit: 40, par: { seconds: 18, biomass: 20 },
   }),
 ];
 

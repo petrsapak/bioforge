@@ -63,6 +63,8 @@ function createApp(canvas) {
     levelResults: {},                                     // best result per level id: { stars, seconds, biomass }
     isHintShown: false,
     musicOff: false,                                     // the player switched the background music off
+    probes: createProbes(),                               // the signal traces of the player's cells in a run
+    isProbesShown: true,
     hudBars: [],
     isPreviewCollapsed: () => false,
     tooltip: createTooltipState(),
@@ -92,6 +94,7 @@ function boot() {
   setUpSandboxBar(app);
   setUpMusic(app);
   setUpLevels(app);
+  app.isProbesShown = readStorage('probes-shown', true);
   app.hudBars = makeHudBars(byId('hud-bars'));
   showLibraryRows(app);
   listenToKeyboard(app);
@@ -311,6 +314,7 @@ function listenToKeyboard(app) {
     app.keysHeld.add(key);
     if (key === ' ') event.preventDefault();
     if (key === 'm' && !event.repeat) toggleMusic(app);
+    if (key === 't' && !event.repeat && app.mode !== 'build') toggleProbes(app);
     const digit = digitOf(event);
     if (digit && event.shiftKey) {
       if (digit >= '1' && digit <= String(FLUIDS.length + 1)) showFluidView(app, +digit - 1);

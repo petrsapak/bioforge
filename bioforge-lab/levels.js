@@ -5,6 +5,12 @@
 const LEVEL_SEED = 1;
 const LEVEL_STEP = 1 / 40;                                // game s per step of a headless run
 
+// Levels open in order: the first one always, any other once the level before it is won. results: the best
+// result per level id, which only wins have.
+function isLevelOpen(results, levelIndex) {
+  return levelIndex === 0 || !!results[LEVELS[levelIndex - 1].id];
+}
+
 // the design limits a level sets, filled in from RULES where it sets none
 function levelLimits(level) {
   return {
@@ -111,6 +117,11 @@ const LEVEL_GOALS = {
   stayNear: (run, goal, dt) => {
     const light = run.world.light;
     if (light && distanceToPlayer(run, light.x, light.y) < goal.radius) run.goalTime += dt;
+    return run.goalTime >= goal.seconds;
+  },
+  restIn: (run, goal, dt) => {
+    const isResting = distanceToPlayer(run, goal.x, goal.y) < goal.radius && run.playerSpeed < goal.speed;
+    run.goalTime = isResting ? run.goalTime + dt : 0;
     return run.goalTime >= goal.seconds;
   },
 };
