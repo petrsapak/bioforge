@@ -1,8 +1,8 @@
 'use strict';
 // The builder and sandbox app: its state, the controls, mouse and keyboard input, and the frame loop (browser only).
 // The editing rules are in builder.js, the drawing in builderview.js, the toolbar in toolbar.js, the side panel in
-// panel.js (with scope.js and coach.js), the dock in dock.js, the library in library.js, the tooltip in tooltip.js and
-// the sandbox in sandbox.js.
+// panel.js (with coach.js), the dock in dock.js, the library in library.js, the tooltip in tooltip.js and
+// the sandbox in sandbox.js; the signal traces (runs, and the builder's Traces window) are in probes.js.
 
 const START_DESIGN = 'jet';
 const START_CELL_TYPE = 'muscle';
@@ -44,8 +44,9 @@ function createApp(canvas) {
     hoverHex: null,                                       // [q, r] under the mouse
     hoverPoint: null,                                     // the mouse in grid px
     gridView: createGridView(),
-    warnings: [],                                         // design warnings, { text, keys }
-    hoveredWarning: -1,
+    warnings: [],                                         // design warnings, { need, level, short, text, keys }
+    needRows: [],                                         // the Needs card's rows (designNeeds)
+    hoveredNeed: null,                                    // the need whose row is under the mouse: its cells are marked
     cardFibres: [],                                       // the clicked cell's fibres, listed in the card
     hoveredFibre: null,                                   // a fibre whose row in the card is under the mouse
     library: loadLibrary(),
@@ -62,6 +63,7 @@ function createApp(canvas) {
     paused: false,
     stepRequested: false,                                 // paused: run one step on the next frame
     level: null,                                          // the chosen level (data/levels.js); null: free build
+    sheetLevel: null,                                     // the level whose card the levels sheet shows
     levelRun: null,                                       // the level being played (levels.js startLevel)
     levelDesign: null,                                    // the design it runs, kept for a retry and the score
     levelResults: {},                                     // best result per level id: { stars, seconds, biomass }
@@ -72,7 +74,8 @@ function createApp(canvas) {
     hudBars: [],
     isPreviewCollapsed: () => false,
     tooltip: createTooltipState(),
-    scope: createScope(),                                 // the panel's neuron scope
+    builderTraces: createProbes(),                        // the Traces window's lanes: the test tank's signals
+    isTracesCollapsed: () => false,
     coach: createCoach(),                                 // the How to box
     fps: 60,
     lastFrameTime: performance.now(),
@@ -115,6 +118,8 @@ function fitCanvasToWindow(app) {
 function setUpWindows(app) {
   app.isPreviewCollapsed = makeCollapsible(byId('preview'), byId('preview-bar'), byId('preview-toggle'), 'preview');
   makeCollapsible(byId('library'), byId('library-bar'), byId('library-toggle'), 'library');
+  app.isTracesCollapsed = makeCollapsible(byId('traces'), byId('traces-bar'), byId('traces-toggle'), 'traces');
+  showTracesWindow(app);
 }
 
 // ---------- The design ----------
@@ -127,6 +132,7 @@ function rebuildTank(app) {
   app.tank = newTestTank(size, size);
   app.tank.time = performance.now() / 1000;
   spawn(app.tank, body, size / 2, size / 2, 0, 0);
+  resetBuilderTraces(app);
   for (const key of app.selection) {
     if (!app.edited.cells.has(key)) app.selection.delete(key);
   }
@@ -137,7 +143,7 @@ function rebuildTank(app) {
 // shows why an edit couldn't be made, after redrawing the panel (which would overwrite it)
 function showProblem(app, problem) {
   rebuildTank(app);
-  if (problem) byId('info').textContent = problem;
+  if (problem) showMessage(problem);
 }
 
 // Replaces the whole design. A design over the budget still loads, and the panel says why it can't be used as is.
@@ -149,7 +155,7 @@ function loadDesign(app, design, label, savedName) {
   app.focusKey = null;
   rebuildTank(app);
   const problem = buildCheck(bodyDesign(app.edited), chosenLimits(app));
-  if (problem) byId('info').textContent = `${label}: ${problem}. Try it in the Sandbox, or trim it to fit.`;
+  if (problem) showMessage(`${label}: ${problem}. Try it in the Sandbox, or trim it to fit.`);
 }
 
 function pickCellType(app, typeName) {
@@ -173,6 +179,7 @@ function showLayer(app, layer) {
   app.fibreDrag = null;
   app.vesselDrag = null;
   app.showDockLayer(layer);
+  showTracesWindow(app);
   refreshPanel(app);
 }
 
@@ -276,15 +283,15 @@ function saveSelection(app, name) {
   if (replaced && app.stamp && app.stamp.template === replaced) app.stamp = null;
   app.selection.clear();
   saveAndShowLibrary(app);
-  byId('info').textContent = `${replaced ? 'Overwrote' : 'Saved'} "${entry.name}" in ` +
-    `${entry.isCreature ? 'My creatures' : 'My templates'}.`;
+  showMessage(`${replaced ? 'Overwrote' : 'Saved'} "${entry.name}" in ` +
+    `${entry.isCreature ? 'My creatures' : 'My templates'}.`);
 }
 
 // ---------- Modes ----------
 // the windows of the app's mode: the builder's, or the HUD with the Sandbox's or the level's bar
 function showModeWindows(app) {
   const isBuilding = app.mode === 'build';
-  for (const id of ['builder-left', 'layer-tabs', 'preview', 'library']) {
+  for (const id of ['builder-left', 'layer-tabs', 'budget', 'preview', 'library']) {
     byId(id).style.display = isBuilding ? '' : 'none';     // '' gives the display back to style.css
   }
   if (!isBuilding) {
@@ -292,6 +299,7 @@ function showModeWindows(app) {
     byId('levels-sheet').style.display = 'none';
   }
   byId('dock').style.display = isBuilding ? '' : 'none';
+  showTracesWindow(app);
   byId('hud').style.display = isBuilding ? 'none' : 'block';
   byId('sandbox-bar').style.display = app.mode === 'sandbox' ? 'flex' : 'none';
   byId('level-bar').style.display = app.mode === 'level' ? 'flex' : 'none';
@@ -389,6 +397,7 @@ function handleBuilderKey(app, key) {
     }
     closeSaveMenu();
     byId('keys-sheet').style.display = 'none';
+    closeLevelsSheet();
     refreshPanel(app);
   }
   if (key === 'q' || key === 'e') turnWhatIsInHand(app, key === 'e' ? 1 : -1);
@@ -564,7 +573,7 @@ function useStamp(app, isRight, q, r) {
     return;
   }
   const problem = placeStamp(app.edited, app.stamp, q, r);
-  if (problem) byId('info').textContent = problem;
+  if (problem) showMessage(problem);
   else rebuildTank(app);
 }
 
@@ -643,6 +652,6 @@ function runBuilderFrame(app, dt, now) {
   drawPreview(app);
   updateTooltip(app, now);
   runDemo(dt);
-  runScope(app.scope, dt);
+  runBuilderTraces(app);
   runCoach(app, dt);
 }

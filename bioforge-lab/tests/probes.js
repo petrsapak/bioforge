@@ -82,7 +82,7 @@ pressKey('t');
 pressKey('escape');
 runFrames(2);
 byId('show-levels').onclick();
-byId('levels-list').children.find(child => child.className.startsWith('level-row')).onclick();
+byId('levels-list').children.find(child => child.className.startsWith('level-tile')).onclick();
 const resetsBefore = readGlobal('probeResets');
 byId('level-run').onclick();
 runFrames(5);

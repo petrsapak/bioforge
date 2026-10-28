@@ -112,30 +112,37 @@ check('the Jet wins the first level, but over the par biomass and time: 1 star',
 // ---------- The app ----------
 const { byId, fire, runFrames, readGlobal, storage } = startApp([]);
 runFrames(3);
-check('no level is chosen at first: the card is hidden', byId('level-card').style.display === 'none');
+check('no level is chosen at first', !byId('show-levels').classList.contains('selected'));
 byId('show-levels').onclick();
 const listed = byId('levels-list').children;
-const rows = listed.filter(child => child.className.startsWith('level-row'));
+const rows = listed.filter(child => child.className.startsWith('level-tile'));
 const headings = listed.filter(child => child.className === 'chapter-heading');
 check('the levels sheet lists every level under its chapter', byId('levels-sheet').style.display === 'flex' &&
   rows.length === readGlobal('LEVELS.length') && headings.length === 3 &&
   headings[2].textContent === 'Chapter 3: Circulation', `${rows.length} rows, ${headings.length} headings`);
 check('at first only level 1 is open: the others are locked and say which win opens them',
   !rows[0].className.includes('locked') && rows.slice(1).every(row => row.className.includes('locked')) &&
-  rows[1].innerHTML.includes('Win “First stroke” to open it.'), rows[1].innerHTML);
+  rows[1].title === 'Win “First stroke” to open it.', rows[1].title);
+check('the sheet shows the latest open level\'s card at first, with its limits and par',
+  byId('level-card-title').innerHTML.includes('First stroke') && rows[0].className.includes('selected') &&
+  /Biomass<\/span><b>30/.test(byId('level-card-rules').innerHTML), byId('level-card-rules').innerHTML);
 rows[1].onclick();
-check('a locked level can\'t be chosen', byId('level-card').style.display === 'none' &&
-  byId('levels-sheet').style.display === 'flex');
-rows[0].onclick();
-check('choosing a level closes the sheet and shows its card with its limits',
-  byId('levels-sheet').style.display === 'none' && byId('level-card').style.display === 'block' &&
-  byId('level-card-title').innerHTML.includes('First stroke') && byId('budget').innerHTML.includes('of 30'),
-  byId('level-card-title').innerHTML);
+check('a locked level can\'t be shown', byId('level-card-title').innerHTML.includes('First stroke'));
+check('showing a level doesn\'t choose it: the builder keeps its limits until Build or Run',
+  byId('budget').innerHTML.includes('of 50') && byId('level-leave').style.display === 'none');
 byId('level-hint').onclick();
 check('Hint shows the level\'s hint', byId('level-card-hint').textContent.includes('Pacemaker'));
+byId('level-build').onclick();
+check('Build for it chooses the level and goes back to the builder with its limits',
+  byId('levels-sheet').style.display === 'none' && byId('budget').innerHTML.includes('of 30') &&
+  byId('show-levels').classList.contains('selected'));
+byId('show-levels').onclick();
+check('while a level is chosen, the sheet offers to leave it',
+  byId('level-leave').style.display === 'block' && /Leave “First stroke”/.test(byId('level-leave').textContent));
 
 byId('level-run').onclick();          // the starting design is the Jet
-check('Run level starts the level with its bar and HUD', byId('level-bar').style.display === 'flex' &&
+check('Run level closes the sheet and starts the level with its bar and HUD',
+  byId('levels-sheet').style.display === 'none' && byId('level-bar').style.display === 'flex' &&
   byId('hud').style.display === 'block' && byId('dock').style.display === 'none');
 runFrames(5);
 check('the HUD names the level and runs its clock', byId('hud-mode').textContent === '1. First stroke' &&
@@ -156,13 +163,14 @@ check('the win is kept as the best result', kept['first-stroke'] && kept['first-
   JSON.stringify(kept));
 byId('result-next').onclick();
 byId('show-levels').onclick();
-const rowsAfterWin = byId('levels-list').children.filter(child => child.className.startsWith('level-row'));
+const rowsAfterWin = byId('levels-list').children.filter(child => child.className.startsWith('level-tile'));
 check('the win opens level 2, and only level 2', !rowsAfterWin[1].className.includes('locked') &&
   rowsAfterWin[2].className.includes('locked'));
-byId('show-levels').onclick();
-check('Next level goes back to the builder with level 2 chosen', byId('hud').style.display === 'none' &&
-  byId('level-card-title').innerHTML.includes('Lighthouse') && byId('level-result').style.display === 'none');
+check('Next level goes back to the builder with level 2 chosen, and the sheet shows it',
+  byId('hud').style.display === 'none' && byId('level-card-title').innerHTML.includes('Lighthouse') &&
+  byId('level-result').style.display === 'none' && byId('budget').innerHTML.includes('of 30'));
 byId('level-leave').onclick();
-check('leaving the level hides the card and brings back the free-build limits',
-  byId('level-card').style.display === 'none' && byId('budget').innerHTML.includes('of 50'));
+check('leaving the level brings back the free-build limits', byId('budget').innerHTML.includes('of 50') &&
+  !byId('show-levels').classList.contains('selected') && byId('level-leave').style.display === 'none');
+byId('show-levels').onclick();
 done();

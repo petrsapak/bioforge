@@ -1,19 +1,26 @@
 'use strict';
-// The builder's side panel: meters for biomass, cells and the nerve limits, a card with a picture of the clicked or
-// chosen cell or neuron (and the neuron scope, scope.js), the creature's figures as icon chips and the design
-// warnings; plus which toolbar, dock and library buttons show as selected (browser only).
+// The builder's panels: the limits line under the tabs, a message line, the card of the clicked cell when it has
+// something to set up (a neuron, a Bud, its fibres) or of the part being stamped, and the Needs card (how long the
+// sugar lasts, a row per need and the next thing to fix); plus which toolbar, dock and library buttons show as
+// selected (browser only).
 
-const CARD_PICTURE_SCALE = 3.2;                           // canvas px per grid px in the card's picture
 const RESET_AIM_BUTTON = '<button class="small" id="reset-bud-aim">Reset aim</button>';
 
 // redraws every part of the panel from the app state
 function refreshPanel(app) {
   showSelectedButtons(app);
-  showMeters(app);
+  showLimits(app);
+  showMessage('');
   showCard(app);
   wirePanelButtons(app);
-  showStats(app);
+  showNeeds(app);
   refreshCoach(app);
+}
+
+// a line saying why an edit couldn't be made, or what was saved; '' hides it (every redraw of the panel does)
+function showMessage(text) {
+  byId('message').textContent = text;
+  byId('message').style.display = text ? '' : 'none';
 }
 
 // the buttons inside the card are made anew with its HTML, so their handlers are set after every redraw
@@ -53,10 +60,11 @@ function showSelectedButtons(app) {
   byId('unlimited-biomass').classList.toggle('selected', app.edited.biomassLimit === Infinity);
 }
 
-// ---------- Meters ----------
-// Five bars: biomass and cells (the Body view's), neurons and fibre units (the Nerve view's) and vessel units (the
-// Vessels view's); each view's bars stand out in it. The full wording is each bar's tooltip.
-function showMeters(app) {
+// ---------- The limits line ----------
+// The current tab's limits in words under the tabs: biomass and cells in the Body view, neurons and fibre in the Nerve
+// view, vessel units in the Vessels view. A full limit turns orange. A design that breaks any limit, in any view,
+// says so below the line.
+function showLimits(app) {
   const limits = chosenLimits(app);
   const problem = buildCheck(bodyDesign(app.edited), limits);
   const nerve = nerveUsage(app.edited);
@@ -64,86 +72,45 @@ function showMeters(app) {
   const used = bodyCost(app.edited);
   const cellCount = bodyCells(app.edited).length;
   const vesselCount = vesselUsage(app.edited);
-  const isBodyView = app.layer === 'body';
-  const isNerveView = app.layer === 'nerve';
-  byId('budget').innerHTML = '<div class="meters">' +
-    meterHtml('biomass', `Biomass used: ${formatBiomass(used)} of ${limits.budget}` +
-      (isUnlimited ? ' (unlimited: the Sandbox takes any size)' : ''), used, limits.budget, !isBodyView,
-      isUnlimited ? '∞' : `${formatBiomass(limits.budget - used)} left`) +
-    meterHtml('cells', `Cells: ${cellCount} of ${limits.maxCells}`, cellCount, limits.maxCells, !isBodyView) +
-    meterHtml('neurons', `Neurons: ${nerve.neurons} of ${limits.maxNeurons}`, nerve.neurons, limits.maxNeurons,
-      !isNerveView) +
-    meterHtml('fibre', `Fibre: ${nerve.units} of ${limits.maxFibreUnits} units`, nerve.units, limits.maxFibreUnits,
-      !isNerveView) +
-    meterHtml('vessel', `Vessels: ${vesselCount} of ${limits.maxVesselUnits} units`, vesselCount,
-      limits.maxVesselUnits, app.layer !== 'vessel') +
-    '</div>' + (problem ? `<div class="warn">⚠ ${problem}</div>` : '');
+  const biomassText = isUnlimited ? `${formatBiomass(used)} <span class="dim">unlimited</span>`
+    : `${formatBiomass(used)} / ${limits.budget}`;
+  const biomassTitle = `Biomass used: ${formatBiomass(used)} of ${limits.budget}` +
+    (isUnlimited ? ' (unlimited: the Sandbox takes any size)' : '');
+  byId('budget').innerHTML = '<div class="limits">' +
+    limitHtml('body', app.layer, 'Biomass', biomassTitle, biomassText, !isUnlimited && used >= limits.budget) +
+    limitHtml('body', app.layer, 'Cells', `Cells: ${cellCount} of ${limits.maxCells}`,
+      `${cellCount} / ${limits.maxCells}`, cellCount >= limits.maxCells) +
+    limitHtml('nerve', app.layer, 'Neurons', `Neurons: ${nerve.neurons} of ${limits.maxNeurons}`,
+      `${nerve.neurons} / ${limits.maxNeurons}`, nerve.neurons >= limits.maxNeurons) +
+    limitHtml('nerve', app.layer, 'Fibre', `Fibre: ${nerve.units} of ${limits.maxFibreUnits} units`,
+      `${nerve.units} / ${limits.maxFibreUnits}`, nerve.units >= limits.maxFibreUnits) +
+    limitHtml('vessel', app.layer, 'Vessels', `Vessels: ${vesselCount} of ${limits.maxVesselUnits} units`,
+      `${vesselCount} / ${limits.maxVesselUnits}`, vesselCount >= limits.maxVesselUnits) +
+    '</div>' + (problem ? `<div class="limits-problem">⚠ ${problem}</div>` : '');
 }
 
-// one bar with its icon and number; a full or overfull bar turns orange, and a dimmed one belongs to the other view
-function meterHtml(icon, title, value, limit, isDimmed, text = `${value}/${limit}`) {
-  const share = Math.min(1, value / limit);
-  const classes = ['meter', isDimmed ? 'dim' : '', value > limit ? 'over' : ''].join(' ');
-  return `<div class="${classes}" title="${title}"><i class="icon-${icon}"></i>` +
-    `<div class="meter-track"><div class="meter-fill" style="width:${(share * 100).toFixed(1)}%"></div></div>` +
-    `<span>${text}</span></div>`;
+// one limit: its name and value, hidden outside its view; the full wording is its tooltip
+function limitHtml(layer, shownLayer, name, title, valueHtml, isFull) {
+  const hidden = layer === shownLayer ? '' : ' hidden';
+  return `<span class="limit${isFull ? ' full' : ''}" title="${title}"${hidden}>${name} <b>${valueHtml}</b></span>`;
 }
 
 // ---------- The card ----------
-// What the card shows: the stamp in hand, else the clicked cell, else the neuron (Nerve view) or cell type (Body
-// view) a click would place. The picture is drawn on its canvas, the text goes beside it.
+// The card shows the stamp in hand, or the clicked cell when it has something to set up: a neuron, a Bud, or in the
+// Nerve view any cell (its fibres, or a neuron to put in). Otherwise it hides; the hover hint tells what a cell is.
 function showCard(app) {
   const focused = app.focusKey && app.edited.cells.get(app.focusKey);
   app.cardFibres = [];
   app.hoveredFibre = null;
-  if (app.stamp) {
-    drawCardPicture(app.stamp.template.cells);
-    byId('info').innerHTML = describeStamp(app.stamp);
-    showScopeNeuron(app.scope, null);
-  } else if (focused) {
-    drawCardPicture([focused]);
-    byId('info').innerHTML = describeFocusedCell(app, focused);
-    showScopeNeuron(app.scope, focused.neuron || null);
-  } else if (app.layer === 'nerve') {
-    drawCardPicture([{ q: 0, r: 0, typeName: 'tissue', neuron: { kind: app.selectedNeuron } }], true);
-    byId('info').innerHTML = describeNeuronType(NEURONS[app.selectedNeuron]);
-    showScopeNeuron(app.scope, createNeuron(app.selectedNeuron));
-  } else {
-    drawCardPicture([{ q: 0, r: 0, typeName: app.selectedType }]);
-    byId('info').innerHTML = describeCellType(CELLS[app.selectedType]);
-    showScopeNeuron(app.scope, null);
-  }
+  let html = '';
+  if (app.stamp) html = describeStamp(app.stamp);
+  else if (focused && hasCardSettings(app, focused)) html = describeFocusedCell(app, focused);
+  byId('info').innerHTML = html;
+  byId('card').style.display = html ? '' : 'none';
 }
 
-// design cells drawn into the card's picture, fitted to it; isShaded fades the cells as the Nerve view does
-function drawCardPicture(cells, isShaded = false) {
-  const canvas = byId('card-picture');
-  const context = canvas.getContext('2d');
-  const points = cells.map(cell => hexToPixel(cell.q, cell.r));
-  const xs = points.map(([x]) => x);
-  const ys = points.map(([, y]) => y);
-  const middleX = (Math.min(...xs) + Math.max(...xs)) / 2;
-  const middleY = (Math.min(...ys) + Math.max(...ys)) / 2;
-  const span = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) + 2 * CELL_RADIUS;
-  const scale = Math.min(CARD_PICTURE_SCALE, (canvas.width - 12) / span);
-  context.setTransform(1, 0, 0, 1, 0, 0);
-  context.clearRect(0, 0, canvas.width, canvas.height);
-  context.setTransform(scale, 0, 0, scale, canvas.width / 2 - middleX * scale, canvas.height / 2 - middleY * scale);
-  cells.forEach((designCell, i) => {
-    const cell = makeDisplayCell(designCell.typeName, points[i][0], points[i][1],
-      { centerX: middleX, centerY: middleY + 1, heading: 0 });
-    drawCell(context, cell, 0);
-    if (isShaded) {
-      traceHex(context, ...points[i], HEX_FILL_SIZE);
-      context.fillStyle = NERVE_VIEW_SHADE;
-      context.fill();
-    }
-    if (designCell.neuron) {
-      const withNeuron = { ...cell, neuron: designCell.neuron, boundKey: designCell.boundKey };
-      drawNeuronBadge(context, withNeuron, CELL_RADIUS * 0.9);
-    }
-  });
-  context.setTransform(1, 0, 0, 1, 0, 0);
+function hasCardSettings(app, cell) {
+  return app.layer === 'nerve' || !!cell.neuron || !!CELLS[cell.typeName].growsParts;
 }
 
 // the first sentence of a description, for the card; the whole text is its tooltip
@@ -161,28 +128,10 @@ function describeStamp(stamp) {
     '<span class="mouse right"></span> stop</div>';
 }
 
-// the chosen cell type from the dock
-function describeCellType(cellType) {
-  return `<b>${cellType.name}</b><div class="chips">${cellTypeChips(cellType)}</div>` +
-    `<div class="line" title="${escapeHtml(cellType.description)}">${firstSentence(cellType.description)}</div>`;
-}
-
-// cost, health, and whether it needs a nerve signal, as icon chips
-function cellTypeChips(cellType) {
-  return `<span title="Biomass cost">◆ ${cellType.cost}</span><span title="Health">❤ ${cellType.health}</span>` +
-    (cellType.needsSignal ? '<span class="needs-signal" title="Needs a nerve signal to act">↯ nerve</span>' : '');
-}
-
-function describeNeuronType(neuronType) {
-  return `<b>${neuronType.name}</b> <span class="dim">neuron</span>` +
-    `<div class="line" title="${escapeHtml(neuronType.description)}">${firstSentence(neuronType.description)}</div>`;
-}
-
 // The clicked cell: Buds show and take their part; its neuron shows its setting, and a Command its key; its fibres.
 function describeFocusedCell(app, cell) {
   const cellType = CELLS[cell.typeName];
-  const heading = `<b>${cellType.name}</b> <span class="dim">clicked · Esc</span>` +
-    `<div class="chips">${cellTypeChips(cellType)}</div>`;
+  const heading = `<b>${cellType.name}</b> <span class="dim">clicked · Esc</span>`;
   const fibres = describeCellFibres(app, app.focusKey);
   if (cellType.growsParts) return heading + describeBud(cell, cellType) + fibres;
   if (!cell.neuron) {
@@ -243,35 +192,45 @@ function describeBud(bud, cellType) {
     (bud.partAim !== undefined ? RESET_AIM_BUTTON : '');
 }
 
-// ---------- Figures and warnings ----------
-// size, health and fuel figures of the joined body as icon chips, then the design warnings (hovering one outlines
-// its cells)
-function showStats(app) {
-  const cells = bodyCells(app.edited);
-  const types = cells.map(cell => CELLS[cell.typeName]);
-  const sumOf = valueOf => types.reduce((sum, cellType) => sum + valueOf(cellType), 0);
-  const sugarFluid = FLUIDS[FLUID_SUGAR];
-  const health = sumOf(cellType => cellType.health);
-  const mass = sumOf(cellType => cellType.mass);
-  const maxBurn = sumOf(cellType => cellType.fuelBurn * FUEL_BURN_SCALE);
-  const gillOxygen = types.filter(cellType => cellType.breathes).length * GILL_OXYGEN_RATE;
-  const sugarStock = sumOf(cellType => fluidCapacityOf(cellType, sugarFluid) * sugarFluid.startFill);
-  const hasMouth = types.some(cellType => cellType.eatsFood);
-  app.warnings = designWarnings(bodyDesign(app.edited), plannedKeys(app.edited));
-  const stats = byId('stats');
-  stats.innerHTML = '<div class="chips">' +
-    `<span title="Health of all cells">❤ ${health}</span>` +
-    `<span title="Mass">⚖ ${mass.toFixed(1)}</span>` +
-    `<span title="Most fuel burnt per second, with every cell working">🔥 ${maxBurn.toFixed(2)}/s</span>` +
-    `<span title="Oxygen the Gills take in per second">O₂ +${gillOxygen.toFixed(2)}/s</span>` +
-    `<span title="Sugar stored at the start${hasMouth ? ', plus whatever the Mouth eats' : ' (no Mouth)'}">` +
-    `⚡ ${sugarStock.toFixed(1)}${hasMouth ? '+' : ''}</span></div>` +
-    app.warnings.map((warning, i) => `<div class="warn" data-warning="${i}">⚠ ${warning.text}</div>`).join('');
-  stats.onmouseover = event => {
-    const index = event.target.dataset && event.target.dataset.warning;
-    app.hoveredWarning = index === undefined ? -1 : +index;
+// ---------- The Needs card ----------
+// How long the sugar lasts, a row per need (✓ met, ✗ missing with its fix, ~ works poorly, – not needed yet) and the
+// next thing to fix. Hovering a row marks its cells on the grid.
+function showNeeds(app) {
+  const body = bodyDesign(app.edited);
+  app.warnings = designWarnings(body, plannedKeys(app.edited));
+  app.needRows = designNeeds(body, app.warnings);
+  const planned = app.warnings.find(warning => warning.need === 'planned');
+  const next = nextNeed(app.needRows);
+  const needs = byId('needs');
+  needs.innerHTML = '<div class="needs-title">Creature</div>' + sugarHtml(sugarSupply(body)) +
+    '<div class="need-rows">' + app.needRows.map(needRowHtml).join('') + '</div>' +
+    `<div class="need-next">${next ? '<b>Next:</b> ' + next : 'Ready: try it in the Sandbox (▶).'}</div>` +
+    (planned ? `<div class="need-planned" data-need="planned">${planned.text}</div>` : '');
+  needs.onmouseover = event => {
+    const row = event.target.closest && event.target.closest('[data-need]');
+    app.hoveredNeed = row ? row.dataset.need : null;
   };
-  stats.onmouseleave = () => {
-    app.hoveredWarning = -1;
+  needs.onmouseleave = () => {
+    app.hoveredNeed = null;
   };
+}
+
+// how long the stored sugar lasts with every cell working, in big type
+function sugarHtml(supply) {
+  if (supply.burn <= 0) return '<div class="need-lasts">Burns no sugar</div>';
+  const seconds = Math.round(supply.stock / supply.burn);
+  return `<div class="need-lasts" title="Sugar stored at the start: ${supply.stock.toFixed(1)}; burnt per second ` +
+    `with every cell working: ${supply.burn.toFixed(2)}">Sugar lasts <b>${seconds} s</b></div>` +
+    `<div class="need-lasts-note">even with every cell working${supply.eatsFood ? ', plus what the Mouth eats' : ''}` +
+    '</div>';
+}
+
+const NEED_STATE_MARKS = { ok: '✓', missing: '✗', weak: '~', none: '–' };
+
+// one need: icon, name, its mark and, when it isn't met, the fix in a few words; the whole warning is its tooltip
+function needRowHtml(row) {
+  const fix = row.state === 'ok' ? '' : row.short;
+  return `<div class="need-row ${row.state}" data-need="${row.need}" title="${escapeHtml(row.text)}">` +
+    `<span class="need-icon">${row.icon}</span><span class="need-label">${row.label}</span>` +
+    `<span class="need-mark">${NEED_STATE_MARKS[row.state]}</span><span class="need-fix">${fix}</span></div>`;
 }

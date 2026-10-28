@@ -83,6 +83,7 @@ function drawBuilder(app) {
   drawBudParts(app);
   drawSelection(app);
   drawWarningMarks(app);
+  if (app.layer === 'nerve') drawBuilderTraceTags(app, context);
   drawLibraryDragHint(app);
   drawPlacementGhost(app);
   drawNeuronGhost(app);
@@ -443,26 +444,24 @@ function drawSelection(app) {
   context.setLineDash([]);
 }
 
-// A small orange "!" on every cell a warning is about. The warning under the mouse outlines its cells, and the
-// other marks fade.
+// While the mouse is on a row of the Needs card, a small orange "!" and an outline on every cell that row is about.
+// The grid stays clean otherwise, however many warnings there are.
 function drawWarningMarks(app) {
   const context = app.context;
-  const hovered = app.warnings[app.hoveredWarning];
-  const hoveredKeys = new Set(hovered ? hovered.keys : []);
+  const hoveredKeys = new Set(app.warnings.filter(warning => warning.need === app.hoveredNeed)
+    .flatMap(warning => warning.keys));
   context.font = 'bold 6px system-ui';
   context.textAlign = 'center';
   context.textBaseline = 'middle';
-  for (const key of new Set(app.warnings.flatMap(warning => warning.keys))) {
+  for (const key of hoveredKeys) {
     const [x, y] = keyToPixel(key);
     const markX = x + CELL_RADIUS * 0.6;
     const markY = y - CELL_RADIUS * 0.6;
-    context.globalAlpha = !hovered || hoveredKeys.has(key) ? 1 : 0.35;
     context.fillStyle = WARNING_COLOR;
     fillCircle(context, markX, markY, 3.2);
     context.fillStyle = BUILDER_BACKGROUND;
     context.fillText('!', markX, markY + 0.3);
   }
-  context.globalAlpha = 1;
   context.textBaseline = 'alphabetic';
   context.strokeStyle = HOVERED_WARNING_COLOR;
   context.lineWidth = 2.5;

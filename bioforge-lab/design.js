@@ -1,9 +1,21 @@
 'use strict';
-// Builder design logic: hex lookup, the limits check, the design warnings, and the saved design format with the
-// conversion of older saves. Pure: no DOM.
+// Builder design logic: hex lookup, the limits check, the design warnings and the Needs rows they fill, the sugar
+// supply, and the saved design format with the conversion of older saves. Pure: no DOM.
 // A design is { cells, fibres, vessels } (the format is described under "Saved design format" below).
 
 const VESSEL_SUPPLY_REACH = 2;                            // cells from a pumped vessel's end that blood reaches well
+
+// The rows of the builder's Needs card, in the order a player should fix them. A Buds row only shows on a body with
+// Buds.
+const NEED_ROWS = [
+  { need: 'signal', icon: '↯', label: 'Signal' },
+  { need: 'oxygen', icon: 'O₂', label: 'Oxygen' },
+  { need: 'sugar', icon: '⚡', label: 'Sugar' },
+  { need: 'waste', icon: '☁', label: 'Waste' },
+  { need: 'blood', icon: '♥', label: 'Blood' },
+  { need: 'weapon', icon: '⚔', label: 'Weapon' },
+  { need: 'buds', icon: '✿', label: 'Buds' },
+];
 
 // The checks read the cell types' behaviour fields (data/cells.js), never their names.
 const typeOfCell = cell => CELLS[cell.typeName];
@@ -72,21 +84,23 @@ function buildCheck(design, limits = RULES) {
 // Design checks: signals, Bud parts, weapons, and whether the body has O2, sugar and a waste exit for its working
 // cells. body: the cells joined to the nucleus with their fibres and vessels; plannedKeys: hex keys of cells not
 // joined to it.
-// Returns warnings as { text, keys }, where keys are the hexes the warning is about (marked on the grid).
+// Returns warnings as { need, level, short, text, keys }: need is the Needs row it belongs to (or 'planned'), level
+// is 'problem' (it doesn't work), 'hint' (it works, but poorly) or 'note', short is the fix in a few words, and
+// keys are the hexes the warning is about (marked on the grid).
 function designWarnings(body, plannedKeys) {
   const bodyCells = body.cells;
   const warnings = [];
-  const warn = (text, keys = []) => warnings.push({ text, keys });
+  const warn = (need, level, short, text, keys = []) => warnings.push({ need, level, short, text, keys });
   if (plannedKeys.length) {
-    warn(`${plannedKeys.length} planned cell(s) are not connected to the body: they are not part of the creature and ` +
-      'cost nothing until you join them.', plannedKeys);
+    warn('planned', 'note', 'not joined', `${plannedKeys.length} planned cell(s) are not connected to the body: ` +
+      'they are not part of the creature and cost nothing until you join them.', plannedKeys);
   }
   // the checks below look at the joined body only
   const typeAt = new Map(bodyCells.map(cell => [hexKey(cell.q, cell.r), cell.typeName]));
   const countWith = behaviour => bodyCells.filter(cell => typeOfCell(cell)[behaviour]).length;
   checkSignals(body, warn);
   checkBuds(bodyCells, warn);
-  if (!countWith('isWeapon')) warn('No weapons: it cannot hurt anything.');
+  if (!countWith('isWeapon')) warn('weapon', 'note', 'none', 'No weapons: it cannot hurt anything.');
   checkFluids(typeAt, countWith, warn);
   checkVessels(body, warn);
   return warnings;
@@ -97,8 +111,9 @@ function checkSignals(body, warn) {
   const sources = body.cells.filter(makesSignals);
   const driven = body.cells.filter(needsSignal);
   if (driven.length && !sources.length) {
-    warn('Muscles, Bloaters, Siphons, Nettles, Snares, Spitters, Adrenals, Valves and Buds need a nerve signal: ' +
-      'a Pacemaker or Command neuron, or an Eyespot, with fibres to them (Nerve view).', keysOf(driven));
+    warn('signal', 'problem', 'add a Pacemaker',
+      'Muscles, Bloaters, Siphons, Nettles, Snares, Spitters, Adrenals, Valves and Buds need a nerve signal: ' +
+      'a Pacemaker or Command neuron, or an Eyespot, with fibres to them (Nerves, 2).', keysOf(driven));
   }
   const reached = new Set(keysOf(sources));
   const queue = [...reached];
@@ -112,7 +127,9 @@ function checkSignals(body, warn) {
   }
   const unwired = driven.filter(cell => !reached.has(hexKey(cell.q, cell.r)));
   if (sources.length && unwired.length) {
-    warn(`${unwired.length} cell(s) that need a nerve signal get no fibre from a signal source.`, keysOf(unwired));
+    warn('signal', 'problem', `wire ${unwired.length} cell(s)`,
+      `${unwired.length} cell(s) that need a nerve signal get no fibre from a signal source (Nerves, 2).`,
+      keysOf(unwired));
   }
 }
 
@@ -123,29 +140,33 @@ function checkBuds(bodyCells, warn) {
   const plans = budsWithPart.map(bud => planBudPart(bodyCells, bud));
   const budsWithoutPart = buds.filter(bud => !bud.budPart);
   if (budsWithoutPart.length) {
-    warn(`${budsWithoutPart.length} Bud(s) have no part to grow: click the Bud, then a part in the Templates library.`,
-      keysOf(budsWithoutPart));
+    warn('buds', 'problem', 'give it a part', `${budsWithoutPart.length} Bud(s) have no part to grow: click the Bud, ` +
+      'then a part in the Templates library.', keysOf(budsWithoutPart));
   }
   const cramped = budsWithPart.filter((bud, i) => !plans[i].cells.length);
   const blocked = budsWithPart.filter((bud, i) => plans[i].blockedCount);
   if (cramped.length) {
-    warn(`${cramped.length} Bud(s) have no free side to grow on: put Buds on the surface.`, keysOf(cramped));
+    warn('buds', 'problem', 'no room', `${cramped.length} Bud(s) have no free side to grow on: put Buds on the ` +
+      'surface.', keysOf(cramped));
   } else if (blocked.length) {
     const blockedCells = plans.reduce((sum, plan) => sum + plan.blockedCount, 0);
-    warn(`${blockedCells} cell(s) of Bud parts are blocked by the body and will not grow.`, keysOf(blocked));
+    warn('buds', 'hint', 'part blocked', `${blockedCells} cell(s) of Bud parts are blocked by the body and will not ` +
+      'grow.', keysOf(blocked));
   }
   // a part has its own nerves: what needs a signal in it needs a Pacemaker neuron or an Eyespot in the part too
   const deaf = budsWithPart.filter(bud =>
     bud.budPart.cells.some(needsSignal) && !bud.budPart.cells.some(firesByItself));
   if (deaf.length) {
-    warn(`${deaf.length} Bud part(s) have Muscles, Nettles or the like but no Pacemaker neuron or Eyespot of ` +
+    warn('buds', 'problem', 'part has no signal',
+      `${deaf.length} Bud part(s) have Muscles, Nettles or the like but no Pacemaker neuron or Eyespot of ` +
       'their own: ' +
       "a part's nerves are apart from the body's, so those cells do nothing.", keysOf(deaf));
   }
   const claimed = plans.flatMap(plan => keysOf(plan.cells));
   if (new Set(claimed).size < claimed.length) {
     const doubled = new Set(claimed.filter((key, i) => claimed.indexOf(key) !== i));
-    warn('Two Buds grow parts onto the same hexes. Click a Bud and turn its part (Q/E) so they do not overlap.',
+    warn('buds', 'problem', 'parts overlap',
+      'Two Buds grow parts onto the same hexes. Click a Bud and turn its part (Q/E) so they do not overlap.',
       [...doubled]);
   }
 }
@@ -156,13 +177,15 @@ function checkFluids(typeAt, countWith, warn) {
   const fueled = keysWith('fuelBurn');
   const fueledCount = fueled.length;
   if (fueledCount && !countWith('breathes')) {
-    warn(`No Gill: the ${fueledCount} fuel-burning cell(s) run out of O₂.`, fueled);
+    warn('oxygen', 'problem', 'add a Gill', `No Gill: the ${fueledCount} fuel-burning cell(s) run out of O₂.`, fueled);
   }
   if (fueledCount && !countWith('eatsFood') && !countWith('storesSugar')) {
-    warn(`No Mouth or Fat: the ${fueledCount} fuel-burning cell(s) run out of sugar.`, fueled);
+    warn('sugar', 'problem', 'add a Mouth or Fat',
+      `No Mouth or Fat: the ${fueledCount} fuel-burning cell(s) run out of sugar.`, fueled);
   }
   if (fueledCount && !countWith('dumpsWaste')) {
-    warn(`No Pore: waste builds up in the ${fueledCount} fuel-burning cell(s) and poisons them.`, fueled);
+    warn('waste', 'problem', 'add a Pore',
+      `No Pore: waste builds up in the ${fueledCount} fuel-burning cell(s) and poisons them.`, fueled);
   }
   const isEnclosed = key => {
     const { q, r } = parseHexKey(key);
@@ -170,8 +193,8 @@ function checkFluids(typeAt, countWith, warn) {
   };
   const buried = keysWith('dumpsWaste').filter(isEnclosed);
   if (buried.length) {
-    warn(`${buried.length} Pore cell(s) are buried inside the body and do nothing: Pores must touch the water.`,
-      buried);
+    warn('waste', 'problem', 'Pore buried',
+      `${buried.length} Pore cell(s) are buried inside the body and do nothing: Pores must touch the water.`, buried);
   }
 }
 
@@ -184,8 +207,8 @@ function checkVessels(body, warn) {
   const onVessel = new Set(routes.flatMap(route => route.hexes));
   const idleHearts = [...pumpKeys].filter(key => !onVessel.has(key));
   if (idleHearts.length) {
-    warn(`${idleHearts.length} Heart(s) sit on no vessel and pump nothing: lay vessels through them (Vessels view, ` +
-      'V).', idleHearts);
+    warn('blood', 'problem', 'Heart on no vessel', `${idleHearts.length} Heart(s) sit on no vessel and pump ` +
+      'nothing: lay vessels through them (Vessels, 3).', idleHearts);
   }
   const pumpedEnds = routes
     .filter(route => route.hexes.some(key => pumpKeys.has(key)))
@@ -194,9 +217,60 @@ function checkVessels(body, warn) {
   const fueled = body.cells.filter(cell => typeOfCell(cell).fuelBurn);
   const farFromBlood = fueled.filter(cell => !pumpedEnds.some(end => hexDistance(cell, end) <= VESSEL_SUPPLY_REACH));
   if (farFromBlood.length) {
-    warn(`${farFromBlood.length} fuel-burning cell(s) are more than ${VESSEL_SUPPLY_REACH} cells from the end of a ` +
-      'vessel with a Heart on it: fluids only seep to them, slowly.', keysOf(farFromBlood));
+    warn('blood', 'hint', 'seeps slowly',
+      `${farFromBlood.length} fuel-burning cell(s) are more than ${VESSEL_SUPPLY_REACH} cells from the end of a ` +
+      'vessel with a Heart on it: fluids only seep to them, slowly. A Heart and vessels help (Vessels, 3).',
+      keysOf(farFromBlood));
   }
+}
+
+// ---------- The Needs card ----------
+// One row per need: 'none' while nothing in the body needs it, else 'ok', or the worst of its warnings: 'missing'
+// for a problem, 'weak' for a hint, 'none' for a note. Each row keeps its warnings, the first one's short fix and
+// the hexes they are about.
+function designNeeds(body, warnings) {
+  const types = body.cells.map(typeOfCell);
+  const hasAny = behaviour => types.some(cellType => cellType[behaviour]);
+  const burnsFuel = hasAny('fuelBurn');
+  const applies = {
+    signal: hasAny('needsSignal'),
+    oxygen: burnsFuel,
+    sugar: burnsFuel,
+    waste: burnsFuel || hasAny('dumpsWaste'),
+    blood: burnsFuel || hasAny('pumps'),
+    weapon: true,
+    buds: hasAny('growsParts'),
+  };
+  return NEED_ROWS.filter(row => row.need !== 'buds' || applies.buds).map(row => {
+    const own = warnings.filter(warning => warning.need === row.need);
+    let state = applies[row.need] ? 'ok' : 'none';
+    if (own.some(warning => warning.level === 'problem')) state = 'missing';
+    else if (own.some(warning => warning.level === 'hint')) state = 'weak';
+    else if (own.length) state = 'none';
+    const worst = own.find(warning => warning.level === 'problem') || own[0];
+    return { ...row, state, short: worst ? worst.short : '', text: worst ? worst.text : '', warnings: own,
+      keys: [...new Set(own.flatMap(warning => warning.keys))] };
+  });
+}
+
+// the one thing to fix next: the first missing need's warning, else the first weak one's; '' when nothing is wrong
+function nextNeed(needRows) {
+  const row = needRows.find(candidate => candidate.state === 'missing') ||
+    needRows.find(candidate => candidate.state === 'weak');
+  return row ? row.text : '';
+}
+
+// The body's sugar: what its cells hold at the start, the most they burn per second (every cell working), and
+// whether a Mouth can top it up. stock / burn is the shortest time it lasts without food.
+function sugarSupply(body) {
+  const types = body.cells.map(typeOfCell);
+  const sugarFluid = FLUIDS[FLUID_SUGAR];
+  const sumOf = valueOf => types.reduce((sum, cellType) => sum + valueOf(cellType), 0);
+  return {
+    stock: sumOf(cellType => fluidCapacityOf(cellType, sugarFluid) * sugarFluid.startFill),
+    burn: sumOf(cellType => (cellType.fuelBurn || 0) * FUEL_BURN_SCALE),
+    eatsFood: types.some(cellType => cellType.eatsFood),
+  };
 }
 
 // ---------- Saved design format ----------

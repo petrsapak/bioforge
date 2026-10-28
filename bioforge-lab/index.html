@@ -19,6 +19,7 @@
     <svg viewBox="0 0 24 24"><path d="M5 18C9 18 9 6 13 6s4 6 6 6" fill="none" stroke="#e0485a" stroke-width="3.2" stroke-linecap="round"/><circle cx="5" cy="18" r="2.6" fill="#e0485a"/><circle cx="19" cy="12" r="2.6" fill="#e0485a"/></svg>
     <span>Vessels</span><kbd>3</kbd></button>
 </div>
+<div id="budget"></div>
 <div id="builder-left">
 <div id="toolbar">
   <button class="tool" data-template="clear" title="Clear: start over with just the Nucleus">
@@ -40,27 +41,10 @@
     <svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z" fill="#fff"/></svg></button>
 </div>
 <div id="side-column">
-  <div id="level-card">
-    <div id="level-card-title"></div>
-    <div id="level-card-brief"></div>
-    <div id="level-card-rules"></div>
-    <div id="level-card-best"></div>
-    <div id="level-card-hint"></div>
-    <div class="row">
-      <button class="small run" id="level-run" title="Run your design in this level">▶ Run level</button>
-      <button class="small" id="level-hint">Hint</button>
-      <button class="small" id="level-pick" title="Pick another level">Levels</button>
-      <button class="small" id="level-leave" title="Leave the level: free build">✕</button>
-    </div>
-  </div>
   <div id="panel">
-    <div id="budget"></div>
-    <div id="card">
-      <canvas id="card-picture" width="112" height="112"></canvas>
-      <div id="info"></div>
-    </div>
-    <canvas id="neuron-scope" width="500" height="150"></canvas>
-    <div id="stats"></div>
+    <div id="message"></div>
+    <div id="card"><div id="info"></div></div>
+    <div id="needs"></div>
   </div>
   <div id="coach">
     <div id="coach-bar"><span>How to</span><button id="coach-toggle" title="Hide / show">–</button></div>
@@ -106,9 +90,26 @@
 </div>
 <div id="levels-sheet">
   <div id="levels-sheet-inner">
-    <div class="keys-title">Levels</div>
-    <div id="levels-list"></div>
-    <div class="help">Build a creature, then run it in the level. It acts on its own wiring: you don't steer it.</div>
+    <div id="levels-main">
+      <div class="keys-title">Levels</div>
+      <div id="levels-list"></div>
+      <div class="help">Build a creature, then run it in the level. It acts on its own wiring: you don't steer it.</div>
+      <button id="level-leave" title="Back to free build with the usual limits"></button>
+    </div>
+    <div id="level-card">
+      <div id="level-card-head"><span id="level-card-number"></span><button id="levels-close" title="Close (Esc)">✕</button></div>
+      <div id="level-card-title"></div>
+      <div id="level-card-brief"></div>
+      <div id="level-card-rules"></div>
+      <div id="level-card-hint"></div>
+      <div id="level-card-buttons">
+        <div class="row">
+          <button class="small" id="level-build" title="Back to the builder, with this level's limits">Build for it</button>
+          <button class="small" id="level-hint">Hint</button>
+        </div>
+        <button class="big" id="level-run" title="Run your design in this level">▶ Run level</button>
+      </div>
+    </div>
   </div>
 </div>
 <div id="level-bar">
@@ -147,6 +148,11 @@
 <div id="preview">
   <div id="preview-bar" title="Drag to move · drag the bottom-right corner to resize"><span>Preview</span><button id="preview-toggle" title="Hide / show">–</button></div>
   <canvas id="preview-canvas"></canvas>
+</div>
+<div id="traces">
+  <div id="traces-bar" title="Drag to move · drag the bottom-right corner to resize"><span>Traces</span><button id="traces-toggle" title="Hide / show">–</button></div>
+  <canvas id="traces-canvas" width="300" height="24"></canvas>
+  <div id="traces-note"></div>
 </div>
 <div id="library">
   <div id="library-bar" title="Drag to move · drag the bottom-right corner to resize"><span>Templates</span><button id="library-toggle" title="Hide / show">–</button></div>
@@ -223,7 +229,6 @@
 <script src="hud.js"></script>
 <script src="dock.js"></script>
 <script src="library.js"></script>
-<script src="scope.js"></script>
 <script src="coach.js"></script>
 <script src="panel.js"></script>
 <script src="toolbar.js"></script>

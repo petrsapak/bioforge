@@ -2,6 +2,7 @@
 const { load } = require('./load');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['pixelToHex', 'isInGrid', 'hexesReachableFromNucleus', 'designWarnings', 'buildCheck',
+  'designNeeds', 'nextNeed', 'sugarSupply',
   'hexToPixel', 'hexKey', 'blueprintFromList', 'createNeuron', 'GRID_RADIUS', 'RULES', 'TEMPLATES']);
 
 // a design from [q, r, typeName] cells and [fromQ, fromR, toQ, toR] fibres
@@ -42,6 +43,26 @@ check('fuel burner without gill, food or pore',
 const withPlanned = sim.designWarnings(designOf([[0, 0, 'nucleus'], [0, 1, 'thorn']]), [sim.hexKey(4, 4)]);
 check('planned cells reported with their keys',
   withPlanned.some(warning => /planned cell/.test(warning.text) && warning.keys[0] === sim.hexKey(4, 4)));
+
+{ // the Needs card: a row per need, 'none' until the body needs it; the first missing one is the next to fix
+  const needStates = design => sim.designNeeds(design, sim.designWarnings(design, []))
+    .map(row => row.need + ' ' + row.state).join(', ');
+  const bare = designOf([[0, 0, 'nucleus']]);
+  check('a bare Nucleus needs nothing yet and has no weapon', needStates(bare) ===
+    'signal none, oxygen none, sugar none, waste none, blood none, weapon none', needStates(bare));
+  const muscle = designOf([[0, 0, 'nucleus'], [1, 0, 'muscle']]);
+  check('a Muscle needs a signal, O2, sugar and a waste exit',
+    /signal missing, oxygen missing, sugar missing, waste missing/.test(needStates(muscle)), needStates(muscle));
+  const muscleRows = sim.designNeeds(muscle, sim.designWarnings(muscle, []));
+  check('the next thing to fix is the signal', /need a nerve signal/.test(sim.nextNeed(muscleRows)));
+  check('a Bud adds a Buds row', /buds missing/.test(needStates(designOf([[0, 0, 'nucleus'], [1, 0, 'bud']]))));
+  const jet = sim.TEMPLATES.jet;
+  check('the Jet has every need met', needStates(jet) ===
+    'signal ok, oxygen ok, sugar ok, waste ok, blood ok, weapon ok', needStates(jet));
+  const supply = sim.sugarSupply(jet);
+  check('the Jet\'s sugar lasts a while even with every cell working', supply.burn > 0 && supply.stock / supply.burn > 5,
+    JSON.stringify(supply));
+}
 
 { // the nerve limits in RULES
   const cells = sim.blueprintFromList([[0, 0, 'nucleus'], [1, 0, 'tissue'], [2, 0, 'tissue']]);

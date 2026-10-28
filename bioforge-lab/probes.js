@@ -1,11 +1,13 @@
 'use strict';
-// Signal probes for Sandbox and level runs: a live trace of what the player's senses, neurons and signalled cells do,
-// one lane per cell, with a matching number tag on each probed cell in the water. A click on one of the player's
-// cells adds or removes its lane (browser only).
+// Signal probes: a live trace of what a creature's senses, neurons and signalled cells do, one lane per cell, with a
+// matching number tag on each probed cell. In Sandbox and level runs they trace the player (a click on one of its
+// cells adds or removes its lane); in the builder's Nerve view the Traces window traces the test tank's creature
+// (browser only).
 
 const PROBE_SECONDS = 6;                                  // game s of trace shown across a lane
 const PROBE_MAX_LANES = 8;
 const PROBE_LANE_HEIGHT = 17;                             // px (canvas units) per lane
+const TRACES_LANE_HEIGHT = 24;                            // px per lane in the builder's Traces window
 const PROBE_LABEL_WIDTH = 78;                             // px (canvas units) left of the traces for the lane names
 const PROBE_TAG_RADIUS = 6;                               // px in the world: the number tag on a probed cell
 const PROBE_GROUPS = ['sense', 'neuron', 'action'];      // lane order: senses first, then neurons, then actions
@@ -110,18 +112,23 @@ function drawProbes(app, world) {
   const isShown = app.isProbesShown && probes.creature !== null;
   panel.style.display = isShown ? 'block' : 'none';
   if (!isShown) return;
-  const canvas = byId('probe-canvas');
-  const height = probes.lanes.length * PROBE_LANE_HEIGHT;
+  drawProbeLanes(byId('probe-canvas'), probes, world.time, PROBE_LANE_HEIGHT);
+  byId('probe-more').textContent = probeFootnote(probes);
+}
+
+// each lane's name, a baseline and its signal over the last PROBE_SECONDS before time, laneHeight px apart
+function drawProbeLanes(canvas, probes, time, laneHeight) {
+  const height = probes.lanes.length * laneHeight;
   if (canvas.height !== height) canvas.height = height;
   const context = canvas.getContext('2d');
   const traceWidth = canvas.width - PROBE_LABEL_WIDTH;
-  const startTime = world.time - PROBE_SECONDS;
+  const startTime = time - PROBE_SECONDS;
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.font = '10px sans-serif';
   context.textBaseline = 'middle';
   probes.lanes.forEach((lane, i) => {
-    const bottom = (i + 1) * PROBE_LANE_HEIGHT - 3;
-    const top = i * PROBE_LANE_HEIGHT + 3;
+    const bottom = (i + 1) * laneHeight - 3;
+    const top = i * laneHeight + 3;
     context.fillStyle = '#b9c3cd';
     context.fillText(lane.label, 0, (top + bottom) / 2);
     context.strokeStyle = '#23323a';
@@ -141,7 +148,34 @@ function drawProbes(app, world) {
     });
     context.stroke();
   });
-  byId('probe-more').textContent = probeFootnote(probes);
+}
+
+// ---------- The Traces window (builder, Nerve view) ----------
+// Starts tracing the test tank's creature afresh; called whenever the tank is rebuilt.
+function resetBuilderTraces(app) {
+  const creature = app.tank.creatures.find(candidate => !candidate.debris) || null;
+  clearProbeChoice(app.builderTraces);
+  resetProbes(app.builderTraces, creature);
+}
+
+// the window shows only while building in the Nerve view
+function showTracesWindow(app) {
+  byId('traces').style.display = app.mode === 'build' && app.layer === 'nerve' ? '' : 'none';
+}
+
+// records the test tank's signals after its step and, in the Nerve view, draws them as wide as the window
+function runBuilderTraces(app) {
+  recordProbes(app.builderTraces, app.tank);
+  if (app.layer !== 'nerve' || app.isTracesCollapsed()) return;
+  const canvas = byId('traces-canvas');
+  const width = Math.round(canvas.clientWidth || 0);
+  if (width > 0 && canvas.width !== width) canvas.width = width;
+  drawProbeLanes(canvas, app.builderTraces, app.tank.time, TRACES_LANE_HEIGHT);
+  const traces = app.builderTraces;
+  byId('traces-note').textContent = traces.lanes.length === 0
+    ? 'No neurons, senses or signalled cells yet.'
+    : (traces.hiddenCount ? `+${traces.hiddenCount} more not shown · ` : '') +
+      'the numbers match the tags on the grid · Space and bound keys fire Commands';
 }
 
 // the line under the lanes: how to add one when there are none, or how many probe-worthy cells didn't fit
@@ -149,6 +183,26 @@ function probeFootnote(probes) {
   if (probes.lanes.length === 0) return 'Click a cell of yours to probe it.';
   if (probes.hiddenCount) return `+${probes.hiddenCount} more not shown (click a cell to choose)`;
   return '';
+}
+
+// the lane numbers of the builder's traces on their hexes of the grid (Nerve view)
+function drawBuilderTraceTags(app, context) {
+  context.font = 'bold 8px sans-serif';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  for (const lane of app.builderTraces.lanes) {
+    const [x, y] = hexToPixel(lane.cell.q, lane.cell.r);
+    drawProbeTag(context, x + CELL_RADIUS * 0.7, y - CELL_RADIUS * 0.7, lane.number);
+  }
+  context.textAlign = 'start';
+  context.textBaseline = 'alphabetic';
+}
+
+function drawProbeTag(context, x, y, number) {
+  context.fillStyle = '#0e181de6';
+  fillCircle(context, x, y, PROBE_TAG_RADIUS);
+  context.fillStyle = '#dfe4ea';
+  context.fillText(String(number), x, y + 0.5);
 }
 
 // the lane numbers on the probed cells, in world coordinates (the caller sets up any arena transform)
@@ -160,12 +214,7 @@ function drawProbeTags(app, context) {
   for (const lane of app.probes.lanes) {
     const cell = lane.cell;
     if (cell.dead || !cell.creature.alive) continue;
-    const x = cell.x + cell.radius * 0.7;
-    const y = cell.y - cell.radius * 0.7;
-    context.fillStyle = '#0e181de6';
-    fillCircle(context, x, y, PROBE_TAG_RADIUS);
-    context.fillStyle = '#dfe4ea';
-    context.fillText(String(lane.number), x, y + 0.5);
+    drawProbeTag(context, cell.x + cell.radius * 0.7, cell.y - cell.radius * 0.7, lane.number);
   }
   context.textAlign = 'start';
 }

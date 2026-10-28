@@ -1,6 +1,7 @@
 'use strict';
-// Levels in the app: the levels sheet that picks one, the level card in the side column, a level run with its bar,
-// arena, HUD and result box, and the best result kept per level (browser only). The rules are in levels.js.
+// Levels in the app: the levels sheet (a grid of level tiles, and the shown level's card down its right side), a
+// level run with its bar, arena, HUD and result box, and the best result kept per level (browser only). The rules are
+// in levels.js.
 
 const ARENA_TOP_MARGIN = 84;                              // px of screen above the arena, for the HUD and the bar
 const ARENA_SIDE_MARGIN = 16;                             // px of screen left, right and below the arena
@@ -15,15 +16,26 @@ function setUpLevels(app) {
   app.levelResults = readStorage('level-results', {});
   byId('show-levels').onclick = () => toggleLevelsSheet(app);
   byId('levels-sheet').onclick = event => {
-    if (event.target === byId('levels-sheet')) byId('levels-sheet').style.display = 'none';
+    if (event.target === byId('levels-sheet')) closeLevelsSheet();
   };
-  onSandboxButton('level-run', () => startLevelRun(app));
+  byId('levels-close').onclick = closeLevelsSheet;
+  onSandboxButton('level-run', () => {
+    chooseLevel(app, app.sheetLevel);
+    closeLevelsSheet();
+    startLevelRun(app);
+  });
+  onSandboxButton('level-build', () => {
+    chooseLevel(app, app.sheetLevel);
+    closeLevelsSheet();
+  });
   onSandboxButton('level-hint', () => {
     app.isHintShown = !app.isHintShown;
     showLevelCard(app);
   });
-  onSandboxButton('level-pick', () => toggleLevelsSheet(app));
-  onSandboxButton('level-leave', () => chooseLevel(app, null));
+  onSandboxButton('level-leave', () => {
+    chooseLevel(app, null);
+    showLevelTiles(app);
+  });
   onSandboxButton('level-pause', () => togglePause(app));
   onSandboxButton('level-step', () => requestOneStep(app));
   onSandboxButton('level-speed', () => cycleSandboxSpeed(app));
@@ -35,36 +47,61 @@ function setUpLevels(app) {
     chooseLevel(app, LEVELS[LEVELS.indexOf(app.level) + 1]);
     enterBuilder(app);
   });
-  showLevelCard(app);
+  showLevelButton(app);
 }
 
 // ---------- Choosing a level ----------
-// The sheet lists the levels with their best stars; a click on an open one chooses it and closes the sheet. A
-// locked level says which win opens it.
+// The sheet shows the levels as tiles with their best stars, and down its right side the card of one level: the
+// chosen one, or at first the latest open one. A click on an open tile shows that level's card; Run level and Build
+// for it choose it. A locked tile says in its tooltip which win opens it.
 function toggleLevelsSheet(app) {
   const sheet = byId('levels-sheet');
-  const isOpen = sheet.style.display === 'flex';
-  sheet.style.display = isOpen ? 'none' : 'flex';
-  if (isOpen) return;
+  if (sheet.style.display === 'flex') {
+    closeLevelsSheet();
+    return;
+  }
+  sheet.style.display = 'flex';
+  app.sheetLevel = app.level || latestOpenLevel(app);
+  app.isHintShown = false;
+  showLevelTiles(app);
+}
+
+// the last level in the list that is open, the one a player is most likely working on
+function latestOpenLevel(app) {
+  const openLevels = LEVELS.filter((level, i) => isLevelOpen(app.levelResults, i));
+  return openLevels[openLevels.length - 1];
+}
+
+function closeLevelsSheet() {
+  byId('levels-sheet').style.display = 'none';
+}
+
+// the tiles, under their chapter headings, with the shown one marked; then the shown level's card and, while a level
+// is chosen, the line that leaves it
+function showLevelTiles(app) {
   const list = byId('levels-list');
   list.innerHTML = '';
   LEVELS.forEach((level, i) => {
     if (i === 0 || LEVELS[i - 1].chapter !== level.chapter) list.appendChild(chapterHeading(level.chapter));
     const isOpen = isLevelOpen(app.levelResults, i);
-    const row = document.createElement('button');
-    row.className = 'level-row' + (level === app.level ? ' selected' : '') + (isOpen ? '' : ' locked');
-    const brief = isOpen ? level.brief : `Win “${LEVELS[i - 1].name}” to open it.`;
-    row.innerHTML = `<span class="level-number">${isOpen ? i + 1 : '🔒'}</span>` +
+    const tile = document.createElement('button');
+    tile.className = 'level-tile' + (level === app.sheetLevel ? ' selected' : '') + (isOpen ? '' : ' locked');
+    tile.title = isOpen ? level.brief : `Win “${LEVELS[i - 1].name}” to open it.`;
+    tile.innerHTML = `<span class="level-number">${isOpen ? i + 1 : '🔒'}</span>` +
       `<span class="level-name">${level.name}</span>` +
-      `<span class="level-stars">${starsHtml(bestResult(app, level))}</span>` +
-      `<span class="level-brief">${brief}</span>`;
-    row.onclick = () => {
+      `<span class="level-stars">${starsHtml(bestResult(app, level))}</span>`;
+    tile.onclick = () => {
       if (!isOpen) return;
-      chooseLevel(app, level);
-      sheet.style.display = 'none';
+      app.sheetLevel = level;
+      app.isHintShown = false;
+      showLevelTiles(app);
     };
-    list.appendChild(row);
+    list.appendChild(tile);
   });
+  showLevelCard(app);
+  const leave = byId('level-leave');
+  leave.style.display = app.level ? 'block' : 'none';
+  if (app.level) leave.textContent = `Leave “${app.level.name}”: back to free build (${RULES.budget} biomass)`;
 }
 
 // the line above a chapter's levels in the sheet
@@ -80,8 +117,16 @@ function chooseLevel(app, level) {
   app.level = level || null;
   app.isHintShown = false;
   if (app.edited.biomassLimit !== Infinity) app.edited.biomassLimit = chosenLimits(app).budget;
-  showLevelCard(app);
+  showLevelButton(app);
   refreshPanel(app);
+}
+
+// the toolbar's Levels button lights up while a level is chosen, and its tooltip names it
+function showLevelButton(app) {
+  const level = app.level;
+  byId('show-levels').classList.toggle('selected', !!level);
+  byId('show-levels').title = level ? `Level ${LEVELS.indexOf(level) + 1}: ${level.name}: see it, run it`
+    : 'Levels: pick a challenge';
 }
 
 const bestResult = (app, level) => app.levelResults[level.id] || null;
@@ -92,20 +137,21 @@ function starsHtml(result) {
   return [0, 1, 2].map(i => `<b class="${i < earned ? 'lit' : ''}">★</b>`).join('');
 }
 
-// The card above the panel: the chosen level, what it asks, its limits and par, the best result, and the hint.
+// The card down the sheet's right side: the shown level, what it asks, its limits, what earns the stars, the best
+// result and the hint, with Run level at the bottom.
 function showLevelCard(app) {
-  const level = app.level;
-  byId('level-card').style.display = level ? 'block' : 'none';
+  const level = app.sheetLevel;
   if (!level) return;
   const limits = levelLimits(level);
   const best = bestResult(app, level);
-  byId('level-card-title').innerHTML = `Level ${LEVELS.indexOf(level) + 1}: ${level.name} ` +
-    `<span class="level-stars">${starsHtml(best)}</span>`;
+  const chapter = `Chapter ${level.chapter} · level ${LEVELS.indexOf(level) + 1}`;
+  byId('level-card-number').textContent = level === app.level ? chapter + ' · chosen' : chapter;
+  byId('level-card-title').innerHTML = `${level.name}<span class="level-stars">${starsHtml(best)}</span>`;
   byId('level-card-brief').textContent = level.brief;
-  byId('level-card-rules').textContent = `${limits.budget} biomass · ${level.timeLimit} s · ★ by ` +
-    `${level.par.seconds} s · ★ within ${level.par.biomass} biomass`;
-  byId('level-card-best').textContent = best ?
-    `Best: ${best.seconds.toFixed(1)} s, ${formatBiomass(best.biomass)} biomass` : '';
+  const rule = (name, value) => `<span>${name}</span><b>${value}</b>`;
+  byId('level-card-rules').innerHTML = rule('Biomass', limits.budget) + rule('Time limit', level.timeLimit + ' s') +
+    rule('★ Finish by', level.par.seconds + ' s') + rule('★ Use at most', level.par.biomass + ' biomass') +
+    rule('Best', best ? `${best.seconds.toFixed(1)} s, ${formatBiomass(best.biomass)} biomass` : '–');
   byId('level-card-hint').textContent = app.isHintShown ? level.hint : '';
   byId('level-card-hint').style.display = app.isHintShown ? 'block' : 'none';
   byId('level-hint').textContent = app.isHintShown ? 'Hide hint' : 'Hint';
@@ -117,7 +163,7 @@ function startLevelRun(app) {
   const design = bodyDesign(app.edited);
   const problem = buildCheck(design, chosenLimits(app));
   if (problem) {
-    byId('info').textContent = `It doesn't fit this level: ${problem}.`;
+    showMessage(`It doesn't fit this level: ${problem}.`);
     return;
   }
   app.mode = 'level';

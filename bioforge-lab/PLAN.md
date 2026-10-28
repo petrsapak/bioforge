@@ -75,6 +75,11 @@ The layer split is a proposal, to try in play first. The creature has 4 layers o
 - Each layer is a separate view in the editor, and the other layers are dimmed while you edit one. The views are tabs at the top centre: 1 Body (the default), 2 Nerves, 3 Vessels (2026-10-28, user: "I want to introduce tabs with shortcuts, 1 body, 2 nerves, 3 veins. The tabs will be on top - centered, with body the default"; until then they were buttons at the top of the left toolbar, with N and V switching to Nerves and Vessels and back). 1–3 always switch tabs, so a Command can't be bound to them.
 - **The cell dock** (2026-10-28, user: "the bottom menu change it to tabs as well, also remove the names from the cells and the biomass price and move that to the hint"): a tab per category (Body, Sense, Action, Fluid, Gland), and the open tabs' cells as two interlocking rows of hexagons with no labels. A click opens or closes a tab, so several can be open side by side (user, 2026-10-28: "allow the player to expand the tabs - even multiple at once"; for a few hours only one tab was open at a time); the last open one can't be closed. The open tabs are remembered (`bioforge-lab-dock-categories`). Until then every category showed at once in folding sections, in as few rows as fitted the window, each hexagon with its name and cost. The Nerve view's neurons are two rows too. The dock is 75% of the window wide (user, 2026-10-28), with the tabs in the middle of its head and the hexagons centred.
 - **The hover hint** shows after 200 ms (it was 1 s until 2026-10-28) and starts with the name and the biomass cost (◆). Over a dock button it sits above the button, centred on it; over a cell on the grid it sits beside the mouse, on the side towards the middle of the screen. Placed cells give a hint only in the Body view (user, 2026-10-28: "in nerves and fluids we don't need to show so agressive hints about the cells already on the creature"); in the Nerve and Vessels views only the dock's buttons do. Neuron buttons get a hint too (name and description; they had the browser's own title tooltip).
+- **The builder's panels** (2026-10-28, user: "It contains some bars - which are very small with no description - they are just noise ... That is too much, it is noisy and nobody will watch it"). Until then the left panel had five unlabelled meter bars for every view, a card with a picture and the description of the chosen cell or neuron, a neuron scope with made-up inputs, five figure chips (health, mass, burn, O₂, sugar) and every design warning as a sentence, with an orange "!" on every cell each warning was about.
+  - **Limits line:** under the tabs, in words, only the current tab's limits (Body: biomass and cells; Nerves: neurons and fibre; Vessels: vessel units). A full limit turns orange; a design over any limit says so below it.
+  - **Card:** shows only for the part being stamped, or a clicked cell that has something to set up: a neuron (its setting, a Command's key), a Bud, or any cell in the Nerve view (its fibres). No picture, no description: the hover hint tells what a cell is. Messages (saved, can't place) have their own line above it.
+  - **Needs card** (user: "if you place muscles 52 warnings shows up, that is not a good experience"): "Sugar lasts N s" in big type (the stock at the start over the most the cells burn, every cell working), then fixed rows Signal, Oxygen, Sugar, Waste, Blood, Weapon (and Buds when there are Buds), each ✓, ✗ with a fix in a few words, ~ when it works poorly (cells far from a pumped vessel, blocked Bud parts) or – when nothing needs it yet. One "Next:" line gives the full text of the first ✗. The "!" marks on the grid show only while the mouse is on a row. "No weapons" is a – in the Weapon row, not an error. Health, mass and O₂ per second are no longer shown.
+  - **Traces window** (user: "I like the graphs, but they should be in some tracing windows when in nerves layer"): a floating window, shown only in the Nerve view, with the run's probe lanes for the builder's test tank: up to 8 senses, neurons and signalled cells of the real creature, 6 s each, with matching number tags on the grid. Space and bound keys fire Commands in it. It replaced the scope, which ran one neuron on made-up inputs.
 - **Metabolism is a system across the layers, not a 5th grid layer.** Materials travel in the blood, secretions come from glands, and body cells are made of materials. The editor gets a materials panel (stores, recipes), not a 5th view. Its timescale is the slowest: minutes.
 
 ### Interfaces between layers (where the depth comes from)
@@ -201,8 +206,8 @@ food.js         food specks, eating, specks left by dead cells (pure); system: f
 ai.js           sandbox enemy steering (pure)
 levels.js       levels: building a level's world, its light, stepping it, the goal checks, the score, a headless
                 run (pure)
-design.js       hex lookup, buildCheck (cells, biomass, neurons, fibre and vessel units), design warnings, the saved design
-                format, and the conversion of old saves and of designs from before the nerve layer (pure; loaded
+design.js       hex lookup, buildCheck (cells, biomass, neurons, fibre and vessel units), design warnings and the
+                Needs rows they fill, the sugar supply, the saved design format, and the conversion of old saves and of designs from before the nerve layer (pure; loaded
                 before data/templates.js, which uses the conversion)
 builder.js      the edited design and every editing rule: cells, Bud parts and aim, Command keys, vessels, stamps,
                 saving a selection, the library list (pure)
@@ -216,17 +221,17 @@ dock.js         the cell dock: a tab per category, two rows of hexagons; the neu
 library.js      the template library window, saved in localStorage
 toolbar.js      the Body / Nerves / Vessels tabs at the top; the toolbar down the left edge: Clear, Save,
                 Unlimited, fluid views, keys, Sandbox
-panel.js        the side panel: meters, a card with a picture of the clicked or chosen cell or neuron, stats
-                chips, warnings
-scope.js        the neuron scope: an animated input and output trace, run through the real neuron rules
+panel.js        the limits line under the tabs, a message line, the card of the clicked cell or the stamp, and the
+                Needs card (sugar time, a row per need, the next fix)
 coach.js        the How to box: small looping animations of each step, ticked off as the design does them
 builderview.js  drawing the builder grid and the preview window; zoom and pan
 tooltip.js      the hover hint: name, cost, description, how to use, live example
-probes.js       signal probes in runs: a live 6 s trace per sense, neuron and signalled cell of the player, or per
-                cell the player clicked, with number tags on the cells
+probes.js       signal probes: a live 6 s trace per sense, neuron and signalled cell, with number tags on the
+                cells; in runs for the player (or the cells the player clicked), in the builder's Traces window
+                (Nerve view) for the test tank's creature
 sandbox.js      sandbox mode: its bar, steps, drawing and HUD; the time controls and vitals HUD it shares with levels
-levelview.js    levels in the app: the levels sheet, the level card, a level run with its bar, arena, HUD and
-                result box, the best results
+levelview.js    levels in the app: the levels sheet (level tiles, and the chosen level's card beside them), a
+                level run with its bar, arena, HUD and result box, the best results
 music.js        the background music: starts on the first click or key; the toolbar button and M switch it
 audio/          the music track (mp3)
 ui.js           the app state, the controls, mouse and keyboard input, the frame loop
@@ -310,7 +315,7 @@ Planned additions: `chemical.js`, `metabolism.js`.
 7. **Growth and chapter 7.** The growth plan, Buds, regrowth, Nucleic, and the metamorphosis boss.
 
 ## Open questions
-- **Where do the levels live in the UI?** The flag button, levels sheet and level card above the panel are kept for now; the user doesn't like the placement (2026-10-28: "I don't like the placement from UX perspective but ok, keep it like this for now"). Redo it with the UI pass.
+- **Where do the levels live in the UI?** Since 2026-10-28 (user: "this why this stretches from top to bottom, make it more UX friendly. Also remove this window from the screen and make it visible once someone clicks on a challenge") the flag button opens a sheet with the levels as small tiles (number, name, stars) in a grid under their chapter headings, and down the sheet's whole right side one level's card: the chosen level, or at first the latest open one (user: "By default select the latest unlocked level"). The card has the goal, the limits and what earns the stars as a list, the best result, Build for it and Hint, and a big Run level at the bottom; its header holds the sheet's ✕. A click on a tile only shows its card; Build for it and Run level choose the level. While a level is chosen, a "Leave …: back to free build" line under the tiles leaves it (for a few hours that was a "Free build" button in the card, which the user found unclear). The sheet closes with ✕, Esc or a click outside. In the builder the flag button lights up while a level is chosen, and the limits line shows its limits; there is no level card on screen any more. Until then the sheet was a column of full-width rows with each brief, taller than the screen, and choosing one closed it and put the card above the side panel. Still open: whether running the chosen level should take fewer than two clicks from the builder.
 - **How does a crossing look in the editor?** (milestone 1)
 - **Is the 4-layer split right?** Should hormones merge into the vascular layer? Decide after trying it.
 - **Which current cells stay, change or go?** Nerve cells and the Heart radius were replaced by the layers (2026-10-28).
