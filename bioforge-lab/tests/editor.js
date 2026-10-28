@@ -8,9 +8,8 @@ const OLD_LIBRARY = JSON.stringify([{ name: 'Old timer', full: true, cells: [{ q
 const { byId, fire, runFrames, readGlobal, storage, templateButton } =
   startApp(['clear', 'starter'], { 'bioforge-templates': OLD_LIBRARY });
 
-// where hex (q, r) is on screen: the grid's middle is right of the panel, at the start zoom (see builderview.js)
-const PANEL_WIDTH = readGlobal('BUILDER_PANEL_WIDTH');
-const GRID_MIDDLE_X = PANEL_WIDTH + (1600 - PANEL_WIDTH) / 2;
+// where hex (q, r) is on screen: the grid's middle is the screen's middle, at the start zoom (see builderview.js)
+const GRID_MIDDLE_X = 1600 / 2;
 const GRID_MIDDLE_Y = 900 / 2;
 const START_ZOOM = 1.9;
 function screenPointOf(q, r) {
@@ -171,6 +170,16 @@ moveMouseTo(-1, -1);
 fire('window', 'mouseup', { ...screenPointOf(-1, -1), target: canvas });
 runFrames(1);
 check('dragging the part onto a Bud makes the Bud grow it', /Grows <b>Front<\/b>/.test(info()), info());
+
+fire('game', 'mousedown', { clientX: 800, clientY: 450, button: 1, target: canvas });
+fire('window', 'mousemove', { clientX: 1000, clientY: 550, target: canvas });
+fire('window', 'mouseup', { clientX: 1000, clientY: 550, target: canvas });
+byId('start-sandbox').onclick();
+runFrames(5);
+pressKey('Escape');
+runFrames(1);
+clickHex(0, 0);
+check('back in the builder, the pan is reset: the Nucleus is in the middle of the screen', /Nucleus/.test(info()), info());
 
 check("Bioforge Moba's old library carries over", byId('my-creatures').children.length === 1);
 check('the old library is left as it was', storage.items['bioforge-templates'] === OLD_LIBRARY);

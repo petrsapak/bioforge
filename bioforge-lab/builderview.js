@@ -3,7 +3,8 @@
 // and aim arrows, selections, warnings, ghosts of what is being placed, and the preview window. Also the grid's
 // zoom and pan (browser only).
 
-const BUILDER_PANEL_WIDTH = 350;                          // px of toolbar and panel kept clear when centring the grid
+const BUILDER_PANEL_WIDTH = 350;                          // px of the windows on each side, kept clear by F
+const FIT_MIN_WIDTH = 300;                                // px the grid fits into at least, on a narrow screen
 const ZOOM_MIN = 0.2;
 const ZOOM_MAX = 5;
 const ZOOM_START = 1.9;
@@ -28,11 +29,11 @@ function createGridView() {
   return { zoom: ZOOM_START, panX: 0, panY: 0 };
 }
 
-// the screen point of the grid's centre: the middle of the space right of the panel, moved by the pan
+// the screen point of the grid's centre: the middle of the screen, moved by the pan
 function gridOrigin(app) {
   const canvas = app.canvas;
   return {
-    x: BUILDER_PANEL_WIDTH + (canvas.width - BUILDER_PANEL_WIDTH) / 2 + app.gridView.panX,
+    x: canvas.width / 2 + app.gridView.panX,
     y: canvas.height / 2 + app.gridView.panY,
   };
 }
@@ -45,7 +46,7 @@ function screenToGrid(app, screenX, screenY) {
 
 // zoom so the whole hex grid fits right of the panel
 function fitGridToScreen(app) {
-  const width = app.canvas.width - BUILDER_PANEL_WIDTH - 30;
+  const width = Math.max(FIT_MIN_WIDTH, app.canvas.width - 2 * BUILDER_PANEL_WIDTH - 30);
   const height = app.canvas.height - 60;
   const gridWidth = (2 * GRID_RADIUS + 1) * HEX_SPACING_X;
   const gridHeight = (2 * GRID_RADIUS + 1) * HEX_SPACING_Y + 30;

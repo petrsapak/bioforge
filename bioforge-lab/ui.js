@@ -304,6 +304,8 @@ function enterBuilder(app) {
   app.world = null;
   app.player = null;
   app.levelRun = null;
+  app.gridView.panX = 0;                                // the Nucleus back in the middle of the screen
+  app.gridView.panY = 0;
   showModeWindows(app);
   rebuildTank(app);
 }
