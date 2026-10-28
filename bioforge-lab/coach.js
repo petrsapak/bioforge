@@ -20,7 +20,7 @@ const COACH_STEPS = {
       isDone: app => bodyCells(app.edited).length > 1,
     },
     { caption: 'Right-click: remove it', drawScene: drawRemoveCellScene },
-    { caption: 'Nerves (N): make it move', drawScene: drawSwitchToNervesScene },
+    { caption: 'Nerves (2): make it move', drawScene: drawSwitchToNervesScene },
   ],
   nerve: [
     { caption: 'Pick a neuron in the dock', drawScene: drawPickNeuronScene },

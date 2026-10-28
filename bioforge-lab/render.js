@@ -482,7 +482,7 @@ function drawNeuronBadge(context, cell, radius, alpha = 1) {
   context.font = `bold ${badgeRadius * 1.5 | 0}px system-ui`;
   context.textAlign = 'center';
   context.textBaseline = 'middle';
-  context.fillText(cell.boundKey || neuronType.symbol, cell.x, cell.y + 0.5);
+  context.fillText(cell.boundKey ? cell.boundKey.toUpperCase() : neuronType.symbol, cell.x, cell.y + 0.5);
   context.textBaseline = 'alphabetic';
 }
 

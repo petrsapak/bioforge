@@ -12,7 +12,7 @@ const REMOVE_CLICK_MARGIN = 4;                            // px added to a cell'
 const SANDBOX_SPEEDS = [1, 2, 4, 0.5, 0.25];              // game seconds per real second, cycled by the speed button
 const SANDBOX_KEYS_HELP = '<b>Mouse</b> is the light (Light eyes)<br>' +
   '<b>Click</b> spawn (on your cell: probe it) &nbsp;<b>Right-click</b> remove &nbsp;<b>R</b> respawn<br>' +
-  '<b>Space</b> <b>1–9</b> Command neurons &nbsp;<b>P</b> pause &nbsp;<b>.</b> one step &nbsp;<b>,</b> speed<br>' +
+  '<b>Space</b> and bound keys: Commands &nbsp;<b>P</b> pause &nbsp;<b>.</b> one step &nbsp;<b>,</b> speed<br>' +
   '<b>T</b> signals &nbsp;<b>Shift+1–6</b> view &nbsp;<b>Esc</b> builder';
 
 // the top bar: who you play, what a click spawns, and the enemy, clear, respawn and exit buttons
@@ -116,11 +116,11 @@ function trackSandboxLight(app, event) {
   app.sandboxLight = createLight(event.clientX, event.clientY);
 }
 
-// Runs at the chosen speed (real time at 1×, like the builder). Space and the number keys reach the player's
+// Runs at the chosen speed (real time at 1×, like the builder). Space and the bound keys reach the player's
 // Command neurons, nothing else.
 function stepSandbox(app, dt) {
   app.world.light = app.sandboxLight;
-  const input = { ability: app.keysHeld.has(' '), heldKeys: app.digitsHeld };
+  const input = { ability: app.keysHeld.has(' '), heldKeys: app.commandKeysHeld };
   runTimeControlled(app, dt, stepTime => {
     step(app.world, stepTime, input);
     recordProbes(app.probes, app.world);

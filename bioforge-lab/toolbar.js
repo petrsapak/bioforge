@@ -1,6 +1,6 @@
 'use strict';
-// The builder's toolbar down the left edge: the Body, Nerve and Vessels views, Clear, Save creature, Unlimited
-// biomass, the fluid views, the keys sheet and the Sandbox button (browser only).
+// The builder's toolbar down the left edge (Clear, Save creature, Unlimited biomass, the fluid views, the keys sheet
+// and the Sandbox button) and the Body, Nerves and Vessels tabs at the top (browser only).
 
 const NORMAL_VIEW_COLOR = '#dfe4ea';
 
@@ -11,6 +11,7 @@ function setUpToolbar(app) {
   setUpKeysSheet();
 }
 
+// the tabs at the top centre; the keys 1, 2 and 3 are in ui.js
 function setUpLayerSwitch(app) {
   byId('layer-body').onclick = () => showLayer(app, 'body');
   byId('layer-nerve').onclick = () => showLayer(app, 'nerve');

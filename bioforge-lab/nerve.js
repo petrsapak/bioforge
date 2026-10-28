@@ -66,7 +66,7 @@ function senseOutput(world, cell) {
   return SENSES[cell.type.senses](world, cell);
 }
 
-// A bound Command fires on its number key for the player; unbound ones, the AI and the test tank use Space (ability).
+// A bound Command fires on its key for the player; unbound ones, the AI and the test tank use Space (ability).
 function commandOutput(world, cell) {
   const creature = cell.creature;
   const keyHeld = !!cell.boundKey && !!creature.heldKeys && creature.heldKeys.has(cell.boundKey);

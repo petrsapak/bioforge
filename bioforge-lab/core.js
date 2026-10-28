@@ -117,7 +117,7 @@ function createCreature(team, cells, options = {}) {
     swimX: 0,                                             // wanted swimming direction
     swimY: 0,
     abilityHeld: false,                                   // Space, or the AI's wish to fire
-    heldKeys: null,                                       // number keys held, for bound Commands
+    heldKeys: null,                                       // letter and number keys held, for bound Commands
     centerX: 0,
     centerY: 0,
     restCenterX: 0,                                       // mass centre of the design, in grid px
@@ -173,7 +173,7 @@ function createCell(typeName, q, r, creature) {
     skinNeighbours: [],                                   // the cells next to it along the skin
     starving: false,
     poisoned: false,
-    boundKey: null,                                       // Command: number key it fires on
+    boundKey: null,                                       // Command: the key it fires on ('a'–'z', '0'–'9')
     budGrowth: null,                                      // Bud: { plan, progress, grownCount, done }
     budParent: null,                                      // a cell of a growing Bud part: its Bud
     snareLine: null,

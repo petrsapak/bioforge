@@ -255,11 +255,11 @@ function fibresAt(edited, key) {
   };
 }
 
-// binds a Command to a number key; pressing its key again unbinds it (it then fires on Space)
-function toggleCommandKey(edited, key, digit) {
+// binds a Command to a key ('a'–'z' or '0'–'9'); pressing its key again unbinds it (it then fires on Space)
+function toggleCommandKey(edited, key, commandKey) {
   const command = edited.cells.get(key);
-  if (command.boundKey === digit) delete command.boundKey;
-  else command.boundKey = digit;
+  if (command.boundKey === commandKey) delete command.boundKey;
+  else command.boundKey = commandKey;
 }
 
 // ---------- Bud parts ----------

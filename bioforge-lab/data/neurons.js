@@ -19,8 +19,8 @@ const NEURONS = {
   }),
   command: neuronType({
     name: 'Command', symbol: 'K', color: '#f29b38', ignoresInputs: true,
-    description: 'On while its key is held: Space, or a number key (click the cell, then press 1–9). The AI ' +
-      'presses it when close to an enemy.',
+    description: 'On while its key is held: Space, or a key of your own (click the cell, then press a letter or ' +
+      'number). The AI presses it when close to an enemy.',
   }),
   ganglion: neuronType({
     name: 'Ganglion', symbol: '≈', color: '#c78f3c',

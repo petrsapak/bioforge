@@ -7,7 +7,7 @@ const ARENA_SIDE_MARGIN = 16;                             // px of screen left, 
 const GOAL_COLOR = '127,224,160';                         // r,g,b of the goal rings
 const GOAL_PULSE_RATE = 2;                                // rad/s of the goal ring's breathing
 const DARK_LAMP_RADIUS = 9;                               // px in the arena: a light that is off
-const LEVEL_KEYS_HELP = '<b>Space</b> <b>1–9</b> Command neurons &nbsp;<b>P</b> pause &nbsp;<b>.</b> one step ' +
+const LEVEL_KEYS_HELP = '<b>Space</b> and bound keys: Commands &nbsp;<b>P</b> pause &nbsp;<b>.</b> one step ' +
   '&nbsp;<b>,</b> speed<br><b>T</b> signals &nbsp;<b>R</b> retry &nbsp;<b>Esc</b> builder';
 
 // the toolbar button, the levels sheet, the level card's buttons, the level bar and the result box
@@ -147,7 +147,7 @@ function retryLevel(app) {
 function stepLevelMode(app, dt) {
   const run = app.levelRun;
   if (run.outcome) return;
-  const input = { ability: app.keysHeld.has(' '), heldKeys: app.digitsHeld };
+  const input = { ability: app.keysHeld.has(' '), heldKeys: app.commandKeysHeld };
   runTimeControlled(app, dt, stepTime => {
     stepLevel(run, stepTime, input);
     recordProbes(app.probes, run.world);

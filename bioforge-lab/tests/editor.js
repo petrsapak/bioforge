@@ -80,9 +80,14 @@ check('the panel shows the chosen neuron with its scope', /Pacemaker/.test(info(
 neuronButton('command').onclick();
 clickHex(1, 0);
 check('then the next step is laying a fibre', /a fibre/.test(nextCoachStep()), nextCoachStep());
-pressKey('3');
-check('a click puts the chosen neuron into a cell, and a number key binds a Command',
-  /Command<\/b> neuron/.test(info()) && /Fires on <b>key 3<\/b>/.test(info()), info());
+pressKey('g');
+check('a click puts the chosen neuron into a cell, and a letter key binds a Command',
+  /Command<\/b> neuron/.test(info()) && /Fires on <b>key G<\/b>/.test(info()), info());
+pressKey('r');
+check('a reserved key (R) doesn\'t bind it', /Fires on <b>key G<\/b>/.test(info()), info());
+pressKey('2');
+check('with a Command clicked, 2 still opens the Nerves tab and doesn\'t bind',
+  byId('dock-bar').textContent === 'Neurons' && /Fires on <b>key G<\/b>/.test(info()), info());
 const unitsBefore = fibreUnitsShown();
 moveMouseTo(1, 0);
 fire('game', 'mousedown', { ...screenPointOf(1, 0), button: 0, target: canvas });
@@ -122,11 +127,11 @@ check('the × on a fibre in the card removes it', fibreUnitsShown() === unitsBef
 fire('game', 'mousedown', { ...screenPointOf(1, 0), button: 2, target: canvas });
 runFrames(1);
 check('a right-click on the neuron takes it out', /No neuron/.test(info()), info());
-pressKey('n');
-check('N goes back to the Body view', byId('dock-bar').textContent === 'Cells');
+pressKey('1');
+check('with no Command clicked, 1 opens the Body tab', byId('dock-bar').textContent === 'Cells');
 
-pressKey('v');
-check('V opens the Vessels view', byId('layer-vessel').classList.contains('selected') &&
+pressKey('3');
+check('3 opens the Vessels tab', byId('layer-vessel').classList.contains('selected') &&
   /Vessels/.test(byId('dock-bar').textContent) && /a vessel/.test(nextCoachStep()), nextCoachStep());
 moveMouseTo(-1, 0);
 fire('game', 'mousedown', { ...screenPointOf(-1, 0), button: 0, target: canvas });
@@ -137,8 +142,8 @@ check('a drag from the Gill to a Cilia lays a vessel of 2 units', vesselUnitsSho
 fire('game', 'mousedown', { ...screenPointOf(0, 1), button: 2, target: canvas });
 runFrames(1);
 check('a right-click on the vessel removes it', vesselUnitsShown() === 0, String(vesselUnitsShown()));
-pressKey('v');
-check('V goes back to the Body view', byId('dock-bar').textContent === 'Cells');
+pressKey('1');
+check('1 goes back to the Body tab', byId('dock-bar').textContent === 'Cells');
 pressKey('Escape');
 
 clickHex(0, -1, { ctrlKey: true });

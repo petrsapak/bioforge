@@ -13,6 +13,9 @@ const TANK_MARGIN = 160;                                  // px of water around 
 const TANK_CENTER_PULL = 0.05;                            // share of the creature's offset from the middle, per frame
 const SAVE_MENU_WIDTH = 230;                              // px kept free right of the save menu's corner
 const SAVE_MENU_HEIGHT = 120;                             // px
+const LAYER_BY_KEY = { 1: 'body', 2: 'nerve', 3: 'vessel' };    // the builder's tab each number key opens
+// keys with a job of their own, which a Command can't be bound to: the tabs, Q/E, F, H, M, and P, R, T in runs
+const RESERVED_KEYS = new Set(['1', '2', '3', 'e', 'f', 'h', 'm', 'p', 'q', 'r', 't']);
 
 // The one place the app state is built. Every browser file reads and changes the app through this object.
 function createApp(canvas) {
@@ -23,7 +26,7 @@ function createApp(canvas) {
     layer: 'body',                                        // the builder's view: 'body' or 'nerve'
     fluidView: 0,                                         // 0 = normal, otherwise 1 + the index of the fluid shown
     keysHeld: new Set(),                                  // lower-case key names
-    digitsHeld: new Set(),                                // number keys held, for bound Commands
+    commandKeysHeld: new Set(),                           // letter and number keys held, for bound Commands
     edited: createEditedDesign(TEMPLATES[START_DESIGN],
       readStorage('unlimited-biomass', false) ? Infinity : RULES.budget),
     lastLoadedName: '',                                   // the saved creature last loaded, offered when saving again
@@ -282,7 +285,9 @@ function saveSelection(app, name) {
 // the windows of the app's mode: the builder's, or the HUD with the Sandbox's or the level's bar
 function showModeWindows(app) {
   const isBuilding = app.mode === 'build';
-  for (const id of ['builder-left', 'preview', 'library']) byId(id).style.display = isBuilding ? 'flex' : 'none';
+  for (const id of ['builder-left', 'layer-tabs', 'preview', 'library']) {
+    byId(id).style.display = isBuilding ? 'flex' : 'none';
+  }
   if (!isBuilding) {
     byId('keys-sheet').style.display = 'none';
     byId('levels-sheet').style.display = 'none';
@@ -318,11 +323,12 @@ function listenToKeyboard(app) {
     if (key === 'm' && !event.repeat) toggleMusic(app);
     if (key === 't' && !event.repeat && app.mode !== 'build') toggleProbes(app);
     const digit = digitOf(event);
+    const commandKey = commandKeyOf(event);
     if (digit && event.shiftKey) {
       if (digit >= '1' && digit <= String(FLUIDS.length + 1)) showFluidView(app, +digit - 1);
-    } else if (digit && digit !== '0') {
-      app.digitsHeld.add(digit);
-      if (!event.repeat) bindFocusedCommand(app, digit);
+    } else if (commandKey) {
+      app.commandKeysHeld.add(commandKey);
+      if (!event.repeat) pressKeyInBuilder(app, commandKey);
     }
     if (app.mode === 'build') handleBuilderKey(app, key);
     else if (app.mode === 'sandbox') handleSandboxKey(app, key);
@@ -330,8 +336,8 @@ function listenToKeyboard(app) {
   });
   addEventListener('keyup', event => {
     app.keysHeld.delete(event.key.toLowerCase());
-    const digit = digitOf(event);
-    if (digit) app.digitsHeld.delete(digit);
+    const commandKey = commandKeyOf(event);
+    if (commandKey) app.commandKeysHeld.delete(commandKey);
   });
 }
 
@@ -341,21 +347,34 @@ function digitOf(event) {
   return /^[0-9]$/.test(event.key) ? event.key : null;
 }
 
-// in the builder, a number key binds the clicked cell's Command neuron to it
-function bindFocusedCommand(app, digit) {
-  const focused = app.mode === 'build' && app.focusKey && app.edited.cells.get(app.focusKey);
+// the key a Command can fire on: a letter ('a'–'z') or a number key, without Ctrl or Alt; null for other keys.
+// Reserved keys count too, so that a Command bound to one in an older save still fires.
+function commandKeyOf(event) {
+  if (event.ctrlKey || event.altKey || event.metaKey) return null;
+  const key = digitOf(event) || (event.key || '').toLowerCase();
+  return /^[a-z0-9]$/.test(key) ? key : null;
+}
+
+// in the builder, 1–3 open the Body, Nerves and Vessels tabs, and any other free key binds the clicked Command
+function pressKeyInBuilder(app, commandKey) {
+  if (app.mode !== 'build') return;
+  if (LAYER_BY_KEY[commandKey]) showLayer(app, LAYER_BY_KEY[commandKey]);
+  else if (!RESERVED_KEYS.has(commandKey)) bindFocusedCommand(app, commandKey);
+}
+
+// binds the clicked cell's Command neuron to the key, if a Command neuron is clicked
+function bindFocusedCommand(app, commandKey) {
+  const focused = app.focusKey && app.edited.cells.get(app.focusKey);
   if (!focused || !focused.neuron || focused.neuron.kind !== 'command') return;
-  toggleCommandKey(app.edited, app.focusKey, digit);
+  toggleCommandKey(app.edited, app.focusKey, commandKey);
   rebuildTank(app);
 }
 
-// F fits the grid; N switches between the Body and Nerve views, V between the Body and Vessels views; H shows the
-// keys; Esc drops what is in hand; Q/E turn the stamp, the dragged part or the clicked Bud's part
+// F fits the grid; H shows the keys; Esc drops what is in hand; Q/E turn the stamp, the dragged part or the
+// clicked Bud's part
 function handleBuilderKey(app, key) {
   if (key === 'f') fitGridToScreen(app);
   if (key === 'h') toggleKeysSheet();
-  if (key === 'n') showLayer(app, app.layer === 'nerve' ? 'body' : 'nerve');
-  if (key === 'v') showLayer(app, app.layer === 'vessel' ? 'body' : 'vessel');
   if (key === 'escape') {
     if (app.partDrag || app.aimDragKey || app.fibreDrag || app.vesselDrag) {
       app.partDrag = null;
@@ -609,7 +628,7 @@ function runBuilderFrame(app, dt, now) {
   for (const creature of tank.creatures) {
     if (!creature.debris) creature.targetHeading = 0;
   }
-  step(tank, dt, { swimX: 0, swimY: 0, ability: app.keysHeld.has(' '), heldKeys: app.digitsHeld });
+  step(tank, dt, { swimX: 0, swimY: 0, ability: app.keysHeld.has(' '), heldKeys: app.commandKeysHeld });
   const creature = tank.creatures.find(other => !other.debris);
   if (creature) {
     const shiftX = (tank.width / 2 - creature.centerX) * TANK_CENTER_PULL;

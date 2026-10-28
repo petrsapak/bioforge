@@ -22,6 +22,26 @@ button.big {
 }
 button.big:hover { background: #4a8044; }
 
+/* ---------- The Body, Nerves and Vessels tabs at the top centre ---------- */
+#layer-tabs {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 2px; padding: 4px;
+  background: #0e181dcc; border: 1px solid #23323a88; border-radius: 12px; backdrop-filter: blur(3px);
+}
+.layer-tab {
+  display: flex; align-items: center; gap: 7px; padding: 6px 14px 6px 10px; background: none; color: #8a96a3;
+  border: 1px solid transparent; border-radius: 9px; cursor: pointer; font: inherit; font-size: 13px;
+  font-weight: 600; letter-spacing: .3px;
+}
+.layer-tab svg { width: 20px; height: 20px; opacity: .6; }
+.layer-tab kbd {
+  min-width: 16px; padding: 0 4px; border: 1px solid #2c3f48; border-radius: 4px; color: #6f7b88;
+  font: 10px/14px system-ui, sans-serif; text-align: center;
+}
+.layer-tab:hover { background: #ffffff0d; color: #dfe4ea; }
+.layer-tab.selected { background: #2b2a1f; color: #f2e39b; border-color: #e8c547; }
+.layer-tab.selected svg { opacity: 1; }
+.layer-tab.selected kbd { border-color: #e8c54788; color: #e8c547; }
+
 /* ---------- Left side: the toolbar, and a column with the panel and the How to box ---------- */
 #builder-left {
   position: absolute; top: 10px; left: 10px; display: flex; gap: 8px; align-items: flex-start;
@@ -41,8 +61,6 @@ button.big:hover { background: #4a8044; }
 .tool svg { width: 24px; height: 24px; }
 .tool:hover { background: #26363e; border-color: #5d6b77; }
 .tool.selected { border-color: #e8c547; background: #2b2a1f; box-shadow: 0 0 10px #e8c54755; }
-.tool.layer { height: 50px; }
-.tool.layer span { font-size: 9px; letter-spacing: .5px; text-transform: uppercase; margin-top: 1px; }
 .tool.play { background: #3d6b38; border-color: #4a8044; }
 .tool.play:hover { background: #4a8044; }
 .tool .music-off-cross { display: none; }

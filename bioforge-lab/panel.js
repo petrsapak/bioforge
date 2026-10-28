@@ -224,8 +224,8 @@ function describeNeuron(cell) {
       '<button class="small" id="neuron-setting-up">+</button></div>';
   }
   if (cell.neuron.kind === 'command') {
-    const key = cell.boundKey ? 'key ' + cell.boundKey : 'Space';
-    text += `<div class="keys-hint">Fires on <b>${key}</b> · press <b>1</b>–<b>9</b> to bind</div>`;
+    const key = cell.boundKey ? 'key ' + cell.boundKey.toUpperCase() : 'Space';
+    text += `<div class="keys-hint">Fires on <b>${key}</b> · press a letter or number to bind</div>`;
   }
   return text;
 }
