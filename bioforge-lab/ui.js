@@ -397,6 +397,7 @@ function listenToMouse(app) {
   });
   canvas.addEventListener('mousedown', event => {
     if (app.mode === 'sandbox') handleSandboxClick(app, event);
+    else if (app.mode === 'level') handleLevelClick(app, event);
     else if (app.mode === 'build') handleBuilderMouseDown(app, event);
   });
   canvas.addEventListener('wheel', event => {

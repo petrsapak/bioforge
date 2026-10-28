@@ -11,7 +11,7 @@ const PLAYER_MIN_BOTTOM_DISTANCE = 150;                   // px
 const REMOVE_CLICK_MARGIN = 4;                            // px added to a cell's radius for right-click removal
 const SANDBOX_SPEEDS = [1, 0.5, 0.25];                    // game seconds per real second, cycled by the speed button
 const SANDBOX_KEYS_HELP = '<b>Mouse</b> is the light (Light eyes)<br>' +
-  '<b>Click</b> spawn &nbsp;<b>Right-click</b> remove &nbsp;<b>R</b> respawn<br>' +
+  '<b>Click</b> spawn (on your cell: probe it) &nbsp;<b>Right-click</b> remove &nbsp;<b>R</b> respawn<br>' +
   '<b>Space</b> <b>1–9</b> Command neurons &nbsp;<b>P</b> pause &nbsp;<b>.</b> one step &nbsp;<b>,</b> speed<br>' +
   '<b>T</b> signals &nbsp;<b>Shift+1–6</b> view &nbsp;<b>Esc</b> builder';
 
@@ -62,6 +62,7 @@ function startSandbox(app) {
   app.paused = false;
   app.stepRequested = false;
   showTimeControls(app);
+  clearProbeChoice(app.probes);
   spawnSandboxPlayer(app);
   app.stamp = null;
   app.partDrag = null;
@@ -92,10 +93,12 @@ function removeEnemies(app) {
   for (const creature of app.world.creatures.filter(other => other.team !== 0)) removeCreature(app.world, creature);
 }
 
-// left click spawns the chosen enemy facing the player; right click removes the enemy or debris under the mouse
+// Left click on one of the player's cells probes it (while the signals show); elsewhere it spawns the chosen enemy
+// facing the player. Right click removes the enemy or debris under the mouse.
 function handleSandboxClick(app, event) {
   const x = event.clientX;
   const y = event.clientY;
+  if (event.button === 0 && app.isProbesShown && toggleProbeAt(app.probes, x, y)) return;
   if (event.button === 0) {
     const design = sandboxDesign(app, byId('sandbox-enemy').value);
     const facing = Math.atan2(app.player.centerX - x, y - app.player.centerY);

@@ -215,8 +215,8 @@ scope.js        the neuron scope: an animated input and output trace, run throug
 coach.js        the How to box: small looping animations of each step, ticked off as the design does them
 builderview.js  drawing the builder grid and the preview window; zoom and pan
 tooltip.js      the hover tooltip
-probes.js       signal probes in runs: a live 6 s trace per sense, neuron and signalled cell of the player, with
-                number tags on the cells
+probes.js       signal probes in runs: a live 6 s trace per sense, neuron and signalled cell of the player, or per
+                cell the player clicked, with number tags on the cells
 sandbox.js      sandbox mode: its bar, steps, drawing and HUD; the time controls and vitals HUD it shares with levels
 levelview.js    levels in the app: the levels sheet, the level card, a level run with its bar, arena, HUD and
                 result box, the best results
@@ -280,7 +280,7 @@ Planned additions: `data/levels.js`, `vascular.js`, `chemical.js`, `metabolism.j
    - **The editor** gets a Body view and a Nerve view. In the Nerve view the dock shows the neurons; a click puts the chosen neuron into a cell, and a drag from one cell to another lays a fibre. A right-click takes out whatever is drawn red under the mouse: the neuron near a cell's centre, otherwise the fibre whose line is nearest (changed 2026-10-28, user: "we need better system for fibre removal"; until then a right-click only took out neurons, and a fibre went only by repeating its drag, which still works). The panel shows the units used, the clicked cell's neuron setting, and its fibres, each with a × that removes it.
    - Chosen without asking: two fibres may share cells and steps; fibres are routed automatically (choosing a route by hand can come later); the sandbox limits are 12 neurons and 40 fibre units.
    - Test: the logic neurons give the expected truth tables, a chain of fibres delays by one step each, fibres route and get cut as described, old designs still move after conversion, and the same design gives the same result on every run.
-2. **Autonomy, debugging and chapter 1.** No hidden steering. Probes with signal traces, slow motion and single-stepping. The level format, win checks, scores, and 5 Reflexes levels ending in a Braitenberg hunt.
+2. **Autonomy, debugging and chapter 1.** ✅ Done 2026-10-28. No hidden steering. Probes with signal traces, slow motion and single-stepping. The level format, win checks, scores, and 5 Reflexes levels ending in a Braitenberg hunt.
    - Test: a scripted reference solution beats every level headless.
    - Done so far (2026-10-28): autonomy and time controls. The player's creature is `autonomous`: no free swimming, no held heading, no WASD and no autopilot; Space and 1–9 still reach its Command neurons. Cilia push toward the front from where they sit, so cilia on one side turn it. Muscles move a creature only by pushing water (decided 2026-10-28, user: "I would like the movement behave like in water"; for a few hours before, a contracting muscle kicked the creature forward directly). See "Water" below. The sandbox has pause (P), one step (.) and speeds 1×, ½×, ¼× (,). Test: `tests/autonomy.js`, `tests/sandbox.js`.
    - Done 2026-10-28: the Delay neuron, light with a reach, and the level format with chapter 1's 5 levels: First stroke (reach a ring ahead: a Pacemaker on two Siphons), Lighthouse (reach a light: crossed Light eyes), Moth (keep near a light going round: crossed eyes keep up), Shade (turn away from a light to a dark ring: same-side eyes plus a Pacemaker), Hunt (keep near the Darter, prey that jets off when its Eyespot sees you). Each has a reference solution that wins with 3 stars headless, and a wrong tool that loses. Test: `tests/levels.js`.
@@ -288,7 +288,7 @@ Planned additions: `data/levels.js`, `vascular.js`, `chemical.js`, `metabolism.j
    - Done 2026-10-28: signal probes. In Sandbox and level runs the box at the bottom left shows a lane per sense, neuron and signalled cell of the player (senses first, up to 8), each with its last 6 game s of signal; a number tag on each probed cell matches its lane. T hides or shows them, remembered under `bioforge-lab-probes-shown`. With pause and one step, they show a circuit working step by step. Test: `tests/probes.js`.
    - Done 2026-10-28: levels unlock in order (a locked row is dimmed, shows a lock and names the win that opens it), and Metronome, chapter 2's third level: the light comes on every 4 s and you must already be still (0.25 s grace): a Delay of 2.5–3 s in one Light eye stops the Freeze build before the next flash. Test: `tests/levels.js`.
    - Done 2026-10-28: Dock, chapter 2's fourth level and its Synapse level: a fixed light (900 px reach) above a ring; come to rest in the ring for 2 s. The eyes grow brighter on the way in, and a Synapse at threshold 1.5 into an Inhibitor stops the creature in the ring. New goal kind `restIn`. Test: `tests/levels.js`.
-   - Still open: choosing which cells to probe (now automatic).
+   - Done 2026-10-28: choosing which cells to probe. While the signals show, a left click on one of your own cells in a run adds its lane at the end, or removes it if it is probed (the rest are numbered again; a ninth lane replaces the eighth). In the Sandbox a click anywhere else still spawns an enemy. The choice is kept through respawns and retries, and a new run from the builder goes back to the automatic pick. Test: `tests/probes.js`.
 3. **Vascular layer and chapter 2.** Vessels, the Heart, valves; Sugar as fuel.
 4. **Metabolism and chapter 3.** Material recipes, eating, digestion, storage; Fat.
 5. **Secretions and chapter 4.** Mineral, mineralizer, acid, protease, self-harm.

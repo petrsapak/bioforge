@@ -122,6 +122,7 @@ function startLevelRun(app) {
   }
   app.mode = 'level';
   app.levelDesign = design;
+  clearProbeChoice(app.probes);
   app.stamp = null;
   app.partDrag = null;
   app.aimDragKey = null;
@@ -193,6 +194,13 @@ function handleLevelKey(app, key) {
 }
 
 // ---------- Drawing ----------
+// a left click on one of the player's cells probes it, while the signals show
+function handleLevelClick(app, event) {
+  if (event.button !== 0 || !app.isProbesShown) return;
+  const view = arenaView(app, app.levelRun.world);
+  toggleProbeAt(app.probes, (event.clientX - view.offsetX) / view.scale, (event.clientY - view.offsetY) / view.scale);
+}
+
 // where the arena sits on screen: as large as fits below the HUD, centred
 function arenaView(app, world) {
   const freeWidth = app.canvas.width - 2 * ARENA_SIDE_MARGIN;

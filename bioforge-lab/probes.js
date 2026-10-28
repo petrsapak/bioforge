@@ -1,6 +1,7 @@
 'use strict';
 // Signal probes for Sandbox and level runs: a live trace of what the player's senses, neurons and signalled cells do,
-// one lane per cell, with a matching number tag on each probed cell in the water (browser only).
+// one lane per cell, with a matching number tag on each probed cell in the water. A click on one of the player's
+// cells adds or removes its lane (browser only).
 
 const PROBE_SECONDS = 6;                                  // game s of trace shown across a lane
 const PROBE_MAX_LANES = 8;
@@ -9,8 +10,15 @@ const PROBE_LABEL_WIDTH = 78;                             // px (canvas units) l
 const PROBE_TAG_RADIUS = 6;                               // px in the world: the number tag on a probed cell
 const PROBE_GROUPS = ['sense', 'neuron', 'action'];      // lane order: senses first, then neurons, then actions
 
+// hiddenCount: probe-worthy cells beyond the lanes; chosenHexes: the hex keys the player clicked, in lane order, or
+// null while the cells are picked automatically
 function createProbes() {
-  return { creature: null, lanes: [], hiddenCount: 0 };      // hiddenCount: probe-worthy cells beyond the lanes
+  return { creature: null, lanes: [], hiddenCount: 0, chosenHexes: null };
+}
+
+// Forgets the player's choice, so the next reset picks the cells again; a new run from the builder calls it.
+function clearProbeChoice(probes) {
+  probes.chosenHexes = null;
 }
 
 // Which lane group a cell belongs to, or null when its signal says nothing a player wired: a sense organ, a cell
@@ -22,11 +30,18 @@ function probeGroup(cell) {
   return null;
 }
 
-// Starts probing this creature's cells afresh (null: nothing to probe).
+// Starts probing this creature's cells afresh (null: nothing to probe): the cells the player chose, if they did,
+// else the senses, neurons and signalled cells.
 function resetProbes(probes, creature) {
   probes.creature = creature;
   probes.lanes = [];
+  probes.hiddenCount = 0;
   if (!creature) return;
+  if (probes.chosenHexes) {
+    const chosenCells = probes.chosenHexes.map(key => creature.cellsByHex.get(key)).filter(Boolean);
+    probes.lanes = chosenCells.map((cell, i) => createProbeLane(cell, i + 1));
+    return;
+  }
   const candidates = creature.cells
     .map((cell, index) => ({ cell, index, group: probeGroup(cell) }))
     .filter(candidate => candidate.group);
@@ -36,9 +51,41 @@ function resetProbes(probes, creature) {
   probes.lanes = candidates.slice(0, PROBE_MAX_LANES).map((candidate, i) => createProbeLane(candidate.cell, i + 1));
 }
 
+// a lane for this cell, with no samples yet
 function createProbeLane(cell, number) {
+  const lane = { cell, number: 0, label: '', color: cell.type.color, samples: [] };
+  numberProbeLane(lane, number);
+  return lane;
+}
+
+// gives a lane its number, which also starts its label and matches the tag on its cell
+function numberProbeLane(lane, number) {
+  const cell = lane.cell;
   const neuronSymbol = cell.neuron ? ' ' + NEURONS[cell.neuron.kind].symbol : '';
-  return { cell, number, label: `${number} ${cell.type.name}${neuronSymbol}`, color: cell.type.color, samples: [] };
+  lane.number = number;
+  lane.label = `${number} ${cell.type.name}${neuronSymbol}`;
+}
+
+// A click at (x, y) in the world on one of the probed creature's living cells probes it, or stops probing it if it
+// already was (a new lane past the last one replaces the last). True when a cell was hit. From then on the lanes are
+// the player's choice, kept through retries and respawns.
+function toggleProbeAt(probes, x, y) {
+  const creature = probes.creature;
+  if (!creature) return false;
+  const cell = creature.cells.find(candidate => !candidate.dead &&
+    distanceSquared(candidate.x, candidate.y, x, y) < square(candidate.radius));
+  if (!cell) return false;
+  const probedLane = probes.lanes.find(lane => lane.cell === cell);
+  if (probedLane) {
+    probes.lanes = probes.lanes.filter(lane => lane !== probedLane);
+  } else {
+    if (probes.lanes.length >= PROBE_MAX_LANES) probes.lanes.pop();
+    probes.lanes.push(createProbeLane(cell, 0));
+  }
+  probes.lanes.forEach((lane, i) => numberProbeLane(lane, i + 1));
+  probes.hiddenCount = 0;
+  probes.chosenHexes = probes.lanes.map(lane => hexKey(lane.cell.q, lane.cell.r));
+  return true;
 }
 
 // Notes every lane's signal at the world's time; called after each sim step. Old samples drop off the left.
@@ -55,11 +102,12 @@ function toggleProbes(app) {
   writeStorage('probes-shown', app.isProbesShown);
 }
 
-// The trace panel above the vitals: each lane's name, a baseline and its signal over the last PROBE_SECONDS.
+// The trace panel above the vitals: each lane's name, a baseline and its signal over the last PROBE_SECONDS. It
+// stays up with no lanes, to say how to add one.
 function drawProbes(app, world) {
   const panel = byId('hud-probes');
   const probes = app.probes;
-  const isShown = app.isProbesShown && probes.lanes.length > 0;
+  const isShown = app.isProbesShown && probes.creature !== null;
   panel.style.display = isShown ? 'block' : 'none';
   if (!isShown) return;
   const canvas = byId('probe-canvas');
@@ -93,7 +141,14 @@ function drawProbes(app, world) {
     });
     context.stroke();
   });
-  byId('probe-more').textContent = probes.hiddenCount ? `+${probes.hiddenCount} more not shown` : '';
+  byId('probe-more').textContent = probeFootnote(probes);
+}
+
+// the line under the lanes: how to add one when there are none, or how many probe-worthy cells didn't fit
+function probeFootnote(probes) {
+  if (probes.lanes.length === 0) return 'Click a cell of yours to probe it.';
+  if (probes.hiddenCount) return `+${probes.hiddenCount} more not shown (click a cell to choose)`;
+  return '';
 }
 
 // the lane numbers on the probed cells, in world coordinates (the caller sets up any arena transform)
