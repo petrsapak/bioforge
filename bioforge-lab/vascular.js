@@ -1,5 +1,5 @@
 'use strict';
-// Vascular system: vessels carry blood (the vascular fluids: O2, energy, waste and repair fluid) straight between the
+// Vascular system: vessels carry blood (the vascular fluids: O2, sugar, waste and repair fluid) straight between the
 // two cells at their ends. A fed Heart on a vessel pumps it, and a Valve on it shuts it unless signalled. Routing,
 // units, adding a design's vessels to a creature, cutting broken ones, and the blood flow. Pure: no DOM.
 // A design vessel is { from: { q, r }, to: { q, r } }, routed from cell centre to cell centre like a fibre

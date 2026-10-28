@@ -2,7 +2,7 @@
 const { load } = require('./load');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['newWorld', 'newTestTank', 'spawn', 'step', 'RULES', 'TEMPLATES', 'blueprintFromList',
-  'FLUID_OXYGEN', 'FLUID_ENERGY', 'SIGNAL_ON']);
+  'FLUID_OXYGEN', 'FLUID_SUGAR', 'SIGNAL_ON']);
 
 const totalOxygen = creature => creature.cells.reduce((sum, cell) => sum + cell.fluids[sim.FLUID_OXYGEN], 0);
 
@@ -49,10 +49,10 @@ check('deterministic: same design, same result', samePositions(runWiggler(), run
   const design = { cells: sim.blueprintFromList([[0, 0, 'nucleus'], [1, 0, 'eyespot'], [0, 1, 'mouth']]) };
   const creature = sim.spawn(tank, design, 300, 300, 0, 0);
   const cellOfType = typeName => creature.cells.find(cell => cell.typeName === typeName);
-  cellOfType('mouth').fluids[sim.FLUID_ENERGY] = 0;
+  cellOfType('mouth').fluids[sim.FLUID_SUGAR] = 0;
   sim.step(tank, 1 / 40, { swimX: 0, swimY: 0, ability: true });
   check('test tank: food system off', !tank.systems.has('food'));
-  check('test tank: the water feeds Mouths', cellOfType('mouth').fluids[sim.FLUID_ENERGY] > 0);
+  check('test tank: the water feeds Mouths', cellOfType('mouth').fluids[sim.FLUID_SUGAR] > 0);
   check('test tank: Space fires an Eyespot with no enemy near', cellOfType('eyespot').signal === 1);
   const world = sim.newWorld(600, 600);
   const sameCreature = sim.spawn(world, design, 300, 300, 0, 0);

@@ -5,7 +5,7 @@ const THORN_DAMAGE = 5;
 const THORN_SPEED_DAMAGE = 0.06;                          // extra damage per px/s of impact speed
 const THORN_COOLDOWN = 0.3;                               // s
 const BITE_DAMAGE = 3;
-const BITE_ENERGY = 0.5;                                  // energy a mouth gets per bite
+const BITE_SUGAR = 0.5;                                   // sugar a mouth gets per bite
 const BITE_COOLDOWN = 0.4;                                // s
 const NETTLE_RANGE = 45;                                  // px
 const NETTLE_DAMAGE = 4;                                  // per sting, at full power
@@ -35,7 +35,7 @@ function damageCell(cell, damage) {
   cell.hitFlash = HIT_FLASH_TIME;
 }
 
-// two touching cells of enemy creatures: thorns hurt harder at speed, mouths bite and gain energy
+// two touching cells of enemy creatures: thorns hurt harder at speed, mouths bite and gain sugar
 function applyContactHits(world, firstCell, secondCell) {
   const relativeVelocityX = secondCell.velocityX - firstCell.velocityX;
   const relativeVelocityY = secondCell.velocityY - firstCell.velocityY;
@@ -58,9 +58,9 @@ function applyBite(world, mouth, target) {
   if (mouth.creature.debris && !mouth.creature.launchedPart) return;
   mouth.cooldown = BITE_COOLDOWN;
   damageCell(target, BITE_DAMAGE);
-  const energy = mouth.fluids[FLUID_ENERGY] + BITE_ENERGY;
-  mouth.fluids[FLUID_ENERGY] = Math.min(mouth.fluidCapacity[FLUID_ENERGY], energy);
-  spawnSparks(world, (mouth.x + target.x) / 2, (mouth.y + target.y) / 2, FLUIDS[FLUID_ENERGY].color, 3);
+  const sugar = mouth.fluids[FLUID_SUGAR] + BITE_SUGAR;
+  mouth.fluids[FLUID_SUGAR] = Math.min(mouth.fluidCapacity[FLUID_SUGAR], sugar);
+  spawnSparks(world, (mouth.x + target.x) / 2, (mouth.y + target.y) / 2, FLUIDS[FLUID_SUGAR].color, 3);
 }
 
 // unit vector from the cell to the nearest enemy cell within range, or straight out from its body if there is none

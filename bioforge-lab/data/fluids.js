@@ -24,7 +24,7 @@ const FLUIDS = [
     id: 'oxygen', name: 'Oxygen', short: 'O₂', color: '#ff5560', capacityField: 'oxygenCapacity', startFill: 0.7,
   }),
   fluidChannel({
-    id: 'energy', name: 'Energy', short: 'Energy', color: '#ffd23f', capacityField: 'energyCapacity', startFill: 0.7,
+    id: 'sugar', name: 'Sugar', short: 'Sugar', color: '#ffd23f', capacityField: 'sugarCapacity', startFill: 0.7,
   }),
   fluidChannel({ id: 'waste', name: 'Waste', short: 'Waste', color: '#a89a3a' }),
   fluidChannel({ id: 'repair', name: 'Repair', short: 'Repair', color: '#5ef08a' }),
@@ -37,7 +37,7 @@ const FLUID_COUNT = FLUIDS.length;
 const fluidIndex = id => FLUIDS.findIndex(fluid => fluid.id === id);
 // indexes into cell.fluids and cell.fluidCapacity
 const FLUID_OXYGEN = fluidIndex('oxygen');
-const FLUID_ENERGY = fluidIndex('energy');
+const FLUID_SUGAR = fluidIndex('sugar');
 const FLUID_WASTE = fluidIndex('waste');
 const FLUID_REPAIR = fluidIndex('repair');
 const FLUID_ADRENALINE = fluidIndex('adrenaline');

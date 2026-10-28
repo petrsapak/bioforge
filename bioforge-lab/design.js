@@ -69,7 +69,7 @@ function buildCheck(design, limits = RULES) {
   return '';
 }
 
-// Design checks: signals, Bud parts, weapons, and whether the body has O2, energy and a waste exit for its working
+// Design checks: signals, Bud parts, weapons, and whether the body has O2, sugar and a waste exit for its working
 // cells. body: the cells joined to the nucleus with their fibres and vessels; plannedKeys: hex keys of cells not
 // joined to it.
 // Returns warnings as { text, keys }, where keys are the hexes the warning is about (marked on the grid).
@@ -158,8 +158,8 @@ function checkFluids(typeAt, countWith, warn) {
   if (fueledCount && !countWith('breathes')) {
     warn(`No Gill: the ${fueledCount} fuel-burning cell(s) run out of O₂.`, fueled);
   }
-  if (fueledCount && !countWith('eatsFood') && !countWith('storesEnergy')) {
-    warn(`No Mouth or Fat: the ${fueledCount} fuel-burning cell(s) run out of energy.`, fueled);
+  if (fueledCount && !countWith('eatsFood') && !countWith('storesSugar')) {
+    warn(`No Mouth or Fat: the ${fueledCount} fuel-burning cell(s) run out of sugar.`, fueled);
   }
   if (fueledCount && !countWith('dumpsWaste')) {
     warn(`No Pore: waste builds up in the ${fueledCount} fuel-burning cell(s) and poisons them.`, fueled);

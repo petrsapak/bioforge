@@ -250,12 +250,12 @@ function showStats(app) {
   const cells = bodyCells(app.edited);
   const types = cells.map(cell => CELLS[cell.typeName]);
   const sumOf = valueOf => types.reduce((sum, cellType) => sum + valueOf(cellType), 0);
-  const energyFluid = FLUIDS[FLUID_ENERGY];
+  const sugarFluid = FLUIDS[FLUID_SUGAR];
   const health = sumOf(cellType => cellType.health);
   const mass = sumOf(cellType => cellType.mass);
   const maxBurn = sumOf(cellType => cellType.fuelBurn * FUEL_BURN_SCALE);
   const gillOxygen = types.filter(cellType => cellType.breathes).length * GILL_OXYGEN_RATE;
-  const energyStock = sumOf(cellType => fluidCapacityOf(cellType, energyFluid) * energyFluid.startFill);
+  const sugarStock = sumOf(cellType => fluidCapacityOf(cellType, sugarFluid) * sugarFluid.startFill);
   const hasMouth = types.some(cellType => cellType.eatsFood);
   app.warnings = designWarnings(bodyDesign(app.edited), plannedKeys(app.edited));
   const stats = byId('stats');
@@ -264,8 +264,8 @@ function showStats(app) {
     `<span title="Mass">⚖ ${mass.toFixed(1)}</span>` +
     `<span title="Most fuel burnt per second, with every cell working">🔥 ${maxBurn.toFixed(2)}/s</span>` +
     `<span title="Oxygen the Gills take in per second">O₂ +${gillOxygen.toFixed(2)}/s</span>` +
-    `<span title="Energy stored at the start${hasMouth ? ', plus whatever the Mouth eats' : ' (no Mouth)'}">` +
-    `⚡ ${energyStock.toFixed(1)}${hasMouth ? '+' : ''}</span></div>` +
+    `<span title="Sugar stored at the start${hasMouth ? ', plus whatever the Mouth eats' : ' (no Mouth)'}">` +
+    `⚡ ${sugarStock.toFixed(1)}${hasMouth ? '+' : ''}</span></div>` +
     app.warnings.map((warning, i) => `<div class="warn" data-warning="${i}">⚠ ${warning.text}</div>`).join('');
   stats.onmouseover = event => {
     const index = event.target.dataset && event.target.dataset.warning;

@@ -5,8 +5,8 @@
 //   swimPower (free swimming force); damageFactor (share of damage taken: 0.5 = half)
 //   senses: what the cell feels, as a nerve signal its fibres carry: 'enemy' (an enemy cell is near, on or off) or
 //     'light' (graded: how far the light lies on the cell's side of the body, fading with distance)
-//   fuelBurn: O2 + energy burned per second at full work (each unit burned becomes one unit of waste)
-//   oxygenCapacity, energyCapacity: how much the cell holds
+//   fuelBurn: O2 + sugar burned per second at full work (each unit burned becomes one unit of waste)
+//   oxygenCapacity, sugarCapacity: how much the cell holds
 // Behaviours: what the cell does in each system. The systems read these, never the type's name.
 //   isNucleus: the creature dies with it
 //   work (fluid): how hard it works, which sets its fuel use: 'graded' (with its signal), 'onSignal' (fully while
@@ -21,8 +21,8 @@
 //   resize: 'contract' or 'swell' with its signal; trigger: what a signal fires: 'nettle', 'snare' or 'spit'
 //   growsParts: grows a saved part (Bud); rebuildsCells: regrows lost cells from repair fluid (Mender)
 // Builder hints (design.js): needsSignal: does nothing without a nerve signal; isWeapon: can hurt other creatures;
-//   storesEnergy: an energy reservoir (Fat)
-// Cells that burn no fuel are pipes: they pass O2 and energy on to their neighbours but hold only a little.
+//   storesSugar: a sugar reservoir (Fat)
+// Cells that burn no fuel are pipes: they pass O2 and sugar on to their neighbours but hold only a little.
 const PIPE_CAPACITY = 0.3;
 
 function cellType(definition) {
@@ -35,7 +35,7 @@ function cellType(definition) {
     damageFactor: 1,
     fuelBurn: 0,
     oxygenCapacity: pipeOrStore,
-    energyCapacity: pipeOrStore,
+    sugarCapacity: pipeOrStore,
     ...definition,
   };
 }
@@ -43,9 +43,9 @@ function cellType(definition) {
 const CELLS = {
   nucleus: cellType({
     category: 'Body', name: 'Nucleus', cost: 0, health: 80, mass: 1.5, swimPower: 2, oxygenCapacity: 3,
-    energyCapacity: 3, color: '#e8c547', isNucleus: true,
+    sugarCapacity: 3, color: '#e8c547', isNucleus: true,
     description: 'If it dies, the creature dies. Parts cut off from it float away and rot. Holds a small store of ' +
-      'O₂ and energy.',
+      'O₂ and sugar.',
   }),
   tissue: cellType({
     category: 'Body', name: 'Tissue', cost: 1, health: 30, color: '#7c8a6e',
@@ -64,7 +64,7 @@ const CELLS = {
   cilia: cellType({
     category: 'Body', name: 'Cilia', cost: 2, health: 20, mass: 0.6, fuelBurn: 0.05, color: '#6ac9a0',
     work: 'swimming', beats: true,
-    description: 'Beating hairs push the creature forward from where they sit, while fed O₂ and energy. Cilia on ' +
+    description: 'Beating hairs push the creature forward from where they sit, while fed O₂ and sugar. Cilia on ' +
       'one side turn it.',
   }),
   eyespot: cellType({
@@ -117,7 +117,7 @@ const CELLS = {
   bud: cellType({
     category: 'Action', name: 'Bud', cost: 4, health: 30, fuelBurn: 0.4, color: '#c8e07a',
     work: 'growPart', product: 'budPart', growsParts: true, needsSignal: true,
-    description: 'Grows a saved part on its outer side from O₂ and energy. A nerve signal shoots the finished ' +
+    description: 'Grows a saved part on its outer side from O₂ and sugar. A nerve signal shoots the finished ' +
       'part away from the body, then it grows a new one. The part has its own nerves and fluids: with a Pacemaker ' +
       'or Eyespot, Fat, Gills and working cells it moves and stings on its own until its fuel runs out, then ' +
       'rots.',
@@ -128,9 +128,9 @@ const CELLS = {
     description: 'Makes O₂ from the water, more while swimming fast. Works anywhere in the body.',
   }),
   mouth: cellType({
-    category: 'Fluid', name: 'Mouth', cost: 2, health: 35, energyCapacity: 2, color: '#d98a6a',
+    category: 'Fluid', name: 'Mouth', cost: 2, health: 35, sugarCapacity: 2, color: '#d98a6a',
     eatsFood: true, bites: true, isWeapon: true,
-    description: 'Eats food specks that touch the body, and bites enemies and debris it touches, for energy. ' +
+    description: 'Eats food specks that touch the body, and bites enemies and debris it touches, for sugar. ' +
       'Leaves food alone while full.',
   }),
   heart: cellType({
@@ -151,9 +151,9 @@ const CELLS = {
     description: 'Reservoir. Holds 10x the O₂ of a working cell.',
   }),
   fat: cellType({
-    category: 'Fluid', name: 'Fat', cost: 2, health: 30, mass: 1.3, energyCapacity: 10, color: '#f0e0a0',
-    storesEnergy: true,
-    description: 'Reservoir. Holds 10x the energy of a working cell. Plain cells only pass energy along, so this ' +
+    category: 'Fluid', name: 'Fat', cost: 2, health: 30, mass: 1.3, sugarCapacity: 10, color: '#f0e0a0',
+    storesSugar: true,
+    description: 'Reservoir. Holds 10x the sugar of a working cell. Plain cells only pass sugar along, so this ' +
       'is where food ends up.',
   }),
   pore: cellType({
@@ -163,13 +163,13 @@ const CELLS = {
   mender: cellType({
     category: 'Gland', name: 'Mender', cost: 4, health: 25, fuelBurn: 0.12, color: '#58d858',
     work: 'refillRepair', product: 'repair', rebuildsCells: true,
-    description: 'Turns O₂ and energy into repair fluid. Damaged cells that receive it heal, and lost cells ' +
+    description: 'Turns O₂ and sugar into repair fluid. Damaged cells that receive it heal, and lost cells ' +
       'regrow one at a time, nearest the Mender first.',
   }),
   adrenal: cellType({
     category: 'Gland', name: 'Adrenal', cost: 3, health: 25, fuelBurn: 0.2, color: '#e04090',
     work: 'onSignal', product: 'adrenaline', needsSignal: true,
-    description: 'On a nerve signal, turns energy into adrenaline. Muscles, cilia, siphons, bloaters and nettles ' +
+    description: 'On a nerve signal, turns sugar into adrenaline. Muscles, cilia, siphons, bloaters and nettles ' +
       'that receive it work up to 80% harder.',
   }),
 };

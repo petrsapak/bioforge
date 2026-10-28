@@ -1,7 +1,7 @@
 'use strict';
 // Food: specks drift in the water, and a creature with a Mouth eats the specks that touch it. Pure: no DOM.
 
-const FOOD_ENERGY = 1;                                    // energy per speck
+const FOOD_SUGAR = 1;                                     // sugar per speck
 const FOOD_MAX_COUNT = 14;                                // specks in the water at most
 const FOOD_SPAWN_INTERVAL = 1.2;                          // s between new specks
 const FOOD_EDGE_MARGIN = 30;                              // px kept free along the world's edges
@@ -42,9 +42,9 @@ function eatTouchingFood(world, creature) {
   const touches = (speck, cell) =>
     distanceSquared(speck.x, speck.y, cell.x, cell.y) <= square(cell.radius + FOOD_TOUCH_MARGIN);
   world.food = world.food.filter(speck => {
-    const mouth = mouths.find(cell => cell.fluids[FLUID_ENERGY] <= cell.fluidCapacity[FLUID_ENERGY] - FOOD_ENERGY / 2);
+    const mouth = mouths.find(cell => cell.fluids[FLUID_SUGAR] <= cell.fluidCapacity[FLUID_SUGAR] - FOOD_SUGAR / 2);
     if (!mouth || !creature.cells.some(cell => touches(speck, cell))) return true;
-    mouth.fluids[FLUID_ENERGY] = Math.min(mouth.fluidCapacity[FLUID_ENERGY], mouth.fluids[FLUID_ENERGY] + FOOD_ENERGY);
+    mouth.fluids[FLUID_SUGAR] = Math.min(mouth.fluidCapacity[FLUID_SUGAR], mouth.fluids[FLUID_SUGAR] + FOOD_SUGAR);
     return false;
   });
 }

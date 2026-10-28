@@ -5,7 +5,7 @@
 //   cells: [q, r, typeName] for each cell; spaceLabel: what the demo shows while it holds Space (every other second);
 //   swims: swims forward; hasDummyEnemy: a dummy enemy just in front; fluidView: the fluid shown (1 = O2 ..
 //   5 = adrenaline); startsHurt: cell types that start damaged; startsEmpty: cell types that start with no O2 or
-//   energy; budPart: the part a Bud grows
+//   sugar; budPart: the part a Bud grows
 const TIPS = {
   nucleus: {
     howToUse: 'Every creature has exactly one, placed for you. Keep it away from the front line and surround it ' +
@@ -46,7 +46,7 @@ const TIPS = {
     },
   },
   cilia: {
-    howToUse: 'Put them on the sides and back. They need O₂ and energy from the body (a Gill and Fat or a Mouth ' +
+    howToUse: 'Put them on the sides and back. They need O₂ and sugar from the body (a Gill and Fat or a Mouth ' +
       'somewhere in it), otherwise they swim no better than a plain cell.',
     example: {
       cells: [
@@ -81,7 +81,7 @@ const TIPS = {
     },
   },
   muscle: {
-    howToUse: 'Needs a nerve signal and O₂ and energy from the body. Muscles on one side of a limb bend it to ' +
+    howToUse: 'Needs a nerve signal and O₂ and sugar from the body. Muscles on one side of a limb bend it to ' +
       'that side. To swim, line a long tail with muscles on both sides and make the sides take turns (a ' +
       'Pacemaker, and an Inhibitor of it); a wave running down the tail swims faster.',
     example: {
@@ -160,7 +160,7 @@ const TIPS = {
   },
   bud: {
     howToUse: 'Put it on the surface, click it in the builder, then click a part in the Templates library to ' +
-      'assign it. The body feeds it O₂ and energy; fire it with a Command or Eyespot. The part grows facing away ' +
+      'assign it. The body feeds it O₂ and sugar; fire it with a Command or Eyespot. The part grows facing away ' +
       'from the body; thorns on it hit hard.',
     example: {
       cells: [
@@ -237,7 +237,7 @@ const TIPS = {
     },
   },
   fat: {
-    howToUse: 'Put it in the body near the cells that burn fuel. It is your main energy store for long fights; ' +
+    howToUse: 'Put it in the body near the cells that burn fuel. It is your main sugar store for long fights; ' +
       'what the Mouth eats collects here.',
     example: {
       cells: [
@@ -270,7 +270,7 @@ const TIPS = {
     },
   },
   adrenal: {
-    howToUse: 'Give it a nerve signal and energy. Adrenaline spreads from cell to cell and fades; cells nearest ' +
+    howToUse: 'Give it a nerve signal and sugar. Adrenaline spreads from cell to cell and fades; cells nearest ' +
       'the Adrenal get the most.',
     example: {
       cells: [

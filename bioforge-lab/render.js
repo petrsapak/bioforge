@@ -397,7 +397,7 @@ const CELL_DETAILS = {
     drawReservoir(context, cell, radius, FLUID_OXYGEN);
   },
   fat(context, cell, radius) {
-    drawReservoir(context, cell, radius, FLUID_ENERGY);
+    drawReservoir(context, cell, radius, FLUID_SUGAR);
   },
   pore(context, cell, radius) {
     context.strokeStyle = '#2a2014';

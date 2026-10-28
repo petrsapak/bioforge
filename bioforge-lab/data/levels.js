@@ -140,8 +140,8 @@ const LEVELS = [
   createLevel({
     id: 'long-haul', chapter: 3, name: 'Long haul',
     brief: 'The light drifts round the arena, as in Moth. Keep close to it for 150 s in all: longer than a bare ' +
-      'body\'s O₂, energy and room for waste last. Speed the run up with the speed button (,).',
-    hint: 'Watch the O₂, Energy and Waste bars. Fat stores energy, a Gill makes O₂ from the water, and a Pore on ' +
+      'body\'s O₂, sugar and room for waste last. Speed the run up with the speed button (,).',
+    hint: 'Watch the O₂, Sugar and Waste bars. Fat stores sugar, a Gill makes O₂ from the water, and a Pore on ' +
       'the surface dumps waste. A Seeker with a Fat on each side and a Gill at the back lasts. Keep the body even, ' +
       'or it turns.',
     systems: CIRCULATION_SYSTEMS,

@@ -2,13 +2,13 @@
 // Sandbox HUD bars (browser only, except creatureVitals).
 
 // Core = nucleus health. Body = health of all cells vs. at spawn (lost cells count as 0).
-// O2 / Energy = how full the body's stores are. Waste = average over the working cells (bad when high).
+// O2 / Sugar = how full the body's stores are. Waste = average over the working cells (bad when high).
 // isLow: when the bar pulses red. isFluid: the bar shows a fluid, so it is hidden while the fluid system is off.
 const HUD_BAR_DEFINITIONS = [
   { name: 'Core', color: '#e8c547', isLow: value => value < 0.3 },
   { name: 'Body', color: '#7fd18a', isLow: value => value < 0.4 },
   { name: 'O₂', color: FLUIDS[FLUID_OXYGEN].color, isLow: value => value < 0.2, isFluid: true },
-  { name: 'Energy', color: FLUIDS[FLUID_ENERGY].color, isLow: value => value < 0.2, isFluid: true },
+  { name: 'Sugar', color: FLUIDS[FLUID_SUGAR].color, isLow: value => value < 0.2, isFluid: true },
   { name: 'Waste', color: '#b8a040', isLow: value => value > 0.6, isFluid: true },
 ];
 
@@ -57,7 +57,7 @@ function creatureVitals(creature) {
       creature.alive && nucleus ? nucleus.health / nucleus.maxHealth : 0,
       sum(cells, cell => Math.max(0, cell.health)) / (creature.spawnHealth || 1),
       fillShare(FLUID_OXYGEN),
-      fillShare(FLUID_ENERGY),
+      fillShare(FLUID_SUGAR),
       wasteShare,
     ],
     starving: cells.filter(cell => cell.starving).length,

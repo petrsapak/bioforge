@@ -25,7 +25,7 @@ function startDemo(typeName, canvas) {
     if (example.startsHurt && example.startsHurt.includes(cell.typeName)) cell.health = cell.maxHealth * 0.1;
     if (example.startsEmpty && example.startsEmpty.includes(cell.typeName)) {
       cell.fluids[FLUID_OXYGEN] = 0;
-      cell.fluids[FLUID_ENERGY] = 0;
+      cell.fluids[FLUID_SUGAR] = 0;
     }
   }
   if (example.hasDummyEnemy) {                            // a dummy enemy just in front of the creature
