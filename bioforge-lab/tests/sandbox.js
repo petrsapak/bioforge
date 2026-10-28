@@ -92,6 +92,9 @@ pressKey('Escape');
 runFrames(5);
 check('Esc goes back to the builder',
   byId('sandbox-bar').style.display === 'none' && byId('hud').style.display === 'none');
+// '' hands the display back to style.css; 'block' broke the dock's centring (user, 2026-10-28)
+check('back in the builder, the dock and the tabs keep their own layout', byId('dock').style.display === '' &&
+  byId('layer-tabs').style.display === '' && byId('builder-left').style.display === '');
 templateButton('lancer').onclick();
 runFrames(5);
 byId('start-sandbox').onclick();

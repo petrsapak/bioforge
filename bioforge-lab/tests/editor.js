@@ -95,6 +95,9 @@ check('Esc closes it', byId('keys-sheet').style.display === 'none');
 pressKey('Escape');
 byId('layer-nerve').onclick();
 check('the Nerve view shows the neurons in the dock', byId('dock-bar').textContent === 'Neurons');
+moveMouseTo(0, 0);
+runFrames(30);
+check('in the Nerve view, resting on a placed cell shows no hint', byId('tooltip').style.display !== 'block');
 check('the How to box switches to the Nerve steps, the next one being to put a neuron in',
   /Pick a neuron/.test(coachSteps()[0].caption) && /neuron goes in/.test(nextCoachStep()), nextCoachStep());
 check('the panel shows the chosen neuron with its scope', /Pacemaker/.test(info()) &&

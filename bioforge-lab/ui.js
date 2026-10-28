@@ -285,13 +285,13 @@ function saveSelection(app, name) {
 function showModeWindows(app) {
   const isBuilding = app.mode === 'build';
   for (const id of ['builder-left', 'layer-tabs', 'preview', 'library']) {
-    byId(id).style.display = isBuilding ? 'flex' : 'none';
+    byId(id).style.display = isBuilding ? '' : 'none';     // '' gives the display back to style.css
   }
   if (!isBuilding) {
     byId('keys-sheet').style.display = 'none';
     byId('levels-sheet').style.display = 'none';
   }
-  byId('dock').style.display = isBuilding ? 'block' : 'none';
+  byId('dock').style.display = isBuilding ? '' : 'none';
   byId('hud').style.display = isBuilding ? 'none' : 'block';
   byId('sandbox-bar').style.display = app.mode === 'sandbox' ? 'flex' : 'none';
   byId('level-bar').style.display = app.mode === 'level' ? 'flex' : 'none';
