@@ -6,7 +6,7 @@ const { load } = require('./load');
 const { startApp } = require('./dom');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['LEVELS', 'TEMPLATES', 'runLevel', 'levelScore', 'levelLimits', 'buildCheck',
-  'createDesignCell', 'createNeuron', 'isLevelLightOn', 'isLevelOpen']);
+  'createDesignCell', 'createNeuron', 'isLevelLightOn', 'isLevelOpen', 'FLUID_OXYGEN']);
 
 const cell = (q, r, typeName, extra = {}) => sim.createDesignCell(q, r, typeName, extra);
 const fibre = (fromQ, fromR, toQ, toR) => ({ from: { q: fromQ, r: fromR }, to: { q: toQ, r: toR } });
@@ -31,6 +31,9 @@ function eyesThroughSynapse(threshold) {
   return { cells: [nucleus, ...eyesAndSiphons, inhibitorCell, cell(-1, 0, 'tissue')],
     fibres: [fibre(0, -1, 0, 0), fibre(1, -1, 0, 0), fibre(0, 0, 1, 0), fibre(1, 0, -1, 1), fibre(1, 0, 0, 1)] };
 }
+// the crossed Seeker with a Fat on each side, and a Gill at the back if asked
+const seekerWithFat = withGill => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(-1, 0, 'fat'),
+  cell(1, 0, 'fat'), ...(withGill ? [cell(-1, 2, 'gill')] : [])], fibres: CROSSED });
 const SOLUTIONS = {
   'first-stroke': { cells: [pacemakerNucleus(), cell(-1, 1, 'siphon'), cell(0, 1, 'siphon')],
     fibres: [fibre(0, 0, -1, 1), fibre(0, 0, 0, 1)] },
@@ -43,6 +46,7 @@ const SOLUTIONS = {
   'false-start': eyesThroughNucleus('latch'),
   metronome: eyesThroughNucleus('inhibitor', { kind: 'delay', setting: 3 }),
   dock: eyesThroughSynapse(1.5),
+  'long-haul': seekerWithFat(true),
 };
 // the wrong tool for each level: it must not win
 const WRONG_TOOLS = {
@@ -54,6 +58,7 @@ const WRONG_TOOLS = {
   'false-start': SOLUTIONS.freeze,
   metronome: SOLUTIONS.freeze,
   dock: SOLUTIONS.freeze,
+  'long-haul': SOLUTIONS.moth,
 };
 
 for (const level of sim.LEVELS) {
@@ -73,6 +78,9 @@ const levelById = id => sim.LEVELS.find(level => level.id === id);
 const dockRuns = [1, 2].map(threshold => sim.runLevel(levelById('dock'), eyesThroughSynapse(threshold)));
 check('"Dock": the Synapse\'s threshold matters: 1 stops short of the ring, 2 never stops',
   dockRuns.every(run => run.outcome === 'lost'), dockRuns.map(run => run.player.centerY.toFixed(0)).join());
+const fatOnly = sim.runLevel(levelById('long-haul'), seekerWithFat(false));
+check('"Long haul": Fat alone is not enough, it runs out of O2', fatOnly.outcome === 'lost' &&
+  fatOnly.player.cells.every(playerCell => playerCell.fluids[sim.FLUID_OXYGEN] < 0.01), fatOnly.reason);
 const blinking = levelById('freeze').light;
 check('a blinking light is on for 2 s, off for 3 s, and round again',
   [0.5, 2.5, 4.9, 5.1].map(time => sim.isLevelLightOn(blinking, time)).join() === 'true,false,false,true');
@@ -102,8 +110,8 @@ const listed = byId('levels-list').children;
 const rows = listed.filter(child => child.className.startsWith('level-row'));
 const headings = listed.filter(child => child.className === 'chapter-heading');
 check('the levels sheet lists every level under its chapter', byId('levels-sheet').style.display === 'flex' &&
-  rows.length === readGlobal('LEVELS.length') && headings.length === 2 &&
-  headings[1].textContent === 'Chapter 2: Memory and logic', `${rows.length} rows, ${headings.length} headings`);
+  rows.length === readGlobal('LEVELS.length') && headings.length === 3 &&
+  headings[2].textContent === 'Chapter 3: Circulation', `${rows.length} rows, ${headings.length} headings`);
 check('at first only level 1 is open: the others are locked and say which win opens them',
   !rows[0].className.includes('locked') && rows.slice(1).every(row => row.className.includes('locked')) &&
   rows[1].innerHTML.includes('Win “First stroke” to open it.'), rows[1].innerHTML);

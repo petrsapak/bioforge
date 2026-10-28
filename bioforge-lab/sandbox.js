@@ -9,7 +9,7 @@ const SANDBOX_MAX_STEP = 1 / 40;                          // game s; longer step
 const PLAYER_BOTTOM_MARGIN = 50;                          // px between the player's spawn and the bottom edge
 const PLAYER_MIN_BOTTOM_DISTANCE = 150;                   // px
 const REMOVE_CLICK_MARGIN = 4;                            // px added to a cell's radius for right-click removal
-const SANDBOX_SPEEDS = [1, 0.5, 0.25];                    // game seconds per real second, cycled by the speed button
+const SANDBOX_SPEEDS = [1, 2, 4, 0.5, 0.25];              // game seconds per real second, cycled by the speed button
 const SANDBOX_KEYS_HELP = '<b>Mouse</b> is the light (Light eyes)<br>' +
   '<b>Click</b> spawn (on your cell: probe it) &nbsp;<b>Right-click</b> remove &nbsp;<b>R</b> respawn<br>' +
   '<b>Space</b> <b>1–9</b> Command neurons &nbsp;<b>P</b> pause &nbsp;<b>.</b> one step &nbsp;<b>,</b> speed<br>' +
@@ -141,14 +141,14 @@ function requestOneStep(app) {
   showTimeControls(app);
 }
 
-// normal speed, half, quarter, then back to normal
+// normal speed, double, four times, half, quarter, then back to normal
 function cycleSandboxSpeed(app) {
   const index = SANDBOX_SPEEDS.indexOf(app.sandboxSpeed);
   app.sandboxSpeed = SANDBOX_SPEEDS[(index + 1) % SANDBOX_SPEEDS.length];
   showTimeControls(app);
 }
 
-const speedLabel = speed => ({ 1: '1×', 0.5: '½×', 0.25: '¼×' })[speed] || speed + '×';
+const speedLabel = speed => ({ 0.5: '½×', 0.25: '¼×' })[speed] || speed + '×';
 
 // The pause button shows what a click does; the speed button shows the speed. The Sandbox bar and the level bar
 // each have a set.
@@ -211,7 +211,8 @@ function showVitalsHud(app, world, player, extraChips) {
   if (vitals.poisoned) chips.push(`<span class="chip-poisoned">${vitals.poisoned} poisoned</span>`);
   if (app.paused) chips.push('<span class="chip-time">Paused</span>');
   else if (app.sandboxSpeed !== 1) {
-    chips.push(`<span class="chip-time">Slow motion ${speedLabel(app.sandboxSpeed)}</span>`);
+    const speedName = app.sandboxSpeed > 1 ? 'Fast' : 'Slow motion';
+    chips.push(`<span class="chip-time">${speedName} ${speedLabel(app.sandboxSpeed)}</span>`);
   }
   const chipsHtml = chips.join('');
   if (byId('hud-chips').innerHTML !== chipsHtml) byId('hud-chips').innerHTML = chipsHtml;

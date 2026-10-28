@@ -3,7 +3,7 @@
 // touching cells from fuller to emptier. Vessels carry them farther and faster (vascular.js). Pure: no DOM.
 
 const FUEL_BURN_SCALE = 0.25;                             // every cell burns fuelBurn * this per second at full work
-const FLOW_CONDUCTANCE = 0.4;                             // flow between touching cells, per unit of fill difference
+const FLOW_CONDUCTANCE = 0.1;                             // flow between touching cells, per unit of fill difference
 const FLOW_INTERVAL = 1 / 20 - 1e-6;                      // s between flow passes; fluids move slowly
 const FLOW_SUBSTEPS = 8;                                  // pipes hold little, so flow takes small steps
 const GILL_OXYGEN_RATE = 0.25;                            // O2 per second a gill makes

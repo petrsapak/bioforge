@@ -55,7 +55,7 @@ function createApp(canvas) {
     world: null,                                          // the sandbox
     player: null,
     sandboxLight: null,                                   // { x, y }: the mouse over the sandbox water, a light
-    sandboxSpeed: 1,                                     // share of the normal game speed (slow motion below 1)
+    sandboxSpeed: 1,                                     // game speed: 2 is double, 0.5 is slow motion
     paused: false,
     stepRequested: false,                                 // paused: run one step on the next frame
     level: null,                                          // the chosen level (data/levels.js); null: free build

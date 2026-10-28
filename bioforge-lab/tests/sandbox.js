@@ -35,7 +35,11 @@ check('. moves one step and stays paused', chips().includes('Paused'));
 byId('sandbox-pause').onclick();
 pressKey(',');
 runFrames(2);
-check(', slows it to half speed', byId('sandbox-speed').textContent === '½×' && chips().includes('Slow motion ½×'),
+check(', speeds it up to double', byId('sandbox-speed').textContent === '2×' && chips().includes('Fast 2×'), chips());
+byId('sandbox-speed').onclick();
+byId('sandbox-speed').onclick();
+runFrames(2);
+check('then on to half speed', byId('sandbox-speed').textContent === '½×' && chips().includes('Slow motion ½×'),
   chips());
 byId('sandbox-speed').onclick();
 byId('sandbox-speed').onclick();

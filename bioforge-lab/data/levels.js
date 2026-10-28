@@ -1,8 +1,8 @@
 'use strict';
 // The levels and the creatures that live in them (pure data). levels.js builds and runs them. Field meanings:
 //   id, chapter, name; brief: what to do; hint: a nudge toward how
-//   arena: { width, height } in px; systems: the switchable systems that run (chapter 1: nerve only, so every
-//     cell works at full power and nothing starves)
+//   arena: { width, height } in px; systems: the switchable systems that run (chapters 1 and 2: nerve only, so
+//     every cell works at full power and nothing starves; chapter 3 adds fluid and vascular)
 //   limits: design limits ({ budget, maxCells, maxNeurons, maxFibreUnits, maxVesselUnits }); any left out come from
 //   RULES
 //   start: the player's spawn { x, y } in px and heading in rad (0 faces up)
@@ -23,10 +23,14 @@
 
 const ARENA = { width: 1400, height: 800 };               // px
 const CHAPTER_1_SYSTEMS = ['nerve'];
-const CHAPTER_NAMES = { 1: 'Reflexes', 2: 'Memory and logic' };
+const CIRCULATION_SYSTEMS = ['nerve', 'fluid', 'vascular'];
+const CHAPTER_NAMES = { 1: 'Reflexes', 2: 'Memory and logic', 3: 'Circulation' };
 const WATCHER_LIGHT = { x: 700, y: 60, range: 2000 };     // px: above the top ring, bright all over the arena
 const TOP_RING = { kind: 'reach', x: 700, y: 200, radius: 70 };   // px
 const START_BOTTOM = { x: 700, y: 680, heading: 0 };      // px, rad: bottom middle, facing up
+const DRIFTING_LIGHT = {                                  // round a loop of points (px) at 18 px/s
+  path: [[700, 420], [1050, 250], [1100, 550], [350, 600], [300, 250]], speed: 18, range: 450,
+};
 
 function createLevel(definition) {
   return { arena: ARENA, systems: CHAPTER_1_SYSTEMS, limits: {}, start: START_BOTTOM, light: null, creatures: [],
@@ -57,7 +61,7 @@ const LEVELS = [
     brief: 'The light drifts round the arena. Keep close to it: 15 s within the dashed ring in all.',
     hint: 'A creature that turns toward the light follows it as it moves. It has to keep up.',
     limits: { budget: 30 },
-    light: { path: [[700, 420], [1050, 250], [1100, 550], [350, 600], [300, 250]], speed: 18, range: 450 },
+    light: DRIFTING_LIGHT,
     goal: { kind: 'stayNear', radius: 100, seconds: 15 },
     timeLimit: 60, par: { seconds: 30, biomass: 20 },
   }),
@@ -132,6 +136,19 @@ const LEVELS = [
     light: { x: 700, y: 60, range: 900 },
     goal: { kind: 'restIn', x: 700, y: 200, radius: 70, speed: 10, seconds: 2 },
     timeLimit: 40, par: { seconds: 18, biomass: 20 },
+  }),
+  createLevel({
+    id: 'long-haul', chapter: 3, name: 'Long haul',
+    brief: 'The light drifts round the arena, as in Moth. Keep close to it for 150 s in all: longer than a bare ' +
+      'body\'s O₂, energy and room for waste last. Speed the run up with the speed button (,).',
+    hint: 'Watch the O₂, Energy and Waste bars. Fat stores energy, a Gill makes O₂ from the water, and a Pore on ' +
+      'the surface dumps waste. A Seeker with a Fat on each side and a Gill at the back lasts. Keep the body even, ' +
+      'or it turns.',
+    systems: CIRCULATION_SYSTEMS,
+    limits: { budget: 30 },
+    light: DRIFTING_LIGHT,
+    goal: { kind: 'stayNear', radius: 100, seconds: 150 },
+    timeLimit: 240, par: { seconds: 180, biomass: 20 },
   }),
 ];
 
