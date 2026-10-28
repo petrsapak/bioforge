@@ -1,0 +1,11 @@
+{
+  "name": "bioforge",
+  "private": true,
+  "description": "Soft-body cell creature games. No dependencies: open any index.html in a browser.",
+  "scripts": {
+    "test": "node bioforge-lab/tests/all.js",
+    "test:moba": "node bioforge-moba/tests/all.js",
+    "test:online": "node bioforge-online/tests/all.js",
+    "test:all": "node bioforge-lab/tests/all.js && node bioforge-moba/tests/all.js && node bioforge-online/tests/all.js"
+  }
+}
