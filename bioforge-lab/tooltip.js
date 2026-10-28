@@ -1,26 +1,29 @@
 'use strict';
-// The builder's hover tooltip: after the mouse rests on a dock button or a placed cell, it shows what the cell does,
-// how to use it, and a live example (tipdemo.js) (browser only).
+// The builder's hover tooltip: after the mouse rests on a dock button or a placed cell, it shows the cell's name and
+// cost, what it does, how to use it, and a live example (tipdemo.js); on a neuron button, the neuron (browser only).
 
-const TOOLTIP_DELAY = 1000;                               // ms the mouse must rest before the tooltip shows
-const TOOLTIP_MOUSE_OFFSET = 16;                          // px from the mouse
+const TOOLTIP_DELAY = 200;                                // ms the mouse must rest before the tooltip shows
+const TOOLTIP_MOUSE_OFFSET = 24;                          // px from the mouse, or from the dock button
 const TOOLTIP_EDGE_MARGIN = 8;                            // px kept free at the window's edges
 
 function createTooltipState() {
-  return { target: null, typeName: null, since: 0, mouseX: 0, mouseY: 0 };
+  return { target: null, typeName: null, neuronKind: null, anchor: null, since: 0, mouseX: 0, mouseY: 0 };
 }
 
-// Notes what the mouse is over (a dock button or a placed cell); a new target hides the tooltip and restarts the wait.
+// Notes what the mouse is over (a dock button or a placed cell); a new target hides the tooltip and restarts the
+// wait.
 function trackTooltipTarget(app, event) {
   const tooltip = app.tooltip;
   tooltip.mouseX = event.clientX;
   tooltip.mouseY = event.clientY;
   let target = null;
   let typeName = null;
+  let neuronKind = null;
   const dockButton = event.target && event.target.closest && event.target.closest('.palette-cell');
   if (dockButton) {
-    typeName = dockButton.dataset.type;
-    target = 'dock:' + typeName;
+    typeName = dockButton.dataset.type || null;
+    neuronKind = dockButton.dataset.neuron || null;
+    target = 'dock:' + (typeName || neuronKind);
   } else if (event.target === app.canvas && app.mode === 'build') {
     const [q, r] = hexUnderMouse(app, event);
     const cell = app.edited.cells.get(hexKey(q, r));
@@ -32,6 +35,8 @@ function trackTooltipTarget(app, event) {
   if (target === tooltip.target) return;
   tooltip.target = target;
   tooltip.typeName = typeName;
+  tooltip.neuronKind = neuronKind;
+  tooltip.anchor = dockButton || null;
   hideTooltip(app);
 }
 
@@ -48,24 +53,43 @@ function updateTooltip(app, now) {
   if (!tooltip.target || app.mode !== 'build' || now - tooltip.since < TOOLTIP_DELAY) return;
   if (box.style.display === 'block') return;
   const cellType = CELLS[tooltip.typeName];
-  if (!cellType) return;
-  box.innerHTML = tooltipHtml(tooltip.typeName, cellType);
+  const neuronType = NEURONS[tooltip.neuronKind];
+  if (!cellType && !neuronType) return;
+  box.innerHTML = cellType ? tooltipHtml(tooltip.typeName, cellType) : neuronTooltipHtml(neuronType);
   box.style.display = 'block';
-  const left = tooltip.mouseX + TOOLTIP_MOUSE_OFFSET;
-  const top = tooltip.mouseY + TOOLTIP_MOUSE_OFFSET;
+  const { left, top } = tooltipPlace(tooltip, box.offsetWidth, box.offsetHeight);
   const maxLeft = innerWidth - box.offsetWidth - TOOLTIP_EDGE_MARGIN;
   const maxTop = innerHeight - box.offsetHeight - TOOLTIP_EDGE_MARGIN;
   box.style.left = Math.max(TOOLTIP_EDGE_MARGIN, Math.min(left, maxLeft)) + 'px';
   box.style.top = Math.max(TOOLTIP_EDGE_MARGIN, Math.min(top, maxTop)) + 'px';
-  startDemo(tooltip.typeName, byId('tooltip-demo'));
+  if (cellType) startDemo(tooltip.typeName, byId('tooltip-demo'));
+}
+
+// Where the tooltip goes before it is kept on screen: above a dock button, centred on it; next to a cell on the
+// grid, on the side towards the middle of the screen and level with the mouse, so it doesn't cover the body.
+function tooltipPlace(tooltip, width, height) {
+  if (tooltip.anchor && tooltip.anchor.getBoundingClientRect) {
+    const rect = tooltip.anchor.getBoundingClientRect();
+    return { left: rect.left + rect.width / 2 - width / 2, top: rect.top - height - TOOLTIP_MOUSE_OFFSET / 2 };
+  }
+  const isRightHalf = tooltip.mouseX > innerWidth / 2;
+  const left = isRightHalf ? tooltip.mouseX - width - TOOLTIP_MOUSE_OFFSET : tooltip.mouseX + TOOLTIP_MOUSE_OFFSET;
+  return { left, top: tooltip.mouseY - height / 2 };
 }
 
 function tooltipHtml(typeName, cellType) {
-  const facts = [`cost ${cellType.cost}`, `${cellType.health} HP`];
+  const facts = [`${cellType.health} HP`];
   if (cellType.needsSignal) facts.push('needs a nerve signal');
   if (cellType.fuelBurn) facts.push(`burns ${+(cellType.fuelBurn * FUEL_BURN_SCALE).toFixed(3)}/s`);
-  return `<b>${cellType.name}</b> <span class="dim">${facts.join(' · ')}</span><br>${cellType.description}` +
+  return `<div class="tooltip-title"><b>${cellType.name}</b>` +
+    `<span class="tooltip-cost" title="Biomass cost">◆ ${cellType.cost}</span></div>` +
+    `<span class="dim">${facts.join(' · ')}</span><br>${cellType.description}` +
     `<div class="tooltip-heading">How to use</div>${TIPS[typeName].howToUse}` +
     `<div class="tooltip-heading">Example</div>` +
     `<canvas id="tooltip-demo" width="${DEMO_WIDTH}" height="${DEMO_HEIGHT}"></canvas>`;
+}
+
+// a neuron button's tooltip: its name and what it does (neurons cost no biomass)
+function neuronTooltipHtml(neuronType) {
+  return `<div class="tooltip-title"><b>${neuronType.name}</b></div>${neuronType.description}`;
 }

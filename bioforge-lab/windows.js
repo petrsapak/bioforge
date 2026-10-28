@@ -100,14 +100,3 @@ function makeCollapsible(windowElement, handle, button, name) {
   return isCollapsed;
 }
 
-// remembers which branches of the menu tree are open
-function rememberOpenBranches() {
-  const openBranches = readStorage('tree', {});
-  document.querySelectorAll('details[data-node]').forEach(branch => {
-    if (branch.dataset.node in openBranches) branch.open = openBranches[branch.dataset.node];
-    branch.addEventListener('toggle', () => {
-      openBranches[branch.dataset.node] = branch.open;
-      writeStorage('tree', openBranches);
-    });
-  });
-}

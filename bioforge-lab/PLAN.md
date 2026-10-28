@@ -73,6 +73,8 @@ The layer split is a proposal, to try in play first. The creature has 4 layers o
 - **Neurons sit as an overlay inside a body cell** (decided 2026-10-28), one per cell, with fibres attached to it. Logic doesn't take up body space.
 - Nerves and vessels **run through body cells and need them**: a fibre is cut when a cell it runs through dies, so injuries can disable circuits.
 - Each layer is a separate view in the editor, and the other layers are dimmed while you edit one. The views are tabs at the top centre: 1 Body (the default), 2 Nerves, 3 Vessels (2026-10-28, user: "I want to introduce tabs with shortcuts, 1 body, 2 nerves, 3 veins. The tabs will be on top - centered, with body the default"; until then they were buttons at the top of the left toolbar, with N and V switching to Nerves and Vessels and back). 1–3 always switch tabs, so a Command can't be bound to them.
+- **The cell dock** (2026-10-28, user: "the bottom menu change it to tabs as well, also remove the names from the cells and the biomass price and move that to the hint"): a tab per category (Body, Sense, Action, Fluid, Gland), and the open tabs' cells as two interlocking rows of hexagons with no labels. A click opens or closes a tab, so several can be open side by side (user, 2026-10-28: "allow the player to expand the tabs - even multiple at once"; for a few hours only one tab was open at a time); the last open one can't be closed. The open tabs are remembered (`bioforge-lab-dock-categories`). Until then every category showed at once in folding sections, in as few rows as fitted the window, each hexagon with its name and cost. The Nerve view's neurons are two rows too. The dock is 75% of the window wide (user, 2026-10-28), with the tabs in the middle of its head and the hexagons centred.
+- **The hover hint** shows after 200 ms (it was 1 s until 2026-10-28) and starts with the name and the biomass cost (◆). Over a dock button it sits above the button, centred on it; over a cell on the grid it sits beside the mouse, on the side towards the middle of the screen. Neuron buttons get a hint too (name and description; they had the browser's own title tooltip).
 - **Metabolism is a system across the layers, not a 5th grid layer.** Materials travel in the blood, secretions come from glands, and body cells are made of materials. The editor gets a materials panel (stores, recipes), not a 5th view. Its timescale is the slowest: minutes.
 
 ### Interfaces between layers (where the depth comes from)
@@ -210,7 +212,7 @@ render.js       canvas drawing of a world
 windows.js      DOM and storage helpers, floating windows, remembered menu branches
 tipdemo.js      live example tank in the cell tooltip
 hud.js          HUD bars and vitals
-dock.js         the cell dock
+dock.js         the cell dock: a tab per category, two rows of hexagons; the neurons in the Nerve view
 library.js      the template library window, saved in localStorage
 toolbar.js      the Body / Nerves / Vessels tabs at the top; the toolbar down the left edge: Clear, Save,
                 Unlimited, fluid views, keys, Sandbox
@@ -219,7 +221,7 @@ panel.js        the side panel: meters, a card with a picture of the clicked or 
 scope.js        the neuron scope: an animated input and output trace, run through the real neuron rules
 coach.js        the How to box: small looping animations of each step, ticked off as the design does them
 builderview.js  drawing the builder grid and the preview window; zoom and pan
-tooltip.js      the hover tooltip
+tooltip.js      the hover hint: name, cost, description, how to use, live example
 probes.js       signal probes in runs: a live 6 s trace per sense, neuron and signalled cell of the player, or per
                 cell the player clicked, with number tags on the cells
 sandbox.js      sandbox mode: its bar, steps, drawing and HUD; the time controls and vitals HUD it shares with levels

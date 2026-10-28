@@ -115,7 +115,6 @@ function fitCanvasToWindow(app) {
 function setUpWindows(app) {
   app.isPreviewCollapsed = makeCollapsible(byId('preview'), byId('preview-bar'), byId('preview-toggle'), 'preview');
   makeCollapsible(byId('library'), byId('library-bar'), byId('library-toggle'), 'library');
-  rememberOpenBranches();
 }
 
 // ---------- The design ----------

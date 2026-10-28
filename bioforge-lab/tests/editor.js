@@ -34,7 +34,7 @@ const pressKey = key => {
   fire('window', 'keyup', { key });
 };
 // the dock's button for a cell type or a neuron: palette > section > hexagons > buttons
-const dockButtons = () => byId('palette').children.flatMap(section => section.children[1].children);
+const dockButtons = () => byId('palette').children.flatMap(section => section.children[0].children);
 const dockButton = typeName => dockButtons().find(button => button.dataset.type === typeName);
 const neuronButton = kind => dockButtons().find(button => button.dataset.neuron === kind);
 const fibreUnitsShown = () => +/Fibre: (\d+)/.exec(byId('budget').innerHTML)[1];
@@ -58,8 +58,31 @@ check('a click on a free hex next to the body places the chosen cell', cellCount
 clickHex(2, 0, { button: 2 });
 check('a right click removes it', cellCount() === startCount);
 
+// the dock: a tab per category, and only the chosen tab's cells show
+const dockTabs = () => byId('dock-tabs').children;
+const shownSections = () => byId('palette').children.filter(section => section.style.display !== 'none');
+check('the dock has a tab per cell category', dockTabs().map(tab => tab.textContent).join() ===
+  'Body,Sense,Action,Fluid,Gland', dockTabs().map(tab => tab.textContent).join());
+const shownTypes = () => shownSections().flatMap(section => section.children[0].children)
+  .map(button => button.dataset.type);
+check('at first only the Body tab is open', shownSections().length === 1 && shownTypes().includes('tissue'));
+dockTabs()[2].onclick();
+check('another tab opens beside it', shownSections().length === 2 && shownTypes().includes('tissue') &&
+  shownTypes().includes('muscle') && dockTabs()[2].classList.contains('selected'), shownTypes().join());
+check('the open tabs are remembered', storage.items['bioforge-lab-dock-categories'] === '["Body","Action"]',
+  storage.items['bioforge-lab-dock-categories']);
+dockTabs()[0].onclick();
+check('a click closes an open tab', shownSections().length === 1 && !shownTypes().includes('tissue'));
+dockTabs()[2].onclick();
+check('the last open tab stays open', shownSections().length === 1 && shownTypes().includes('muscle'));
+dockTabs()[0].onclick();
+dockTabs()[2].onclick();
+
 moveMouseTo(0, 0);
-runFrames(70);
+runFrames(15);
+check('after 0.25 s the hint shows the cell\'s name and biomass cost', byId('tooltip').style.display === 'block' &&
+  /<b>Nucleus<\/b>/.test(byId('tooltip').innerHTML) && /◆ 0/.test(byId('tooltip').innerHTML));
+runFrames(55);
 check('resting on a cell shows its tooltip with a live example',
   byId('tooltip').style.display === 'block' && /How to use/.test(byId('tooltip').innerHTML));
 
@@ -179,7 +202,8 @@ runFrames(5);
 pressKey('Escape');
 runFrames(1);
 clickHex(0, 0);
-check('back in the builder, the pan is reset: the Nucleus is in the middle of the screen', /Nucleus/.test(info()), info());
+check('back in the builder, the pan is reset: the Nucleus is in the middle of the screen',
+  /Nucleus/.test(info()), info());
 
 check("Bioforge Moba's old library carries over", byId('my-creatures').children.length === 1);
 check('the old library is left as it was', storage.items['bioforge-templates'] === OLD_LIBRARY);
