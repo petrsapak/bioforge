@@ -57,6 +57,7 @@ function createApp(canvas) {
     sandboxSpeed: 1,                                     // share of the normal game speed (slow motion below 1)
     paused: false,
     stepRequested: false,                                 // paused: run one step on the next frame
+    musicOff: false,                                      // the player switched the background music off
     hudBars: [],
     isPreviewCollapsed: () => false,
     tooltip: createTooltipState(),
@@ -84,6 +85,7 @@ function boot() {
   setUpCoach(app);
   setUpSaveMenu(app);
   setUpSandboxBar(app);
+  setUpMusic(app);
   app.hudBars = makeHudBars(byId('hud-bars'));
   showLibraryRows(app);
   listenToKeyboard(app);
@@ -289,6 +291,7 @@ function listenToKeyboard(app) {
     const key = event.key.toLowerCase();
     app.keysHeld.add(key);
     if (key === ' ') event.preventDefault();
+    if (key === 'm' && !event.repeat) toggleMusic(app);
     const digit = digitOf(event);
     if (digit && event.shiftKey) {
       if (digit >= '1' && digit <= String(FLUIDS.length + 1)) showFluidView(app, +digit - 1);
