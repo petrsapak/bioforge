@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bioforge Lab</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="panel">
+<div id="panel-grip" title="Drag to move · drag the bottom-right corner to resize">• • •</div>
+<div id="panel-tree">
+<details id="root" data-node="root" open><summary>BIOFORGE LAB</summary><div class="node">
+  <details data-node="creature" open><summary>Creature</summary><div class="node">
+    <div id="budget"></div>
+    <div id="stats"></div>
+  </div></details>
+  <details data-node="edit" open><summary>Edit</summary><div class="node">
+    <div class="row">
+      <button class="small" data-template="clear" title="Start over with just the Nucleus">Clear all</button>
+    </div>
+    <div class="row">
+      <button class="small" id="save-creature" title="Save the whole creature to My creatures in the Templates library">Save creature</button>
+      <button class="small" id="unlimited-biomass" title="Build without the biomass limit (the Sandbox takes any size)">Unlimited biomass</button>
+    </div>
+  </div></details>
+  <details data-node="info" open><summary>Selected</summary><div class="node"><div id="info"></div></div></details>
+  <details data-node="view"><summary>View (Shift+1–6)</summary><div class="node"><div class="row" id="fluid-views"></div></div></details>
+  <details data-node="help"><summary>Guide</summary><div class="node">
+    <div class="sub">Soft-body cells. Nerves decide when cells act. Oxygen, energy, waste and the hormones that boost or heal spread from cell to cell through the whole body; Hearts speed that up near them.</div>
+    <div class="help">Cells: left-click place, right-click remove. Cells not connected to the Nucleus are only planned (faded, dashed): they cost nothing and are left out of the creature until you join them to the body. Top of the grid = front.<br>Grid: mouse wheel zooms, middle-drag pans, F shows the whole grid.<br>Templates: Ctrl+click cells to select them, right-click a selected cell to save them as a template. Click a saved part in the library to stamp it: Q/E rotate, click to place, right-click or Esc to stop.<br>Save creature (Edit) stores the whole creature, Bud parts, aims and key bindings included; click it under My creatures to load it.<br>Click a placed cell to set it up: drag a part from the library onto a Bud to make it grow that part, then drag the part's dots to move it, Q/E turn it around the Bud, drag the arrow tip to aim; a Command takes the number key (1–9) you press.<br>Builder: hold Space to fire Command and Eyespot cells; the grid shows signals and fluids live. Mouths are fed here.<br><br>Sandbox: no budget. Pick yourself and an enemy in the top bar; click the water to spawn, right-click to remove, R respawns you. W/S swim, A/D turn, Space fires unbound Command cells, 1–9 fire bound ones, T autopilot, Shift+1–6 view, Esc builder. (Levels, and creatures that act only on their own wiring, arrive in milestone 2.)</div>
+  </div></details>
+</div></details>
+</div>
+<button class="big" id="start-sandbox" title="Free play, no budget: pick any creature, click the water to spawn enemies">Sandbox ▶</button>
+</div>
+<div id="sandbox-bar">
+  <label>You <select id="sandbox-player"></select></label>
+  <label>Spawn <select id="sandbox-enemy"></select></label>
+  <span class="help">click the water</span>
+  <button class="small" id="sandbox-enemy-mode">Enemies: hunt</button>
+  <button class="small" id="sandbox-clear">Clear enemies</button>
+  <button class="small" id="sandbox-respawn">Respawn me</button>
+  <button class="small" id="sandbox-exit">Builder</button>
+</div>
+<div id="dock"><div id="dock-inner">
+  <div id="dock-bar">Cells</div>
+  <div id="palette"></div>
+</div></div>
+<div id="preview">
+  <div id="preview-bar" title="Drag to move · drag the bottom-right corner to resize"><span>Preview</span><button id="preview-toggle" title="Hide / show">–</button></div>
+  <canvas id="preview-canvas"></canvas>
+</div>
+<div id="library">
+  <div id="library-bar" title="Drag to move · drag the bottom-right corner to resize"><span>Templates</span><button id="library-toggle" title="Hide / show">–</button></div>
+  <div id="library-body">
+    <div class="library-heading">Small (fit the budget)</div>
+    <div class="row">
+      <button class="small" data-template="lancer" title="Thorn bruiser: Space fires the siphons for a dash into its thorns">Lancer</button>
+      <button class="small" data-template="stinger" title="Nettle burst: its eyespot stings everything that comes close">Stinger</button>
+      <button class="small" data-template="spitter" title="Ranged: Space fires four acid spitters">Spitter</button>
+      <button class="small" data-template="snarer" title="Catcher: Space shoots two snares that pull foes onto its thorns">Snarer</button>
+    </div>
+    <div class="library-heading">Built-in</div>
+    <div class="row">
+      <button class="small" data-template="wiggler">Wiggler</button>
+      <button class="small" data-template="squirter">Squirter</button>
+      <button class="small" data-template="nettler">Nettler</button>
+      <button class="small" data-template="puffer">Puffer</button>
+    </div>
+    <div class="help">Showcase (over the budget; try them in the Sandbox):</div>
+    <div class="row">
+      <button class="small" data-template="eel" title="Pacemakers curl the tail into an S; eyespots fire the head nettles; Space releases adrenaline">Eel</button>
+      <button class="small" data-template="jelly" title="A ring of bloaters pulses the bell; thorn tentacles trail behind; the eyespot cap stings">Jelly</button>
+      <button class="small" data-template="manta" title="Both wings flap: bloaters on top swell while muscles underneath contract; Space fires the jets and adrenaline">Manta</button>
+      <button class="small" data-template="crab" title="Space snaps both pincers shut and fires the back jets; shell carapace">Crab</button>
+    </div>
+    <div class="library-heading">My creatures</div>
+    <div id="my-creatures"></div>
+    <div class="library-heading">My templates</div>
+    <div id="my-parts"></div>
+    <div class="help">Ctrl+click cells to select, right-click a selected cell to save. Click a part to stamp it: Q/E rotate, click to place, right-click or Esc to stop. Drag a part onto a Bud to make the Bud grow it. Edit → Save creature saves the whole creature to My creatures; click one to load it (replaces the design). Saving under the same name overwrites.</div>
+  </div>
+</div>
+<div id="save-menu">
+  <div id="save-menu-title"></div>
+  <input id="save-menu-name" maxlength="40" placeholder="Template name">
+  <div class="row"><button class="small" id="save-menu-save">Save template</button><button class="small" id="save-menu-clear">Clear selection</button></div>
+</div>
+<div id="hud">
+  <div id="hud-top"><div class="hud-chip" id="hud-fps"></div><div class="hud-chip" id="hud-mode"></div><div class="hud-chip" id="hud-enemies"></div></div>
+  <div id="hud-vitals"><div id="hud-dead">You died · R respawns</div><div id="hud-bars"></div><div id="hud-chips"></div></div>
+  <div id="hud-keys"></div>
+</div>
+
+<div id="tooltip"></div>
+
+<script src="data/rules.js"></script>
+<script src="data/fluids.js"></script>
+<script src="math.js"></script>
+<script src="core.js"></script>
+<script src="physics.js"></script>
+<script src="nerve.js"></script>
+<script src="fluid.js"></script>
+<script src="combat.js"></script>
+<script src="actuators.js"></script>
+<script src="growth.js"></script>
+<script src="food.js"></script>
+<script src="ai.js"></script>
+<script src="data/cells.js"></script>
+<script src="data/tips.js"></script>
+<script src="data/templates.js"></script>
+<script src="render.js"></script>
+<script src="design.js"></script>
+<script src="builder.js"></script>
+<script src="windows.js"></script>
+<script src="tipdemo.js"></script>
+<script src="hud.js"></script>
+<script src="dock.js"></script>
+<script src="library.js"></script>
+<script src="panel.js"></script>
+<script src="builderview.js"></script>
+<script src="tooltip.js"></script>
+<script src="sandbox.js"></script>
+<script src="ui.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
