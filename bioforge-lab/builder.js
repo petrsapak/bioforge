@@ -378,7 +378,7 @@ function stampPlacement(edited, stamp, q, r) {
     const costAfter = costWithAdded(edited, cells);
     if (costAfter > edited.biomassLimit) {
       problem = `Not enough biomass: it costs ${formatBiomass(costAfter - costNow)}, ` +
-        `you have ${formatBiomass(RULES.budget - costNow)} left.`;
+        `you have ${formatBiomass(edited.biomassLimit - costNow)} left.`;
     }
   }
   return { cells, fibres, problem };

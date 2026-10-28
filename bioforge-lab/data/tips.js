@@ -69,7 +69,8 @@ const TIPS = {
   lighteye: {
     howToUse: 'Put two on the front, left and right, and lay a fibre from each across to a Siphon on the other side ' +
       '(Nerve view). The eye nearer the light then drives the far siphon harder, which turns the creature toward ' +
-      'the light: it follows the mouse in the Sandbox. Wired to the same side, it runs away instead.',
+      'the light: it follows the mouse in the Sandbox. The light reaches 450 px (the dashed ring), and is brighter ' +
+      'closer in, so the creature speeds up as it nears. Wired to the same side, it runs away instead.',
     example: {
       cells: [
         [0, 0, 'nucleus'], [0, -1, 'lighteye'], [1, -1, 'lighteye'], [-1, 0, 'gill'], [1, 0, 'fat'],

@@ -40,6 +40,12 @@ function rotateHex(q, r, steps) {
 // ---------- World ----------
 const TEST_TANK_FEED_RATE = 0.15;                         // energy per second the test tank's water gives a Mouth
 const DEFAULT_SEED = 1;
+const LIGHT_RANGE = 450;                                  // px a light reaches; Light eyes beyond it see nothing
+
+// a light that Light eyes see (nerve.js): where it is, and how far it reaches (px)
+function createLight(x, y, range = LIGHT_RANGE) {
+  return { x, y, range };
+}
 
 // options: systems (the switchable systems that run, default RULES.systems), seed (the random generator's start),
 // and any world field below to override
@@ -67,7 +73,7 @@ function newWorld(width, height, options = {}) {
     waterFeedRate: 0,                                     // energy per second Mouths take straight from the water
     spaceFiresAllSources: false,                          // Space fires every signal source, to try a design out
     enemiesIdle: false,                                   // sandbox: enemies hold still
-    light: null,                                          // { x, y } in px that Light eyes see (sandbox: the mouse)
+    light: null,                                          // createLight(): what Light eyes see (sandbox: the mouse)
     systems: new Set(systems),
     ...overrides,
   };
@@ -150,7 +156,8 @@ function createCell(typeName, q, r, creature) {
     senseOutput: 0,                                       // sense organs: what they feel this step
     neuron: null,                                         // the neuron inside the cell: { kind, setting }
     neuronMemory: 0,                                      // state a neuron keeps between nerve steps
-    size: 1,                                              // muscles shrink, bloaters swell
+    delayLine: null,                                      // a Delay neuron's past inputs (nerve.js), made on first use
+    size: 1,                                             // muscles shrink, bloaters swell
     radius: CELL_RADIUS,
     cooldown: 0,
     hitFlash: 0,

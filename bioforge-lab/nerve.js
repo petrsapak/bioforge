@@ -24,7 +24,27 @@ const NEURON_RULES = {
     cell.neuronMemory = isPulse ? 1 : 0;
     return cell.signal;
   },
+  delay: (cell, input, world, stepTime) => delayedSignal(cell, input, stepTime),
 };
+
+// A Delay neuron's memory: its own clock (s) and the moments its input changed, oldest first. Only changes are kept,
+// so a steady input costs one entry however long the delay is.
+function createDelayLine() {
+  return { clock: 0, changes: [] };
+}
+
+// the input (clamped to 0..1) as it was the neuron's setting (s) ago; 0 until that long has passed
+function delayedSignal(cell, input, stepTime) {
+  if (!cell.delayLine) cell.delayLine = createDelayLine();
+  const line = cell.delayLine;
+  line.clock += stepTime;
+  const value = clamp01(input);
+  const last = line.changes[line.changes.length - 1];
+  if (!last || last.value !== value) line.changes.push({ time: line.clock, value });
+  const shownTime = line.clock - cell.neuron.setting;
+  while (line.changes.length > 1 && line.changes[1].time <= shownTime) line.changes.shift();
+  return line.changes[0].time <= shownTime ? line.changes[0].value : 0;
+}
 
 // Cells that can't act yet make no signal of their own: a growing Bud part waits for its launch, and debris that
 // isn't a launched part is dead weight.
@@ -64,9 +84,10 @@ function enemyNear(world, cell) {
   return false;
 }
 
-// Graded by direction: 1 when the light lies straight out from the cell's side of the body, a half when it lies
-// square to that side, 0 when it lies straight across the body. So a Light eye on the left sees more of a light on
-// the left than its twin on the right does, at any distance.
+// Graded by direction and by distance. Direction: 1 when the light lies straight out from the cell's side of the
+// body, a half when it lies square to that side, 0 when it lies straight across the body, so a Light eye on the left
+// sees more of a light on the left than its twin on the right does. Distance: full at the light, fading evenly to
+// nothing at the light's range.
 function lightSeen(world, cell) {
   const light = world.light;
   if (!light) return 0;
@@ -74,9 +95,11 @@ function lightSeen(world, cell) {
   const outwardY = cell.y - cell.creature.centerY;
   const towardX = light.x - cell.x;
   const towardY = light.y - cell.y;
-  const lengths = vectorLength(outwardX, outwardY) * vectorLength(towardX, towardY);
-  if (lengths < MIN_LIGHT_LENGTH) return UNSURE_LIGHT;
-  return (1 + (outwardX * towardX + outwardY * towardY) / lengths) / 2;
+  const distance = vectorLength(towardX, towardY);
+  const brightness = clamp01(1 - distance / light.range);
+  const lengths = vectorLength(outwardX, outwardY) * distance;
+  if (lengths < MIN_LIGHT_LENGTH) return UNSURE_LIGHT * brightness;
+  return brightness * (1 + (outwardX * towardX + outwardY * towardY) / lengths) / 2;
 }
 
 // the signal a cell takes on, given the sum of its fibre inputs and its sense

@@ -24,7 +24,13 @@ const NEURONS = {
   }),
   ganglion: neuronType({
     name: 'Ganglion', symbol: '≈', color: '#c78f3c',
-    description: 'Follows its input slowly. Use it to delay or smooth a signal.',
+    description: 'Follows its input slowly. Use it to smooth a signal.',
+  }),
+  delay: neuronType({
+    name: 'Delay', symbol: '»', color: '#7fd18b',
+    setting: { name: 'Delay', unit: 's', start: 0.5, step: 0.25, min: 0.25, max: 3 },
+    description: 'Passes its input on unchanged, but late by its delay. Use it to make one side act after the ' +
+      'other, or to keep going for a moment after a sense goes quiet.',
   }),
   inhibitor: neuronType({
     name: 'Inhibitor', symbol: '¬', color: '#9a86e0',

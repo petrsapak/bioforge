@@ -331,3 +331,58 @@ details > summary:hover { background: #ffffff0d; color: #dfe4ea; }
   margin-top: 6px; color: #e8c547; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
 }
 #tooltip .dim { color: #6f7b88; font-size: 12px; }
+
+/* ---------- Levels: the levels sheet, the level card, the level bar and the result box ---------- */
+#levels-sheet {
+  position: absolute; inset: 0; display: none; align-items: center; justify-content: center; z-index: 30;
+  background: #0006;
+}
+#levels-sheet-inner {
+  width: min(520px, calc(100vw - 32px)); padding: 14px 18px; background: #0d1519f2; border: 1px solid #2c4650;
+  border-radius: 12px; font-size: 13px; color: #b9c3cd;
+}
+#levels-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.level-row {
+  display: grid; grid-template-columns: 26px 1fr auto; gap: 2px 10px; align-items: center; padding: 8px 10px;
+  background: #1c2a31; color: inherit; border: 1px solid #2c3f48; border-radius: 8px; cursor: pointer; font: inherit;
+  text-align: left;
+}
+.level-row:hover { border-color: #5d6b77; }
+.level-row.selected { border-color: #e8c547; background: #2b2a1f; }
+.level-number { grid-row: span 2; color: #7fe0a0; font-size: 18px; font-weight: 800; text-align: center; }
+.level-name { color: #dfe4ea; font-weight: 700; }
+.level-brief { grid-column: 2 / 4; color: #8a96a3; font-size: 12px; }
+.level-stars b { color: #3a4a52; font-weight: 400; }
+.level-stars b.lit { color: #e8c547; text-shadow: 0 0 6px #e8c54788; }
+#level-card {
+  display: none; padding: 8px 10px; background: #0e181dcc; border: 1px solid #3d6b5088; border-radius: 12px;
+  backdrop-filter: blur(3px); font-size: 12px; color: #b9c3cd;
+}
+#level-card-title { color: #7fe0a0; font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+#level-card-brief { color: #dfe4ea; margin-bottom: 4px; }
+#level-card-rules, #level-card-best { color: #8a96a3; font-size: 11px; }
+#level-card-hint {
+  display: none; margin: 6px 0 2px; padding: 6px 8px; background: #1a2a22; border-left: 2px solid #7fe0a0;
+  border-radius: 4px; color: #b9d8c3;
+}
+#level-card .row { margin-top: 6px; }
+button.small.run { background: #3d6b38; border-color: #4a8044; color: #fff; }
+button.small.run:hover { background: #4a8044; }
+#level-bar {
+  position: absolute; top: 44px; left: 50%; transform: translateX(-50%); display: none; align-items: center; gap: 6px;
+  padding: 6px 10px; background: #0e181dcc; backdrop-filter: blur(3px); border: 1px solid #23323a; border-radius: 8px;
+  font-size: 13px; white-space: nowrap;
+}
+#level-bar button.small { flex: none; }
+#level-bar button.time { min-width: 34px; font-size: 15px; }
+#level-result {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: none; z-index: 25;
+  min-width: 280px; padding: 16px 20px; background: #0d1519f2; border: 1px solid #2c4650; border-radius: 12px;
+  text-align: center; box-shadow: 0 8px 30px #000a;
+}
+#result-title { color: #e8c547; font-size: 18px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
+#result-stars { margin: 6px 0; font-size: 30px; }
+#result-text { margin-bottom: 10px; color: #b9c3cd; font-size: 13px; }
+#level-result .row { justify-content: center; }
+#level-result button.small { flex: none; padding: 5px 12px; }
+#hud-chips .chip-goal { background: #1e3d2a; color: #9ff0b8; }

@@ -19,7 +19,7 @@ function createApp(canvas) {
   return {
     canvas,
     context: canvas.getContext('2d'),
-    mode: 'build',                                        // or 'sandbox'
+    mode: 'build',                                        // or 'sandbox' or 'level'
     layer: 'body',                                        // the builder's view: 'body' or 'nerve'
     fluidView: 0,                                         // 0 = normal, otherwise 1 + the index of the fluid shown
     keysHeld: new Set(),                                  // lower-case key names
@@ -57,7 +57,12 @@ function createApp(canvas) {
     sandboxSpeed: 1,                                     // share of the normal game speed (slow motion below 1)
     paused: false,
     stepRequested: false,                                 // paused: run one step on the next frame
-    musicOff: false,                                      // the player switched the background music off
+    level: null,                                          // the chosen level (data/levels.js); null: free build
+    levelRun: null,                                       // the level being played (levels.js startLevel)
+    levelDesign: null,                                    // the design it runs, kept for a retry and the score
+    levelResults: {},                                     // best result per level id: { stars, seconds, biomass }
+    isHintShown: false,
+    musicOff: false,                                     // the player switched the background music off
     hudBars: [],
     isPreviewCollapsed: () => false,
     tooltip: createTooltipState(),
@@ -86,6 +91,7 @@ function boot() {
   setUpSaveMenu(app);
   setUpSandboxBar(app);
   setUpMusic(app);
+  setUpLevels(app);
   app.hudBars = makeHudBars(byId('hud-bars'));
   showLibraryRows(app);
   listenToKeyboard(app);
@@ -136,7 +142,7 @@ function loadDesign(app, design, label, savedName) {
   app.selection.clear();
   app.focusKey = null;
   rebuildTank(app);
-  const problem = buildCheck(bodyDesign(app.edited));
+  const problem = buildCheck(bodyDesign(app.edited), chosenLimits(app));
   if (problem) byId('info').textContent = `${label}: ${problem}. Try it in the Sandbox, or trim it to fit.`;
 }
 
@@ -268,20 +274,33 @@ function saveSelection(app, name) {
 }
 
 // ---------- Modes ----------
-function showBuilderWindows(isShown) {
-  for (const id of ['builder-left', 'preview', 'library']) byId(id).style.display = isShown ? 'flex' : 'none';
-  if (!isShown) byId('keys-sheet').style.display = 'none';
-  byId('dock').style.display = isShown ? 'block' : 'none';
-  byId('hud').style.display = isShown ? 'none' : 'block';
-  byId('sandbox-bar').style.display = isShown ? 'none' : 'flex';
+// the windows of the app's mode: the builder's, or the HUD with the Sandbox's or the level's bar
+function showModeWindows(app) {
+  const isBuilding = app.mode === 'build';
+  for (const id of ['builder-left', 'preview', 'library']) byId(id).style.display = isBuilding ? 'flex' : 'none';
+  if (!isBuilding) {
+    byId('keys-sheet').style.display = 'none';
+    byId('levels-sheet').style.display = 'none';
+  }
+  byId('dock').style.display = isBuilding ? 'block' : 'none';
+  byId('hud').style.display = isBuilding ? 'none' : 'block';
+  byId('sandbox-bar').style.display = app.mode === 'sandbox' ? 'flex' : 'none';
+  byId('level-bar').style.display = app.mode === 'level' ? 'flex' : 'none';
+  byId('level-result').style.display = 'none';
 }
 
 function enterBuilder(app) {
   app.mode = 'build';
   app.world = null;
   app.player = null;
-  showBuilderWindows(true);
+  app.levelRun = null;
+  showModeWindows(app);
   rebuildTank(app);
+}
+
+// what the builder's design must fit: the chosen level's limits, or RULES
+function chosenLimits(app) {
+  return app.level ? levelLimits(app.level) : RULES;
 }
 
 // ---------- Keyboard ----------
@@ -300,7 +319,8 @@ function listenToKeyboard(app) {
       if (!event.repeat) bindFocusedCommand(app, digit);
     }
     if (app.mode === 'build') handleBuilderKey(app, key);
-    else handleSandboxKey(app, key);
+    else if (app.mode === 'sandbox') handleSandboxKey(app, key);
+    else handleLevelKey(app, key);
   });
   addEventListener('keyup', event => {
     app.keysHeld.delete(event.key.toLowerCase());
@@ -373,7 +393,7 @@ function listenToMouse(app) {
   });
   canvas.addEventListener('mousedown', event => {
     if (app.mode === 'sandbox') handleSandboxClick(app, event);
-    else handleBuilderMouseDown(app, event);
+    else if (app.mode === 'build') handleBuilderMouseDown(app, event);
   });
   canvas.addEventListener('wheel', event => {
     if (app.mode !== 'build') return;
@@ -535,9 +555,12 @@ function runFrame(app, now) {
   app.lastFrameTime = now;
   app.fps += (1 / Math.max(frameTime, 1e-3) - app.fps) * FPS_SMOOTHING;
   if (app.mode === 'build') runBuilderFrame(app, dt, now);
-  else {
+  else if (app.mode === 'sandbox') {
     stepSandbox(app, dt);
     drawSandbox(app);
+  } else {
+    stepLevelMode(app, dt);
+    drawLevelMode(app);
   }
   requestAnimationFrame(time => runFrame(app, time));
 }

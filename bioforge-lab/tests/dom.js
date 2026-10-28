@@ -7,15 +7,17 @@ const FRAME_MS = 16;
 const SCREEN_WIDTH = 1600;                                // px
 const SCREEN_HEIGHT = 900;
 
-// a 2D canvas context that accepts every call and property and draws nothing
+// A 2D canvas context that accepts every call and property and draws nothing. A call returns the context itself, so
+// what a call makes (a gradient) accepts calls too.
 function createIgnoringContext() {
-  return new Proxy({}, {
-    get: (target, name) => (name in target ? target[name] : () => {}),
+  const context = new Proxy({}, {
+    get: (target, name) => (name in target ? target[name] : () => context),
     set: (target, name, value) => {
       target[name] = value;
       return true;
     },
   });
+  return context;
 }
 
 function createClassList() {

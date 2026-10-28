@@ -241,6 +241,17 @@ function drawLight(context, light) {
   glow.addColorStop(1, 'rgba(255,230,150,0)');
   context.fillStyle = glow;
   fillCircle(context, light.x, light.y, LIGHT_GLOW_RADIUS);
+  const reach = context.createRadialGradient(light.x, light.y, 0, light.x, light.y, light.range);
+  reach.addColorStop(0, 'rgba(255,230,150,0.07)');
+  reach.addColorStop(1, 'rgba(255,230,150,0)');
+  context.fillStyle = reach;
+  fillCircle(context, light.x, light.y, light.range);
+  context.strokeStyle = 'rgba(255,230,150,0.15)';
+  context.setLineDash([4, 8]);
+  context.beginPath();
+  context.arc(light.x, light.y, light.range, 0, Math.PI * 2);
+  context.stroke();
+  context.setLineDash([]);
 }
 
 // the small drawing inside each cell type: (context, cell, radius, outward angle)

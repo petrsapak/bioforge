@@ -20,14 +20,14 @@ const WALL_BOUNCE = 0.3;                                  // share of speed kept
 
 // ---------- Input ----------
 // Sets each creature's wanted swimming direction, heading and ability from the AI or the player's input. An
-// autonomous creature takes only its Command keys.
+// autonomous creature takes only its Command keys, and only the player's (team 0) keys reach it.
 function applyInputs(world, dt, input) {
   for (const creature of world.creatures) {
     if (creature.debris) continue;
     creature.resting = creature.team !== 0 && world.enemiesIdle;   // a sandbox target told to hold still
     if (creature.resting) holdStill(creature);
     else if (creature.aiControlled) steerTowardNearestEnemy(world, creature);
-    else if (creature.autonomous) applyTriggerInput(creature, input);
+    else if (creature.autonomous) applyTriggerInput(creature, creature.team === 0 ? input : null);
     else if (input && 'forward' in input) applyCarStyleInput(creature, input, dt);
     else if (input) applyDirectionInput(creature, input);
   }

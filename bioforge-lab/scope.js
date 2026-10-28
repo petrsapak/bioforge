@@ -18,6 +18,7 @@ const SCOPE_INPUTS = {
     { label: 'in B', signal: time => (time % 3 < 1.5 ? 1 : 0) },
   ],
   latch: [{ label: 'in', signal: time => (time % 1.5 < 0.25 ? 1 : 0) }],
+  delay: [{ label: 'in', signal: time => (time % 3 < 0.8 ? 1 : 0) }],
 };
 
 function createScope() {
@@ -40,6 +41,7 @@ function showScopeNeuron(scope, neuron) {
       neuron: { ...neuron },
       signal: 0,
       neuronMemory: 0,
+      delayLine: null,
       boundKey: null,
       creature: { abilityHeld: false, heldKeys: null, aiControlled: false },
     };

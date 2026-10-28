@@ -4,7 +4,7 @@
 //   mass; stiffness (angle springs); bondStrength (bond springs, the weaker cell of a pair counts);
 //   swimPower (free swimming force); damageFactor (share of damage taken: 0.5 = half)
 //   senses: what the cell feels, as a nerve signal its fibres carry: 'enemy' (an enemy cell is near, on or off) or
-//     'light' (graded: how far the light lies on the cell's side of the body)
+//     'light' (graded: how far the light lies on the cell's side of the body, fading with distance)
 //   fuelBurn: O2 + energy burned per second at full work (each unit burned becomes one unit of waste)
 //   oxygenCapacity, energyCapacity: how much the cell holds
 // Behaviours: what the cell does in each system. The systems read these, never the type's name.
@@ -73,7 +73,8 @@ const CELLS = {
   lighteye: cellType({
     category: 'Sense', name: 'Light eye', cost: 3, health: 20, senses: 'light', color: '#f0c96a',
     description: 'Signals how far the light lies on its side of the body: strongest when the light is straight out ' +
-      'from it, weakest when it is across the body. In the Sandbox the mouse is the light.',
+      'from it, weakest when it is across the body, and fainter the farther the light is, until nothing past its ' +
+      'reach. In the Sandbox the mouse is the light.',
   }),
   muscle: cellType({
     category: 'Action', name: 'Muscle', cost: 3, health: 30, mass: 1.2, stiffness: 0.05, fuelBurn: 0.1,

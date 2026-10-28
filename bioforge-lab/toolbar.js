@@ -50,7 +50,7 @@ function setUpDesignButtons(app) {
   };
   byId('unlimited-biomass').onclick = () => {
     const isUnlimited = app.edited.biomassLimit !== Infinity;
-    app.edited.biomassLimit = isUnlimited ? Infinity : RULES.budget;
+    app.edited.biomassLimit = isUnlimited ? Infinity : chosenLimits(app).budget;
     writeStorage('unlimited-biomass', isUnlimited);
     refreshPanel(app);
   };

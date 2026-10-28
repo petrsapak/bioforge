@@ -56,20 +56,21 @@ function showSelectedButtons(app) {
 // Four bars: biomass and cells (the Body view's), neurons and fibre units (the Nerve view's, which stand out there).
 // The full wording is each bar's tooltip.
 function showMeters(app) {
-  const problem = buildCheck(bodyDesign(app.edited));
+  const limits = chosenLimits(app);
+  const problem = buildCheck(bodyDesign(app.edited), limits);
   const nerve = nerveUsage(app.edited);
   const isUnlimited = app.edited.biomassLimit === Infinity;
   const used = bodyCost(app.edited);
   const cellCount = bodyCells(app.edited).length;
   const isNerveView = app.layer === 'nerve';
   byId('budget').innerHTML = '<div class="meters">' +
-    meterHtml('biomass', `Biomass used: ${formatBiomass(used)} of ${RULES.budget}` +
-      (isUnlimited ? ' (unlimited: the Sandbox takes any size)' : ''), used, RULES.budget, isNerveView,
-      isUnlimited ? '∞' : `${formatBiomass(RULES.budget - used)} left`) +
-    meterHtml('cells', `Cells: ${cellCount} of ${RULES.maxCells}`, cellCount, RULES.maxCells, isNerveView) +
-    meterHtml('neurons', `Neurons: ${nerve.neurons} of ${RULES.maxNeurons}`, nerve.neurons, RULES.maxNeurons,
+    meterHtml('biomass', `Biomass used: ${formatBiomass(used)} of ${limits.budget}` +
+      (isUnlimited ? ' (unlimited: the Sandbox takes any size)' : ''), used, limits.budget, isNerveView,
+      isUnlimited ? '∞' : `${formatBiomass(limits.budget - used)} left`) +
+    meterHtml('cells', `Cells: ${cellCount} of ${limits.maxCells}`, cellCount, limits.maxCells, isNerveView) +
+    meterHtml('neurons', `Neurons: ${nerve.neurons} of ${limits.maxNeurons}`, nerve.neurons, limits.maxNeurons,
       !isNerveView) +
-    meterHtml('fibre', `Fibre: ${nerve.units} of ${RULES.maxFibreUnits} units`, nerve.units, RULES.maxFibreUnits,
+    meterHtml('fibre', `Fibre: ${nerve.units} of ${limits.maxFibreUnits} units`, nerve.units, limits.maxFibreUnits,
       !isNerveView) +
     '</div>' + (problem ? `<div class="warn">⚠ ${problem}</div>` : '');
 }

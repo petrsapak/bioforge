@@ -51,14 +51,14 @@ function hexesReachableFromNucleus(isOpen) {
   return seen;
 }
 
-// why the design can't be run ('' = it can): the cell, biomass, neuron and fibre limits in RULES
-function buildCheck(design) {
-  if (design.cells.length > RULES.maxCells) return `Too many cells: ${design.cells.length} / ${RULES.maxCells}`;
-  if (designCost(design) > RULES.budget) return `Over budget by ${designCost(design) - RULES.budget}`;
+// why the design can't be run ('' = it can): the cell, biomass, neuron and fibre limits, from RULES or a level's
+function buildCheck(design, limits = RULES) {
+  if (design.cells.length > limits.maxCells) return `Too many cells: ${design.cells.length} / ${limits.maxCells}`;
+  if (designCost(design) > limits.budget) return `Over budget by ${designCost(design) - limits.budget}`;
   const neuronCount = design.cells.filter(cell => cell.neuron).length;
-  if (neuronCount > RULES.maxNeurons) return `Too many neurons: ${neuronCount} / ${RULES.maxNeurons}`;
+  if (neuronCount > limits.maxNeurons) return `Too many neurons: ${neuronCount} / ${limits.maxNeurons}`;
   const units = fibreUnits(design);
-  if (units > RULES.maxFibreUnits) return `Too many fibre units: ${units} / ${RULES.maxFibreUnits}`;
+  if (units > limits.maxFibreUnits) return `Too many fibre units: ${units} / ${limits.maxFibreUnits}`;
   return '';
 }
 

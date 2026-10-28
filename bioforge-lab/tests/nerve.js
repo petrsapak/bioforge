@@ -54,6 +54,22 @@ check('Inhibitor is NOT (of the sum)', truthTable(sim.createNeuron('inhibitor'))
     afterOneStep > 0 && afterOneStep < 0.2 && afterTwoSeconds > 0.95, `${afterOneStep} then ${afterTwoSeconds}`);
 }
 
+{ // Delay: the input unchanged but late, both on the way up and on the way down
+  const rig = createLogicRig({ kind: 'delay', setting: 0.5 });
+  const beforeTheDelay = rig.press(['1'], 18);            // 0.45 s
+  const afterTheDelay = rig.press(['1'], 4);              // 0.55 s
+  const heldOnAfterRelease = rig.press([], 18);
+  const offAfterRelease = rig.press([], 4);
+  check('Delay passes its input on 0.5 s late', [beforeTheDelay, afterTheDelay, heldOnAfterRelease,
+    offAfterRelease].join(',') === '0,1,1,0', [beforeTheDelay, afterTheDelay, heldOnAfterRelease,
+    offAfterRelease].join(','));
+  const steadyRig = createLogicRig({ kind: 'delay', setting: 3 });
+  steadyRig.press(['1'], 400);
+  const delayLine = cellAt(steadyRig.creature, 0, 1).delayLine;
+  check('a steady input keeps the Delay\'s memory small', delayLine.changes.length <= 2,
+    delayLine.changes.length + ' entries');
+}
+
 { // Pacemaker: on and off at its rate, whatever its inputs
   const cells = [sim.createDesignCell(0, 0, 'nucleus', { neuron: { kind: 'pacemaker', setting: 2 } })];
   const world = sim.newWorld(600, 600, { systems: ['nerve'] });

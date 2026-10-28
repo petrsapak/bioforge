@@ -2,8 +2,8 @@
 // Sandbox mode: play any creature with no budget, click the water to spawn enemies, and nobody wins or loses. Its top
 // bar, its steps and drawing, and its HUD (browser only).
 
-const SANDBOX_DESIGNS = ['jet', 'paddler', 'seeker', 'wiggler', 'squirter', 'nettler', 'puffer', 'starter', 'eel', 'jelly',
-  'manta', 'crab'];
+const SANDBOX_DESIGNS = ['jet', 'paddler', 'seeker', 'wiggler', 'squirter', 'nettler', 'puffer', 'starter', 'eel',
+  'jelly', 'manta', 'crab'];
 const OWN_DESIGN = 'mine';                                // the select value for the design in the builder
 const SANDBOX_MAX_STEP = 1 / 40;                          // game s; longer steps would make the springs unstable
 const PLAYER_BOTTOM_MARGIN = 50;                          // px between the player's spawn and the bottom edge
@@ -68,7 +68,7 @@ function startSandbox(app) {
   app.aimDragKey = null;
   hideTooltip(app);
   closeSaveMenu();
-  showBuilderWindows(false);
+  showModeWindows(app);
 }
 
 // (re)spawns the player near the bottom, facing up
@@ -79,7 +79,7 @@ function spawnSandboxPlayer(app) {
   const y = app.canvas.height - Math.max(PLAYER_MIN_BOTTOM_DISTANCE, reach + PLAYER_BOTTOM_MARGIN);
   app.player = spawn(app.world, design, app.canvas.width / 2, y, 0, 0);
   app.player.autonomous = true;                           // it moves only by its wiring: nothing steers it
-  app.player.spawnHealth = app.player.cells.reduce((sum, cell) => sum + cell.maxHealth, 0);   // the HUD's Body bar
+  noteSpawnHealth(app.player);
 }
 
 function toggleEnemiesIdle(app) {
@@ -109,22 +109,15 @@ function handleSandboxClick(app, event) {
 // the mouse is the light that Light eyes see; it stays where the mouse last was on the water
 function trackSandboxLight(app, event) {
   if (app.mode !== 'sandbox') return;
-  app.sandboxLight = { x: event.clientX, y: event.clientY };
+  app.sandboxLight = createLight(event.clientX, event.clientY);
 }
 
-// Runs at the chosen speed (real time at 1×, like the builder), in steps of at most SANDBOX_MAX_STEP; paused,
-// only the one step asked for. Space and the number keys reach the player's Command neurons, nothing else.
+// Runs at the chosen speed (real time at 1×, like the builder). Space and the number keys reach the player's
+// Command neurons, nothing else.
 function stepSandbox(app, dt) {
   app.world.light = app.sandboxLight;
   const input = { ability: app.keysHeld.has(' '), heldKeys: app.digitsHeld };
-  if (app.paused) {
-    if (app.stepRequested) step(app.world, SANDBOX_MAX_STEP, input);
-    app.stepRequested = false;
-    return;
-  }
-  const gameTime = dt * app.sandboxSpeed;
-  const stepCount = Math.ceil(gameTime / SANDBOX_MAX_STEP - 1e-6);
-  for (let i = 0; i < stepCount; i++) step(app.world, gameTime / stepCount, input);
+  runTimeControlled(app, dt, stepTime => step(app.world, stepTime, input));
 }
 
 // pauses or resumes the sandbox
@@ -150,11 +143,27 @@ function cycleSandboxSpeed(app) {
 
 const speedLabel = speed => ({ 1: '1×', 0.5: '½×', 0.25: '¼×' })[speed] || speed + '×';
 
-// the pause button shows what a click does; the speed button shows the speed
+// The pause button shows what a click does; the speed button shows the speed. The Sandbox bar and the level bar
+// each have a set.
 function showTimeControls(app) {
-  byId('sandbox-pause').textContent = app.paused ? '▶' : '⏸';
-  byId('sandbox-pause').title = app.paused ? 'Run (P)' : 'Pause (P)';
-  byId('sandbox-speed').textContent = speedLabel(app.sandboxSpeed);
+  for (const bar of ['sandbox', 'level']) {
+    byId(bar + '-pause').textContent = app.paused ? '▶' : '⏸';
+    byId(bar + '-pause').title = app.paused ? 'Run (P)' : 'Pause (P)';
+    byId(bar + '-speed').textContent = speedLabel(app.sandboxSpeed);
+  }
+}
+
+// Steps a world at the chosen speed (real time at 1×) in steps of at most SANDBOX_MAX_STEP; paused, only the one
+// step asked for. stepWorld(stepTime) does one step. Shared by the Sandbox and level runs.
+function runTimeControlled(app, dt, stepWorld) {
+  if (app.paused) {
+    if (app.stepRequested) stepWorld(SANDBOX_MAX_STEP);
+    app.stepRequested = false;
+    return;
+  }
+  const gameTime = dt * app.sandboxSpeed;
+  const stepCount = Math.ceil(gameTime / SANDBOX_MAX_STEP - 1e-6);
+  for (let i = 0; i < stepCount; i++) stepWorld(gameTime / stepCount);
 }
 
 function drawSandbox(app) {
@@ -166,29 +175,37 @@ function drawSandbox(app) {
 
 // the HUD: fps, mode, enemy count, the player's vitals bars and status chips, and the keys
 function showSandboxHud(app) {
-  const player = app.player;
-  const vitals = creatureVitals(player);
-  const isDead = !player.alive;
   const enemyCount = app.world.creatures.filter(creature => creature.team === 1 && !creature.debris).length;
   byId('hud-fps').textContent = `${Math.round(app.fps)} fps`;
   byId('hud-mode').textContent = 'Sandbox';
   byId('hud-enemies').textContent = `Enemies ${enemyCount}`;
+  showVitalsHud(app, app.world, app.player, []);
+  if (byId('hud-keys').innerHTML !== SANDBOX_KEYS_HELP) byId('hud-keys').innerHTML = SANDBOX_KEYS_HELP;
+}
+
+// The player's vitals bars (the fluid bars only while the world runs the fluid system), then its status chips:
+// starving and poisoned cells, the given chips, and the time controls' state. Shared by the Sandbox and levels.
+function showVitalsHud(app, world, player, extraChips) {
+  const vitals = creatureVitals(player);
+  const isDead = !player.alive;
+  const hasFluids = world.systems.has('fluid');
   app.hudBars.forEach((bar, i) => {
+    bar.row.style.display = bar.isFluid && !hasFluids ? 'none' : '';
     const value = clamp01(vitals.bars[i]);
     bar.fill.style.width = (value * 100).toFixed(1) + '%';
     bar.value.textContent = Math.round(value * 100) + '%';
     bar.row.classList.toggle('low', !isDead && bar.isLow(value));
   });
   byId('hud-dead').style.display = isDead ? 'block' : 'none';
-  const chips = [];
+  const chips = [...extraChips];
   if (vitals.starving) chips.push(`<span class="chip-starving">${vitals.starving} starving</span>`);
   if (vitals.poisoned) chips.push(`<span class="chip-poisoned">${vitals.poisoned} poisoned</span>`);
   if (app.paused) chips.push('<span class="chip-time">Paused</span>');
   else if (app.sandboxSpeed !== 1) {
     chips.push(`<span class="chip-time">Slow motion ${speedLabel(app.sandboxSpeed)}</span>`);
   }
-  byId('hud-chips').innerHTML = chips.join('');
-  if (byId('hud-keys').innerHTML !== SANDBOX_KEYS_HELP) byId('hud-keys').innerHTML = SANDBOX_KEYS_HELP;
+  const chipsHtml = chips.join('');
+  if (byId('hud-chips').innerHTML !== chipsHtml) byId('hud-chips').innerHTML = chipsHtml;
 }
 
 // sandbox keys: Esc back to the builder, R respawn, P pause, . one step, , speed

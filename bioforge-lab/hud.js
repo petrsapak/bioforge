@@ -3,13 +3,13 @@
 
 // Core = nucleus health. Body = health of all cells vs. at spawn (lost cells count as 0).
 // O2 / Energy = how full the body's stores are. Waste = average over the working cells (bad when high).
-// isLow: when the bar pulses red.
+// isLow: when the bar pulses red. isFluid: the bar shows a fluid, so it is hidden while the fluid system is off.
 const HUD_BAR_DEFINITIONS = [
   { name: 'Core', color: '#e8c547', isLow: value => value < 0.3 },
   { name: 'Body', color: '#7fd18a', isLow: value => value < 0.4 },
-  { name: 'O₂', color: FLUIDS[FLUID_OXYGEN].color, isLow: value => value < 0.2 },
-  { name: 'Energy', color: FLUIDS[FLUID_ENERGY].color, isLow: value => value < 0.2 },
-  { name: 'Waste', color: '#b8a040', isLow: value => value > 0.6 },
+  { name: 'O₂', color: FLUIDS[FLUID_OXYGEN].color, isLow: value => value < 0.2, isFluid: true },
+  { name: 'Energy', color: FLUIDS[FLUID_ENERGY].color, isLow: value => value < 0.2, isFluid: true },
+  { name: 'Waste', color: '#b8a040', isLow: value => value > 0.6, isFluid: true },
 ];
 
 // one row per bar inside container; returns the bars with their elements
@@ -32,6 +32,11 @@ function makeHudBars(container) {
     container.appendChild(row);
     return { ...definition, row, fill, value };
   });
+}
+
+// remembers the creature's health at spawn, which the Body bar compares against
+function noteSpawnHealth(creature) {
+  creature.spawnHealth = creature.cells.reduce((sum, cell) => sum + cell.maxHealth, 0);
 }
 
 // the bar values (0..1, in HUD_BAR_DEFINITIONS order) and status counts for a creature

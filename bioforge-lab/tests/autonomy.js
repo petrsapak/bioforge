@@ -5,7 +5,7 @@
 const { load } = require('./load');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['newWorld', 'spawn', 'step', 'blueprintFromList', 'createDesignCell', 'createNeuron',
-  'TEMPLATES']);
+  'TEMPLATES', 'createLight', 'LIGHT_RANGE']);
 
 const RUN_STEPS = 200;                                    // 5 game s at 1/40 s per step
 const STILL_DISTANCE = 2;                                 // px a creature with no movers may drift
@@ -90,7 +90,7 @@ function runSeeker(lightOffsetX, lightOffsetY, seconds = 10) {
   const creature = sim.spawn(world, sim.TEMPLATES.seeker, 1000, 1000, 0, 0);
   creature.aiControlled = false;
   creature.autonomous = true;
-  world.light = lightOffsetX === null ? null : { x: 1000 + lightOffsetX, y: 1000 + lightOffsetY };
+  world.light = lightOffsetX === null ? null : sim.createLight(1000 + lightOffsetX, 1000 + lightOffsetY);
   const target = world.light || { x: 1000, y: 1000 };
   let turned = 0;                                         // rad
   for (let i = 0; i < seconds * 40; i++) {
@@ -110,6 +110,9 @@ check('the Seeker turns right and swims to a light on its right',
 const toBehind = runSeeker(50, 200, 20);
 check('the Seeker turns round to a light behind it', toBehind.distance < 60,
   `${toBehind.distance.toFixed(0)} px from it after 20 s`);
+const outOfReach = runSeeker(0, -(sim.LIGHT_RANGE + 100));
+check('the Seeker doesn\'t see a light beyond its range', outOfReach.distance > sim.LIGHT_RANGE + 98,
+  `${outOfReach.distance.toFixed(0)} px from it after 10 s`);
 const inTheDark = runSeeker(null, null);
 check('the Seeker holds still with no light', inTheDark.distance < STILL_DISTANCE,
   inTheDark.distance.toFixed(2) + ' px');

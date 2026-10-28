@@ -15,13 +15,16 @@ Started 2026-10-28. It was copied from `bioforge-moba/`, which is now frozen.
   - **One step of delay per fibre:** a fibre delivers what its start cell had one nerve step earlier. Loops become oscillators that behave the same on every run, and long wiring is slower.
   - **Crossings are drawn with a small bridge arc.** Fibres connect only at their ends, so a crossing never connects anything.
   - **Limits come from `RULES`:** `maxNeurons` and `maxFibreUnits` (user: "limit with rules"). Neither costs biomass.
-  - **The neuron set is a trial** (user: "don't know, have to try"): Pacemaker, Ganglion, Inhibitor, Synapse, Latch, Command. They are data, so any of them can be cut or changed after playing.
+  - **Neurons cost no materials** (2026-10-28, user: "neurons do not cost material now"); only the neuron count limits them. This can be revisited when the material kits arrive (milestone 4).
+  - **The neuron set is a trial** (user: "don't know, have to try"): Pacemaker, Ganglion, Inhibitor, Synapse, Latch, Command, and Delay (added 2026-10-28, user: "Delay neuron - ok"). They are data, so any of them can be cut or changed after playing.
 - **Metabolism:** creatures are built from materials, take materials from food and prey, store them, and secrete chemicals that break down or change materials. It is grounded in real biology and chemistry, but fun comes first. There are **5 materials**, introduced gradually (see Chapters).
 - **Puzzles and metabolism:** the level's material kit is the budget, materials you don't spend become the creature's starting reserves, and growth during a run comes from planned cells.
 - **Nerve fibres run from cell centre to cell centre** (changed 2026-10-28, user: "I don't like the nerves following the edges, make them connecting the centers of the cells instead"; until then they ran along hexagon sides). One step from a cell to its neighbour is one unit of nerve, and a level gives a limited number of units. Paths may cross.
 - **Water (2026-10-28):** the water pushes on the skin, not on every cell. A skin cell moving face-on meets 10x the drag of one sliding along the skin, plus a part that grows with the square of the speed; the skin's direction at a cell runs from one skin neighbour to the other, so the hex zig-zag counts as smooth. So shape matters: a tail beating side to side swims, a wave running down it swims faster, a blob that just pulses stays put, and wide bodies are slower than narrow ones. Cilia and siphons stay the easy way to move. Until then every cell had the same drag (1 per px/s) and the skin only a little more sideways.
 - **The default creature is the Jet** (2026-10-28, user: "create a simple creature that will be able to move and make it the default creature"; until then it was the Starter, which swam on cilia with no wiring). A Pacemaker in the Nucleus pulses two Siphons at the back, so it swims on its own and shows the nerve layer from the first second: 7 cells, 17 biomass, 1 neuron, 2 fibres, no warnings, about 23 px/s straight ahead.
 - **Background music** (2026-10-28, user: "I have an ambient music mp3 file that should be wired"). One ambient track, `audio/cellular-bloom.mp3` (Cellular Bloom, 180 s), loops at 0.4 volume in the builder and the Sandbox. It starts on the first click or key, because browsers block sound before that. The toolbar's note button and M switch it off and on; off is remembered (`bioforge-lab-music-off`).
+- **Levels** (2026-10-28, user: "I want you to continue working on the game"; the format was chosen without asking). A level is data in `data/levels.js`: an arena (1400 x 800 px), the systems that run (chapter 1: nerve only, so cells work at full power and nothing starves), design limits, the player's spawn, an optional light (fixed, going round a path, or carried by a creature), other creatures (wired, or hunting by the AI), a goal (`reach` a ring, or `stayNear` the light for some seconds in all), a time limit and a par. A win earns 1 star, plus one for beating the par time and one for staying within the par biomass. The player builds in the builder with the level's limits, runs the design, and watches; Space and 1–9 still reach Command neurons. All levels are open from the start; the best result per level is kept under `bioforge-lab-level-results`.
+- **Light has a reach** (2026-10-28, user: "light range yes"). A light (`createLight` in `core.js`) reaches 450 px by default (`LIGHT_RANGE`); a Light eye's signal is its direction factor times a brightness that falls evenly from 1 at the light to 0 at the edge. So a crossed Seeker speeds up as it nears the light, Braitenberg's "aggressive" vehicle. Levels can give each light its own range. The Sandbox draws the reach as a dashed ring.
 - **The mouse is a light, not a steering wheel** (2026-10-28, user: "I want the creature to always follow the mouse cursor"; chosen: "Cursor as a sense"). A Light eye cell (`senses: 'light'`) signals, graded 0 to 1, how far the light lies on its side of the body; in the Sandbox the mouse is the light. A creature follows the mouse only if it is wired to: the Seeker template crosses two Light eyes to two Siphons (Braitenberg). Turning toward the cursor in the physics was turned down, because it is piloting. Levels can place their own lights later.
 - **The sandbox runs in real time** (2026-10-28, user: "in the sandbox the creature moves so quickly why?", then "yes remove it"), like the builder's live grid; the speed button gives ½× and ¼×. Until then it ran 2.5 game s per real s, a leftover from steering with WASD.
 - **Vessels** are still planned along hexagon edges (milestone 3). Whether they should follow the nerves to the centres is open.
@@ -190,12 +193,15 @@ combat.js       damage, contact hits, aiming, snare lines, globs (pure); system:
 growth.js       Bud parts and Mender regrowth (pure); systems: buds 80, regrow 90 (switchable)
 food.js         food specks, eating, specks left by dead cells (pure); system: food 100 (switchable)
 ai.js           sandbox enemy steering (pure)
+levels.js       levels: building a level's world, its light, stepping it, the goal checks, the score, a headless
+                run (pure)
 design.js       hex lookup, buildCheck (cells, biomass, neurons, fibre units), design warnings, the saved design
                 format, and the conversion of old saves and of designs from before the nerve layer (pure; loaded
                 before data/templates.js, which uses the conversion)
 builder.js      the edited design and every editing rule: cells, Bud parts and aim, Command keys, stamps,
                 saving a selection, the library list (pure)
-data/*.js       cells (stats and behaviour fields), neurons, fluids, templates (incl. the small builds), tips
+data/*.js       cells (stats and behaviour fields), neurons, fluids, templates (incl. the small builds), tips,
+                levels and the creatures that live in them
 render.js       canvas drawing of a world
 windows.js      DOM and storage helpers, floating windows, remembered menu branches
 tipdemo.js      live example tank in the cell tooltip
@@ -209,12 +215,14 @@ scope.js        the neuron scope: an animated input and output trace, run throug
 coach.js        the How to box: small looping animations of each step, ticked off as the design does them
 builderview.js  drawing the builder grid and the preview window; zoom and pan
 tooltip.js      the hover tooltip
-sandbox.js      sandbox mode: its bar, steps, drawing and HUD
+sandbox.js      sandbox mode: its bar, steps, drawing and HUD; the time controls and vitals HUD it shares with levels
+levelview.js    levels in the app: the levels sheet, the level card, a level run with its bar, arena, HUD and
+                result box, the best results
 music.js        the background music: starts on the first click or key; the toolbar button and M switch it
 audio/          the music track (mp3)
 ui.js           the app state, the controls, mouse and keyboard input, the frame loop
 tests/*.js      headless checks: node tests/all.js (autonomy, builder, design, determinism, editor, golden,
-                music, nerve, sandbox, showcase, systems, weapons); helpers: load.js, dom.js (fake browser), check.js
+                levels, music, nerve, sandbox, showcase, systems, weapons); helpers: load.js, dom.js (fake browser), check.js
 ```
 
 **The saved design format** (2026-10-28): a design cell is `{ q, r, typeName }`, plus on a Bud `budPart`, `partRotation`, `partOffset` and `partAim`, and on a Command `boundKey`. A library entry is `{ name, isCreature, cells }`. `migrateLibraryEntry()` in `design.js` reads the old short names (`t`, `tpl`, `bind`, `rot`, `off`, `aim`, `full`). The library lives under `bioforge-lab-library`; the first time, Lab copies Bioforge Moba's `bioforge-templates` list from it, and it never writes to that key, because pages opened from disk can share storage and Moba still uses it. Every Lab storage key starts with `bioforge-lab-`.
@@ -273,6 +281,8 @@ Planned additions: `data/levels.js`, `vascular.js`, `chemical.js`, `metabolism.j
 2. **Autonomy, debugging and chapter 1.** No hidden steering. Probes with signal traces, slow motion and single-stepping. The level format, win checks, scores, and 5 Reflexes levels ending in a Braitenberg hunt.
    - Test: a scripted reference solution beats every level headless.
    - Done so far (2026-10-28): autonomy and time controls. The player's creature is `autonomous`: no free swimming, no held heading, no WASD and no autopilot; Space and 1–9 still reach its Command neurons. Cilia push toward the front from where they sit, so cilia on one side turn it. Muscles move a creature only by pushing water (decided 2026-10-28, user: "I would like the movement behave like in water"; for a few hours before, a contracting muscle kicked the creature forward directly). See "Water" below. The sandbox has pause (P), one step (.) and speeds 1×, ½×, ¼× (,). Test: `tests/autonomy.js`, `tests/sandbox.js`.
+   - Done 2026-10-28: the Delay neuron, light with a reach, and the level format with chapter 1's 5 levels: First stroke (reach a ring ahead: a Pacemaker on two Siphons), Lighthouse (reach a light: crossed Light eyes), Moth (keep near a light going round: crossed eyes keep up), Shade (turn away from a light to a dark ring: same-side eyes plus a Pacemaker), Hunt (keep near the Darter, prey that jets off when its Eyespot sees you). Each has a reference solution that wins with 3 stars headless, and a wrong tool that loses. Test: `tests/levels.js`.
+   - Still open: probes with signal traces; whether levels unlock in order; levels that need the Delay, Latch or Synapse.
 3. **Vascular layer and chapter 2.** Vessels, the Heart, valves; Sugar as fuel.
 4. **Metabolism and chapter 3.** Material recipes, eating, digestion, storage; Fat.
 5. **Secretions and chapter 4.** Mineral, mineralizer, acid, protease, self-harm.
@@ -280,18 +290,20 @@ Planned additions: `data/levels.js`, `vascular.js`, `chemical.js`, `metabolism.j
 7. **Growth and chapter 6.** The growth plan, Buds, regrowth, Nucleic, and the metamorphosis boss.
 
 ## Open questions
+- **Where do the levels live in the UI?** The flag button, levels sheet and level card above the panel are kept for now; the user doesn't like the placement (2026-10-28: "I don't like the placement from UX perspective but ok, keep it like this for now"). Redo it with the UI pass.
 - **How does a crossing look in the editor?** (milestone 1)
 - **Is the 4-layer split right?** Should hormones merge into the vascular layer? Decide after trying it.
 - **Which current cells stay, change or go?** Nerve cells and the Heart radius are replaced by the layers.
 - **Is Protein-only in chapter 1 too abstract?** Decide after trying it.
-- **Do neurons cost materials** from the kit, or only nerve units?
 
 ## Known limits
 - There is no map code: rocks and currents were removed with `map.js` and come back with levels (milestone 2).
 - Sandbox enemies are still steered by the AI (`ai.js`), with free swimming and a held heading. Only the player's creature is autonomous. Prey and enemies with their own wiring come with the chapter 1 levels.
-- The light has no range or falloff: a Light eye sees only the direction, so a Seeker reacts the same to a light 20 px or 2000 px away, and once it reaches the light it parks on it.
+- A Seeker crawls at the edge of the light's reach: from 400 px away (450 px range) it needs 22 game s to reach the light, from 220 px about 10 s. Once there it parks on it (within 5 px).
+- Three chapter 1 levels (Lighthouse, Moth, Hunt) are beaten by the same 5-cell crossed Seeker. They teach one idea three times; levels that need memory or timing (Latch, Delay, Synapse) are still to come.
+- A Seeker can't win by damage: it slows to a stop on the light, so Thorns barely hit (they need speed), and a Darter's 80-health Nucleus outlasts a 60 s level. So the Hunt asks to keep near the prey, not to kill it; the `kill` goal was left out until combat is tuned for wired creatures.
 - Muscle swimming is touchy. The Paddler template (two muscle columns taking turns at the front, a wide body of organs behind, 45 biomass) swims about 32 px/s at 1.6 Hz, but at 1.2 Hz it spins and at 2 Hz it stalls. Its muscles are more than 3 cells from its Heart (a warning), because a Heart in the spine stiffens the front and it no longer swims. The same body drawn head-first swims backwards, muscle end first.
-- Muscle swimming is slow next to cilia. In 10 game s: a 6-muscle-a-side tail with a Pacemaker and an Inhibitor 7.6 px/s, the same tail driven by a perfect travelling wave 24 px/s, two cilia about 28 px/s. A Ganglion delay made it slower (5 px/s), because it smooths the signal; a neuron that delays a signal unchanged would help.
+- Muscle swimming is slow next to cilia. In 10 game s: a 6-muscle-a-side tail with a Pacemaker and an Inhibitor 7.6 px/s, the same tail driven by a perfect travelling wave 24 px/s, two cilia about 28 px/s. A Ganglion delay made it slower (5 px/s), because it smooths the signal; the Delay neuron (2026-10-28) delays it unchanged, but no template uses it yet.
 - Free swimming (the AI enemies) now depends on shape: at `SWIM_FORCE` 200 they average 48 px/s as before (46), but the wide Manta went from 54 to 32 px/s and the narrow Starter from 64 to 62.
 - The showcase designs were built for WASD. Those without cilia, siphons or a muscle wave no longer move on their own; they are rewired with chapter 1.
 - **Nerve layer (2026-10-28):**
