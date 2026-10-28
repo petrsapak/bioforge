@@ -34,6 +34,9 @@ function eyesThroughSynapse(threshold) {
 // the crossed Seeker with a Fat on each side, and a Gill at the back if asked
 const seekerWithFat = withGill => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(-1, 0, 'fat'),
   cell(1, 0, 'fat'), ...(withGill ? [cell(-1, 2, 'gill')] : [])], fibres: CROSSED });
+// the crossed Seeker with a Fat and an Air sac on the sides, and this cell at the back touching both Siphons
+const seekerWithStores = backTypeName => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(-1, 0, 'fat'),
+  cell(1, 0, 'airsac'), cell(-1, 2, backTypeName)], fibres: CROSSED });
 const SOLUTIONS = {
   'first-stroke': { cells: [pacemakerNucleus(), cell(-1, 1, 'siphon'), cell(0, 1, 'siphon')],
     fibres: [fibre(0, 0, -1, 1), fibre(0, 0, 0, 1)] },
@@ -47,6 +50,7 @@ const SOLUTIONS = {
   metronome: eyesThroughNucleus('inhibitor', { kind: 'delay', setting: 3 }),
   dock: eyesThroughSynapse(1.5),
   'long-haul': seekerWithFat(true),
+  exhaust: seekerWithStores('pore'),
 };
 // the wrong tool for each level: it must not win
 const WRONG_TOOLS = {
@@ -59,6 +63,7 @@ const WRONG_TOOLS = {
   metronome: SOLUTIONS.freeze,
   dock: SOLUTIONS.freeze,
   'long-haul': SOLUTIONS.moth,
+  exhaust: SOLUTIONS['long-haul'],
 };
 
 for (const level of sim.LEVELS) {
@@ -81,6 +86,9 @@ check('"Dock": the Synapse\'s threshold matters: 1 stops short of the ring, 2 ne
 const fatOnly = sim.runLevel(levelById('long-haul'), seekerWithFat(false));
 check('"Long haul": Fat alone is not enough, it runs out of O2', fatOnly.outcome === 'lost' &&
   fatOnly.player.cells.every(playerCell => playerCell.fluids[sim.FLUID_OXYGEN] < 0.01), fatOnly.reason);
+const tissueBack = sim.runLevel(levelById('exhaust'), seekerWithStores('tissue'));
+check('"Exhaust": the same body with Tissue for the Pore loses its Siphons to waste', tissueBack.outcome === 'lost' &&
+  tissueBack.player.cells.filter(playerCell => playerCell.type.jets).length < 2, tissueBack.reason);
 const blinking = levelById('freeze').light;
 check('a blinking light is on for 2 s, off for 3 s, and round again',
   [0.5, 2.5, 4.9, 5.1].map(time => sim.isLevelLightOn(blinking, time)).join() === 'true,false,false,true');

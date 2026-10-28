@@ -150,6 +150,18 @@ const LEVELS = [
     goal: { kind: 'stayNear', radius: 100, seconds: 150 },
     timeLimit: 240, par: { seconds: 180, biomass: 20 },
   }),
+  createLevel({
+    id: 'exhaust', chapter: 3, name: 'Exhaust',
+    brief: 'The light drifts faster now. Keep close to it for 120 s in all. Hard work makes waste, and waste that ' +
+      'builds up poisons the cells that made it.',
+    hint: 'A Pore on the surface dumps waste into the water. Put one at the back, touching both Siphons, so their ' +
+      'waste seeps into it. A Fat and an Air sac on the sides carry the fuel.',
+    systems: CIRCULATION_SYSTEMS,
+    limits: { budget: 30 },
+    light: { ...DRIFTING_LIGHT, speed: 24 },
+    goal: { kind: 'stayNear', radius: 100, seconds: 120 },
+    timeLimit: 240, par: { seconds: 190, biomass: 20 },
+  }),
 ];
 
 // Creatures that live in levels. The Darter holds still until its Eyespot sees an enemy within reach (120 px), then
