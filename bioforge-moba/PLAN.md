@@ -2,7 +2,7 @@
 
 A 5v5 MOBA with Bioforge's soft-body cell creatures. Every player designs a creature in the builder before the match, within the same biomass budget, then plays it in a small two-lane arena with towers, minion waves and a core per team. You win by destroying the enemy core.
 
-This replaces the Bioforge Online MMORPG idea (2026-10-27). The MMO folder `prototypes/bioforge-online` stays as it was.
+This replaces the Bioforge Online MMORPG idea (2026-10-27). The MMO folder `bioforge-online/` in this repo stays as it was.
 
 ## Decisions (2026-10-27)
 - **Players:** bots first. The first versions are offline: you plus 4 bots against 5 bots. Networking comes later. The sim has no DOM, so a Node server can run it unchanged.
@@ -20,7 +20,11 @@ moba.js         match rules: heroes, waves, towers, fountain, respawns, bot hero
 data/arena.js   arena layout, structures, minion designs, waves, budget, bot designs and names
 data/*.js       cells, templates, tips
 render.js       canvas: creatures, rocks, lanes, health bars, minimap, events
-ui.js           builder, match HUD, sandbox
+design.js       builder hex helpers and design warnings (pure)
+windows.js      floating windows and remembered menu state
+tipdemo.js      live example tank in the cell tooltip
+hud.js          match HUD bars and vitals
+ui.js           builder, match HUD, sandbox: input, state and drawing (uses the four files above)
 tests/*.js      headless checks: node tests/all.js
 ```
 
@@ -34,7 +38,7 @@ tests/*.js      headless checks: node tests/all.js
    - Win: destroy the enemy core.
    - T lets a bot play you; M shows the whole map.
    - Test: `tests/match.js`.
-2. **Playtest and tune.** Check match length, tower and core health, wave size, bot behaviour, and whether 120 biomass is the right budget.
+2. **Playtest and tune.** Check match length, tower and core health, wave size, bot behaviour, and whether 50 biomass / 24 cells is the right budget.
 3. **In-match growth (to decide).** A MOBA usually has in-match progression, such as levels and items. Options:
    - (a) Biomass from kills and minion last-hits lets you add cells at your base mid-match.
    - (b) Levels that raise cell health and damage.

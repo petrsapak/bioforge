@@ -59,15 +59,6 @@ function boot() {
     refreshPanel();
   }
 
-  function pxToHex(x, y) {
-    const r = y / HY, q = x / HX - r / 2, s = -q - r;
-    let rq = Math.round(q), rr = Math.round(r), rs = Math.round(s);
-    const dq = Math.abs(rq - q), dr = Math.abs(rr - r), ds = Math.abs(rs - s);
-    if (dq > dr && dq > ds) rq = -rr - rs; else if (dr > ds) rr = -rq - rs;
-    return [rq, rr];
-  }
-  const inGrid = (q, r) => Math.max(Math.abs(q), Math.abs(r), Math.abs(q + r)) <= GR;
-
   function canPlace(q, r) {
     const k = key(q, r);
     if (!inGrid(q, r) || design.has(k)) return false;
@@ -76,15 +67,6 @@ function boot() {
     return costWith(() => design.set(k, selected), () => design.delete(k)) <= cap();
   }
 
-  // hexes reachable from the nucleus through hexes where has(key) is true
-  function reach(has) {
-    const seen = new Set([key(0, 0)]), queue = [[0, 0]];
-    while (queue.length) {
-      const [cq, cr] = queue.pop();
-      for (const [dq, dr] of NB) { const k = key(cq + dq, cr + dr); if (has(k) && !seen.has(k)) { seen.add(k); queue.push([cq + dq, cr + dr]); } }
-    }
-    return seen;
-  }
   // cells cut off from the nucleus stay, as planned cells
   function removeAt(q, r) {
     if (design.get(key(q, r)) === undefined || design.get(key(q, r)) === 'nucleus') return;
@@ -146,51 +128,10 @@ function boot() {
   layoutDock();
   addEventListener('resize', layoutDock);
 
-  // floating windows: dragged by a handle, resized from the corner; position, size and collapsed state are remembered
-  function floating(el, handle, store) {
-    let g = null;
-    try {
-      const b = JSON.parse(localStorage.getItem(store));
-      if (b) {
-        Object.assign(el.style, { left: b.x + 'px', top: b.y + 'px', right: 'auto', width: b.w + 'px', height: b.h ? b.h + 'px' : '' });
-        el.classList.toggle('collapsed', !!b.c);
-      }
-    } catch (e) {}
-    handle.addEventListener('mousedown', e => {
-      if (e.target.closest && e.target.closest('button')) return;
-      g = { mx: e.clientX, my: e.clientY, x: el.offsetLeft, y: el.offsetTop }; e.preventDefault();
-    });
-    addEventListener('mousemove', e => {
-      if (!g) return;
-      el.style.left = Math.max(0, Math.min(innerWidth - 60, g.x + e.clientX - g.mx)) + 'px';
-      el.style.top = Math.max(0, Math.min(innerHeight - 30, g.y + e.clientY - g.my)) + 'px';
-      el.style.right = 'auto';
-    });
-    const save = () => {
-      if (!el.offsetWidth) return;
-      const b = { x: el.offsetLeft, y: el.offsetTop, w: parseFloat(el.style.width) || el.offsetWidth, h: parseFloat(el.style.height) || 0, c: el.classList.contains('collapsed') };
-      try { localStorage.setItem(store, JSON.stringify(b)); } catch (e) {}
-    };
-    addEventListener('mouseup', () => { g = null; save(); });
-    return save;
-  }
+  // floating windows (windows.js)
   floating($('panel'), $('grip'), 'bioforge-panel');
-  const savePreview = floating($('preview'), $('pvbar'), 'bioforge-preview');
-  const pvCollapsed = () => $('preview').classList.contains('collapsed');
-  $('pvtoggle').textContent = pvCollapsed() ? '+' : '–';
-  $('pvtoggle').onclick = () => {
-    $('preview').classList.toggle('collapsed');
-    $('pvtoggle').textContent = pvCollapsed() ? '+' : '–';
-    savePreview();
-  };
-  const saveLibWin = floating($('lib'), $('libbar'), 'bioforge-lib');
-  const libCollapsed = () => $('lib').classList.contains('collapsed');
-  $('libtoggle').textContent = libCollapsed() ? '+' : '–';
-  $('libtoggle').onclick = () => {
-    $('lib').classList.toggle('collapsed');
-    $('libtoggle').textContent = libCollapsed() ? '+' : '–';
-    saveLibWin();
-  };
+  const pvCollapsed = collapsible($('preview'), $('pvbar'), $('pvtoggle'), 'bioforge-preview');
+  collapsible($('lib'), $('libbar'), $('libtoggle'), 'bioforge-lib');
 
   try { $('dock').classList.toggle('collapsed', localStorage.getItem('bioforge-dock') === '1'); } catch (e) {}
   $('dockbar').onclick = () => {
@@ -198,16 +139,7 @@ function boot() {
     try { localStorage.setItem('bioforge-dock', $('dock').classList.contains('collapsed') ? '1' : '0'); } catch (e) {}
   };
 
-  // remember which tree branches are open (per browser; optional)
-  let openState = {};
-  try { openState = JSON.parse(localStorage.getItem('bioforge-tree')) || {}; } catch (e) {}
-  document.querySelectorAll('details[data-node]').forEach(el => {
-    if (el.dataset.node in openState) el.open = openState[el.dataset.node];
-    el.addEventListener('toggle', () => {
-      openState[el.dataset.node] = el.open;
-      try { localStorage.setItem('bioforge-tree', JSON.stringify(openState)); } catch (e) {}
-    });
-  });
+  rememberTree();
   ['Normal', ...FLUIDS.map(f => f.short)].forEach((name, i) => {
     const el = document.createElement('button');
     el.className = 'small'; el.dataset.view = i; el.textContent = name;
@@ -352,52 +284,8 @@ function boot() {
   addEventListener('mousedown', e => { if (!(e.target && e.target.closest && e.target.closest('#ctx'))) closeCtx(); });
   $('fight').onclick = startBattle;
 
-  // design checks: signals, Bud parts, and whether the body has O2, energy and a waste exit for its working cells
-  const allKeys = () => [...design.keys()];
-  // each warning: { text, keys } where keys are the hexes it is about (marked on the grid)
-  function warnings(l) {
-    const n = t => l.filter(b => b.t === t).length, warn = [], push = (text, keys = []) => warn.push({ text, keys });
-    const ks = bl => bl.map(b => key(b.q, b.r));
-    const planned = allKeys().filter(k => !l.some(b => key(b.q, b.r) === k));
-    if (planned.length) push(`${planned.length} planned cell(s) are not connected to the body: they are not part of the creature and cost nothing until you join them.`, planned);
-    // the checks below look at the joined body only (this shadows the builder's design)
-    const design = new Map(l.map(b => [key(b.q, b.r), b.t]));
-    const gens = n('pacemaker') + n('command') + n('eyespot');
-    const nerveActs = ['muscle', 'bloater', 'siphon', 'nettle', 'snare', 'spitter', 'adrenal', 'valve', 'bud'];
-    if (l.some(b => nerveActs.includes(b.t)) && !gens) push('Muscles, Bloaters, Siphons, Nettles, Snares, Spitters, Adrenals, Valves and Buds need a nerve signal source (Pacemaker, Command or Eyespot).', ks(l.filter(b => nerveActs.includes(b.t))));
-    const bs = l.filter(b => b.t === 'bud'), withPart = bs.filter(b => b.tpl), plans = withPart.map(b => budPlan(l, b));
-    if (bs.some(b => !b.tpl)) push(`${bs.filter(b => !b.tpl).length} Bud(s) have no part to grow: click the Bud, then a part in the Templates library.`, ks(bs.filter(b => !b.tpl)));
-    if (plans.some(p => !p.cells.length)) push(`${plans.filter(p => !p.cells.length).length} Bud(s) have no free side to grow on: put Buds on the surface.`, ks(withPart.filter((b, i) => !plans[i].cells.length)));
-    else if (plans.some(p => p.blocked)) push(`${plans.reduce((s, p) => s + p.blocked, 0)} cell(s) of Bud parts are blocked by the body and will not grow.`, ks(withPart.filter((b, i) => plans[i].blocked)));
-    // a part has its own nerves: what needs a signal in it needs a Pacemaker or Eyespot in the part too
-    const deaf = withPart.filter(b => b.tpl.cells.some(c => nerveActs.includes(c.t)) && !b.tpl.cells.some(c => c.t === 'pacemaker' || c.t === 'eyespot'));
-    if (deaf.length) push(`${deaf.length} Bud part(s) have Muscles, Nettles or the like but no Pacemaker or Eyespot of their own: a part's nerves are apart from the body's, so those cells do nothing.`, ks(deaf));
-    const claimed = plans.flatMap(p => p.cells.map(c => key(c.q, c.r)));
-    if (new Set(claimed).size < claimed.length) push('Two Buds grow parts onto the same hexes. Click a Bud and turn its part (Q/E) so they do not overlap.', [...new Set(claimed.filter((k, i) => claimed.indexOf(k) !== i))]);
-    if (!n('thorn') && !n('nettle') && !n('bloater') && !n('mouth') && !n('spitter') && !n('snare')) push('No weapons: it cannot hurt anything.');
-    const isCond = k => design.has(k) && CELLS[design.get(k)].cond;
-    const live = new Set(), q = [];
-    for (const [k, t] of design) if (CELLS[t].gen) { live.add(k); q.push(k); }
-    while (q.length) {
-      const [cq, cr] = q.pop().split(',').map(Number);
-      for (const [dq, dr] of NB) { const k = key(cq + dq, cr + dr); if (isCond(k) && !live.has(k)) { live.add(k); q.push(k); } }
-    }
-    const unwired = [...design].filter(([k, t]) => nerveActs.includes(t) && !live.has(k)).map(([k]) => k);
-    if (gens && unwired.length) push(`${unwired.length} cell(s) that need a nerve signal are not connected to a signal source.`, unwired);
-    // fluids spread through the whole joined body (Valves counted as open)
-    const fueled = [...design].filter(([, t]) => CELLS[t].fuel).map(([k]) => k), fc = fueled.length;
-    if (fc && !n('gill')) push(`No Gill: the ${fc} fuel-burning cell(s) run out of O₂.`, fueled);
-    if (fc && !n('mouth') && !n('fat')) push(`No Mouth or Fat: the ${fc} fuel-burning cell(s) run out of energy.`, fueled);
-    if (fc && !n('pore')) push(`No Pore: waste builds up in the ${fc} fuel-burning cell(s) and poisons them.`, fueled);
-    const at = k => { const [q, r] = k.split(',').map(Number); return { q, r }; };
-    const enclosed = k => { const { q, r } = at(k); return NB.every(([dq, dr]) => design.has(key(q + dq, r + dr))); };
-    const buried = [...design].filter(([k, t]) => t === 'pore' && enclosed(k)).map(([k]) => k);
-    if (buried.length) push(`${buried.length} Pore cell(s) are buried inside the body and do nothing: Pores must touch the water.`, buried);
-    const hearts = [...design].filter(([, t]) => t === 'heart').map(([k]) => at(k));
-    const far = fueled.filter(k => !hearts.some(h => hexDist(at(k), h) <= HEART_R));
-    if (far.length) push(`${far.length} fuel-burning cell(s) are more than ${HEART_R} cells from a Heart: fluids reach them slowly.`, far);
-    return warn;
-  }
+  // design checks (design.js) on the joined body l; cells off the body are reported as planned
+  const warnings = l => designWarnings(l, [...design.keys()].filter(k => !l.some(b => key(b.q, b.r) === k)));
 
   // Bud parts are edited directly on the grid: drag a part's dots to move it (pdrag), drag the arrow tip to aim (adrag),
   // Q/E turn the part around its Bud (or in hand while dragging). A part from the library is dropped on a Bud (libDrag).
@@ -635,7 +523,7 @@ function boot() {
   });
   // tooltip after the cursor rests 1 s on a placed cell or a palette button
   let tipKey = null, tipSince = 0, mouseX = 0, mouseY = 0;
-  const hideTip = () => { tipSince = performance.now(); $('tip').style.display = 'none'; demo = null; };
+  const hideTip = () => { tipSince = performance.now(); $('tip').style.display = 'none'; stopDemo(); };
   addEventListener('mousemove', e => {
     mouseX = e.clientX; mouseY = e.clientY;
     let k = null;
@@ -656,46 +544,7 @@ function boot() {
     el.style.display = 'block';
     el.style.left = Math.max(8, Math.min(mouseX + 16, innerWidth - el.offsetWidth - 8)) + 'px';
     el.style.top = Math.max(8, Math.min(mouseY + 16, innerHeight - el.offsetHeight - 8)) + 'px';
-    startDemo(t);
-  }
-
-  // live mini tank inside the tooltip, running the cell's example build; restarts every DEMO_RESET seconds
-  const DEMO_W = 288, DEMO_H = 190, DEMO_RESET = 8;
-  let demo = null;
-  function startDemo(t) {
-    const ex = TIPS[t].ex, cells = bp(ex.cells);
-    if (ex.tpl) for (const b of cells) if (b.t === 'bud') b.tpl = ex.tpl;
-    const w = newWorld(DEMO_W, DEMO_H); w.test = true;
-    const cr = spawn(w, { cells }, DEMO_W / 2, DEMO_H / 2 + 10, 0, 0);
-    for (const c of cr.cells) {
-      if (ex.hurt && ex.hurt.includes(c.t)) c.hp = c.max * 0.1;
-      if (ex.empty && ex.empty.includes(c.t)) c.f[O] = c.f[S] = 0;
-    }
-    if (ex.target) {                                   // dummy enemy just in front of the creature
-      const front = Math.min(...cr.cells.map(c => c.y));
-      spawn(w, { cells: bp([[0, 0, 'tissue'], [1, 0, 'tissue'], [0, 1, 'tissue']]) }, DEMO_W / 2, front - 30, 0, 1).ai = false;
-    }
-    demo = { t, ex, w, cr, time: 0, cv: $('democv') };
-  }
-  function runDemo(dt) {
-    if (!demo) return;
-    const { ex, w, cr } = demo;
-    demo.time += dt;
-    if (demo.time > DEMO_RESET) { startDemo(demo.t); return; }
-    const hold = !!ex.space && demo.time % 2 > 1;      // the demo presses Space every other second
-    step(w, dt, { sx: 0, sy: ex.swim ? -1 : 0, ability: hold });
-    if (cr.alive) for (const c of w.cells) { c.x += (DEMO_W / 2 - cr.cx) * 0.05; c.y += (DEMO_H / 2 + 10 - cr.cy) * 0.05; }
-    const g = demo.cv.getContext('2d');
-    drawWater(g, w, DEMO_W, DEMO_H);
-    drawWorld(g, w, ex.view || 0);
-    g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.setLineDash([3, 3]); g.globalAlpha = 0.55 + 0.45 * Math.sin(demo.time * 5);
-    for (const c of cr.cells) if (c.t === demo.t) { g.beginPath(); g.arc(c.x, c.y, c.rad + 3, 0, TAU); g.stroke(); }
-    g.setLineDash([]); g.globalAlpha = 1; g.font = '11px system-ui';
-    if (ex.space) {
-      g.textAlign = 'left'; g.fillStyle = hold ? '#e8c547' : '#6f7b88';
-      g.fillText(hold ? `● ${ex.space}` : ex.space === 'Space held' ? '○ Space released' : '○ No enemy', 6, 14);
-    }
-    if (ex.view) { g.textAlign = 'right'; g.fillStyle = FLUIDS[ex.view - 1].color; g.fillText(`${FLUIDS[ex.view - 1].name} view`, DEMO_W - 6, 14); }
+    startDemo(t, $('democv'));                         // live example in the tooltip (tipdemo.js)
   }
 
   cv.addEventListener('mousedown', e => {
@@ -838,33 +687,7 @@ function boot() {
     pc.restore();
   }
 
-  // battle HUD bars: Core = Nucleus health, Body = health of all cells vs. at spawn (lost cells count as 0), O2 / Energy = how full the body's stores are,
-  // Waste = average over the working cells (bad when high); low = pulses red
-  const HUD_BARS = [
-    { name: 'Core', color: '#e8c547', low: v => v < 0.3 },
-    { name: 'Body', color: '#7fd18a', low: v => v < 0.4 },
-    { name: 'O₂', color: FLUIDS[O].color, low: v => v < 0.2 },
-    { name: 'Energy', color: FLUIDS[S].color, low: v => v < 0.2 },
-    { name: 'Waste', color: '#b8a040', low: v => v > 0.6 },
-  ].map(b => {
-    const row = document.createElement('div'), lbl = document.createElement('span'), trk = document.createElement('div');
-    const fill = document.createElement('div'), val = document.createElement('span');
-    row.className = 'hbar'; lbl.className = 'hlbl'; trk.className = 'htrk'; fill.className = 'hfill'; val.className = 'hval';
-    lbl.textContent = b.name; fill.style.setProperty?.('--c', b.color);
-    trk.appendChild(fill); for (const x of [lbl, trk, val]) row.appendChild(x);
-    $('hudbars').appendChild(row);
-    return { ...b, row, fill, val };
-  });
-  function vitals(cr) {
-    const cs = cr.cells, sum = (l, g) => l.reduce((s, c) => s + g(c), 0);
-    const stock = i => cs.length ? sum(cs, c => c.f[i]) / sum(cs, c => c.cap[i]) : 0;
-    const wk = cs.filter(c => c.d.fuel);
-    return {
-      bars: [cr.alive && cr.core ? cr.core.hp / cr.core.max : 0, sum(cs, c => Math.max(0, c.hp)) / (cr.hp0 || 1), stock(O), stock(S),
-             wk.length ? sum(wk, c => clamp01(c.f[W] / c.cap[W])) / wk.length : 0],
-      starving: cs.filter(c => c.starve).length, poisoned: cs.filter(c => c.poison).length,
-    };
-  }
+  const HUD_BARS = makeHudBars($('hudbars'));          // hud.js
   let hudKeys = '';
   function drawHud(left) {
     const v = vitals(player), dead = !player.alive;
