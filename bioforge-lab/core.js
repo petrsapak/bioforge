@@ -56,6 +56,7 @@ function newWorld(width, height, options = {}) {
     bonds: [],                                            // springs between touching cells
     angleSprings: [],                                     // keep chains of cells from folding
     fluidLinks: [],                                       // fluids move only along these, one per touching pair
+    fibres: [],                                           // nerve fibres (fibres.js); signals travel only along these
     globs: [],
     zaps: [],
     sparks: [],
@@ -115,6 +116,7 @@ function createCreature(team, cells, options = {}) {
     nucleus: null,
     cellsByHex: null,
     design: null,                                         // the design's cells, for regrowing lost ones
+    designFibres: [],                                     // the design's fibres, reconnected when cells regrow
     bounds: null,                                         // { minX, minY, maxX, maxY }, updated by the physics
     regrowthPool: 0,                                      // repair fluid saved up for the next regrown cell
     spawnHealth: 0,                                       // total health at spawn, for the HUD
@@ -142,8 +144,10 @@ function createCell(typeName, q, r, creature) {
     health: type.health,
     maxHealth: type.health,
     signal: 0,                                            // nerve signal level
-    signalInflow: 0,
-    sourceOutput: 0,                                      // signal sources: what they put out this step
+    nerveInput: 0,                                        // what the fibres and the cell's sense deliver this step
+    senseOutput: 0,                                       // sense organs: what they feel this step
+    neuron: null,                                         // the neuron inside the cell: { kind, setting }
+    neuronMemory: 0,                                      // state a neuron keeps between nerve steps
     size: 1,                                              // muscles shrink, bloaters swell
     radius: CELL_RADIUS,
     cooldown: 0,
@@ -175,12 +179,14 @@ function spawn(world, design, x, y, angle, team) {
     centerY: y,
     cellsByHex: new Map(),
     design: design.cells,
+    designFibres: design.fibres || [],
   });
   const cos = cosine(angle);
   const sin = sine(angle);
   for (const blueprintCell of design.cells) {
     const cell = createCell(blueprintCell.typeName, blueprintCell.q, blueprintCell.r, creature);
     if (blueprintCell.boundKey) cell.boundKey = blueprintCell.boundKey;
+    if (blueprintCell.neuron) cell.neuron = { ...blueprintCell.neuron };
     if (cell.type.growsParts && blueprintCell.budPart) cell.budGrowth = newBudGrowth(design.cells, blueprintCell);
     creature.cells.push(cell);
     world.cells.push(cell);
@@ -207,6 +213,7 @@ function spawn(world, design, x, y, angle, team) {
       .filter(Boolean);
     addAngleSpringsAround(world, cell, neighbours);
   }
+  connectFibres(world, creature, creature.designFibres);
   world.creatures.push(creature);
   markSurface(world, creature);
   return creature;
@@ -290,6 +297,7 @@ function removeCreature(world, creature) {
   world.bonds = world.bonds.filter(bond => !belongs(bond.first));
   world.angleSprings = world.angleSprings.filter(spring => !belongs(spring.pivot));
   world.fluidLinks = world.fluidLinks.filter(link => !belongs(link.first));
+  world.fibres = world.fibres.filter(fibre => !belongs(fibre.from) && !belongs(fibre.to));
   world.creatures = world.creatures.filter(other => other !== creature);
 }
 
@@ -322,6 +330,7 @@ function removeDeadCells(world) {
     !spring.pivot.dead && !spring.first.dead && !spring.second.dead);
   world.fluidLinks = world.fluidLinks.filter(link => !link.first.dead && !link.second.dead);
   for (const creature of damagedCreatures) splitIntoPieces(world, creature);
+  cutBrokenFibres(world);
   world.creatures = world.creatures.filter(creature => creature.alive && creature.cells.length);
 }
 

@@ -1,4 +1,5 @@
-/* Bioforge Lab: the builder's windows, the cell dock, the library, the sandbox bar, the HUD and the tooltip. */
+/* Bioforge Lab: the builder's toolbar and panel, the floating windows, the cell dock, the library, the sandbox bar,
+   the HUD and the tooltip. */
 * { box-sizing: border-box; }
 body {
   margin: 0; background: #0b1418; color: #dfe4ea; font: 14px/1.4 system-ui, sans-serif; overflow: hidden;
@@ -21,19 +22,150 @@ button.big {
 }
 button.big:hover { background: #4a8044; }
 
-/* ---------- Side panel: a floating window with a menu tree ---------- */
-#panel {
-  position: absolute; top: 10px; left: 10px; width: 300px; max-height: calc(100vh - 20px); padding: 8px 10px 10px;
-  display: flex; flex-direction: column; background: #0e181dcc; border: 1px solid #23323a88; border-radius: 10px;
-  backdrop-filter: blur(3px); resize: both; overflow: hidden; min-width: 200px; min-height: 90px;
-  max-width: calc(100vw - 20px);
+/* ---------- Left side: the toolbar, and a column with the panel and the How to box ---------- */
+#builder-left {
+  position: absolute; top: 10px; left: 10px; display: flex; gap: 8px; align-items: flex-start;
+  max-height: calc(100vh - 20px); pointer-events: none;
 }
-#panel-tree { flex: 1 1 auto; overflow-y: auto; min-height: 0; }
-#panel-grip {
-  margin: -4px -6px 4px; padding: 2px 0; text-align: center; color: #5d6b77; font-size: 10px; letter-spacing: 3px;
-  cursor: move; border-radius: 4px;
+#builder-left > * { pointer-events: auto; }
+#toolbar {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; width: 56px; padding: 6px 0;
+  max-height: calc(100vh - 20px); background: #0e181dcc; border: 1px solid #23323a88; border-radius: 12px;
+  backdrop-filter: blur(3px);
 }
-#panel-grip:hover { background: #ffffff0d; color: #dfe4ea; }
+.tool {
+  position: relative; width: 42px; height: 42px; padding: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; background: #1c2a31; color: #b9c3cd; border: 1px solid #2c3f48;
+  border-radius: 10px; cursor: pointer; font: inherit;
+}
+.tool svg { width: 24px; height: 24px; }
+.tool:hover { background: #26363e; border-color: #5d6b77; }
+.tool.selected { border-color: #e8c547; background: #2b2a1f; box-shadow: 0 0 10px #e8c54755; }
+.tool.layer { height: 50px; }
+.tool.layer span { font-size: 9px; letter-spacing: .5px; text-transform: uppercase; margin-top: 1px; }
+.tool.play { background: #3d6b38; border-color: #4a8044; }
+.tool.play:hover { background: #4a8044; }
+.tool-gap { width: 30px; height: 1px; margin: 3px 0; background: #2a3b44; }
+.tool-space { flex: 1 1 8px; min-height: 8px; }
+#fluid-views { display: grid; grid-template-columns: 18px 18px; gap: 5px; }
+.view-dot {
+  width: 18px; height: 18px; padding: 0; border-radius: 50%; border: 2px solid #0e181d; cursor: pointer;
+  background: var(--dot-color); opacity: .55;
+}
+.view-dot.normal { grid-column: span 2; justify-self: center; width: 22px; height: 22px; }
+.view-dot:hover { opacity: .9; }
+.view-dot.selected { opacity: 1; box-shadow: 0 0 0 2px #e8c547; }
+
+#side-column {
+  display: flex; flex-direction: column; gap: 8px; width: 264px; max-height: calc(100vh - 20px); overflow-y: auto;
+}
+#panel, #coach {
+  padding: 8px 10px; background: #0e181dcc; border: 1px solid #23323a88; border-radius: 12px;
+  backdrop-filter: blur(3px);
+}
+
+/* the meters: an icon, a bar and a number each */
+.meters { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; }
+.meter { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #b9c3cd; }
+.meter.dim { opacity: .4; }
+.meter i { flex: none; width: 13px; height: 13px; display: inline-block; }
+.meter-track { flex: 1; height: 7px; background: #071013; border: 1px solid #2c3f48; border-radius: 4px; }
+.meter-fill { height: 100%; background: #5fbf7a; border-radius: 3px; }
+.meter span { flex: none; min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
+.meter.over .meter-fill { background: #e8875a; }
+.meter.over span { color: #e8875a; }
+.icon-biomass { background: #e8c547; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.icon-cells { background: #5fbf7a; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+.icon-neurons { background: #f2e35b; border-radius: 50%; }
+.icon-fibre { background: linear-gradient(135deg, transparent 42%, #f2d36b 42% 58%, transparent 58%); }
+
+/* the card: a picture of the cell or neuron and a few words beside it */
+#card { display: flex; gap: 10px; align-items: flex-start; margin-top: 8px; }
+#card-picture { flex: none; width: 56px; height: 56px; background: #132228; border-radius: 10px; }
+#info { flex: 1; min-width: 0; font-size: 12px; color: #b9c3cd; }
+#info b { color: #dfe4ea; }
+#info > b:first-child { font-size: 15px; }
+#info .line { margin-top: 3px; }
+.dim { color: #6f7b88; font-size: 11px; }
+.chips { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; }
+.chips span {
+  padding: 0 6px; border-radius: 999px; background: #1c2a31; font-size: 11px; line-height: 17px; color: #b9c3cd;
+  white-space: nowrap;
+}
+.chips .needs-signal { background: #3a3518; color: #f2e35b; }
+.stepper { display: flex; align-items: center; gap: 6px; margin-top: 5px; }
+.stepper button.small { flex: none; width: 26px; padding: 2px 0; font-size: 14px; }
+.stepper span { flex: 1; text-align: center; }
+#info button.small { flex: none; margin-top: 5px; }
+.fibre-row {
+  display: flex; align-items: center; gap: 6px; margin-top: 3px; padding: 1px 2px 1px 6px; background: #1c2a31;
+  border-radius: 6px; font-size: 11px;
+}
+.fibre-row:hover { outline: 1px solid #ff7a6a; }
+.fibre-row span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#info .fibre-row button.small { margin: 0; width: 22px; padding: 0 0 1px; color: #ff7a6a; }
+#neuron-scope { display: none; width: 100%; height: 50px; margin-top: 6px; background: #0a1215; border-radius: 8px; }
+#stats { margin-top: 6px; font-size: 12px; }
+.warn { color: #e8875a; font-size: 12px; margin-top: 3px; }
+#stats .warn:hover { color: #ffb48f; }
+
+/* keycaps and mouse pictures, in the card, the How to box and the keys sheet */
+.keys-hint { margin-top: 4px; font-size: 11px; color: #8a96a3; }
+.keys-hint b, .keys-grid b {
+  display: inline-block; min-width: 15px; padding: 0 4px; margin: 0 1px; background: #1c2a31;
+  border: 1px solid #2c4650; border-bottom-width: 2px; border-radius: 4px; color: #dfe4ea; font-size: 10px;
+  line-height: 1.5; text-align: center;
+}
+.mouse {
+  display: inline-block; width: 11px; height: 16px; vertical-align: middle; border: 1.5px solid #b9c3cd;
+  border-radius: 6px; position: relative; overflow: hidden;
+}
+.mouse::before, .mouse::after { content: ''; position: absolute; top: 0; width: 50%; height: 45%; }
+.mouse::before { left: 0; border-right: 1px solid #b9c3cd; border-bottom: 1px solid #b9c3cd; }
+.mouse::after { right: 0; border-bottom: 1px solid #b9c3cd; }
+.mouse.left::before { background: #e8c547; }
+.mouse.right::after { background: #ff7a6a; }
+.mouse.middle::before { width: 2px; left: calc(50% - 1px); background: #e8c547; border: 0; }
+.mouse.middle::after { display: none; }
+
+/* the How to box: one row per step, its animation and caption; the next step glows, done ones get a tick */
+#coach-bar {
+  display: flex; align-items: center; cursor: pointer; color: #8a96a3; font-size: 11px; text-transform: uppercase;
+  letter-spacing: 1px;
+}
+#coach-bar span { flex: 1; }
+#coach-bar:hover { color: #dfe4ea; }
+#coach-toggle {
+  width: 22px; height: 20px; padding: 0; background: #1c2a31; color: inherit; border: 1px solid #2c3f48;
+  border-radius: 4px; cursor: pointer; font: inherit;
+}
+#coach.collapsed #coach-steps { display: none; }
+.coach-step {
+  position: relative; display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 3px;
+  border: 1px solid transparent; border-radius: 9px; font-size: 12px; color: #b9c3cd;
+}
+.coach-step canvas { flex: none; width: 104px; height: 56px; background: #0b1418; border-radius: 7px; }
+.coach-step.next { border-color: #e8c547; animation: coach-glow 1.2s ease-in-out infinite alternate; }
+.coach-step.done { opacity: .5; }
+.coach-step.done::after {
+  content: '✓'; position: absolute; left: 6px; top: 4px; color: #5fbf7a; font-weight: 700; font-size: 14px;
+}
+@keyframes coach-glow { from { box-shadow: 0 0 0 #e8c54700; } to { box-shadow: 0 0 12px #e8c54766; } }
+
+/* the keys sheet: a card in the middle of the screen; any click closes it */
+#keys-sheet {
+  position: absolute; inset: 0; display: none; align-items: center; justify-content: center; z-index: 30;
+  background: #0006; cursor: pointer;
+}
+#keys-sheet-inner {
+  padding: 14px 18px; background: #0d1519f2; border: 1px solid #2c4650; border-radius: 12px; font-size: 13px;
+  color: #b9c3cd;
+}
+.keys-title { margin: 4px 0 8px; color: #e8c547; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+.keys-grid { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; align-items: center; margin-bottom: 8px; }
+.keys-grid > span:nth-child(odd) { text-align: right; white-space: nowrap; }
+
+/* ---------- Folding sections (the dock) ---------- */
 details > summary {
   list-style: none; cursor: pointer; padding: 3px 2px; border-radius: 4px; color: #8a96a3; font-size: 11px;
   text-transform: uppercase; letter-spacing: 1px;
@@ -42,19 +174,6 @@ details > summary::-webkit-details-marker { display: none; }
 details > summary::before { content: '▸'; display: inline-block; width: 13px; color: #5d6b77; }
 details[open] > summary::before { content: '▾'; }
 details > summary:hover { background: #ffffff0d; color: #dfe4ea; }
-.node { margin-left: 6px; padding: 2px 0 6px 9px; border-left: 1px solid #2a3b44; }
-#root > summary { font-size: 17px; font-weight: 600; letter-spacing: 1px; color: #dfe4ea; text-transform: none; }
-#budget { font-size: 16px; margin: 2px 0 4px; }
-#budget b { color: #e8c547; }
-#info {
-  margin: 2px 0; padding: 8px; background: #0d1519; border-radius: 6px; min-height: 64px; color: #b9c3cd;
-  font-size: 13px;
-}
-#stats { font-size: 12px; color: #b9c3cd; white-space: pre-line; }
-.warn { color: #e8875a; }
-#stats .warn:hover { color: #ffb48f; }
-#start-sandbox { background: #2c4650; }
-#start-sandbox:hover { background: #3a5a66; }
 
 /* ---------- Preview and library: floating windows that fold to their title bar ---------- */
 #preview, #library {

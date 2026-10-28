@@ -62,7 +62,7 @@ function updateTooltip(app, now) {
 
 function tooltipHtml(typeName, cellType) {
   const facts = [`cost ${cellType.cost}`, `${cellType.health} HP`];
-  if (cellType.conductsSignal) facts.push('carries nerve signals');
+  if (cellType.needsSignal) facts.push('needs a nerve signal');
   if (cellType.fuelBurn) facts.push(`burns ${+(cellType.fuelBurn * FUEL_BURN_SCALE).toFixed(3)}/s`);
   return `<b>${cellType.name}</b> <span class="dim">${facts.join(' · ')}</span><br>${cellType.description}` +
     `<div class="tooltip-heading">How to use</div>${TIPS[typeName].howToUse}` +

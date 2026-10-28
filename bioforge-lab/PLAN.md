@@ -9,9 +9,17 @@ Started 2026-10-28. It was copied from `bioforge-moba/`, which is now frozen.
 - **Manual triggers stay:** Command cells bound to keys (1–9 or Space) let the player fire chosen circuits by hand. A level may limit or forbid them.
 - **Signals are both analog and binary.** Graded levels (0..1) flow through nerves. Spiking cells and threshold cells turn levels into on/off pulses, and sensors give graded output (stronger when closer).
 - **The nerve and fluid systems are redesigned as layers** with much more depth. See "Layers" below; that design is still a proposal.
+- **The nerve layer (milestone 1), decided 2026-10-28:**
+  - **Signals travel only along fibres.** Touching cells no longer pass signals to each other (user: "1 no", read as agreeing with "no more leaking"). The Nerve cell type goes.
+  - **Pacemaker, Ganglion and Command become neurons** that sit inside any body cell. **Eyespot stays a body cell** (a sense organ), and its fibres carry what it senses.
+  - **One step of delay per fibre:** a fibre delivers what its start cell had one nerve step earlier. Loops become oscillators that behave the same on every run, and long wiring is slower.
+  - **Crossings are drawn with a small bridge arc.** Fibres connect only at their ends, so a crossing never connects anything.
+  - **Limits come from `RULES`:** `maxNeurons` and `maxFibreUnits` (user: "limit with rules"). Neither costs biomass.
+  - **The neuron set is a trial** (user: "don't know, have to try"): Pacemaker, Ganglion, Inhibitor, Synapse, Latch, Command. They are data, so any of them can be cut or changed after playing.
 - **Metabolism:** creatures are built from materials, take materials from food and prey, store them, and secrete chemicals that break down or change materials. It is grounded in real biology and chemistry, but fun comes first. There are **5 materials**, introduced gradually (see Chapters).
 - **Puzzles and metabolism:** the level's material kit is the budget, materials you don't spend become the creature's starting reserves, and growth during a run comes from planned cells.
-- **Nerves and vessels run along hex edges.** One hexagon side is one unit of nerve or of vessel, and a level gives a limited number of units of each. Paths may cross.
+- **Nerve fibres run from cell centre to cell centre** (changed 2026-10-28, user: "I don't like the nerves following the edges, make them connecting the centers of the cells instead"; until then they ran along hexagon sides). One step from a cell to its neighbour is one unit of nerve, and a level gives a limited number of units. Paths may cross.
+- **Vessels** are still planned along hexagon edges (milestone 3). Whether they should follow the nerves to the centres is open.
 - **Try before deciding:** whether chapter 1 uses Protein only, and whether hormones get their own layer, are decided after playing the first version.
 - **Self-harm is on for now:** acid leaks and toxins can hurt your own creature. If it turns out frustrating, it gets toned down or removed.
 - **Every mechanic must be removable** (see "Removable mechanics"). Any part that turns out frustrating can be switched off without breaking the rest.
@@ -46,16 +54,16 @@ The layer split is a proposal, to try in play first. The creature has 4 layers o
 | Layer | What lives there | Timescale | Today it is |
 |---|---|---|---|
 | **Body** | Structural and organ cells: tissue, shell, muscle, gill, fat… They have mass, HP and shape, and each is made of materials. | Static | cells |
-| **Nerve** | Neurons (logic nodes) and nerve fibres along hexagon edges. It carries graded signals and spikes. | Fast (ms) | Nerve, ganglion and pacemaker cells take up body slots |
+| **Nerve** | Neurons (logic nodes) and nerve fibres from cell centre to cell centre. It carries graded signals and spikes. | Fast (ms) | Neurons inside body cells, fibres between them |
 | **Vascular** | Vessels along hexagon edges, a Heart that pumps along them, and valves on the vessels. It carries blood: O₂, sugar, waste and dissolved materials. | Medium (seconds) | Fluids seep cell to cell; a Heart boosts flow within 3 cells |
 | **Chemical** | Glands release hormones (which spread slowly through the whole body, read by receptors) and secretions (which act on cells, your own or others'). | Slow (tens of seconds) | Adrenaline and repair fluid move like the other fluids |
 
-- **Edge routing:** nerves and vessels are drawn along the sides of the hexagons. One side is one unit, and each level limits the units of each. A cell connects to the fibres and vessels on its own six sides. A nerve and a vessel can share the same side, since they're on different layers.
-- **Crossing:** paths may cross. Where two paths meet at a hexagon corner they stay separate.
-- **Fibres connect only at their two ends** (decided 2026-10-28). You drag from one cell to another and the fibre routes along the sides. Cells it passes along aren't affected.
+- **Routing:** a nerve fibre runs from the centre of its start cell through the centres of the cells between, to its end cell. One step is one unit, and each level limits the units. Vessels are still planned along the sides of the hexagons, one side per unit; a nerve and a vessel never compete for room.
+- **Crossing:** paths may cross, also inside a cell they both pass through; they stay separate, drawn with a bridge arc.
+- **Fibres connect only at their two ends** (decided 2026-10-28). You drag from one cell to another and the fibre routes through the cells between. The cells it passes through aren't affected.
 - **Fibres are directed** (decided 2026-10-28), drawn with an arrow, so a fibre is also a diode.
 - **Neurons sit as an overlay inside a body cell** (decided 2026-10-28), one per cell, with fibres attached to it. Logic doesn't take up body space.
-- Nerves and vessels **run along body cells and need them**: an edge is lost when both cells beside it are gone, so injuries can disable circuits.
+- Nerves and vessels **run through body cells and need them**: a fibre is cut when a cell it runs through dies, so injuries can disable circuits.
 - Each layer is a separate view in the editor, and the other layers are dimmed while you edit one.
 - **Metabolism is a system across the layers, not a 5th grid layer.** Materials travel in the blood, secretions come from glands, and body cells are made of materials. The editor gets a materials panel (stores, recipes), not a 5th view. Its timescale is the slowest: minutes.
 
@@ -74,7 +82,7 @@ The layer split is a proposal, to try in play first. The creature has 4 layers o
 ### Neuron set (ideas, to trim using the elegance principle)
 | Function | Neuron | Notes |
 |---|---|---|
-| Relay | Nerve fibre (edges) | Directed, so it doubles as a diode. Connects only at its ends. Paths may cross. |
+| Relay | Nerve fibre (centre to centre) | Directed, so it doubles as a diode. Connects only at its ends. Paths may cross. |
 | Clock | Pacemaker | Rate and phase can be set. |
 | Delay / smoothing | Ganglion | Integrates its input. |
 | NOT | Inhibitor | On while its input is off. |
@@ -167,25 +175,33 @@ math.js         deterministic sine, cosine, arcTangent2 and the seeded random ge
 core.js         constants, hex and math helpers, world (newWorld, newTestTank, randomFraction), creature and cell
                 factories, spawn, death and splitting, the system registry, step() and the cell-death hooks (pure);
                 systems: clock 30, cleanup 110, particles 120
+fibres.js       nerve fibre routing from cell centre to cell centre, units, adding fibres to a creature and
+                cutting broken ones (pure)
 physics.js      input, steering, springs, drag, collisions, integration (pure); systems: input 10, physics 20
-nerve.js        signal sources and signal spreading (pure); system: nerve 40 (switchable)
+nerve.js        signals along fibres, senses, the neuron rules (pure); system: nerve 40 (switchable)
 fluid.js        work levels, fuel burning, products, fluid flow (pure); system: fluid 50 (switchable)
 actuators.js    resizing, weapon triggers, timers, debris rot (pure); system: actuators 60
 combat.js       damage, contact hits, aiming, snare lines, globs (pure); system: projectiles 70
 growth.js       Bud parts and Mender regrowth (pure); systems: buds 80, regrow 90 (switchable)
 food.js         food specks, eating, specks left by dead cells (pure); system: food 100 (switchable)
 ai.js           sandbox enemy and autopilot steering (pure)
-design.js       hex lookup, buildCheck, design warnings, the saved design format and its migration (pure)
+design.js       hex lookup, buildCheck (cells, biomass, neurons, fibre units), design warnings, the saved design
+                format, and the conversion of old saves and of designs from before the nerve layer (pure; loaded
+                before data/templates.js, which uses the conversion)
 builder.js      the edited design and every editing rule: cells, Bud parts and aim, Command keys, stamps,
                 saving a selection, the library list (pure)
-data/*.js       cells (stats and behaviour fields), fluids, templates (incl. the small builds), tips
+data/*.js       cells (stats and behaviour fields), neurons, fluids, templates (incl. the small builds), tips
 render.js       canvas drawing of a world
 windows.js      DOM and storage helpers, floating windows, remembered menu branches
 tipdemo.js      live example tank in the cell tooltip
 hud.js          HUD bars and vitals
 dock.js         the cell dock
 library.js      the template library window, saved in localStorage
-panel.js        the side panel: biomass, the clicked cell, stats, warnings
+toolbar.js      the toolbar down the left edge: Body / Nerves, Clear, Save, Unlimited, fluid views, keys, Sandbox
+panel.js        the side panel: meters, a card with a picture of the clicked or chosen cell or neuron, stats
+                chips, warnings
+scope.js        the neuron scope: an animated input and output trace, run through the real neuron rules
+coach.js        the How to box: small looping animations of each step, ticked off as the design does them
 builderview.js  drawing the builder grid and the preview window; zoom and pan
 tooltip.js      the hover tooltip
 sandbox.js      sandbox mode: its bar, steps, drawing and HUD
@@ -231,8 +247,22 @@ Planned additions: `data/levels.js`, `vascular.js`, `chemical.js`, `metabolism.j
    8. ✅ **UI rewrite** (2026-10-28): `ui.js` (730 dense lines) became `builder.js` (pure editing rules), `dock.js`, `library.js`, `panel.js`, `builderview.js`, `tooltip.js`, `sandbox.js` and a smaller `ui.js` that holds one `app` state object and the input. `windows.js`, `data/tips.js`, `style.css` and the HTML ids and classes were rewritten with full names too. The saved format was renamed (see Architecture), with a migration of saved creatures. The UI tests were rewritten, and `tests/builder.js` and `tests/editor.js` were added.
       - Bugs found on the way: the tooltip used the old names `DEMO_W` and `DEMO_H` and threw after 1 s of hovering (since step 2); the library window's position and the library itself were stored under the same name (found in a headless Edge run, fixed by giving windows their own `window-` prefix).
    - Milestone 0.5 is done. All 8 steps passed their tests; the golden fingerprints changed once, on purpose, in step 3.
-1. **Nerve layer.** Nerve fibres along hexagon edges, with limited units; crossing paths; the neuron set; the editor's layer views. Blood keeps today's seeping for now.
-   - Test: the logic neurons give the expected truth tables, and the same design gives the same result on every run.
+1. **Nerve layer.** ✅ Done 2026-10-28. Nerve fibres from cell centre to cell centre (along hexagon edges at first, changed the same day), with limited units; crossing paths; the neuron set; the editor's layer views. Blood keeps today's seeping for now.
+   - Built: `fibres.js`, `data/neurons.js`, the rewritten `nerve.js`, fibres and neurons in `core.js` (spawn, cleanup), `growth.js` (Bud parts and regrowth), `design.js` (limits, warnings, conversion), `builder.js` (neurons, settings, fibres, stamps and Bud parts keep them), the Nerve view in `ui.js`, `dock.js`, `panel.js` and `builderview.js`, and fibres and neuron badges in `render.js`.
+   - The Nerve, Ganglion, Pacemaker and Command cell types are gone; Eyespot is a sense organ (`senses: 'enemy'`); `conductsSignal` and `signalCapacity` are gone.
+   - **The model.** Every nerve step, each cell adds up what its incoming fibres deliver, plus its own sense (an Eyespot near an enemy gives 1). A cell with no neuron passes the sum on, clamped to 0..1, so plain cells are relays. A cell with a neuron hands the sum to the neuron, which decides the cell's signal. Actuators react to their cell's signal as before.
+   - **The neurons** (trial set, `data/neurons.js`):
+     - Pacemaker: on and off at its rate (setting: rate in Hz); ignores its inputs.
+     - Command: on while its key is held (Space, or the number key bound to it); ignores its inputs.
+     - Ganglion: follows its input slowly, as a delay and smoother.
+     - Inhibitor (NOT): on while its input is off.
+     - Synapse: on while its input sum reaches its threshold (setting: threshold). Threshold 1 is OR; with two inputs, 2 is AND.
+     - Latch: each new pulse on its input flips it on or off.
+   - **Fibres** are routed automatically from the start cell's centre through the fewest cells to the end cell's centre. Neighbours are 1 unit. A fibre is cut when its start, its end or a cell it runs through dies. Regrown cells and growing Bud parts get their fibres back once both ends are there.
+   - **Old designs** (built-in, tooltip examples, saved creatures) are converted when loaded: Nerve cells become Tissue, Pacemaker, Ganglion and Command cells become Tissue with that neuron, and the old touch-wiring becomes fibres. Each signal source is wired outward through the cells that used to carry signals.
+   - **The editor** gets a Body view and a Nerve view. In the Nerve view the dock shows the neurons; a click puts the chosen neuron into a cell, and a drag from one cell to another lays a fibre. A right-click takes out whatever is drawn red under the mouse: the neuron near a cell's centre, otherwise the fibre whose line is nearest (changed 2026-10-28, user: "we need better system for fibre removal"; until then a right-click only took out neurons, and a fibre went only by repeating its drag, which still works). The panel shows the units used, the clicked cell's neuron setting, and its fibres, each with a × that removes it.
+   - Chosen without asking: two fibres may share cells and steps; fibres are routed automatically (choosing a route by hand can come later); the sandbox limits are 12 neurons and 40 fibre units.
+   - Test: the logic neurons give the expected truth tables, a chain of fibres delays by one step each, fibres route and get cut as described, old designs still move after conversion, and the same design gives the same result on every run.
 2. **Autonomy, debugging and chapter 1.** No hidden steering. Probes with signal traces, slow motion and single-stepping. The level format, win checks, scores, and 5 Reflexes levels ending in a Braitenberg hunt.
    - Test: a scripted reference solution beats every level headless.
 3. **Vascular layer and chapter 2.** Vessels, the Heart, valves; Sugar as fuel.
@@ -246,10 +276,15 @@ Planned additions: `data/levels.js`, `vascular.js`, `chemical.js`, `metabolism.j
 - **Is the 4-layer split right?** Should hormones merge into the vascular layer? Decide after trying it.
 - **Which current cells stay, change or go?** Nerve cells and the Heart radius are replaced by the layers.
 - **Is Protein-only in chapter 1 too abstract?** Decide after trying it.
-- **Do neurons cost materials** from the kit, or only nerve-edge units?
+- **Do neurons cost materials** from the kit, or only nerve units?
 
 ## Known limits
 - There is no map code: rocks and currents were removed with `map.js` and come back with levels (milestone 2).
 - Until milestone 2, the sandbox creature is still steered with WASD and the AI autopilot (T).
+- **Nerve layer (2026-10-28):**
+  - Fibres are routed automatically by the shortest path; a player can't choose a route yet. Two fibres that share a step are drawn on top of each other.
+  - The built-in designs and the tooltip examples are still written in the old format and converted when loaded. Hand-wired versions come with the chapter 1 levels.
+  - Neurons have no live tooltip demo; their dock buttons show the description as a plain tooltip.
+  - Converted designs act on sharper signals: the old leaking signals faded slowly, fibres switch off at once. The Puffer's bloaters are on in 137 of 400 golden-scenario steps instead of 194.
 - The tests run the scripts in a Node `vm` context, where every call of a global function goes through a slow lookup. The sim runs about 8x slower there than in a browser, and `node tests/all.js` takes about 18 s.
 - `sine` and `cosine` are within 1 unit in the last place for ordinary angles. Right next to a multiple of π/2 the error is larger relative to the tiny result, about 1e-26 in absolute terms, which doesn't matter for the game.

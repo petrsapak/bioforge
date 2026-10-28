@@ -25,13 +25,13 @@ function planBudPart(designCells, bud) {
   const { directionX, directionY, rotation } = budPartDirection(designCells, bud);
   const turnedCells = bud.budPart.cells.map(cell => {
     const [q, r] = rotateHex(cell.q, cell.r, rotation);
-    return { q, r, typeName: cell.typeName };
+    return { ...cell, q, r };
   });
   const [anchorQ, anchorR] = bud.partOffset
     ? [bud.q + bud.partOffset[0], bud.r + bud.partOffset[1]]
     : defaultPartAnchor(bud, freeSides, turnedCells, directionX, directionY);
   const placedCells = new Map(turnedCells
-    .map(cell => ({ q: cell.q + anchorQ, r: cell.r + anchorR, typeName: cell.typeName }))
+    .map(cell => ({ ...cell, q: cell.q + anchorQ, r: cell.r + anchorR }))
     .filter(cell => !occupied.has(hexKey(cell.q, cell.r)))
     .map(cell => [hexKey(cell.q, cell.r), cell]));
   const growthOrder = cellsReachableFrom(bud, placedCells);
@@ -43,7 +43,17 @@ function planBudPart(designCells, bud) {
     direction: [sine(aim), -cosine(aim)],
     rotation,
     offset: [anchorQ - bud.q, anchorR - bud.r],
+    fibres: placePartFibres(bud.budPart.fibres || [], rotation, anchorQ, anchorR),
   };
+}
+
+// the part's fibres turned and moved with its cells
+function placePartFibres(fibres, rotation, anchorQ, anchorR) {
+  const place = ({ q, r }) => {
+    const [turnedQ, turnedR] = rotateHex(q, r, rotation);
+    return { q: turnedQ + anchorQ, r: turnedR + anchorR };
+  };
+  return fibres.map(fibre => ({ from: place(fibre.from), to: place(fibre.to) }));
 }
 
 // the direction the part points: turned by the player, or away from the body's middle
@@ -129,6 +139,7 @@ function growCell(world, creature, blueprintCell, bud) {
   cell.size = GROWN_CELL_START_SIZE;
   cell.radius = CELL_RADIUS * GROWN_CELL_START_SIZE;
   cell.budParent = bud;
+  if (blueprintCell.neuron) cell.neuron = { ...blueprintCell.neuron };
   // the body fills the growing part through every cell it touches (the Bud too); cut when the part is launched
   for (const neighbour of neighbours) {
     addBond(world, cell, neighbour);
@@ -214,6 +225,7 @@ function updateBuds(world) {
     if (nextCell && growth.progress >= BUD_FUEL_PER_BIOMASS * CELLS[nextCell.typeName].cost) {
       growth.progress -= BUD_FUEL_PER_BIOMASS * CELLS[nextCell.typeName].cost;
       growCell(world, creature, nextCell, cell);
+      connectFibres(world, creature, growth.plan.fibres);
     }
     growth.grownCount = growth.plan.cells.filter(planned => liveCellAt(creature, planned.q, planned.r)).length;
     if (growth.done && growth.grownCount && cell.signal > SIGNAL_ON && cell.cooldown <= 0) {
@@ -263,6 +275,7 @@ function regrowCell(world, creature, blueprintCell) {
   if (!cell) return null;
   if (blueprintCell.boundKey) cell.boundKey = blueprintCell.boundKey;
   if (cell.type.growsParts && blueprintCell.budPart) cell.budGrowth = newBudGrowth(creature.design, blueprintCell);
+  connectFibres(world, creature, creature.designFibres);
   spawnSparks(world, cell.x, cell.y, CELLS.mender.color, 6);
   return cell;
 }

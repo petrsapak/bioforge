@@ -6,9 +6,10 @@ const { load, ROOT } = require('./load');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['sine', 'cosine', 'arcTangent2', 'nextRandom', 'newWorld', 'spawn', 'step', 'TEMPLATES']);
 
-const SIM_FILES = ['math.js', 'core.js', 'physics.js', 'nerve.js', 'fluid.js', 'actuators.js', 'combat.js', 'growth.js',
+const SIM_FILES = ['math.js', 'core.js', 'fibres.js', 'physics.js', 'nerve.js', 'fluid.js', 'actuators.js',
+  'combat.js', 'growth.js',
   'food.js', 'ai.js', 'design.js', 'builder.js', 'data/rules.js', 'data/fluids.js', 'data/cells.js',
-  'data/templates.js', 'data/tips.js'];
+  'data/templates.js', 'data/tips.js', 'data/neurons.js'];
 const SAMPLE_COUNT = 20000;
 
 // distance between two numbers relative to their size (absolute near zero)

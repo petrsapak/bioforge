@@ -1,12 +1,15 @@
 'use strict';
 // The design being edited in the builder, and every editing rule: placing and removing cells, Bud parts and their aim,
-// Command keys, stamping saved parts, and saving a selection. Pure: no DOM, so the rules are tested in Node.
-// Cells that aren't joined to the Nucleus are only planned: they cost nothing and stay out of the creature.
+// neurons, fibres and Command keys, stamping saved parts, and saving a selection. Pure: no DOM, so the rules are
+// tested in Node. Cells that aren't joined to the Nucleus are only planned: they cost nothing and stay out of the
+// creature, and so do fibres to or from them.
 
 const BUD_AIM_HANDLE_RADIUS = 12;                         // grid px around an aim arrow's tip that grab it
 const BUD_AIM_ARROW_LENGTH = 18;                          // grid px
 const MIN_AIM_DRAG = 2;                                   // grid px the aim tip must be dragged to count
 const NAME_MAX_LENGTH = 40;                               // characters in a saved name
+const NEURON_PICK_RADIUS = 6;                             // grid px around a cell's centre that pick its neuron
+const FIBRE_PICK_DISTANCE = 3.5;                          // grid px from a fibre's line that pick the fibre
 
 const keyOfCell = cell => hexKey(cell.q, cell.r);
 // biomass shown to the half point
@@ -15,14 +18,19 @@ const formatBiomass = value => String(Math.round(value * 2) / 2);
 const wrapTurns = turns => (turns % 6 + 6) % 6;
 
 // ---------- The edited design ----------
-// The one place an edited design is built. Its cells are copies, so the source design stays as it was.
-// biomassLimit: RULES.budget, or Infinity while building without a limit.
-function createEditedDesign(cells, biomassLimit = RULES.budget) {
+// The one place an edited design is built from a design ({ cells, fibres }). Its cells and fibres are copies, so the
+// source design stays as it was. biomassLimit: RULES.budget, or Infinity while building without a limit.
+function createEditedDesign(design, biomassLimit = RULES.budget) {
   return {
-    cells: new Map(cells.map(cell => [keyOfCell(cell), { ...cell }])),
+    cells: new Map(design.cells.map(cell => [keyOfCell(cell), { ...cell }])),
+    fibres: (design.fibres || []).map(copyFibre),
     biomassLimit,
   };
 }
+
+const copyFibre = fibre => ({ from: { ...fibre.from }, to: { ...fibre.to } });
+const fibreStartKey = fibre => hexKey(fibre.from.q, fibre.from.r);
+const fibreEndKey = fibre => hexKey(fibre.to.q, fibre.to.r);
 
 function joinedKeys(edited) {
   return hexesReachableFromNucleus(key => edited.cells.has(key));
@@ -39,8 +47,11 @@ function plannedKeys(edited) {
   return [...edited.cells.keys()].filter(key => !joined.has(key));
 }
 
+// the creature that is spawned: the joined cells and the fibres between them
 function bodyDesign(edited) {
-  return { cells: bodyCells(edited) };
+  const joined = joinedKeys(edited);
+  const fibres = edited.fibres.filter(fibre => joined.has(fibreStartKey(fibre)) && joined.has(fibreEndKey(fibre)));
+  return { cells: bodyCells(edited), fibres };
 }
 
 function bodyCost(edited) {
@@ -68,11 +79,117 @@ function placeCell(edited, q, r, typeName) {
   edited.cells.set(hexKey(q, r), createDesignCell(q, r, typeName));
 }
 
-// removes the cell on (q, r), except the Nucleus; cells cut off from the Nucleus stay, as planned cells
+// Removes the cell on (q, r) with its neuron and fibres, except the Nucleus. Cells cut off from the Nucleus stay, as
+// planned cells.
 function removeCell(edited, q, r) {
-  const cell = edited.cells.get(hexKey(q, r));
+  const key = hexKey(q, r);
+  const cell = edited.cells.get(key);
   if (!cell || CELLS[cell.typeName].isNucleus) return;
-  edited.cells.delete(hexKey(q, r));
+  edited.cells.delete(key);
+  edited.fibres = edited.fibres.filter(fibre => fibreStartKey(fibre) !== key && fibreEndKey(fibre) !== key);
+}
+
+// ---------- The nerve layer ----------
+// puts a neuron of this kind into the cell (replacing any other kind)
+function placeNeuron(edited, key, kind) {
+  const cell = edited.cells.get(key);
+  if (!cell || (cell.neuron && cell.neuron.kind === kind)) return;
+  cell.neuron = createNeuron(kind);
+}
+
+// takes the cell's neuron out, with a Command's key binding
+function removeNeuron(edited, key) {
+  const cell = edited.cells.get(key);
+  if (!cell) return;
+  delete cell.neuron;
+  delete cell.boundKey;
+}
+
+// moves the cell's neuron setting by steps of its step size, within its limits
+function changeNeuronSetting(edited, key, steps) {
+  const neuron = edited.cells.get(key).neuron;
+  const setting = NEURONS[neuron.kind].setting;
+  if (!setting) return;
+  const value = neuron.setting + steps * setting.step;
+  neuron.setting = Math.round(Math.max(setting.min, Math.min(setting.max, value)) * 100) / 100;
+}
+
+// Lays a fibre from one cell to another, or removes it if it is already there. Returns what happened: 'laid',
+// 'removed', or '' when there is nothing to do (the same cell, or a hex without a cell).
+function toggleFibre(edited, fromKey, toKey) {
+  if (fromKey === toKey || !edited.cells.has(fromKey) || !edited.cells.has(toKey)) return '';
+  const index = edited.fibres.findIndex(fibre => fibreStartKey(fibre) === fromKey && fibreEndKey(fibre) === toKey);
+  if (index >= 0) {
+    edited.fibres.splice(index, 1);
+    return 'removed';
+  }
+  edited.fibres.push({ from: parseHexKey(fromKey), to: parseHexKey(toKey) });
+  return 'laid';
+}
+
+// the body's fibres with their routes through the body's cells, for drawing: [{ fibre, route }]
+function routedBodyFibres(edited) {
+  const body = bodyDesign(edited);
+  const area = createRouteArea(body.cells);
+  return body.fibres
+    .map(fibre => ({ fibre, route: routeFibre(area, fibre.from, fibre.to) }))
+    .filter(({ route }) => route);
+}
+
+// how much of the nerve limits the body uses
+function nerveUsage(edited) {
+  const body = bodyDesign(edited);
+  return { neurons: body.cells.filter(cell => cell.neuron).length, units: fibreUnits(body) };
+}
+
+// removes this fibre (an entry of edited.fibres)
+function removeFibre(edited, fibre) {
+  edited.fibres = edited.fibres.filter(other => other !== fibre);
+}
+
+// What a right-click at a grid point takes out in the Nerve view: { neuronKey } or { fibre }, or null. Near a cell's
+// centre its neuron wins; elsewhere the nearest fibre line within reach (the one drawn last, on top, when tied); and
+// anywhere else on a cell with a neuron, that neuron.
+function nerveRemovalTarget(edited, [x, y]) {
+  const [q, r] = pixelToHex(x, y);
+  const key = hexKey(q, r);
+  const cell = edited.cells.get(key);
+  const [centerX, centerY] = hexToPixel(q, r);
+  const hasNeuron = !!cell && !!cell.neuron;
+  if (hasNeuron && distanceSquared(x, y, centerX, centerY) <= square(NEURON_PICK_RADIUS)) return { neuronKey: key };
+  let nearest = null;
+  let nearestDistance = FIBRE_PICK_DISTANCE;
+  for (const { fibre, route } of routedBodyFibres(edited)) {
+    const points = route.hexes.map(routeKey => {
+      const point = parseHexKey(routeKey);
+      return hexToPixel(point.q, point.r);
+    });
+    for (let i = 1; i < points.length; i++) {
+      const distance = distanceToSegment(x, y, points[i - 1], points[i]);
+      if (distance <= nearestDistance) {
+        nearest = fibre;
+        nearestDistance = distance;
+      }
+    }
+  }
+  if (nearest) return { fibre: nearest };
+  return hasNeuron ? { neuronKey: key } : null;
+}
+
+// grid px from a point to the line segment between two points
+function distanceToSegment(x, y, [fromX, fromY], [toX, toY]) {
+  const lengthSquared = distanceSquared(fromX, fromY, toX, toY);
+  if (!lengthSquared) return Math.sqrt(distanceSquared(x, y, fromX, fromY));
+  const along = clamp01(((x - fromX) * (toX - fromX) + (y - fromY) * (toY - fromY)) / lengthSquared);
+  return Math.sqrt(distanceSquared(x, y, fromX + (toX - fromX) * along, fromY + (toY - fromY) * along));
+}
+
+// fibres into and out of a cell
+function fibresAt(edited, key) {
+  return {
+    incoming: edited.fibres.filter(fibre => fibreEndKey(fibre) === key).length,
+    outgoing: edited.fibres.filter(fibre => fibreStartKey(fibre) === key).length,
+  };
 }
 
 // binds a Command to a number key; pressing its key again unbinds it (it then fires on Space)
@@ -153,7 +270,8 @@ function giveBudPart(edited, budKey, template) {
   const bud = edited.cells.get(budKey);
   bud.budPart = {
     name: template.name,
-    cells: template.cells.map(cell => createDesignCell(cell.q, cell.r, cell.typeName)),
+    cells: template.cells.map(partCellOf),
+    fibres: (template.fibres || []).map(copyFibre),
   };
   delete bud.partOffset;
   delete bud.partRotation;
@@ -163,6 +281,11 @@ function giveBudPart(edited, budKey, template) {
     bud.partRotation = wrapTurns(plan.rotation);
   }
   return '';
+}
+
+// a library cell as a cell of a Bud part: its place, type and neuron (a part has no key bindings or parts of its own)
+function partCellOf({ q, r, typeName, neuron }) {
+  return createDesignCell(q, r, typeName, neuron ? { neuron } : {});
 }
 
 // turns the Bud's part by steps of 60° around the Bud; returns the problem ('' = turned)
@@ -231,11 +354,20 @@ function budHandleAt(edited, q, r, point, focusKey) {
 
 // ---------- Stamping saved parts ----------
 // A stamp is a saved part being placed: { template, rotation }.
-// Its cells turned and moved to (q, r), leaving out hexes already taken, and the problem if it can't go there.
+// Its cells turned and moved to (q, r), leaving out hexes already taken, its fibres between the cells that are
+// placed, and the problem if it can't go there.
 function stampPlacement(edited, stamp, q, r) {
   const cells = stamp.template.cells
     .map(cell => turnTemplateCell(cell, stamp.rotation, q, r))
     .filter(cell => !edited.cells.has(keyOfCell(cell)));
+  const placedKeys = new Set(cells.map(keyOfCell));
+  const fibres = (stamp.template.fibres || [])
+    .map(fibre => ({
+      from: turnTemplateCell(fibre.from, stamp.rotation, q, r),
+      to: turnTemplateCell(fibre.to, stamp.rotation, q, r),
+    }))
+    .map(({ from, to }) => ({ from: { q: from.q, r: from.r }, to: { q: to.q, r: to.r } }))
+    .filter(fibre => placedKeys.has(fibreStartKey(fibre)) && placedKeys.has(fibreEndKey(fibre)));
   const reserved = reservedHexes(edited);
   let problem = '';
   if (!cells.length) problem = 'Every hex there is already taken.';
@@ -249,7 +381,7 @@ function stampPlacement(edited, stamp, q, r) {
         `you have ${formatBiomass(RULES.budget - costNow)} left.`;
     }
   }
-  return { cells, problem };
+  return { cells, fibres, problem };
 }
 
 // a saved cell turned by steps of 60° around the template's anchor and moved to (q, r); its Bud part turns with it
@@ -267,6 +399,7 @@ function placeStamp(edited, stamp, q, r) {
   const placement = stampPlacement(edited, stamp, q, r);
   if (placement.problem) return placement.problem;
   for (const cell of placement.cells) edited.cells.set(keyOfCell(cell), cell);
+  edited.fibres.push(...placement.fibres);
   return '';
 }
 
@@ -278,10 +411,16 @@ function templateFromSelection(edited, selectedKeys, name) {
   if (!cells.length) return null;
   const isCreature = cells.some(cell => CELLS[cell.typeName].isNucleus);
   const anchor = isCreature ? { q: 0, r: 0 } : cellNearestMiddle(cells);
+  const shift = ({ q, r }) => ({ q: q - anchor.q, r: r - anchor.r });
+  const selected = new Set(selectedKeys);
+  const fibres = edited.fibres
+    .filter(fibre => selected.has(fibreStartKey(fibre)) && selected.has(fibreEndKey(fibre)))
+    .map(fibre => ({ from: shift(fibre.from), to: shift(fibre.to) }));
   return {
     name: cleanName(name),
     isCreature,
-    cells: cells.map(cell => ({ ...cell, q: cell.q - anchor.q, r: cell.r - anchor.r })),
+    cells: cells.map(cell => ({ ...cell, ...shift(cell) })),
+    fibres,
   };
 }
 

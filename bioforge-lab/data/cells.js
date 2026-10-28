@@ -3,7 +3,7 @@
 //   category, name, cost (biomass), health, color, description: what the builder shows
 //   mass; stiffness (angle springs); bondStrength (bond springs, the weaker cell of a pair counts);
 //   swimPower (free swimming force); damageFactor (share of damage taken: 0.5 = half)
-//   conductsSignal: carries nerve signals; signalSource: 'pulse' | 'key' | 'proximity'; signalCapacity: charges slowly
+//   senses: what the cell feels, as a nerve signal its fibres carry: 'enemy' (an enemy cell is near)
 //   fuelBurn: O2 + energy burned per second at full work (each unit burned becomes one unit of waste)
 //   oxygenCapacity, energyCapacity: how much the cell holds
 // Behaviours: what the cell does in each system. The systems read these, never the type's name.
@@ -30,7 +30,6 @@ function cellType(definition) {
     stiffness: 1,
     bondStrength: 1,
     swimPower: 1,
-    conductsSignal: false,
     damageFactor: 1,
     fuelBurn: 0,
     oxygenCapacity: pipeOrStore,
@@ -48,7 +47,7 @@ const CELLS = {
   }),
   tissue: cellType({
     category: 'Body', name: 'Tissue', cost: 1, health: 30, color: '#7c8a6e',
-    description: 'Cheap filler. Holds shape and blocks nerve signals, so use it to separate nerve circuits.',
+    description: 'Cheap filler. Holds shape, and can hold a neuron like any cell.',
   }),
   shell: cellType({
     category: 'Body', name: 'Shell', cost: 2, health: 90, mass: 2, stiffness: 2, bondStrength: 2, swimPower: 0.5,
@@ -65,58 +64,38 @@ const CELLS = {
     work: 'swimming', beats: true,
     description: 'Beating hairs. Swims 3.5x harder than a normal cell, but only while it is fed O₂ and energy.',
   }),
-  nerve: cellType({
-    category: 'Nerve', name: 'Nerve', cost: 1, health: 20, mass: 0.8, conductsSignal: true, color: '#d8b86a',
-    description: 'Carries nerve signals between neighbours.',
-  }),
-  ganglion: cellType({
-    category: 'Nerve', name: 'Ganglion', cost: 2, health: 25, conductsSignal: true, signalCapacity: 10,
-    color: '#c78f3c',
-    description: 'Carries signals but charges and discharges slowly. Use it to delay or smooth a signal.',
-  }),
-  pacemaker: cellType({
-    category: 'Nerve', name: 'Pacemaker', cost: 3, health: 25, conductsSignal: true, signalSource: 'pulse',
-    color: '#f2e35b',
-    description: 'Fires on and off about 1.4 times per second.',
-  }),
-  command: cellType({
-    category: 'Nerve', name: 'Command', cost: 2, health: 25, conductsSignal: true, signalSource: 'key',
-    color: '#f29b38',
-    description: 'Fires while you hold Space (the AI fires it when close).',
-  }),
   eyespot: cellType({
-    category: 'Nerve', name: 'Eyespot', cost: 3, health: 20, conductsSignal: true, signalSource: 'proximity',
-    color: '#4fd1c5',
-    description: 'Fires when an enemy cell is near it.',
+    category: 'Sense', name: 'Eyespot', cost: 3, health: 20, senses: 'enemy', color: '#4fd1c5',
+    description: 'Signals while an enemy cell is near it. Lay fibres from it to the cells that should react.',
   }),
   muscle: cellType({
-    category: 'Action', name: 'Muscle', cost: 3, health: 30, mass: 1.2, conductsSignal: true, fuelBurn: 0.1,
+    category: 'Action', name: 'Muscle', cost: 3, health: 30, mass: 1.2, fuelBurn: 0.1,
     color: '#d9544f', work: 'graded', resize: 'contract', needsSignal: true,
     description: 'Contracts to 45% size on a nerve signal, pulling neighbours in and bending the body. Burns fuel.',
   }),
   bloater: cellType({
-    category: 'Action', name: 'Bloater', cost: 3, health: 30, conductsSignal: true, fuelBurn: 0.1, color: '#b77ee0',
+    category: 'Action', name: 'Bloater', cost: 3, health: 30, fuelBurn: 0.1, color: '#b77ee0',
     work: 'graded', resize: 'swell', needsSignal: true, isWeapon: true,
     description: 'Swells to 180% size on a nerve signal, shoving enemies away. Burns fuel.',
   }),
   siphon: cellType({
-    category: 'Action', name: 'Siphon', cost: 4, health: 25, conductsSignal: true, fuelBurn: 0.15, color: '#5fb8e8',
+    category: 'Action', name: 'Siphon', cost: 4, health: 25, fuelBurn: 0.15, color: '#5fb8e8',
     work: 'graded', jets: true, needsSignal: true,
     description: 'Squirts water backwards on a nerve signal, pushing the creature forward. Thirsty.',
   }),
   nettle: cellType({
-    category: 'Action', name: 'Nettle', cost: 5, health: 25, conductsSignal: true, fuelBurn: 0.12, color: '#a7b8ff',
+    category: 'Action', name: 'Nettle', cost: 5, health: 25, fuelBurn: 0.12, color: '#a7b8ff',
     work: 'onSignal', trigger: 'nettle', needsSignal: true, isWeapon: true,
     description: 'On a nerve signal, stings every enemy cell close to it. Burns fuel while signalled.',
   }),
   snare: cellType({
-    category: 'Action', name: 'Snare', cost: 5, health: 30, conductsSignal: true, fuelBurn: 0.1, color: '#b07a48',
+    category: 'Action', name: 'Snare', cost: 5, health: 30, fuelBurn: 0.1, color: '#b07a48',
     work: 'snare', trigger: 'snare', needsSignal: true, isWeapon: true,
     description: `On a nerve signal, shoots a sticky line up to ${SNARE_LENGTH} px at the nearest enemy. If it ` +
       `catches a cell, it reels that enemy in for ${SNARE_HOLD_TIME} s. Burns fuel while firing and holding.`,
   }),
   spitter: cellType({
-    category: 'Action', name: 'Spitter', cost: 4, health: 25, conductsSignal: true, fuelBurn: 0.12, color: '#c4ff5a',
+    category: 'Action', name: 'Spitter', cost: 4, health: 25, fuelBurn: 0.12, color: '#c4ff5a',
     work: 'onSignal', trigger: 'spit', needsSignal: true, isWeapon: true,
     description: `While signalled, spits an acid glob every ${SPIT_COOLDOWN} s at the nearest enemy within ` +
       `${SPIT_RANGE} px (straight out if none). Burns fuel while signalled.`,
@@ -126,7 +105,7 @@ const CELLS = {
     description: 'Damages enemy cells it hits. Faster hits hurt more. Needs no fuel.',
   }),
   bud: cellType({
-    category: 'Action', name: 'Bud', cost: 4, health: 30, conductsSignal: true, fuelBurn: 0.4, color: '#c8e07a',
+    category: 'Action', name: 'Bud', cost: 4, health: 30, fuelBurn: 0.4, color: '#c8e07a',
     work: 'growPart', product: 'budPart', growsParts: true, needsSignal: true,
     description: 'Grows a saved part on its outer side from O₂ and energy. A nerve signal shoots the finished ' +
       'part away from the body, then it grows a new one. The part has its own nerves and fluids: with a Pacemaker ' +
@@ -150,7 +129,7 @@ const CELLS = {
     description: `Pumps. While fed, fluids flow about 7x faster between cells up to ${HEART_REACH} cells away from it.`,
   }),
   valve: cellType({
-    category: 'Fluid', name: 'Valve', cost: 2, health: 25, conductsSignal: true, color: '#7d97a8', gatesFlow: true,
+    category: 'Fluid', name: 'Valve', cost: 2, health: 25, color: '#7d97a8', gatesFlow: true,
     needsSignal: true,
     description: 'Lets no fluid through unless it gets a nerve signal. Wall off a reservoir with Valves to ' +
       'release it on command.',
@@ -176,7 +155,7 @@ const CELLS = {
       'regrow one at a time, nearest the Mender first.',
   }),
   adrenal: cellType({
-    category: 'Gland', name: 'Adrenal', cost: 3, health: 25, conductsSignal: true, fuelBurn: 0.2, color: '#e04090',
+    category: 'Gland', name: 'Adrenal', cost: 3, health: 25, fuelBurn: 0.2, color: '#e04090',
     work: 'onSignal', product: 'adrenaline', needsSignal: true,
     description: 'On a nerve signal, turns energy into adrenaline. Muscles, cilia, siphons, bloaters and nettles ' +
       'that receive it work up to 80% harder.',

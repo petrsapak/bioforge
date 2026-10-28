@@ -15,7 +15,8 @@ function startDemo(typeName, canvas) {
     for (const cell of cells) if (CELLS[cell.typeName].growsParts) cell.budPart = example.budPart;
   }
   const world = newTestTank(DEMO_WIDTH, DEMO_HEIGHT);
-  const creature = spawn(world, { cells }, DEMO_WIDTH / 2, DEMO_HEIGHT / 2 + 10, 0, 0);
+  const design = upgradeToNerveLayer({ cells });          // examples are in the format from before the nerve layer
+  const creature = spawn(world, design, DEMO_WIDTH / 2, DEMO_HEIGHT / 2 + 10, 0, 0);
   for (const cell of creature.cells) {
     if (example.startsHurt && example.startsHurt.includes(cell.typeName)) cell.health = cell.maxHealth * 0.1;
     if (example.startsEmpty && example.startsEmpty.includes(cell.typeName)) {

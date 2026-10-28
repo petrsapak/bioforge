@@ -126,3 +126,7 @@ Object.assign(TEMPLATES, {
   // Space: snares pull foes onto its thorns
   snarer: designFromArt(['   T T T', '  H k N k H', '   G h f G', '  c c o c c']),
 });
+
+// The designs above are written in the format from before the nerve layer (Nerve, Pacemaker, Ganglion and Command
+// cells, wired by touch); they are converted to neurons and fibres here (see upgradeToNerveLayer in design.js).
+for (const name of Object.keys(TEMPLATES)) TEMPLATES[name] = upgradeToNerveLayer(TEMPLATES[name]);

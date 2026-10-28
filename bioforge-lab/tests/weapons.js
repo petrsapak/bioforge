@@ -1,7 +1,8 @@
-// Snare and Spitter: an eyespot build facing a dummy, sim only
+// Snare and Spitter: an eyespot build facing a dummy, sim only. The builds are written by touch, as before the nerve
+// layer, and converted to fibres (upgradeToNerveLayer).
 const { load } = require('./load');
 const { check, done } = require('./check');
-const { X: sim } = load({}, ['newWorld', 'spawn', 'step', 'blueprintFromList']);
+const { X: sim } = load({}, ['newWorld', 'spawn', 'step', 'blueprintFromList', 'upgradeToNerveLayer']);
 
 const DUMMY_DESIGN = [[0, 0, 'nucleus'], [1, 0, 'tissue'], [0, 1, 'tissue'], [-1, 1, 'tissue']];
 const NO_INPUT = { swimX: 0, swimY: 0, ability: false };
@@ -11,7 +12,8 @@ const SUPPORT_CELLS = [[-1, 0, 'gill'], [1, 0, 'fat'], [0, 1, 'pore']];
 // the player's build at the middle, and a passive dummy `gap` px in front of it
 function createArena(cells, gap) {
   const world = sim.newWorld(2000, 2000);
-  const player = sim.spawn(world, { cells: sim.blueprintFromList(cells) }, 1000, 1000, 0, 0);
+  const design = sim.upgradeToNerveLayer({ cells: sim.blueprintFromList(cells) });
+  const player = sim.spawn(world, design, 1000, 1000, 0, 0);
   player.aiControlled = false;
   const front = Math.min(...player.cells.map(cell => cell.y));
   const dummy = sim.spawn(world, { cells: sim.blueprintFromList(DUMMY_DESIGN) }, 1000, front - gap, 0, 1);

@@ -1,22 +1,40 @@
 'use strict';
-// Nerve system: signal sources, and signal charge spreading between touching nerve-conducting cells. Pure: no DOM.
+// Nerve system: signals travel only along fibres (fibres.js), one nerve step per fibre. Every nerve step each cell
+// adds up what its incoming fibres deliver, plus its own sense; a plain cell passes the sum on (clamped to 0..1), and
+// a cell with a neuron (data/neurons.js) lets the neuron decide its signal. Pure: no DOM.
 
-const NERVE_CONDUCTANCE = 25;                             // charge flow per unit of signal difference, per second
-const SIGNAL_LEAK = 0.4;                                  // share of its signal a cell loses per second
 const NERVE_SUBSTEPS = 4;                                 // nerve steps per game step
-const PACEMAKER_HZ = 1.4;                                 // pacemaker on/off cycles per second
 const EYESPOT_RANGE = 120;                                // px from an eyespot to an enemy cell it notices
 const SIGNAL_ON = 0.5;                                    // signal level above which on/off cells count as on
+const GANGLION_RATE = 2;                                  // share of the gap to its input a Ganglion closes per second
 
-// What a signal source cell puts out now (0 or 1).
-function signalSourceOutput(world, cell) {
+// What each neuron kind makes of its input sum. The cell's previous signal and neuronMemory are its state.
+const NEURON_RULES = {
+  pacemaker: (cell, input, world) => (sine(TAU * cell.neuron.setting * world.time) > 0 ? 1 : 0),
+  command: (cell, input, world) => commandOutput(world, cell),
+  ganglion: (cell, input, world, stepTime) =>
+    cell.signal + (clamp01(input) - cell.signal) * Math.min(1, GANGLION_RATE * stepTime),
+  inhibitor: (cell, input) => (input > SIGNAL_ON ? 0 : 1),
+  synapse: (cell, input) => (input >= cell.neuron.setting ? 1 : 0),
+  latch: (cell, input) => {
+    const isPulse = input > SIGNAL_ON;
+    if (isPulse && !cell.neuronMemory) cell.signal = cell.signal > SIGNAL_ON ? 0 : 1;   // a new pulse flips it
+    cell.neuronMemory = isPulse ? 1 : 0;
+    return cell.signal;
+  },
+};
+
+// Cells that can't act yet make no signal of their own: a growing Bud part waits for its launch, and debris that
+// isn't a launched part is dead weight.
+function canMakeSignals(cell) {
   const creature = cell.creature;
-  const source = cell.type.signalSource;
-  if (cell.budParent) return 0;                           // sources in a growing Bud part wait for its release
-  if (source === 'pulse') return sine(TAU * PACEMAKER_HZ * world.time) > 0 ? 1 : 0;
-  if (creature.debris && !creature.launchedPart) return 0;
-  if (source === 'key') return commandOutput(world, cell);
-  if (world.spaceFiresAllSources) return creature.abilityHeld ? 1 : 0;
+  return !cell.budParent && (!creature.debris || creature.launchedPart);
+}
+
+// What a sense organ feels now (0 or 1). In the test tank, Space stands in for every sense.
+function senseOutput(world, cell) {
+  if (!cell.type.senses || !canMakeSignals(cell)) return 0;
+  if (world.spaceFiresAllSources) return cell.creature.abilityHeld ? 1 : 0;
   return enemyNear(world, cell) ? 1 : 0;
 }
 
@@ -38,30 +56,25 @@ function enemyNear(world, cell) {
   return false;
 }
 
-// Signal charge flows between touching conducting cells; sources hold their output.
-// A growing Bud part has its own nerves, apart from the body's.
+// the signal a cell takes on, given the sum of its fibre inputs and its sense
+function decideSignal(world, cell, input, stepTime) {
+  const neuron = cell.neuron;
+  if (!neuron) return clamp01(input);
+  const makesItsOwn = NEURONS[neuron.kind].ignoresInputs;
+  if (makesItsOwn && !canMakeSignals(cell)) return 0;
+  return NEURON_RULES[neuron.kind](cell, input, world, stepTime);
+}
+
+// Each nerve step, every fibre first takes its start cell's signal, then all cells update at once from what arrived:
+// so a signal needs one nerve step per fibre, whatever order the cells and fibres are in.
 function updateNerves(world, dt) {
-  for (const cell of world.cells) {
-    if (cell.type.signalSource) cell.sourceOutput = signalSourceOutput(world, cell);
-  }
-  const substep = dt / NERVE_SUBSTEPS;
+  for (const cell of world.cells) cell.senseOutput = senseOutput(world, cell);
+  const stepTime = dt / NERVE_SUBSTEPS;
   for (let i = 0; i < NERVE_SUBSTEPS; i++) {
-    for (const cell of world.cells) {
-      cell.signalInflow = 0;
-      if (cell.type.signalSource) cell.signal = cell.sourceOutput;
-    }
-    for (const bond of world.bonds) {
-      const { first, second } = bond;
-      if (!first.type.conductsSignal || !second.type.conductsSignal || first.budParent !== second.budParent) continue;
-      const current = NERVE_CONDUCTANCE * (second.signal - first.signal);
-      first.signalInflow += current;
-      second.signalInflow -= current;
-    }
-    for (const cell of world.cells) {
-      if (!cell.type.conductsSignal || cell.type.signalSource) continue;
-      const charging = cell.signalInflow / (cell.type.signalCapacity || 1);
-      cell.signal += (charging - SIGNAL_LEAK * cell.signal) * substep;
-    }
+    for (const fibre of world.fibres) fibre.value = fibre.from.signal;
+    for (const cell of world.cells) cell.nerveInput = cell.senseOutput;
+    for (const fibre of world.fibres) fibre.to.nerveInput += fibre.value;
+    for (const cell of world.cells) cell.signal = decideSignal(world, cell, cell.nerveInput, stepTime);
   }
 }
 

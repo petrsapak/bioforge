@@ -3,7 +3,7 @@
 // and aim arrows, selections, warnings, ghosts of what is being placed, and the preview window. Also the grid's
 // zoom and pan (browser only).
 
-const BUILDER_PANEL_WIDTH = 320;                          // px of menu kept clear when centring the grid
+const BUILDER_PANEL_WIDTH = 350;                          // px of toolbar and panel kept clear when centring the grid
 const ZOOM_MIN = 0.2;
 const ZOOM_MAX = 5;
 const ZOOM_START = 1.9;
@@ -18,6 +18,9 @@ const WARNING_COLOR = '#e8875a';
 const HOVERED_WARNING_COLOR = '#ffb48f';
 const SELECTION_COLOR = '#e8c547';
 const DIM_TEXT_COLOR = '#6f7b88';
+const NERVE_VIEW_SHADE = 'rgba(11,20,24,0.62)';           // laid over the cells in the Nerve view
+const NEURON_GHOST_ALPHA = 0.5;                           // the neuron a click would put in, under the mouse
+const FIBRE_REMOVE_COLOR = '#ff7a6a';                     // a drag that would remove the fibre already there
 
 // ---------- Zoom and pan ----------
 function createGridView() {
@@ -73,11 +76,15 @@ function drawBuilder(app) {
   context.scale(app.gridView.zoom, app.gridView.zoom);
   drawGridHexes(app, origin);
   drawDesignCells(app);
+  drawNerveLayer(app);
   drawBudParts(app);
   drawSelection(app);
   drawWarningMarks(app);
   drawLibraryDragHint(app);
   drawPlacementGhost(app);
+  drawNeuronGhost(app);
+  drawRemovalTarget(app);
+  drawFibreDrag(app);
   drawGridLabels(app);
   context.restore();
   context.fillStyle = DIM_TEXT_COLOR;
@@ -105,7 +112,7 @@ function drawGridHexes(app, origin) {
   const context = app.context;
   const zoom = app.gridView.zoom;
   const margin = HEX_SPACING_X * zoom;                    // hexes this far off screen are skipped
-  const isBusy = app.stamp || app.partDrag || app.aimDragKey || app.libraryDrag;
+  const isBusy = app.layer === 'nerve' || app.stamp || app.partDrag || app.aimDragKey || app.libraryDrag;
   for (let q = -GRID_RADIUS; q <= GRID_RADIUS; q++) {
     for (let r = -GRID_RADIUS; r <= GRID_RADIUS; r++) {
       if (!isInGrid(q, r)) continue;
@@ -146,6 +153,124 @@ function drawDesignCells(app) {
     context.stroke();
     context.setLineDash([]);
   }
+}
+
+// Fibres from cell centre to cell centre, with a bridge arc where one crosses a fibre drawn before it, brighter
+// while they carry a signal in the test tank. In the Nerve view the cells fade and the neurons and fibres stand out;
+// in the Body view the fibres stay faint.
+function drawNerveLayer(app) {
+  const context = app.context;
+  const isNerveView = app.layer === 'nerve';
+  if (isNerveView) {
+    for (const designCell of app.edited.cells.values()) {
+      const [x, y] = hexToPixel(designCell.q, designCell.r);
+      traceHex(context, x, y, HEX_FILL_SIZE);
+      context.fillStyle = NERVE_VIEW_SHADE;
+      context.fill();
+    }
+  }
+  const liveFibreKey = fibre => keyOfCell(fibre.from) + '>' + keyOfCell(fibre.to);
+  const liveValues = new Map(app.tank.fibres.map(fibre => [liveFibreKey(fibre), fibre.value]));
+  const usedCells = new Set();
+  for (const { fibre, route } of routedBodyFibres(app.edited)) {
+    const crossings = new Set(route.hexes.filter(key => usedCells.has(key)));
+    const value = liveValues.get(fibreStartKey(fibre) + '>' + fibreEndKey(fibre)) || 0;
+    const points = route.hexes.map(keyToPixel);
+    drawFibre(context, points, route.hexes, value, crossings, isNerveView ? 1 : 0.35, isNerveView ? 2.2 : 1.2);
+    for (const key of route.hexes) usedCells.add(key);
+  }
+  if (isNerveView) drawNeuronBadges(app);
+}
+
+// the neurons on top of the faded cells, lit with their live signal
+function drawNeuronBadges(app) {
+  const liveCells = new Map(app.tank.cells.map(cell => [keyOfCell(cell), cell]));
+  for (const designCell of app.edited.cells.values()) {
+    if (!designCell.neuron) continue;
+    const [x, y] = hexToPixel(designCell.q, designCell.r);
+    const live = liveCells.get(keyOfCell(designCell));
+    drawNeuronBadge(app.context, { ...designCell, x, y, signal: live ? live.signal : 0 }, CELL_RADIUS * 0.9);
+  }
+}
+
+// Nerve view: what a right-click would take out, in red: the fibre or neuron under the mouse, or the fibre whose row
+// in the card is hovered
+function drawRemovalTarget(app) {
+  if (app.layer !== 'nerve' || app.fibreDrag) return;
+  const target = app.hoveredFibre ? { fibre: app.hoveredFibre }
+    : app.hoverPoint ? nerveRemovalTarget(app.edited, app.hoverPoint) : null;
+  if (!target) return;
+  const context = app.context;
+  context.strokeStyle = FIBRE_REMOVE_COLOR;
+  if (target.neuronKey) {
+    const [x, y] = keyToPixel(target.neuronKey);
+    context.lineWidth = 1.5;
+    strokeCircle(context, x, y, CELL_RADIUS * 0.65);
+    return;
+  }
+  const routed = routedBodyFibres(app.edited).find(({ fibre }) => fibre === target.fibre);
+  if (!routed) return;
+  context.lineWidth = 3;
+  context.lineCap = 'round';
+  context.beginPath();
+  routed.route.hexes.map(keyToPixel).forEach(([x, y]) => context.lineTo(x, y));
+  context.stroke();
+}
+
+// Nerve view: the chosen neuron, faint, in the empty cell under the mouse, showing what a click would do
+function drawNeuronGhost(app) {
+  if (app.layer !== 'nerve' || app.fibreDrag || !app.hoverHex) return;
+  const cell = app.edited.cells.get(hexKey(...app.hoverHex));
+  if (!cell || cell.neuron) return;
+  const [x, y] = hexToPixel(...app.hoverHex);
+  const ghost = { x, y, neuron: { kind: app.selectedNeuron }, signal: 0, boundKey: null };
+  drawNeuronBadge(app.context, ghost, CELL_RADIUS * 0.9, NEURON_GHOST_ALPHA);
+  app.context.globalAlpha = 1;
+}
+
+// A fibre being laid: over another cell, the route it would take through the body with its units ("+3"), or in red
+// with "remove" if that fibre is already there; elsewhere a dashed line from its start cell to the mouse.
+function drawFibreDrag(app) {
+  if (!app.fibreDrag || !app.hoverPoint) return;
+  const context = app.context;
+  const fromKey = app.fibreDrag.fromKey;
+  const [startX, startY] = keyToPixel(fromKey);
+  const toKey = app.hoverHex ? hexKey(...app.hoverHex) : null;
+  const route = toKey && toKey !== fromKey
+    ? routeFibre(createRouteArea(bodyCells(app.edited)), parseHexKey(fromKey), parseHexKey(toKey))
+    : null;
+  context.strokeStyle = SELECTION_COLOR;
+  context.lineWidth = 1.2;
+  strokeCircle(context, startX, startY, CELL_RADIUS);
+  if (!route) {
+    context.globalAlpha = 0.9;
+    context.strokeStyle = FIBRE_COLOR;
+    context.lineWidth = 1.5;
+    context.setLineDash([3, 2]);
+    strokeLine(context, startX, startY, app.hoverPoint[0], app.hoverPoint[1]);
+    context.setLineDash([]);
+    context.globalAlpha = 1;
+    return;
+  }
+  const isThere = app.edited.fibres.some(fibre => fibreStartKey(fibre) === fromKey && fibreEndKey(fibre) === toKey);
+  const [endX, endY] = keyToPixel(toKey);
+  context.strokeStyle = isThere ? FIBRE_REMOVE_COLOR : FIBRE_ACTIVE_COLOR;
+  context.lineWidth = 1.2;
+  strokeCircle(context, endX, endY, CELL_RADIUS);
+  if (isThere) {
+    context.globalAlpha = 0.9;
+    context.lineWidth = 2.6;
+    context.beginPath();
+    route.hexes.map(keyToPixel).forEach(([x, y]) => context.lineTo(x, y));
+    context.stroke();
+    context.globalAlpha = 1;
+  } else {
+    drawFibre(context, route.hexes.map(keyToPixel), null, 1, null, 0.9, 2.2);
+  }
+  context.font = 'bold 7px system-ui';
+  context.textAlign = 'left';
+  context.fillStyle = isThere ? FIBRE_REMOVE_COLOR : FIBRE_ACTIVE_COLOR;
+  context.fillText(isThere ? 'remove' : `+${route.units}`, endX + CELL_RADIUS + 2, endY - CELL_RADIUS);
 }
 
 // where each Bud's part will grow (dots, brighter for the clicked Bud) and its aim arrow (its tip is a drag handle)

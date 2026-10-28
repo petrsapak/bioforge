@@ -1,10 +1,12 @@
 'use strict';
 // The builder and sandbox app: its state, the controls, mouse and keyboard input, and the frame loop (browser only).
-// The editing rules are in builder.js, the drawing in builderview.js, the side panel in panel.js, the dock in dock.js,
-// the library in library.js, the tooltip in tooltip.js and the sandbox in sandbox.js.
+// The editing rules are in builder.js, the drawing in builderview.js, the toolbar in toolbar.js, the side panel in
+// panel.js (with scope.js and coach.js), the dock in dock.js, the library in library.js, the tooltip in tooltip.js and
+// the sandbox in sandbox.js.
 
 const START_DESIGN = 'starter';
 const START_CELL_TYPE = 'muscle';
+const START_NEURON = 'pacemaker';
 const MAX_FRAME_TIME = 0.05;                              // s; a slower frame (below 20 fps) slows the game down
 const FPS_SMOOTHING = 0.05;                               // share of the newest frame in the shown fps
 const TANK_MARGIN = 160;                                  // px of water around the test tank's creature
@@ -18,18 +20,21 @@ function createApp(canvas) {
     canvas,
     context: canvas.getContext('2d'),
     mode: 'build',                                        // or 'sandbox'
+    layer: 'body',                                        // the builder's view: 'body' or 'nerve'
     fluidView: 0,                                         // 0 = normal, otherwise 1 + the index of the fluid shown
     keysHeld: new Set(),                                  // lower-case key names
     digitsHeld: new Set(),                                // number keys held, for bound Commands
-    edited: createEditedDesign(TEMPLATES[START_DESIGN].cells,
+    edited: createEditedDesign(TEMPLATES[START_DESIGN],
       readStorage('unlimited-biomass', false) ? Infinity : RULES.budget),
     lastLoadedName: '',                                   // the saved creature last loaded, offered when saving again
-    selectedType: START_CELL_TYPE,                        // the cell type a click places
+    selectedType: START_CELL_TYPE,                        // the cell type a click places (Body view)
+    selectedNeuron: START_NEURON,                         // the neuron a click places (Nerve view)
     focusKey: null,                                       // the clicked cell, shown and set up in the panel
     selection: new Set(),                                 // Ctrl+clicked hexes
     stamp: null,                                          // a saved part being placed: { template, rotation }
     partDrag: null,                                       // a Bud part being dragged: { budKey, grab, rotation }
     aimDragKey: null,                                     // the Bud whose aim arrow is being dragged
+    fibreDrag: null,                                      // a fibre being laid: { fromKey }
     libraryDrag: null,                                    // a library entry being dragged onto a Bud
     panDrag: null,                                        // middle-drag: { panX, panY, mouseX, mouseY } at its start
     hoverHex: null,                                       // [q, r] under the mouse
@@ -37,9 +42,13 @@ function createApp(canvas) {
     gridView: createGridView(),
     warnings: [],                                         // design warnings, { text, keys }
     hoveredWarning: -1,
+    cardFibres: [],                                       // the clicked cell's fibres, listed in the card
+    hoveredFibre: null,                                   // a fibre whose row in the card is under the mouse
     library: loadLibrary(),
     libraryRows: [],
-    dockButtons: new Map(),
+    dockButtons: new Map(),                               // cell types
+    neuronButtons: new Map(),
+    showDockLayer: () => {},
     fluidViewButtons: [],
     tank: null,                                           // the test tank driving the live grid and the preview
     world: null,                                          // the sandbox
@@ -47,6 +56,8 @@ function createApp(canvas) {
     hudBars: [],
     isPreviewCollapsed: () => false,
     tooltip: createTooltipState(),
+    scope: createScope(),                                 // the panel's neuron scope
+    coach: createCoach(),                                 // the How to box
     fps: 60,
     lastFrameTime: performance.now(),
   };
@@ -59,10 +70,14 @@ function boot() {
     fitCanvasToWindow(app);
     if (app.mode === 'build') rebuildTank(app);
   });
-  app.dockButtons = buildCellDock(typeName => pickCellType(app, typeName));
+  const dock = buildDock(typeName => pickCellType(app, typeName), kind => pickNeuron(app, kind));
+  app.dockButtons = dock.cellButtons;
+  app.neuronButtons = dock.neuronButtons;
+  app.showDockLayer = dock.showLayer;
+  app.showDockLayer(app.layer);
   setUpWindows(app);
-  setUpFluidViews(app);
-  setUpDesignButtons(app);
+  setUpToolbar(app);
+  setUpCoach(app);
   setUpSaveMenu(app);
   setUpSandboxBar(app);
   app.hudBars = makeHudBars(byId('hud-bars'));
@@ -79,60 +94,21 @@ function fitCanvasToWindow(app) {
 }
 
 function setUpWindows(app) {
-  makeFloating(byId('panel'), byId('panel-grip'), 'panel');
   app.isPreviewCollapsed = makeCollapsible(byId('preview'), byId('preview-bar'), byId('preview-toggle'), 'preview');
   makeCollapsible(byId('library'), byId('library-bar'), byId('library-toggle'), 'library');
   rememberOpenBranches();
-}
-
-// one button per view: normal, then one per fluid (also Shift+1–6)
-function setUpFluidViews(app) {
-  ['Normal', ...FLUIDS.map(fluid => fluid.short)].forEach((name, view) => {
-    const button = document.createElement('button');
-    button.className = 'small';
-    button.textContent = name;
-    button.onclick = () => showFluidView(app, view);
-    byId('fluid-views').appendChild(button);
-    app.fluidViewButtons.push(button);
-  });
-}
-
-function showFluidView(app, view) {
-  app.fluidView = view;
-  if (app.mode === 'build') refreshPanel(app);
-}
-
-// the built-in designs, Clear all, Save creature and Unlimited biomass
-function setUpDesignButtons(app) {
-  document.querySelectorAll('[data-template]').forEach(button => {
-    button.onclick = () => {
-      const name = button.dataset.template;
-      const design = name === 'clear' ? { cells: [createDesignCell(0, 0, 'nucleus')] } : TEMPLATES[name];
-      loadDesign(app, design, button.textContent, '');
-    };
-  });
-  byId('save-creature').onclick = event => {
-    app.selection = new Set(app.edited.cells.keys());
-    openSaveMenu(app, event.clientX, event.clientY);
-  };
-  byId('unlimited-biomass').onclick = () => {
-    const isUnlimited = app.edited.biomassLimit !== Infinity;
-    app.edited.biomassLimit = isUnlimited ? Infinity : RULES.budget;
-    writeStorage('unlimited-biomass', isUnlimited);
-    refreshPanel(app);
-  };
 }
 
 // ---------- The design ----------
 // Rebuilds the test tank from the design: a hidden sim that drives the live signals and fluids on the grid and in the
 // preview. Called after every change to the design, so it also drops selections of cells that are gone.
 function rebuildTank(app) {
-  const cells = bodyCells(app.edited);
-  const reach = Math.max(0, ...cells.map(cell => vectorLength(...hexToPixel(cell.q, cell.r))));
+  const body = bodyDesign(app.edited);
+  const reach = Math.max(0, ...body.cells.map(cell => vectorLength(...hexToPixel(cell.q, cell.r))));
   const size = 2 * reach + 2 * CELL_RADIUS + TANK_MARGIN;
   app.tank = newTestTank(size, size);
   app.tank.time = performance.now() / 1000;
-  spawn(app.tank, { cells }, size / 2, size / 2, 0, 0);
+  spawn(app.tank, body, size / 2, size / 2, 0, 0);
   for (const key of app.selection) {
     if (!app.edited.cells.has(key)) app.selection.delete(key);
   }
@@ -148,7 +124,7 @@ function showProblem(app, problem) {
 
 // Replaces the whole design. A design over the budget still loads, and the panel says why it can't be used as is.
 function loadDesign(app, design, label, savedName) {
-  app.edited = createEditedDesign(design.cells, app.edited.biomassLimit);
+  app.edited = createEditedDesign(design, app.edited.biomassLimit);
   app.lastLoadedName = savedName;
   app.stamp = null;
   app.selection.clear();
@@ -161,6 +137,23 @@ function loadDesign(app, design, label, savedName) {
 function pickCellType(app, typeName) {
   app.selectedType = typeName;
   app.stamp = null;
+  refreshPanel(app);
+}
+
+function pickNeuron(app, kind) {
+  app.selectedNeuron = kind;
+  refreshPanel(app);
+}
+
+// ---------- Body and Nerve views ----------
+// switches the builder between the Body view (cells) and the Nerve view (neurons and fibres)
+function showLayer(app, layer) {
+  app.layer = layer;
+  app.stamp = null;
+  app.partDrag = null;
+  app.aimDragKey = null;
+  app.fibreDrag = null;
+  app.showDockLayer(layer);
   refreshPanel(app);
 }
 
@@ -270,7 +263,8 @@ function saveSelection(app, name) {
 
 // ---------- Modes ----------
 function showBuilderWindows(isShown) {
-  for (const id of ['panel', 'preview', 'library']) byId(id).style.display = isShown ? 'flex' : 'none';
+  for (const id of ['builder-left', 'preview', 'library']) byId(id).style.display = isShown ? 'flex' : 'none';
+  if (!isShown) byId('keys-sheet').style.display = 'none';
   byId('dock').style.display = isShown ? 'block' : 'none';
   byId('hud').style.display = isShown ? 'none' : 'block';
   byId('sandbox-bar').style.display = isShown ? 'none' : 'flex';
@@ -314,27 +308,32 @@ function digitOf(event) {
   return /^[0-9]$/.test(event.key) ? event.key : null;
 }
 
-// in the builder, a number key binds the clicked Command to it
+// in the builder, a number key binds the clicked cell's Command neuron to it
 function bindFocusedCommand(app, digit) {
   const focused = app.mode === 'build' && app.focusKey && app.edited.cells.get(app.focusKey);
-  if (!focused || CELLS[focused.typeName].signalSource !== 'key') return;
+  if (!focused || !focused.neuron || focused.neuron.kind !== 'command') return;
   toggleCommandKey(app.edited, app.focusKey, digit);
   rebuildTank(app);
 }
 
-// F fits the grid; Esc drops what is in hand; Q/E turn the stamp, the dragged part or the clicked Bud's part
+// F fits the grid; N switches between the Body and Nerve views; H shows the keys; Esc drops what is in hand; Q/E turn
+// the stamp, the dragged part or the clicked Bud's part
 function handleBuilderKey(app, key) {
   if (key === 'f') fitGridToScreen(app);
+  if (key === 'h') toggleKeysSheet();
+  if (key === 'n') showLayer(app, app.layer === 'nerve' ? 'body' : 'nerve');
   if (key === 'escape') {
-    if (app.partDrag || app.aimDragKey) {
+    if (app.partDrag || app.aimDragKey || app.fibreDrag) {
       app.partDrag = null;
       app.aimDragKey = null;
+      app.fibreDrag = null;
     } else {
       app.stamp = null;
       app.selection.clear();
       app.focusKey = null;
     }
     closeSaveMenu();
+    byId('keys-sheet').style.display = 'none';
     refreshPanel(app);
   }
   if (key === 'q' || key === 'e') turnWhatIsInHand(app, key === 'e' ? 1 : -1);
@@ -404,6 +403,10 @@ function handleBuilderMouseDown(app, event) {
     return;
   }
   const [q, r] = hexUnderMouse(app, event);
+  if (app.layer === 'nerve') {
+    handleNerveMouseDown(app, event, q, r);
+    return;
+  }
   const key = hexKey(q, r);
   const isLeft = event.button === 0;
   const isRight = event.button === 2;
@@ -425,6 +428,36 @@ function handleBuilderMouseDown(app, event) {
   }
   if (isRight) removeCell(app.edited, q, r);
   else if (!placeChosenCell(app, q, r)) return;
+  rebuildTank(app);
+}
+
+// Nerve view: a press on a cell starts a fibre from it (see finishFibreDrag) and selects it; a right-click takes out
+// the fibre or neuron under the mouse (the one drawn red, see nerveRemovalTarget).
+function handleNerveMouseDown(app, event, q, r) {
+  const key = hexKey(q, r);
+  if (event.button === 2) {
+    const target = nerveRemovalTarget(app.edited, screenToGrid(app, event.clientX, event.clientY));
+    if (!target) return;
+    if (target.fibre) removeFibre(app.edited, target.fibre);
+    else removeNeuron(app.edited, target.neuronKey);
+    rebuildTank(app);
+    return;
+  }
+  if (!app.edited.cells.has(key)) return;
+  if (event.button !== 0) return;
+  app.fibreDrag = { fromKey: key };
+  app.focusKey = key;
+  refreshPanel(app);
+}
+
+// Letting go on another cell lays a fibre to it (or removes the one already there); letting go on the same cell puts
+// the chosen neuron in, if the cell has none.
+function finishFibreDrag(app, hex) {
+  const fromKey = app.fibreDrag.fromKey;
+  const toKey = hexKey(...hex);
+  const cell = app.edited.cells.get(fromKey);
+  if (toKey === fromKey && !cell.neuron) placeNeuron(app.edited, fromKey, app.selectedNeuron);
+  else toggleFibre(app.edited, fromKey, toKey);
   rebuildTank(app);
 }
 
@@ -450,18 +483,18 @@ function useStamp(app, isRight, q, r) {
   else rebuildTank(app);
 }
 
-// places the chosen cell type; a new Bud or Command is clicked at once, ready to be set up
+// places the chosen cell type; a new Bud is clicked at once, ready to be given a part
 function placeChosenCell(app, q, r) {
   if (!canPlaceCell(app.edited, q, r, app.selectedType)) return false;
   placeCell(app.edited, q, r, app.selectedType);
-  const cellType = CELLS[app.selectedType];
-  app.focusKey = cellType.growsParts || cellType.signalSource === 'key' ? hexKey(q, r) : null;
+  app.focusKey = CELLS[app.selectedType].growsParts ? hexKey(q, r) : null;
   return true;
 }
 
 // lets go of a dragged Bud part, aim arrow or library part; a drop that doesn't fit says why
 function dropWhatIsInHand(app, event) {
   const hex = app.hoverHex;
+  if (app.mode === 'build' && hex && app.fibreDrag) finishFibreDrag(app, hex);
   if (app.mode === 'build' && hex) {
     const drag = app.partDrag;
     if (drag) {
@@ -482,6 +515,7 @@ function dropWhatIsInHand(app, event) {
   app.partDrag = null;
   app.aimDragKey = null;
   app.libraryDrag = null;
+  app.fibreDrag = null;
 }
 
 // ---------- Frames ----------
@@ -519,4 +553,6 @@ function runBuilderFrame(app, dt, now) {
   drawPreview(app);
   updateTooltip(app, now);
   runDemo(dt);
+  runScope(app.scope, dt);
+  runCoach(app, dt);
 }

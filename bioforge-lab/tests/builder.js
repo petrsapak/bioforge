@@ -5,13 +5,16 @@ const { check, done } = require('./check');
 const { X: sim } = load({}, ['createEditedDesign', 'canPlaceCell', 'placeCell', 'removeCell', 'bodyCells',
   'plannedKeys', 'toggleCommandKey', 'giveBudPart', 'reservedHexes', 'moveBudPart', 'turnBudPart', 'currentBudPart',
   'aimBudPart', 'resetBudAim', 'budHandleAt', 'stampPlacement', 'placeStamp', 'templateFromSelection',
-  'storeTemplate', 'migrateLibraryEntry', 'createDesignCell', 'hexKey', 'newWorld', 'spawn', 'step']);
+  'storeTemplate', 'migrateLibraryEntry', 'createDesignCell', 'hexKey', 'newWorld', 'spawn', 'step', 'placeNeuron',
+  'removeNeuron', 'changeNeuronSetting', 'toggleFibre', 'bodyDesign', 'nerveUsage', 'fibresAt', 'removeFibre',
+  'nerveRemovalTarget', 'hexToPixel']);
 
 const cellsOf = list => list.map(([q, r, typeName]) => sim.createDesignCell(q, r, typeName));
+const editedFrom = (cells, biomassLimit) => sim.createEditedDesign({ cells, fibres: [] }, biomassLimit);
 
 { // cells: placing, planned cells, the biomass limit, removing
   const source = cellsOf([[0, 0, 'nucleus'], [1, 0, 'tissue']]);
-  const edited = sim.createEditedDesign(source, 3);
+  const edited = editedFrom(source, 3);
   sim.placeCell(edited, 0, 1, 'tissue');
   check('the edited design is a copy', source.length === 2 && edited.cells.size === 3);
   check('an occupied hex takes no cell', !sim.canPlaceCell(edited, 1, 0, 'tissue'));
@@ -27,7 +30,7 @@ const cellsOf = list => list.map(([q, r, typeName]) => sim.createDesignCell(q, r
 }
 
 { // Command keys
-  const edited = sim.createEditedDesign(cellsOf([[0, 0, 'nucleus'], [1, 0, 'command']]));
+  const edited = editedFrom(cellsOf([[0, 0, 'nucleus'], [1, 0, 'tissue']]));
   const commandKey = sim.hexKey(1, 0);
   sim.toggleCommandKey(edited, commandKey, '3');
   const wasBound = edited.cells.get(commandKey).boundKey === '3';
@@ -37,7 +40,7 @@ const cellsOf = list => list.map(([q, r, typeName]) => sim.createDesignCell(q, r
 }
 
 { // Bud parts: giving, reserving, moving, turning, aiming, and growing in the sim
-  const edited = sim.createEditedDesign(cellsOf([[0, 0, 'nucleus'], [0, -1, 'bud'], [1, -1, 'command']]), Infinity);
+  const edited = editedFrom(cellsOf([[0, 0, 'nucleus'], [0, -1, 'bud'], [1, -1, 'tissue']]), Infinity);
   const budKey = sim.hexKey(0, -1);
   const spike = { name: 'Spike', isCreature: false, cells: cellsOf([[0, 0, 'thorn'], [0, -1, 'thorn']]) };
   const wholeCreature = { name: 'Whole', isCreature: true, cells: cellsOf([[0, 0, 'nucleus']]) };
@@ -67,7 +70,7 @@ const cellsOf = list => list.map(([q, r, typeName]) => sim.createDesignCell(q, r
 }
 
 { // stamping and saving a selection
-  const edited = sim.createEditedDesign(cellsOf([[0, 0, 'nucleus'], [1, 0, 'muscle'], [2, 0, 'muscle']]), Infinity);
+  const edited = editedFrom(cellsOf([[0, 0, 'nucleus'], [1, 0, 'muscle'], [2, 0, 'muscle']]), Infinity);
   const selection = new Set([sim.hexKey(1, 0), sim.hexKey(2, 0)]);
   const part = sim.templateFromSelection(edited, selection, '  Arm  ');
   check('a selection without the Nucleus saves as a part, around its middle cell',
@@ -78,7 +81,7 @@ const cellsOf = list => list.map(([q, r, typeName]) => sim.createDesignCell(q, r
   check('a stamp with no free hex says so', onlyTaken.problem === 'Every hex there is already taken.');
   const stamp = { template: part, rotation: 2 };
   check('a turned stamp is placed', sim.placeStamp(edited, stamp, 0, 2) === '' && edited.cells.size === 5);
-  const tight = sim.createEditedDesign(cellsOf([[0, 0, 'nucleus']]), 1);
+  const tight = editedFrom(cellsOf([[0, 0, 'nucleus']]), 1);
   check('a stamp joining the body must fit the biomass limit',
     /Not enough biomass/.test(sim.stampPlacement(tight, stamp, 1, 0).problem));
   const whole = sim.templateFromSelection(edited, new Set(edited.cells.keys()), 'Me');
@@ -88,6 +91,75 @@ const cellsOf = list => list.map(([q, r, typeName]) => sim.createDesignCell(q, r
   const replaced = sim.storeTemplate(library, { ...part, cells: [] });
   sim.storeTemplate(library, { ...part, isCreature: true });
   check('the same name and kind replaces, another kind adds', replaced === part && library.length === 2);
+}
+
+{ // the nerve layer: neurons, their settings, fibres
+  const edited = editedFrom(cellsOf([[0, 0, 'nucleus'], [1, 0, 'tissue'], [2, 0, 'muscle'], [5, 5, 'muscle']]));
+  const tissueKey = sim.hexKey(1, 0);
+  const muscleKey = sim.hexKey(2, 0);
+  sim.placeNeuron(edited, tissueKey, 'synapse');
+  check('a neuron goes into a cell, with its setting at the start value',
+    edited.cells.get(tissueKey).neuron.kind === 'synapse' && edited.cells.get(tissueKey).neuron.setting === 1);
+  for (let i = 0; i < 20; i++) sim.changeNeuronSetting(edited, tissueKey, 1);
+  check('a setting stops at its maximum', edited.cells.get(tissueKey).neuron.setting === 4);
+  sim.changeNeuronSetting(edited, tissueKey, -1);
+  check('a setting moves by its step', edited.cells.get(tissueKey).neuron.setting === 3.5);
+  check('a fibre is laid by a drag', sim.toggleFibre(edited, tissueKey, muscleKey) === 'laid' &&
+    sim.fibresAt(edited, muscleKey).incoming === 1);
+  check('the same drag again removes it', sim.toggleFibre(edited, tissueKey, muscleKey) === 'removed' &&
+    edited.fibres.length === 0);
+  check('no fibre from a cell to itself, or to an empty hex',
+    sim.toggleFibre(edited, tissueKey, tissueKey) === '' &&
+    sim.toggleFibre(edited, tissueKey, sim.hexKey(9, 9)) === '');
+  sim.toggleFibre(edited, tissueKey, muscleKey);
+  sim.toggleFibre(edited, muscleKey, sim.hexKey(5, 5));
+  check('fibres to planned cells stay out of the creature', sim.bodyDesign(edited).fibres.length === 1);
+  const usage = sim.nerveUsage(edited);
+  check('the nerve usage counts neurons and fibre units', usage.neurons === 1 && usage.units === 1);
+  sim.removeNeuron(edited, tissueKey);
+  sim.removeCell(edited, 2, 0);
+  check('removing a cell removes its fibres; removing a neuron leaves the cell',
+    edited.fibres.length === 0 && edited.cells.has(tissueKey) && !edited.cells.get(tissueKey).neuron);
+}
+
+{ // what a right-click takes out in the Nerve view: a neuron near its cell's centre, else a fibre near its line
+  const edited = editedFrom(cellsOf([[0, 0, 'nucleus'], [1, 0, 'tissue'], [2, 0, 'muscle'], [1, -1, 'tissue']]));
+  const tissueKey = sim.hexKey(1, 0);
+  sim.placeNeuron(edited, tissueKey, 'pacemaker');
+  sim.toggleFibre(edited, tissueKey, sim.hexKey(2, 0));
+  const fibre = edited.fibres[0];
+  const [tissueX, tissueY] = sim.hexToPixel(1, 0);
+  const [muscleX] = sim.hexToPixel(2, 0);
+  const halfway = [(tissueX + muscleX) / 2, tissueY];
+  check('on the neuron: the neuron', sim.nerveRemovalTarget(edited, [tissueX, tissueY]).neuronKey === tissueKey);
+  check('on the fibre between the cells: the fibre', sim.nerveRemovalTarget(edited, halfway).fibre === fibre);
+  const [otherX, otherY] = sim.hexToPixel(1, -1);
+  check('on a cell with nothing on it: nothing', sim.nerveRemovalTarget(edited, [otherX, otherY]) === null);
+  check('on the neuron\'s cell away from the fibre: the neuron',
+    sim.nerveRemovalTarget(edited, [tissueX - 4, tissueY - 6]).neuronKey === tissueKey);
+  sim.removeFibre(edited, fibre);
+  check('removeFibre takes out just that fibre', edited.fibres.length === 0 && !!edited.cells.get(tissueKey).neuron);
+}
+
+{ // fibres travel with saved parts: saving a selection, stamping it, and growing it on a Bud
+  const edited = editedFrom(cellsOf([[0, 0, 'nucleus'], [1, 0, 'tissue'], [2, 0, 'muscle'], [0, -1, 'bud']]), Infinity);
+  sim.placeNeuron(edited, sim.hexKey(1, 0), 'pacemaker');
+  sim.toggleFibre(edited, sim.hexKey(1, 0), sim.hexKey(2, 0));
+  const part = sim.templateFromSelection(edited, new Set([sim.hexKey(1, 0), sim.hexKey(2, 0)]), 'Pulse');
+  check('a saved part keeps its fibres and neurons',
+    part.fibres.length === 1 && part.cells.some(cell => cell.neuron && cell.neuron.kind === 'pacemaker'));
+  check('a stamped part brings its fibres', sim.placeStamp(edited, { template: part, rotation: 0 }, 1, 2) === '' &&
+    edited.fibres.length === 2);
+  sim.giveBudPart(edited, sim.hexKey(0, -1), part);
+  const budPart = edited.cells.get(sim.hexKey(0, -1)).budPart;
+  check('a Bud part keeps its fibres and neurons',
+    budPart.fibres.length === 1 && budPart.cells.some(cell => cell.neuron));
+  const world = sim.newWorld(800, 800);
+  sim.spawn(world, sim.bodyDesign(edited), 400, 400, 0, 0);
+  const fibresAtSpawn = world.fibres.length;
+  for (let i = 0; i < 400; i++) sim.step(world, 1 / 40, { swimX: 0, swimY: 0, ability: false });
+  check('a growing Bud part gets its fibres once both ends have grown', world.fibres.length > fibresAtSpawn,
+    `${fibresAtSpawn} -> ${world.fibres.length}`);
 }
 
 { // saves from before 2026-10-28 (and from Bioforge Moba) carry over
@@ -103,6 +175,8 @@ const cellsOf = list => list.map(([q, r, typeName]) => sim.createDesignCell(q, r
   const [, bud, command] = entry.cells;
   check('old field names are renamed', entry.isCreature && bud.typeName === 'bud' && bud.partRotation === 1 &&
     String(bud.partOffset) === '0,-1' && bud.partAim === 0.5 && command.boundKey === '4');
+  check('an old Command cell becomes Tissue with a Command neuron, keeping its key',
+    command.typeName === 'tissue' && command.neuron.kind === 'command' && Array.isArray(entry.fibres));
   check('the Bud part inside is renamed too',
     bud.budPart.cells[0].typeName === 'thorn' && !('t' in bud.budPart.cells[0]));
   check('empty fields are dropped', !('partAim' in command));

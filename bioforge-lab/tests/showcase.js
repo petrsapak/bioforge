@@ -7,7 +7,7 @@ const SMALL_BUILDS = ['lancer', 'stinger', 'spitter', 'snarer'];
 const SHOWCASE_BUILDS = ['eel', 'jelly', 'manta', 'crab'];
 const { byId, fire, runFrames, templateButton } = startApp([...SMALL_BUILDS, ...SHOWCASE_BUILDS]);
 
-const cellCount = () => +/Cells: (\d+)/.exec(byId('stats').innerHTML)[1];
+const cellCount = () => +/Cells: (\d+)/.exec(byId('budget').innerHTML)[1];
 const isOverLimit = () => /Over budget|Too many/.test(byId('budget').innerHTML);
 
 runFrames(10);

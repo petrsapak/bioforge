@@ -1,9 +1,13 @@
 'use strict';
-// Canvas drawing of the world: bonds, cells, snare lines, globs, zaps, food and sparks (browser only).
+// Canvas drawing of the world: bonds, cells, nerve fibres, snare lines, globs, zaps, food and sparks (browser only).
 
 // bond colour by team: 0 = the player's side, 1 = enemies, -1 = debris
 const BOND_COLORS = { 0: '#1f4a3a', 1: '#4a2430', '-1': '#2a2f33' };
 const VIEW_MARGIN = 30;                                   // px around the view box in which cells are still drawn
+const FIBRE_COLOR = '#f2d36b';
+const FIBRE_ACTIVE_COLOR = '#fffbe0';                     // a fibre carrying a signal
+const FIBRE_ARROW_SIZE = 3;                               // px
+const BRIDGE_RADIUS = 2.6;                                // px of the arc a fibre jumps over a crossing with
 
 // view 0 = normal, 1..5 = fill level of one fluid; viewBox = { minX, minY, maxX, maxY }: draw only cells inside it
 function drawWorld(context, world, view, viewBox) {
@@ -24,6 +28,7 @@ function drawWorld(context, world, view, viewBox) {
   for (const cell of world.cells) {
     if (isVisible(cell)) drawCell(context, cell, view);
   }
+  if (!view) drawWorldFibres(context, world);
   drawSnareLines(context, world);
   drawGlobs(context, world);
   drawZaps(context, world);
@@ -99,6 +104,64 @@ function drawSparks(context, world) {
   context.globalAlpha = 1;
 }
 
+// ---------- Nerve fibres ----------
+// A fibre as a line through the centres of its cells, brighter while it carries a signal, with an arrow on its last
+// step. pointKeys: the hex key of each point; crossings: hex keys where it jumps over another fibre with a small arc;
+// alpha and width: how strongly it is drawn.
+function drawFibre(context, points, pointKeys, value, crossings = null, alpha = 1, width = 1.3) {
+  context.globalAlpha = alpha * (0.6 + 0.4 * clamp01(value));
+  context.strokeStyle = value > SIGNAL_ON ? FIBRE_ACTIVE_COLOR : FIBRE_COLOR;
+  context.lineWidth = width;
+  context.beginPath();
+  context.moveTo(points[0][0], points[0][1]);
+  for (let i = 1; i < points.length; i++) {
+    const [x, y] = points[i];
+    if (crossings && i < points.length - 1 && crossings.has(pointKeys[i])) traceBridge(context, points[i - 1], [x, y]);
+    context.lineTo(x, y);
+  }
+  context.stroke();
+  drawFibreArrow(context, points[points.length - 2], points[points.length - 1]);
+  context.globalAlpha = 1;
+}
+
+// a small half circle just before the corner, so the line visibly jumps over the fibre it crosses there
+function traceBridge(context, [fromX, fromY], [toX, toY]) {
+  const length = vectorLength(toX - fromX, toY - fromY) || 1;
+  const directionX = (toX - fromX) / length;
+  const directionY = (toY - fromY) / length;
+  const startX = toX - directionX * BRIDGE_RADIUS * 2;
+  const startY = toY - directionY * BRIDGE_RADIUS * 2;
+  context.lineTo(startX, startY);
+  const centreX = toX - directionX * BRIDGE_RADIUS;
+  const centreY = toY - directionY * BRIDGE_RADIUS;
+  const angle = Math.atan2(directionY, directionX);
+  context.arc(centreX, centreY, BRIDGE_RADIUS, angle + Math.PI, angle, false);
+}
+
+// an arrowhead in the middle of the fibre's last side, pointing toward its end
+function drawFibreArrow(context, [fromX, fromY], [toX, toY]) {
+  const length = vectorLength(toX - fromX, toY - fromY) || 1;
+  const directionX = (toX - fromX) / length;
+  const directionY = (toY - fromY) / length;
+  const tipX = (fromX + toX) / 2 + directionX * FIBRE_ARROW_SIZE;
+  const tipY = (fromY + toY) / 2 + directionY * FIBRE_ARROW_SIZE;
+  context.beginPath();
+  context.moveTo(tipX - directionX * FIBRE_ARROW_SIZE * 2 - directionY * FIBRE_ARROW_SIZE,
+    tipY - directionY * FIBRE_ARROW_SIZE * 2 + directionX * FIBRE_ARROW_SIZE);
+  context.lineTo(tipX, tipY);
+  context.lineTo(tipX - directionX * FIBRE_ARROW_SIZE * 2 + directionY * FIBRE_ARROW_SIZE,
+    tipY - directionY * FIBRE_ARROW_SIZE * 2 - directionX * FIBRE_ARROW_SIZE);
+  context.stroke();
+}
+
+// the world's fibres, through the moving centres of the cells they run through
+function drawWorldFibres(context, world) {
+  for (const fibre of world.fibres) {
+    const points = fibre.path.map(cell => [cell.x, cell.y]);
+    drawFibre(context, points, null, fibre.value, null, 0.6);
+  }
+}
+
 // ---------- Cells ----------
 // One cell: its body, a detail by type, then overlays for key binding, signal, adrenaline, starving, poison and hits.
 function drawCell(context, cell, view) {
@@ -118,7 +181,7 @@ function drawCell(context, cell, view) {
   context.stroke();
   context.fillStyle = 'rgba(0,0,0,0.35)';
   context.strokeStyle = 'rgba(0,0,0,0.4)';
-  const drawDetail = CELL_DETAILS[cell.typeName] || (cell.type.signalSource ? drawSignalSourceDetail : null);
+  const drawDetail = CELL_DETAILS[cell.typeName] || (cell.type.senses ? drawSenseOrganDetail : null);
   if (drawDetail) drawDetail(context, cell, radius, outward);
   drawCellOverlays(context, cell, radius);
   context.globalAlpha = 1;
@@ -156,10 +219,10 @@ function drawReservoir(context, cell, radius, fluid) {
   fillCircle(context, cell.x, cell.y, radius * 0.75 * Math.sqrt(fill));
 }
 
-function drawSignalSourceDetail(context, cell, radius) {
-  context.fillStyle = cell.signal > SIGNAL_ON ? '#fff' : 'rgba(0,0,0,0.45)';
-  fillCircle(context, cell.x, cell.y, radius * (cell.typeName === 'eyespot' ? 0.45 : 0.3));
-  if (cell.typeName !== 'eyespot') return;
+// a sense organ: a pupil, white while it senses something, and the range it senses in
+function drawSenseOrganDetail(context, cell, radius) {
+  context.fillStyle = cell.senseOutput > SIGNAL_ON ? '#fff' : 'rgba(0,0,0,0.45)';
+  fillCircle(context, cell.x, cell.y, radius * 0.45);
   context.strokeStyle = 'rgba(79,209,197,0.12)';
   strokeCircle(context, cell.x, cell.y, EYESPOT_RANGE);
 }
@@ -195,13 +258,7 @@ const CELL_DETAILS = {
       strokeLine(context, innerX, innerY, innerX + cos * radius * 0.5, innerY + sin * radius * 0.5);
     }
   },
-  nerve(context, cell, radius) {
-    fillCircle(context, cell.x, cell.y, radius * 0.3);
-  },
-  ganglion(context, cell, radius) {
-    context.fillRect(cell.x - radius * 0.5, cell.y - radius * 0.45, radius * 0.25, radius * 0.9);
-    context.fillRect(cell.x + radius * 0.25, cell.y - radius * 0.45, radius * 0.25, radius * 0.9);
-  },
+
   // a nozzle at the back, and a puff of water while it squirts
   siphon(context, cell, radius) {
     const backX = -Math.sin(cell.creature.heading);
@@ -314,16 +371,8 @@ const CELL_DETAILS = {
 };
 
 function drawCellOverlays(context, cell, radius) {
-  if (cell.boundKey) {                                    // a Command bound to a number key
-    context.globalAlpha = 1;
-    context.fillStyle = '#111';
-    context.font = `bold ${radius * 1.1 | 0}px system-ui`;
-    context.textAlign = 'center';
-    context.textBaseline = 'middle';
-    context.fillText(cell.boundKey, cell.x, cell.y + 0.5);
-    context.textBaseline = 'alphabetic';
-  }
-  if (cell.type.conductsSignal && cell.signal > 0.03) {   // nerve signal glow
+  if (cell.neuron) drawNeuronBadge(context, cell, radius);
+  if (cell.signal > 0.03) {                               // nerve signal glow
     context.globalAlpha = clamp01(cell.signal) * 0.55;
     context.fillStyle = '#fff6a0';
     fillCircle(context, cell.x, cell.y, radius * 0.75);
@@ -352,6 +401,25 @@ function drawCellOverlays(context, cell, radius) {
     context.fillStyle = '#fff';
     fillCircle(context, cell.x, cell.y, radius);
   }
+}
+
+// The cell's neuron: a small disc in the neuron's colour with its symbol (or the bound key of a Command), lit while
+// the cell's signal is on. alpha: how solidly it is drawn.
+function drawNeuronBadge(context, cell, radius, alpha = 1) {
+  const neuronType = NEURONS[cell.neuron.kind];
+  const badgeRadius = radius * 0.55;
+  context.globalAlpha = alpha;
+  context.fillStyle = cell.signal > SIGNAL_ON ? '#fff6a0' : neuronType.color;
+  fillCircle(context, cell.x, cell.y, badgeRadius);
+  context.strokeStyle = 'rgba(0,0,0,0.6)';
+  context.lineWidth = 1;
+  context.stroke();
+  context.fillStyle = '#111';
+  context.font = `bold ${badgeRadius * 1.5 | 0}px system-ui`;
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.fillText(cell.boundKey || neuronType.symbol, cell.x, cell.y + 0.5);
+  context.textBaseline = 'alphabetic';
 }
 
 const secondsNow = () => (typeof performance !== 'undefined' ? performance.now() / 1000 : 0);
@@ -387,6 +455,8 @@ function makeDisplayCell(typeName, x, y, creature = { centerX: 0, centerY: 0, he
     fluids: new Array(FLUID_COUNT).fill(0),
     fluidCapacity: new Array(FLUID_COUNT).fill(1),
     boundKey: null,
+    neuron: null,
+    senseOutput: 0,
     budGrowth: null,
     starving: false,
     poisoned: false,

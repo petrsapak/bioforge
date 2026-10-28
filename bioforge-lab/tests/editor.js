@@ -8,7 +8,8 @@ const OLD_LIBRARY = JSON.stringify([{ name: 'Old timer', full: true, cells: [{ q
 const { byId, fire, runFrames, readGlobal, storage } = startApp(['clear'], { 'bioforge-templates': OLD_LIBRARY });
 
 // where hex (q, r) is on screen: the grid's middle is right of the panel, at the start zoom (see builderview.js)
-const GRID_MIDDLE_X = 320 + (1600 - 320) / 2;
+const PANEL_WIDTH = readGlobal('BUILDER_PANEL_WIDTH');
+const GRID_MIDDLE_X = PANEL_WIDTH + (1600 - PANEL_WIDTH) / 2;
 const GRID_MIDDLE_Y = 900 / 2;
 const START_ZOOM = 1.9;
 function screenPointOf(q, r) {
@@ -26,16 +27,24 @@ const clickHex = (q, r, fields = {}) => {
   fire('window', 'mouseup', { ...screenPointOf(q, r), target: canvas });
   runFrames(1);
 };
-const cellCount = () => +/Cells: (\d+)/.exec(byId('stats').innerHTML)[1];
+const cellCount = () => +/Cells: (\d+)/.exec(byId('budget').innerHTML)[1];
 const info = () => byId('info').innerHTML;
 const pressKey = key => {
   fire('window', 'keydown', { key });
   fire('window', 'keyup', { key });
 };
-// the dock's button for a cell type: palette > category section > hexagons > buttons
-const dockButton = typeName => byId('palette').children
-  .flatMap(section => section.children[1].children)
-  .find(button => button.dataset.type === typeName);
+// the dock's button for a cell type or a neuron: palette > section > hexagons > buttons
+const dockButtons = () => byId('palette').children.flatMap(section => section.children[1].children);
+const dockButton = typeName => dockButtons().find(button => button.dataset.type === typeName);
+const neuronButton = kind => dockButtons().find(button => button.dataset.neuron === kind);
+const fibreUnitsShown = () => +/Fibre: (\d+)/.exec(byId('budget').innerHTML)[1];
+// the How to box's steps: their captions and which is marked next or done
+const coachSteps = () => byId('coach-steps').children.map(step => ({
+  caption: step.children[1].textContent,
+  isNext: step.classList.contains('next'),
+  isDone: step.classList.contains('done'),
+}));
+const nextCoachStep = () => (coachSteps().find(step => step.isNext) || {}).caption || '';
 
 runFrames(5);
 const startCount = cellCount();
@@ -50,10 +59,66 @@ runFrames(70);
 check('resting on a cell shows its tooltip with a live example',
   byId('tooltip').style.display === 'block' && /How to use/.test(byId('tooltip').innerHTML));
 
-dockButton('command').onclick();
-clickHex(-2, 1);
+check('the How to box shows the Body steps', /add the cell/.test(coachSteps()[0].caption) && coachSteps()[0].isDone);
+pressKey('h');
+check('H opens the keys sheet', byId('keys-sheet').style.display === 'flex');
+pressKey('Escape');
+check('Esc closes it', byId('keys-sheet').style.display === 'none');
+
+pressKey('Escape');
+byId('layer-nerve').onclick();
+check('the Nerve view shows the neurons in the dock', byId('dock-bar').textContent === 'Neurons');
+check('the How to box switches to the Nerve steps, the next one being to put a neuron in',
+  /Pick a neuron/.test(coachSteps()[0].caption) && /neuron goes in/.test(nextCoachStep()), nextCoachStep());
+check('the panel shows the chosen neuron with its scope', /Pacemaker/.test(info()) &&
+  byId('neuron-scope').style.display === 'block');
+neuronButton('command').onclick();
+clickHex(1, 0);
+check('then the next step is laying a fibre', /a fibre/.test(nextCoachStep()), nextCoachStep());
 pressKey('3');
-check('a new Command is clicked at once, and a number key binds it', /Fires on <b>key 3<\/b>/.test(info()), info());
+check('a click puts the chosen neuron into a cell, and a number key binds a Command',
+  /Command<\/b> neuron/.test(info()) && /Fires on <b>key 3<\/b>/.test(info()), info());
+const unitsBefore = fibreUnitsShown();
+moveMouseTo(1, 0);
+fire('game', 'mousedown', { ...screenPointOf(1, 0), button: 0, target: canvas });
+moveMouseTo(0, 1);
+fire('window', 'mouseup', { ...screenPointOf(0, 1), target: canvas });
+runFrames(1);
+check('a drag from one cell to another lays a fibre', fibreUnitsShown() === unitsBefore + 1,
+  `${unitsBefore} -> ${fibreUnitsShown()}`);
+// the grid shows each fibre's live signal from the test tank (record what drawFibre is given)
+readGlobal('globalThis.drawnFibreValues = []; const drawFibreBefore = drawFibre; ' +
+  'drawFibre = (...args) => { globalThis.drawnFibreValues.push(args[3]); return drawFibreBefore(...args); }; 0');
+fire('window', 'keydown', { key: ' ' });
+runFrames(3);
+fire('window', 'keyup', { key: ' ' });
+check('holding Space lights the new fibre in the test tank', readGlobal('globalThis.drawnFibreValues').includes(1));
+const layFibre = () => {
+  moveMouseTo(1, 0);
+  fire('game', 'mousedown', { ...screenPointOf(1, 0), button: 0, target: canvas });
+  moveMouseTo(0, 1);
+  fire('window', 'mouseup', { ...screenPointOf(0, 1), target: canvas });
+  runFrames(1);
+};
+const fromPoint = screenPointOf(1, 0);
+const toPoint = screenPointOf(0, 1);
+const onTheFibre = {
+  clientX: (fromPoint.clientX + toPoint.clientX) / 2,
+  clientY: (fromPoint.clientY + toPoint.clientY) / 2,
+};
+fire('game', 'mousedown', { ...onTheFibre, button: 2, target: canvas });
+runFrames(1);
+check('a right-click on a fibre removes it and leaves the neuron',
+  fibreUnitsShown() === unitsBefore && /Command<\/b> neuron/.test(info()), `units ${fibreUnitsShown()}`);
+layFibre();
+check('the clicked cell lists its fibres', /out →/.test(info()) && fibreUnitsShown() === unitsBefore + 1, info());
+byId('remove-fibre-0').onclick();
+check('the × on a fibre in the card removes it', fibreUnitsShown() === unitsBefore && !/out →/.test(info()));
+fire('game', 'mousedown', { ...screenPointOf(1, 0), button: 2, target: canvas });
+runFrames(1);
+check('a right-click on the neuron takes it out', /No neuron/.test(info()), info());
+pressKey('n');
+check('N goes back to the Body view', byId('dock-bar').textContent === 'Cells');
 pressKey('Escape');
 
 clickHex(0, -1, { ctrlKey: true });

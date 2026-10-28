@@ -1,13 +1,15 @@
 'use strict';
-// Builder design logic: hex lookup, the budget check and the design warnings. Pure: no DOM.
-// Designs use the saved format (see designcell.js): cells are { q, r, typeName, budPart, boundKey, partRotation,
-// partOffset, partAim }.
+// Builder design logic: hex lookup, the limits check, the design warnings, and the saved design format with the
+// conversion of older saves. Pure: no DOM.
+// A design is { cells, fibres } (the format is described under "Saved design format" below).
 
 // The checks read the cell types' behaviour fields (data/cells.js), never their names.
 const typeOfCell = cell => CELLS[cell.typeName];
 const needsSignal = cell => !!typeOfCell(cell).needsSignal;
-// a source that fires by itself, without a key (a Bud part has no key of its own)
-const firesByItself = cell => !!typeOfCell(cell).signalSource && typeOfCell(cell).signalSource !== 'key';
+// makes a signal of its own: a sense organ, or a neuron that ignores its inputs (Pacemaker, Command)
+const makesSignals = cell => !!typeOfCell(cell).senses || (!!cell.neuron && NEURONS[cell.neuron.kind].ignoresInputs);
+// makes a signal without a key (a Bud part has no key of its own)
+const firesByItself = cell => makesSignals(cell) && !(cell.neuron && cell.neuron.kind === 'command');
 
 const parseHexKey = hexKeyText => {
   const [q, r] = hexKeyText.split(',').map(Number);
@@ -49,17 +51,22 @@ function hexesReachableFromNucleus(isOpen) {
   return seen;
 }
 
-// why the design can't be run ('' = it can): the cell and biomass limits in RULES
+// why the design can't be run ('' = it can): the cell, biomass, neuron and fibre limits in RULES
 function buildCheck(design) {
   if (design.cells.length > RULES.maxCells) return `Too many cells: ${design.cells.length} / ${RULES.maxCells}`;
   if (designCost(design) > RULES.budget) return `Over budget by ${designCost(design) - RULES.budget}`;
+  const neuronCount = design.cells.filter(cell => cell.neuron).length;
+  if (neuronCount > RULES.maxNeurons) return `Too many neurons: ${neuronCount} / ${RULES.maxNeurons}`;
+  const units = fibreUnits(design);
+  if (units > RULES.maxFibreUnits) return `Too many fibre units: ${units} / ${RULES.maxFibreUnits}`;
   return '';
 }
 
 // Design checks: signals, Bud parts, weapons, and whether the body has O2, energy and a waste exit for its working
-// cells. bodyCells: the cells joined to the nucleus; plannedKeys: hex keys of cells not joined to it.
+// cells. body: the cells joined to the nucleus and their fibres; plannedKeys: hex keys of cells not joined to it.
 // Returns warnings as { text, keys }, where keys are the hexes the warning is about (marked on the grid).
-function designWarnings(bodyCells, plannedKeys) {
+function designWarnings(body, plannedKeys) {
+  const bodyCells = body.cells;
   const warnings = [];
   const warn = (text, keys = []) => warnings.push({ text, keys });
   if (plannedKeys.length) {
@@ -69,42 +76,34 @@ function designWarnings(bodyCells, plannedKeys) {
   // the checks below look at the joined body only
   const typeAt = new Map(bodyCells.map(cell => [hexKey(cell.q, cell.r), cell.typeName]));
   const countWith = behaviour => bodyCells.filter(cell => typeOfCell(cell)[behaviour]).length;
-  checkSignals(bodyCells, typeAt, countWith, warn);
+  checkSignals(body, warn);
   checkBuds(bodyCells, warn);
   if (!countWith('isWeapon')) warn('No weapons: it cannot hurt anything.');
   checkFluids(typeAt, countWith, warn);
   return warnings;
 }
 
-// signal-driven cells need a source, and a path of conducting cells from one
-function checkSignals(bodyCells, typeAt, countWith, warn) {
-  const sourceCount = countWith('signalSource');
-  const driven = bodyCells.filter(needsSignal);
-  if (driven.length && !sourceCount) {
-    warn('Muscles, Bloaters, Siphons, Nettles, Snares, Spitters, Adrenals, Valves and Buds need a nerve signal ' +
-      'source (Pacemaker, Command or Eyespot).', keysOf(driven));
+// signal-driven cells need a signal source, and a chain of fibres from one
+function checkSignals(body, warn) {
+  const sources = body.cells.filter(makesSignals);
+  const driven = body.cells.filter(needsSignal);
+  if (driven.length && !sources.length) {
+    warn('Muscles, Bloaters, Siphons, Nettles, Snares, Spitters, Adrenals, Valves and Buds need a nerve signal: ' +
+      'a Pacemaker or Command neuron, or an Eyespot, with fibres to them (Nerve view).', keysOf(driven));
   }
-  const conducts = key => typeAt.has(key) && CELLS[typeAt.get(key)].conductsSignal;
-  const reached = new Set();
-  const queue = [];
-  for (const [key, typeName] of typeAt) {
-    if (!CELLS[typeName].signalSource) continue;
-    reached.add(key);
-    queue.push(key);
-  }
-  while (queue.length) {
-    const { q, r } = parseHexKey(queue.pop());
-    for (const [stepQ, stepR] of HEX_NEIGHBOURS) {
-      const neighbourKey = hexKey(q + stepQ, r + stepR);
-      if (!conducts(neighbourKey) || reached.has(neighbourKey)) continue;
-      reached.add(neighbourKey);
-      queue.push(neighbourKey);
+  const reached = new Set(keysOf(sources));
+  const queue = [...reached];
+  for (let i = 0; i < queue.length; i++) {
+    for (const fibre of body.fibres || []) {
+      const toKey = hexKey(fibre.to.q, fibre.to.r);
+      if (hexKey(fibre.from.q, fibre.from.r) !== queue[i] || reached.has(toKey)) continue;
+      reached.add(toKey);
+      queue.push(toKey);
     }
   }
-  const unwired = [...typeAt].filter(([key, typeName]) => CELLS[typeName].needsSignal && !reached.has(key));
-  if (sourceCount && unwired.length) {
-    warn(`${unwired.length} cell(s) that need a nerve signal are not connected to a signal source.`,
-      unwired.map(([key]) => key));
+  const unwired = driven.filter(cell => !reached.has(hexKey(cell.q, cell.r)));
+  if (sources.length && unwired.length) {
+    warn(`${unwired.length} cell(s) that need a nerve signal get no fibre from a signal source.`, keysOf(unwired));
   }
 }
 
@@ -126,11 +125,12 @@ function checkBuds(bodyCells, warn) {
     const blockedCells = plans.reduce((sum, plan) => sum + plan.blockedCount, 0);
     warn(`${blockedCells} cell(s) of Bud parts are blocked by the body and will not grow.`, keysOf(blocked));
   }
-  // a part has its own nerves: what needs a signal in it needs a Pacemaker or Eyespot in the part too
+  // a part has its own nerves: what needs a signal in it needs a Pacemaker neuron or an Eyespot in the part too
   const deaf = budsWithPart.filter(bud =>
     bud.budPart.cells.some(needsSignal) && !bud.budPart.cells.some(firesByItself));
   if (deaf.length) {
-    warn(`${deaf.length} Bud part(s) have Muscles, Nettles or the like but no Pacemaker or Eyespot of their own: ` +
+    warn(`${deaf.length} Bud part(s) have Muscles, Nettles or the like but no Pacemaker neuron or Eyespot of ` +
+      'their own: ' +
       "a part's nerves are apart from the body's, so those cells do nothing.", keysOf(deaf));
   }
   const claimed = plans.flatMap(plan => keysOf(plan.cells));
@@ -196,11 +196,72 @@ function migrateDesignCell(savedCell) {
 }
 
 function migrateBudPart(savedPart) {
-  return { name: savedPart.name, cells: savedPart.cells.map(migrateDesignCell) };
+  const part = { name: savedPart.name, cells: savedPart.cells.map(migrateDesignCell) };
+  if (savedPart.fibres) part.fibres = savedPart.fibres;
+  return part;
 }
 
-// a saved library entry in the current format: { name, isCreature, cells }; old entries called isCreature `full`
+// A saved library entry in the current format: { name, isCreature, cells, fibres }. Old entries called isCreature
+// `full`, and entries from before the nerve layer get their neurons and fibres (see upgradeToNerveLayer).
 function migrateLibraryEntry(savedEntry) {
   const isCreature = savedEntry.isCreature !== undefined ? savedEntry.isCreature : savedEntry.full;
-  return { name: String(savedEntry.name), isCreature: !!isCreature, cells: savedEntry.cells.map(migrateDesignCell) };
+  const design = { cells: savedEntry.cells.map(migrateDesignCell) };
+  if (savedEntry.fibres) design.fibres = savedEntry.fibres;
+  const upgraded = upgradeToNerveLayer(design);
+  return { name: String(savedEntry.name), isCreature: !!isCreature, cells: upgraded.cells, fibres: upgraded.fibres };
+}
+
+// ---------- Designs from before the nerve layer ----------
+// Before 2026-10-28 signals leaked between touching cells that carried them, and four cell types made or shaped
+// signals. A design without a fibres list is from then: its nerve cells become Tissue holding the matching neuron, and
+// its touch-wiring becomes fibres, so it behaves as it did.
+const OLD_NERVE_CELL_NEURONS = { nerve: null, ganglion: 'ganglion', pacemaker: 'pacemaker', command: 'command' };
+const OLD_SIGNAL_SOURCES = new Set(['pacemaker', 'command', 'eyespot']);
+const OLD_SIGNAL_CARRIERS = new Set([
+  'nerve', 'ganglion', 'pacemaker', 'command', 'eyespot', 'muscle', 'bloater', 'siphon', 'nettle', 'snare', 'spitter',
+  'bud', 'valve', 'adrenal',
+]);
+
+// the design in the current format; a current design is returned as it is
+function upgradeToNerveLayer(design) {
+  if (design.fibres) return design;
+  return { ...design, cells: design.cells.map(upgradeOldCell), fibres: wireByOldTouchRule(design.cells) };
+}
+
+function upgradeOldCell(cell) {
+  const upgraded = { ...cell };
+  if (cell.budPart) upgraded.budPart = upgradeToNerveLayer(cell.budPart);
+  if (!(cell.typeName in OLD_NERVE_CELL_NEURONS)) return upgraded;
+  upgraded.typeName = 'tissue';
+  const kind = OLD_NERVE_CELL_NEURONS[cell.typeName];
+  if (kind) upgraded.neuron = createNeuron(kind);
+  return upgraded;
+}
+
+// From each old signal source outward through the cells that used to carry signals, one fibre per step. Sources
+// don't pass on each other's signals, as before.
+function wireByOldTouchRule(cells) {
+  const typeAt = new Map(cells.map(cell => [hexKey(cell.q, cell.r), cell.typeName]));
+  const fibres = [];
+  const laid = new Set();
+  for (const source of cells.filter(cell => OLD_SIGNAL_SOURCES.has(cell.typeName))) {
+    const reached = new Set([hexKey(source.q, source.r)]);
+    const queue = [{ q: source.q, r: source.r }];
+    for (let i = 0; i < queue.length; i++) {
+      const from = queue[i];
+      for (const [stepQ, stepR] of HEX_NEIGHBOURS) {
+        const to = { q: from.q + stepQ, r: from.r + stepR };
+        const typeName = typeAt.get(hexKey(to.q, to.r));
+        if (reached.has(hexKey(to.q, to.r)) || !OLD_SIGNAL_CARRIERS.has(typeName)) continue;
+        if (OLD_SIGNAL_SOURCES.has(typeName)) continue;
+        reached.add(hexKey(to.q, to.r));
+        queue.push(to);
+        const fibreKey = hexKey(from.q, from.r) + '>' + hexKey(to.q, to.r);
+        if (laid.has(fibreKey)) continue;
+        laid.add(fibreKey);
+        fibres.push({ from, to });
+      }
+    }
+  }
+  return fibres;
 }

@@ -1,6 +1,7 @@
 'use strict';
 // Builder tooltips (pure data): how to use each cell type, and a live example build shown in a mini tank
-// (tipdemo.js). Example fields:
+// (tipdemo.js). Examples are written in the format from before the nerve layer (Pacemaker and Command cells, wired
+// by touch); tipdemo.js converts them (see upgradeToNerveLayer in design.js). Example fields:
 //   cells: [q, r, typeName] for each cell; spaceLabel: what the demo shows while it holds Space (every other second);
 //   swims: swims forward; hasDummyEnemy: a dummy enemy just in front; fluidView: the fluid shown (1 = O2 ..
 //   5 = adrenaline); startsHurt: cell types that start damaged; startsEmpty: cell types that start with no O2 or
@@ -17,7 +18,7 @@ const TIPS = {
     },
   },
   tissue: {
-    howToUse: 'Fill gaps and add bulk. Put it between two nerve circuits so their signals do not mix.',
+    howToUse: 'Fill gaps and add bulk. Like any cell it can hold a neuron, and fibres run along its sides.',
     example: {
       cells: [
         [0, 0, 'nucleus'], [0, 1, 'tissue'], [0, 2, 'tissue'], [-1, 1, 'pacemaker'], [-1, 2, 'muscle'],
@@ -54,48 +55,9 @@ const TIPS = {
       swims: true,
     },
   },
-  nerve: {
-    howToUse: 'Chain it from a signal source (Pacemaker, Command, Eyespot) to the cells that should react. ' +
-      'Signals only pass between cells that carry them.',
-    example: {
-      cells: [
-        [0, 0, 'nucleus'], [1, -1, 'command'], [1, 0, 'nerve'], [1, 1, 'nerve'], [1, 2, 'siphon'], [0, 1, 'tissue'],
-        [0, 2, 'tissue'],
-      ],
-      spaceLabel: 'Space held',
-    },
-  },
-  ganglion: {
-    howToUse: 'Put it in a nerve line to slow the signal down. Cells after it react later and more gently.',
-    example: {
-      cells: [
-        [0, 0, 'nucleus'], [0, 1, 'pacemaker'], [0, 2, 'muscle'], [0, 3, 'ganglion'], [0, 4, 'muscle'],
-        [1, 1, 'tissue'], [1, 2, 'tissue'], [1, 3, 'tissue'],
-      ],
-    },
-  },
-  pacemaker: {
-    howToUse: 'Let it touch Muscles or Bloaters (or connect it with Nerves). They will cycle forever and burn ' +
-      'fuel the whole time.',
-    example: {
-      cells: [
-        [0, 0, 'nucleus'], [0, 1, 'tissue'], [0, 2, 'tissue'], [0, 3, 'tissue'], [-1, 1, 'pacemaker'],
-        [-1, 2, 'muscle'], [-1, 3, 'muscle'], [-1, 4, 'muscle'],
-      ],
-    },
-  },
-  command: {
-    howToUse: 'Connect it to the cells you want on demand. In battle it fires while you hold Space; the AI fires ' +
-      'it near enemies.',
-    example: {
-      cells: [
-        [0, 0, 'nucleus'], [0, 1, 'command'], [-1, 2, 'siphon'], [0, 2, 'siphon'], [1, 1, 'siphon'], [-1, 1, 'fat'],
-      ],
-      spaceLabel: 'Space held',
-    },
-  },
   eyespot: {
-    howToUse: 'Place it on the edge facing the enemy and connect it to weapons. They then fire by themselves.',
+    howToUse: 'Place it on the edge facing the enemy and lay fibres from it to weapons (Nerve view). They then fire ' +
+      'by themselves.',
     example: {
       cells: [
         [0, 0, 'nucleus'], [0, -1, 'eyespot'], [1, -1, 'nettle'], [-1, 0, 'nettle'], [-1, 1, 'gill'], [1, 0, 'fat'],
