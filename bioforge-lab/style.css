@@ -370,6 +370,7 @@ button.big:hover { background: #4a8044; }
   border-radius: 7px; font-size: 13px; color: #b9c3cd; pointer-events: none; z-index: 10;
 }
 #tooltip canvas { display: block; margin-top: 4px; border: 1px solid #23323a; border-radius: 5px; }
+#tooltip #tooltip-traces { border: none; border-radius: 0; }
 #tooltip b { color: #dfe4ea; }
 #tooltip .tooltip-heading {
   margin-top: 6px; color: #e8c547; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;

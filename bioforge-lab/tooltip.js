@@ -56,7 +56,9 @@ function updateTooltip(app, now) {
   const cellType = CELLS[tooltip.typeName];
   const neuronType = NEURONS[tooltip.neuronKind];
   if (!cellType && !neuronType) return;
-  box.innerHTML = cellType ? tooltipHtml(tooltip.typeName, cellType) : neuronTooltipHtml(neuronType);
+  box.innerHTML = cellType
+    ? tooltipHtml(tooltip.typeName, cellType)
+    : neuronTooltipHtml(tooltip.neuronKind, neuronType);
   box.style.display = 'block';
   const { left, top } = tooltipPlace(tooltip, box.offsetWidth, box.offsetHeight);
   const maxLeft = innerWidth - box.offsetWidth - TOOLTIP_EDGE_MARGIN;
@@ -64,6 +66,7 @@ function updateTooltip(app, now) {
   box.style.left = Math.max(TOOLTIP_EDGE_MARGIN, Math.min(left, maxLeft)) + 'px';
   box.style.top = Math.max(TOOLTIP_EDGE_MARGIN, Math.min(top, maxTop)) + 'px';
   if (cellType) startDemo(tooltip.typeName, byId('tooltip-demo'));
+  else startNeuronDemo(tooltip.neuronKind, byId('tooltip-demo'), byId('tooltip-traces'));
 }
 
 // Where the tooltip goes before it is kept on screen: above a dock button, centred on it; next to a cell on the
@@ -90,7 +93,17 @@ function tooltipHtml(typeName, cellType) {
     `<canvas id="tooltip-demo" width="${DEMO_WIDTH}" height="${DEMO_HEIGHT}"></canvas>`;
 }
 
-// a neuron button's tooltip: its name and what it does (neurons cost no biomass)
-function neuronTooltipHtml(neuronType) {
-  return `<div class="tooltip-title"><b>${neuronType.name}</b></div>${neuronType.description}`;
+// A neuron button's tooltip, in the cell tooltip's format: name and cost (neurons cost no biomass), its facts, what
+// it does, how to use it, and a live example with the signals of its cells as lanes.
+function neuronTooltipHtml(kind, neuronType) {
+  const facts = [neuronType.ignoresInputs ? 'makes its own signal' : 'reads the fibres coming in'];
+  const setting = neuronType.setting;
+  if (setting) facts.push(`${setting.name} ${setting.min}–${setting.max}${setting.unit ? ' ' + setting.unit : ''}`);
+  return `<div class="tooltip-title"><b>${neuronType.symbol} ${neuronType.name}</b>` +
+    `<span class="tooltip-cost" title="Biomass cost">◆ 0</span></div>` +
+    `<span class="dim">${facts.join(' · ')}</span><br>${neuronType.description}` +
+    `<div class="tooltip-heading">How to use</div>${NEURON_TIPS[kind].howToUse}` +
+    `<div class="tooltip-heading">Example</div>` +
+    `<canvas id="tooltip-demo" width="${DEMO_WIDTH}" height="${DEMO_HEIGHT}"></canvas>` +
+    `<canvas id="tooltip-traces" width="${DEMO_WIDTH}" height="0"></canvas>`;
 }

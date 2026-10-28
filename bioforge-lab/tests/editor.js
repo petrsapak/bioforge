@@ -112,6 +112,15 @@ check('the Nerve view shows the neurons in the dock', byId('dock-bar').textConte
 moveMouseTo(0, 0);
 runFrames(30);
 check('in the Nerve view, resting on a placed cell shows no hint', byId('tooltip').style.display !== 'block');
+// the fake DOM has no closest(), so the mouse's target hands back the dock button itself
+fire('window', 'mousemove', { clientX: 10, clientY: 10, target: { closest: () => neuronButton('delay') } });
+runFrames(30);
+check('resting on a neuron in the dock shows a hint in the cell hint\'s format, with lanes under the example',
+  byId('tooltip').style.display === 'block' && /<b>» Delay<\/b>/.test(byId('tooltip').innerHTML) &&
+  /Delay 0.25–3 s/.test(byId('tooltip').innerHTML) && /How to use/.test(byId('tooltip').innerHTML) &&
+  /tooltip-traces/.test(byId('tooltip').innerHTML), byId('tooltip').innerHTML);
+moveMouseTo(0, 0);
+runFrames(1);
 check('the How to box switches to the Nerve steps, the next one being to put a neuron in',
   /Pick a neuron/.test(coachSteps()[0].caption) && /neuron goes in/.test(nextCoachStep()), nextCoachStep());
 check('with nothing clicked there is no card, and the Traces window shows in the Nerve view',

@@ -6,6 +6,9 @@
 //   swims: swims forward; hasDummyEnemy: a dummy enemy just in front; fluidView: the fluid shown (1 = O2 ..
 //   5 = adrenaline); startsHurt: cell types that start damaged; startsEmpty: cell types that start with no O2 or
 //   sugar; budPart: the part a Bud grows
+// Neuron examples (NEURON_TIPS) are in the current format: cells are [q, r, typeName, neuronKind, setting], with
+// neuronKind and setting optional; fibres are [fromQ, fromR, toQ, toR]; traces lists the [q, r] cells whose
+// signals are drawn as lanes under the tank.
 const TIPS = {
   nucleus: {
     howToUse: 'Every creature has exactly one, placed for you. Keep it away from the front line and surround it ' +
@@ -280,6 +283,92 @@ const TIPS = {
       spaceLabel: 'Space held',
       swims: true,
       fluidView: 5,
+    },
+  },
+};
+
+// The cells every neuron example shares: a Nucleus, a three-cell tail, a Gill and Fat to fuel the Muscles, and two
+// Muscles down the tail's left side.
+const NEURON_EXAMPLE_BODY = [
+  [0, 0, 'nucleus'], [0, 1, 'tissue'], [0, 2, 'tissue'], [0, 3, 'tissue'], [-1, 0, 'gill'], [1, -1, 'fat'],
+  [-1, 2, 'muscle'], [-1, 3, 'muscle'],
+];
+// fibres from the cell at (q, r) to both left Muscles
+const fibresToLeftMuscles = (q, r) => [[q, r, -1, 2], [q, r, -1, 3]];
+
+const NEURON_TIPS = {
+  pacemaker: {
+    howToUse: 'Lay fibres from it to Muscles (Nerve view): they then beat on their own, at its rate. Click the ' +
+      'cell to set the rate. With an Inhibitor of it on the other side, a tail swings both ways.',
+    example: {
+      cells: [...NEURON_EXAMPLE_BODY, [-1, 1, 'tissue', 'pacemaker']],
+      fibres: fibresToLeftMuscles(-1, 1),
+      traces: [[-1, 1], [-1, 2]],
+    },
+  },
+  command: {
+    howToUse: 'Lay fibres from it to whatever should act on demand: a weapon, a Bloater, a burst of Muscles. ' +
+      'Click the cell and press a key to bind it. In a level the AI presses it when an enemy is near.',
+    example: {
+      cells: [...NEURON_EXAMPLE_BODY, [-1, 1, 'tissue', 'command']],
+      fibres: fibresToLeftMuscles(-1, 1),
+      traces: [[-1, 1], [-1, 2]],
+      spaceLabel: 'Space held',
+    },
+  },
+  ganglion: {
+    howToUse: 'Put it between a signal and what it drives, when on and off is too abrupt: the Muscles then ease ' +
+      'in and out instead of snapping.',
+    example: {
+      cells: [...NEURON_EXAMPLE_BODY, [1, 0, 'tissue', 'command'], [-1, 1, 'tissue', 'ganglion']],
+      fibres: [[1, 0, -1, 1], ...fibresToLeftMuscles(-1, 1)],
+      traces: [[1, 0], [-1, 1]],
+      spaceLabel: 'Space held',
+    },
+  },
+  delay: {
+    howToUse: 'Put it between a signal and a second group of Muscles: that group moves after the first, which ' +
+      'sends a wave down a tail. Click the cell to set the delay.',
+    example: {
+      cells: [...NEURON_EXAMPLE_BODY, [1, 0, 'tissue', 'command'], [-1, 1, 'tissue', 'delay']],
+      fibres: [[1, 0, -1, 1], ...fibresToLeftMuscles(-1, 1)],
+      traces: [[1, 0], [-1, 1]],
+      spaceLabel: 'Space held',
+    },
+  },
+  inhibitor: {
+    howToUse: 'Feed it a Pacemaker and lay fibres from it to the Muscles on the other side of a tail: the two ' +
+      'sides then take turns, and the tail swings both ways.',
+    example: {
+      cells: [
+        ...NEURON_EXAMPLE_BODY, [1, 1, 'muscle'], [1, 2, 'muscle'],
+        [-1, 1, 'tissue', 'pacemaker', 1], [1, 0, 'tissue', 'inhibitor'],
+      ],
+      fibres: [...fibresToLeftMuscles(-1, 1), [-1, 1, 1, 0], [1, 0, 1, 1], [1, 0, 1, 2]],
+      traces: [[-1, 1], [1, 0]],
+    },
+  },
+  synapse: {
+    howToUse: 'Lay fibres from two or more signals into it. Threshold 1 fires on any of them (OR); threshold 2 ' +
+      'only while two are on together (AND), such as an Eyespot and a Command. Click the cell to set the threshold.',
+    example: {
+      cells: [
+        ...NEURON_EXAMPLE_BODY, [1, 0, 'tissue', 'command'], [-1, 1, 'tissue', 'pacemaker', 1],
+        [0, 1, 'tissue', 'synapse', 2],
+      ],
+      fibres: [[1, 0, 0, 1], [-1, 1, 0, 1], ...fibresToLeftMuscles(0, 1)],
+      traces: [[1, 0], [-1, 1], [0, 1]],
+      spaceLabel: 'Space held',
+    },
+  },
+  latch: {
+    howToUse: 'Lay a fibre from a Command into it to make a switch: one press turns the Muscles on, the next ' +
+      'turns them off. Fed by a sense, it remembers that something happened.',
+    example: {
+      cells: [...NEURON_EXAMPLE_BODY, [1, 0, 'tissue', 'command'], [-1, 1, 'tissue', 'latch']],
+      fibres: [[1, 0, -1, 1], ...fibresToLeftMuscles(-1, 1)],
+      traces: [[1, 0], [-1, 1]],
+      spaceLabel: 'Space held',
     },
   },
 };

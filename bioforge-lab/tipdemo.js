@@ -1,16 +1,40 @@
 'use strict';
-// Live mini tank inside the cell tooltip, running the cell type's example build from TIPS (browser only).
+// Live mini tank inside the cell and neuron tooltips, running the example build from TIPS or NEURON_TIPS, with the
+// signal lanes under a neuron's example (browser only).
 
 const DEMO_WIDTH = 288;                                   // px
 const DEMO_HEIGHT = 190;                                  // px
 const DEMO_RESET_TIME = 8;                                // s before the demo restarts
 const DEMO_CENTER_PULL = 0.05;                            // share of the offset from the middle closed per frame
+const DEMO_LANE_HEIGHT = 20;                              // px per signal lane under a neuron's example
 let tooltipDemo = null;
 
-// starts the example for a cell type, drawn into canvas
+// starts the example for a cell type, drawn into canvas, with the cells of that type ringed
 function startDemo(typeName, canvas) {
-  const example = TIPS[typeName].example;
-  const cells = blueprintFromList(example.cells);
+  startExample(TIPS[typeName].example, cell => cell.typeName === typeName, canvas, null);
+}
+
+// starts the example for a neuron kind, drawn into canvas, with its cells ringed and the example's traces drawn
+// into tracesCanvas
+function startNeuronDemo(kind, canvas, tracesCanvas) {
+  const isShown = cell => !!cell.neuron && cell.neuron.kind === kind;
+  startExample(NEURON_TIPS[kind].example, isShown, canvas, tracesCanvas);
+}
+
+// an example's design cells: [q, r, typeName, neuronKind, setting], neuronKind and setting optional
+function exampleCells(example) {
+  return example.cells.map(([q, r, typeName, neuronKind, setting]) => {
+    if (!neuronKind) return createDesignCell(q, r, typeName);
+    const neuron = createNeuron(neuronKind);
+    if (setting !== undefined) neuron.setting = setting;
+    return createDesignCell(q, r, typeName, { neuron });
+  });
+}
+
+// Spawns the example in a fresh test tank. isShown picks the cells the tooltip is about; tracesCanvas (or null)
+// gets a lane per cell in example.traces.
+function startExample(example, isShown, canvas, tracesCanvas) {
+  const cells = exampleCells(example);
   if (example.budPart) {
     for (const cell of cells) if (CELLS[cell.typeName].growsParts) cell.budPart = example.budPart;
   }
@@ -33,19 +57,37 @@ function startDemo(typeName, canvas) {
     const dummyDesign = { cells: blueprintFromList([[0, 0, 'tissue'], [1, 0, 'tissue'], [0, 1, 'tissue']]) };
     spawn(world, dummyDesign, DEMO_WIDTH / 2, front - 30, 0, 1).aiControlled = false;
   }
-  tooltipDemo = { typeName, example, world, creature, time: 0, canvas };
+  const probes = createProbes();
+  probes.creature = creature;
+  const tracedCells = (example.traces || []).map(([q, r]) => creature.cellsByHex.get(hexKey(q, r)));
+  probes.lanes = tracedCells.filter(Boolean).map((cell, i) => createDemoLane(cell, i + 1));
+  tooltipDemo = { example, isShown, world, creature, time: 0, canvas, tracesCanvas, probes };
 }
 
+// A signal lane for the example. Every neuron in the examples sits in Tissue, so its lane is named and coloured by
+// the neuron ("1 Command") instead of the cell type.
+function createDemoLane(cell, number) {
+  const lane = createProbeLane(cell, number);
+  if (!cell.neuron) return lane;
+  const neuronType = NEURONS[cell.neuron.kind];
+  lane.label = `${number} ${neuronType.name}`;
+  lane.color = neuronType.color;
+  return lane;
+}
+
+// stops the running example (the tooltip closed)
 function stopDemo() {
   tooltipDemo = null;
 }
 
+// moves the running example on by dt, restarting it every DEMO_RESET_TIME, and draws it
 function runDemo(dt) {
   if (!tooltipDemo) return;
   const { example, world, creature } = tooltipDemo;
   tooltipDemo.time += dt;
   if (tooltipDemo.time > DEMO_RESET_TIME) {
-    startDemo(tooltipDemo.typeName, tooltipDemo.canvas);
+    const { isShown, canvas, tracesCanvas } = tooltipDemo;
+    startExample(example, isShown, canvas, tracesCanvas);
     return;
   }
   const spaceHeld = !!example.spaceLabel && tooltipDemo.time % 2 > 1;   // Space is held every other second
@@ -56,24 +98,32 @@ function runDemo(dt) {
       cell.y += (DEMO_HEIGHT / 2 + 10 - creature.centerY) * DEMO_CENTER_PULL;
     }
   }
+  recordProbes(tooltipDemo.probes, world);
   drawDemo(spaceHeld);
+  if (tooltipDemo.tracesCanvas) {
+    drawProbeLanes(tooltipDemo.tracesCanvas, tooltipDemo.probes, world.time, DEMO_LANE_HEIGHT);
+  }
 }
 
+// draws the example tank: the world, a ring on the cells the tooltip is about, the lane tags and the labels
 function drawDemo(spaceHeld) {
-  const { typeName, example, world, creature } = tooltipDemo;
+  const { example, isShown, world, creature, tracesCanvas, probes } = tooltipDemo;
   const context = tooltipDemo.canvas.getContext('2d');
   drawWater(context, world, DEMO_WIDTH, DEMO_HEIGHT);
   drawWorld(context, world, example.fluidView || 0);
-  // the cell type being explained gets a pulsing dashed ring
+  // the cell type or neuron being explained gets a pulsing dashed ring
   context.strokeStyle = '#fff';
   context.lineWidth = 1.5;
   context.setLineDash([3, 3]);
   context.globalAlpha = 0.55 + 0.45 * Math.sin(tooltipDemo.time * 5);
   for (const cell of creature.cells) {
-    if (cell.typeName === typeName) strokeCircle(context, cell.x, cell.y, cell.radius + 3);
+    if (isShown(cell)) strokeCircle(context, cell.x, cell.y, cell.radius + 3);
   }
   context.setLineDash([]);
   context.globalAlpha = 1;
+  if (tracesCanvas) {                                     // numbered tags matching the lanes under the tank
+    for (const lane of probes.lanes) drawProbeTag(context, lane.cell.x, lane.cell.y, lane.number);
+  }
   context.font = '11px system-ui';
   if (example.spaceLabel) {
     context.textAlign = 'left';
