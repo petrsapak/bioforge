@@ -5,7 +5,8 @@ const { check, done } = require('./check');
 
 // Bioforge Moba's library, in the old format, as it may sit in the browser's storage
 const OLD_LIBRARY = JSON.stringify([{ name: 'Old timer', full: true, cells: [{ q: 0, r: 0, t: 'nucleus' }] }]);
-const { byId, fire, runFrames, readGlobal, storage } = startApp(['clear'], { 'bioforge-templates': OLD_LIBRARY });
+const { byId, fire, runFrames, readGlobal, storage, templateButton } =
+  startApp(['clear', 'starter'], { 'bioforge-templates': OLD_LIBRARY });
 
 // where hex (q, r) is on screen: the grid's middle is right of the panel, at the start zoom (see builderview.js)
 const PANEL_WIDTH = readGlobal('BUILDER_PANEL_WIDTH');
@@ -47,6 +48,9 @@ const coachSteps = () => byId('coach-steps').children.map(step => ({
 const nextCoachStep = () => (coachSteps().find(step => step.isNext) || {}).caption || '';
 
 runFrames(5);
+// the default Jet comes wired; these steps wire a body from scratch, so they start from the Starter (no neurons)
+templateButton('starter').onclick();
+runFrames(2);
 const startCount = cellCount();
 dockButton('tissue').onclick();
 clickHex(2, 0);

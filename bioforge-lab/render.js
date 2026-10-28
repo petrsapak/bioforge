@@ -7,7 +7,8 @@ const VIEW_MARGIN = 30;                                   // px around the view 
 const FIBRE_COLOR = '#f2d36b';
 const FIBRE_ACTIVE_COLOR = '#fffbe0';                     // a fibre carrying a signal
 const FIBRE_ARROW_SIZE = 3;                               // px
-const BRIDGE_RADIUS = 2.6;                                // px of the arc a fibre jumps over a crossing with
+const LIGHT_GLOW_RADIUS = 40;                             // px of the glow drawn around the light
+const BRIDGE_RADIUS = 2.6;                               // px of the arc a fibre jumps over a crossing with
 
 // view 0 = normal, 1..5 = fill level of one fluid; viewBox = { minX, minY, maxX, maxY }: draw only cells inside it
 function drawWorld(context, world, view, viewBox) {
@@ -219,12 +220,27 @@ function drawReservoir(context, cell, radius, fluid) {
   fillCircle(context, cell.x, cell.y, radius * 0.75 * Math.sqrt(fill));
 }
 
-// a sense organ: a pupil, white while it senses something, and the range it senses in
+// a sense organ: a pupil, white while it senses something (an Eyespot, and the range it senses in) or brighter the
+// more it senses (a Light eye)
 function drawSenseOrganDetail(context, cell, radius) {
-  context.fillStyle = cell.senseOutput > SIGNAL_ON ? '#fff' : 'rgba(0,0,0,0.45)';
+  const isGraded = cell.type.senses === 'light';
+  const isOn = cell.senseOutput > SIGNAL_ON;
+  if (isGraded) context.fillStyle = `rgba(255,255,255,${(0.15 + 0.85 * clamp01(cell.senseOutput)).toFixed(2)})`;
+  else context.fillStyle = isOn ? '#fff' : 'rgba(0,0,0,0.45)';
   fillCircle(context, cell.x, cell.y, radius * 0.45);
+  if (cell.type.senses !== 'enemy') return;
   context.strokeStyle = 'rgba(79,209,197,0.12)';
   strokeCircle(context, cell.x, cell.y, EYESPOT_RANGE);
+}
+
+// the light that Light eyes see (the mouse in the Sandbox): a soft glow
+function drawLight(context, light) {
+  if (!light) return;
+  const glow = context.createRadialGradient(light.x, light.y, 0, light.x, light.y, LIGHT_GLOW_RADIUS);
+  glow.addColorStop(0, 'rgba(255,230,150,0.35)');
+  glow.addColorStop(1, 'rgba(255,230,150,0)');
+  context.fillStyle = glow;
+  fillCircle(context, light.x, light.y, LIGHT_GLOW_RADIUS);
 }
 
 // the small drawing inside each cell type: (context, cell, radius, outward angle)

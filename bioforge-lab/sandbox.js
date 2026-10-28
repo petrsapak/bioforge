@@ -2,16 +2,18 @@
 // Sandbox mode: play any creature with no budget, click the water to spawn enemies, and nobody wins or loses. Its top
 // bar, its steps and drawing, and its HUD (browser only).
 
-const SANDBOX_DESIGNS = ['wiggler', 'squirter', 'nettler', 'puffer', 'starter', 'eel', 'jelly', 'manta', 'crab'];
+const SANDBOX_DESIGNS = ['jet', 'paddler', 'seeker', 'wiggler', 'squirter', 'nettler', 'puffer', 'starter', 'eel', 'jelly',
+  'manta', 'crab'];
 const OWN_DESIGN = 'mine';                                // the select value for the design in the builder
-const GAME_SPEED = 2.5;                                   // game seconds per real second
 const SANDBOX_MAX_STEP = 1 / 40;                          // game s; longer steps would make the springs unstable
 const PLAYER_BOTTOM_MARGIN = 50;                          // px between the player's spawn and the bottom edge
 const PLAYER_MIN_BOTTOM_DISTANCE = 150;                   // px
 const REMOVE_CLICK_MARGIN = 4;                            // px added to a cell's radius for right-click removal
-const SANDBOX_KEYS_HELP = '<b>Click</b> spawn &nbsp;<b>Right-click</b> remove &nbsp;<b>R</b> respawn<br>' +
-  '<b>W</b><b>S</b> swim &nbsp;<b>A</b><b>D</b> turn &nbsp;<b>Space</b> fire &nbsp;<b>1–9</b> triggers<br>' +
-  '<b>T</b> autopilot &nbsp;<b>Shift+1–6</b> view &nbsp;<b>Esc</b> builder';
+const SANDBOX_SPEEDS = [1, 0.5, 0.25];                    // game seconds per real second, cycled by the speed button
+const SANDBOX_KEYS_HELP = '<b>Mouse</b> is the light (Light eyes)<br>' +
+  '<b>Click</b> spawn &nbsp;<b>Right-click</b> remove &nbsp;<b>R</b> respawn<br>' +
+  '<b>Space</b> <b>1–9</b> Command neurons &nbsp;<b>P</b> pause &nbsp;<b>.</b> one step &nbsp;<b>,</b> speed<br>' +
+  '<b>Shift+1–6</b> view &nbsp;<b>Esc</b> builder';
 
 // the top bar: who you play, what a click spawns, and the enemy, clear, respawn and exit buttons
 function setUpSandboxBar(app) {
@@ -30,6 +32,9 @@ function setUpSandboxBar(app) {
   onSandboxButton('sandbox-clear', () => removeEnemies(app));
   onSandboxButton('sandbox-respawn', () => spawnSandboxPlayer(app));
   onSandboxButton('sandbox-exit', () => enterBuilder(app));
+  onSandboxButton('sandbox-pause', () => togglePause(app));
+  onSandboxButton('sandbox-step', () => requestOneStep(app));
+  onSandboxButton('sandbox-speed', () => cycleSandboxSpeed(app));
   byId('sandbox-player').onchange = event => {
     spawnSandboxPlayer(app);
     event?.target?.blur?.();
@@ -54,6 +59,9 @@ function startSandbox(app) {
   app.world = newWorld(app.canvas.width, app.canvas.height);
   app.world.enemiesIdle = byId('sandbox-enemy-mode').textContent.endsWith('idle');
   app.player = null;
+  app.paused = false;
+  app.stepRequested = false;
+  showTimeControls(app);
   spawnSandboxPlayer(app);
   app.stamp = null;
   app.partDrag = null;
@@ -70,6 +78,7 @@ function spawnSandboxPlayer(app) {
   const reach = Math.max(...design.cells.map(cell => vectorLength(...hexToPixel(cell.q, cell.r))));
   const y = app.canvas.height - Math.max(PLAYER_MIN_BOTTOM_DISTANCE, reach + PLAYER_BOTTOM_MARGIN);
   app.player = spawn(app.world, design, app.canvas.width / 2, y, 0, 0);
+  app.player.autonomous = true;                           // it moves only by its wiring: nothing steers it
   app.player.spawnHealth = app.player.cells.reduce((sum, cell) => sum + cell.maxHealth, 0);   // the HUD's Body bar
 }
 
@@ -97,19 +106,60 @@ function handleSandboxClick(app, event) {
   }
 }
 
-// Runs GAME_SPEED game seconds per real second, in steps of at most SANDBOX_MAX_STEP. W/S swim, A/D turn.
+// the mouse is the light that Light eyes see; it stays where the mouse last was on the water
+function trackSandboxLight(app, event) {
+  if (app.mode !== 'sandbox') return;
+  app.sandboxLight = { x: event.clientX, y: event.clientY };
+}
+
+// Runs at the chosen speed (real time at 1×, like the builder), in steps of at most SANDBOX_MAX_STEP; paused,
+// only the one step asked for. Space and the number keys reach the player's Command neurons, nothing else.
 function stepSandbox(app, dt) {
-  const isHeld = key => app.keysHeld.has(key);
-  const turn = (isHeld('d') || isHeld('arrowright') ? 1 : 0) - (isHeld('a') || isHeld('arrowleft') ? 1 : 0);
-  const forward = (isHeld('w') || isHeld('arrowup') ? 1 : 0) - (isHeld('s') || isHeld('arrowdown') ? 1 : 0);
-  const gameTime = dt * GAME_SPEED;
+  app.world.light = app.sandboxLight;
+  const input = { ability: app.keysHeld.has(' '), heldKeys: app.digitsHeld };
+  if (app.paused) {
+    if (app.stepRequested) step(app.world, SANDBOX_MAX_STEP, input);
+    app.stepRequested = false;
+    return;
+  }
+  const gameTime = dt * app.sandboxSpeed;
   const stepCount = Math.ceil(gameTime / SANDBOX_MAX_STEP - 1e-6);
-  const input = { forward, turn, ability: isHeld(' '), heldKeys: app.digitsHeld };
   for (let i = 0; i < stepCount; i++) step(app.world, gameTime / stepCount, input);
+}
+
+// pauses or resumes the sandbox
+function togglePause(app) {
+  app.paused = !app.paused;
+  app.stepRequested = false;
+  showTimeControls(app);
+}
+
+// pauses the sandbox if it runs, and moves it on by one step
+function requestOneStep(app) {
+  app.paused = true;
+  app.stepRequested = true;
+  showTimeControls(app);
+}
+
+// normal speed, half, quarter, then back to normal
+function cycleSandboxSpeed(app) {
+  const index = SANDBOX_SPEEDS.indexOf(app.sandboxSpeed);
+  app.sandboxSpeed = SANDBOX_SPEEDS[(index + 1) % SANDBOX_SPEEDS.length];
+  showTimeControls(app);
+}
+
+const speedLabel = speed => ({ 1: '1×', 0.5: '½×', 0.25: '¼×' })[speed] || speed + '×';
+
+// the pause button shows what a click does; the speed button shows the speed
+function showTimeControls(app) {
+  byId('sandbox-pause').textContent = app.paused ? '▶' : '⏸';
+  byId('sandbox-pause').title = app.paused ? 'Run (P)' : 'Pause (P)';
+  byId('sandbox-speed').textContent = speedLabel(app.sandboxSpeed);
 }
 
 function drawSandbox(app) {
   drawWater(app.context, app.world, app.canvas.width, app.canvas.height);
+  drawLight(app.context, app.world.light);
   drawWorld(app.context, app.world, app.fluidView);
   showSandboxHud(app);
 }
@@ -133,14 +183,19 @@ function showSandboxHud(app) {
   const chips = [];
   if (vitals.starving) chips.push(`<span class="chip-starving">${vitals.starving} starving</span>`);
   if (vitals.poisoned) chips.push(`<span class="chip-poisoned">${vitals.poisoned} poisoned</span>`);
-  if (player.autopilot) chips.push('<span class="chip-autopilot">Autopilot</span>');
+  if (app.paused) chips.push('<span class="chip-time">Paused</span>');
+  else if (app.sandboxSpeed !== 1) {
+    chips.push(`<span class="chip-time">Slow motion ${speedLabel(app.sandboxSpeed)}</span>`);
+  }
   byId('hud-chips').innerHTML = chips.join('');
   if (byId('hud-keys').innerHTML !== SANDBOX_KEYS_HELP) byId('hud-keys').innerHTML = SANDBOX_KEYS_HELP;
 }
 
-// sandbox keys: Esc back to the builder, T autopilot (the AI plays you), R respawn
+// sandbox keys: Esc back to the builder, R respawn, P pause, . one step, , speed
 function handleSandboxKey(app, key) {
   if (key === 'escape') enterBuilder(app);
-  if (key === 't') app.player.autopilot = !app.player.autopilot;
   if (key === 'r') spawnSandboxPlayer(app);
+  if (key === 'p') togglePause(app);
+  if (key === '.') requestOneStep(app);
+  if (key === ',') cycleSandboxSpeed(app);
 }

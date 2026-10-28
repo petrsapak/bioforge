@@ -66,9 +66,23 @@ const TIPS = {
       hasDummyEnemy: true,
     },
   },
+  lighteye: {
+    howToUse: 'Put two on the front, left and right, and lay a fibre from each across to a Siphon on the other side ' +
+      '(Nerve view). The eye nearer the light then drives the far siphon harder, which turns the creature toward ' +
+      'the light: it follows the mouse in the Sandbox. Wired to the same side, it runs away instead.',
+    example: {
+      cells: [
+        [0, 0, 'nucleus'], [0, -1, 'lighteye'], [1, -1, 'lighteye'], [-1, 0, 'gill'], [1, 0, 'fat'],
+        [-1, 1, 'siphon'], [0, 1, 'siphon'],
+      ],
+      fibres: [[0, -1, 0, 1], [1, -1, -1, 1]],
+      spaceLabel: 'Space held',
+    },
+  },
   muscle: {
     howToUse: 'Needs a nerve signal and O₂ and energy from the body. Muscles on one side of a limb bend it to ' +
-      'that side.',
+      'that side. To swim, line a long tail with muscles on both sides and make the sides take turns (a ' +
+      'Pacemaker, and an Inhibitor of it); a wave running down the tail swims faster.',
     example: {
       cells: [
         [0, 0, 'nucleus'], [0, 1, 'tissue'], [0, 2, 'tissue'], [0, 3, 'tissue'], [-1, 1, 'pacemaker'],

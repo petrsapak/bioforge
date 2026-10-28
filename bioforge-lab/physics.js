@@ -6,9 +6,11 @@ const BOND_STIFFNESS = 2500;                              // spring force per px
 const BOND_DAMPING = 20;                                  // spring force per px/s of closing speed
 const ANGLE_STIFFNESS = 150000;                           // angle spring torque per radian, before the cell's stiffness
 const COLLISION_STIFFNESS = 4000;                         // push per px of overlap between creatures
-const WATER_DRAG = 1.0;                                   // drag force per px/s, on every cell
-const MEMBRANE_DRAG = 4;                                  // extra drag on sideways motion of the outer membrane
-const SWIM_FORCE = 90;                                    // force per unit of swim power
+const WATER_DRAG = 0.1;                                   // drag force per px/s on every cell, skin or not
+const SKIN_FACE_DRAG = 3;                                 // drag per px/s of a skin segment moving face-on
+const SKIN_EDGE_DRAG = 0.3;                               // drag per px/s of a skin segment sliding along itself
+const SKIN_FACE_SQUARE_DRAG = 0.3;                        // extra face-on drag per (px/s)², so fast strokes push more
+const SWIM_FORCE = 200;                                   // force per unit of swim power
 const CILIA_SWIM_POWER = 2.5;                             // extra swim power of a fed cilia cell
 const TURN_STIFFNESS = 10;                                // turning torque per radian of heading error
 const TURN_DAMPING = 5;                                   // turning torque per rad/s of spin
@@ -17,12 +19,15 @@ const TURN_RATE = 2.5;                                    // rad/s, car-style st
 const WALL_BOUNCE = 0.3;                                  // share of speed kept when a cell hits the world's edge
 
 // ---------- Input ----------
-// Sets each creature's wanted swimming direction, heading and ability from the AI, the autopilot or the player's input.
+// Sets each creature's wanted swimming direction, heading and ability from the AI or the player's input. An
+// autonomous creature takes only its Command keys.
 function applyInputs(world, dt, input) {
   for (const creature of world.creatures) {
     if (creature.debris) continue;
-    if (creature.team !== 0 && world.enemiesIdle) holdStill(creature);
-    else if (creature.aiControlled || creature.autopilot) steerTowardNearestEnemy(world, creature);
+    creature.resting = creature.team !== 0 && world.enemiesIdle;   // a sandbox target told to hold still
+    if (creature.resting) holdStill(creature);
+    else if (creature.aiControlled) steerTowardNearestEnemy(world, creature);
+    else if (creature.autonomous) applyTriggerInput(creature, input);
     else if (input && 'forward' in input) applyCarStyleInput(creature, input, dt);
     else if (input) applyDirectionInput(creature, input);
   }
@@ -32,6 +37,14 @@ function holdStill(creature) {
   creature.swimX = 0;
   creature.swimY = 0;
   creature.abilityHeld = false;
+}
+
+// An autonomous creature takes no swimming from the input, only the keys its Command neurons listen to.
+function applyTriggerInput(creature, input) {
+  holdStill(creature);
+  if (!input) return;
+  creature.abilityHeld = !!input.ability;
+  creature.heldKeys = input.heldKeys;
 }
 
 // turn rotates the heading, forward swims along it (negative = reverse without turning)
@@ -60,6 +73,7 @@ function updatePhysics(world, dt) {
     applyBondForces(world);
     applyAngleSpringForces(world);
     applyWaterDrag(world);
+    applySkinDrag(world);
     applySnarePull(world);
     resolveCollisions(world);
     integrate(world, substep);
@@ -109,14 +123,19 @@ function applySteering(creature) {
     creature.swimX = forwardX;
     creature.swimY = forwardY;
   }
-  const turnTorque = isLaunchedPart ? 0 : TURN_STIFFNESS * headingError - TURN_DAMPING * angularVelocity;
+  // an autonomous creature is not held to a heading: only its own cells turn it
+  const isTurned = !isLaunchedPart && !creature.autonomous;
+  const turnTorque = isTurned ? TURN_STIFFNESS * headingError - TURN_DAMPING * angularVelocity : 0;
   for (const cell of creature.cells) {
     const offsetX = cell.x - centerX;
     const offsetY = cell.y - centerY;
-    const ciliaPower = cell.type.beats ? CILIA_SWIM_POWER * cell.efficiency * cell.adrenalineBoost : 0;
-    const swimPower = (isLaunchedPart ? 0 : cell.type.swimPower) + ciliaPower;
-    cell.forceX += cell.type.mass * turnTorque * -offsetY + SWIM_FORCE * swimPower * creature.swimX;
-    cell.forceY += cell.type.mass * turnTorque * offsetX + SWIM_FORCE * swimPower * creature.swimY;
+    const swimPower = isLaunchedPart ? 0 : cell.type.swimPower;
+    // cilia beat toward the creature's front, at their own place, so cilia on one side turn it
+    const isBeating = cell.type.beats && !creature.resting;
+    const ciliaThrust = isBeating ? SWIM_FORCE * CILIA_SWIM_POWER * cell.efficiency * cell.adrenalineBoost : 0;
+    const swimForce = SWIM_FORCE * swimPower;
+    cell.forceX += cell.type.mass * turnTorque * -offsetY + swimForce * creature.swimX + ciliaThrust * forwardX;
+    cell.forceY += cell.type.mass * turnTorque * offsetX + swimForce * creature.swimY + ciliaThrust * forwardY;
     if (cell.type.jets && cell.signal > 0) {
       const thrust = SIPHON_FORCE * clamp01(cell.signal) * cell.efficiency * cell.adrenalineBoost;
       cell.forceX += forwardX * thrust;
@@ -126,7 +145,7 @@ function applySteering(creature) {
 }
 
 // Each bond is a damped spring holding two touching cells at their combined radius.
-// On the outer membrane it also resists sideways motion through the water.
+// A bond on the outer surface is also a segment of skin that the water pushes on.
 function applyBondForces(world) {
   for (const bond of world.bonds) {
     const { first, second } = bond;
@@ -144,21 +163,39 @@ function applyBondForces(world) {
     first.forceY += force * directionY;
     second.forceX -= force * directionX;
     second.forceY -= force * directionY;
-    if (bond.onSurface) applyMembraneDrag(first, second, directionX, directionY);
   }
 }
 
-function applyMembraneDrag(first, second, directionX, directionY) {
-  const normalX = -directionY;
-  const normalY = directionX;
-  const summedVelocityX = first.velocityX + second.velocityX;
-  const summedVelocityY = first.velocityY + second.velocityY;
-  const normalSpeed = (summedVelocityX * normalX + summedVelocityY * normalY) * 0.5;
-  const dragForce = -MEMBRANE_DRAG * normalSpeed * 0.5;
-  first.forceX += dragForce * normalX;
-  first.forceY += dragForce * normalY;
-  second.forceX += dragForce * normalX;
-  second.forceY += dragForce * normalY;
+// The water pushes on skin far harder when it moves face-on than when it slides along itself, and harder still the
+// faster it moves. That is what makes swimming work: a tail swept sideways shoves water back and the body forward,
+// and a quick stroke pushes more than the slow return. The skin's direction at a cell runs from one skin neighbour
+// to the other, which smooths out the zig-zag of the hexes; a cell with no clear direction (a tail tip, a lone cell)
+// is pushed on like a round blob.
+function applySkinDrag(world) {
+  for (const cell of world.cells) {
+    if (!cell.onSurface) continue;
+    const neighbours = cell.skinNeighbours;
+    const speed = vectorLength(cell.velocityX, cell.velocityY);
+    if (neighbours.length !== 2) {
+      const roundDrag = SKIN_FACE_DRAG + SKIN_FACE_SQUARE_DRAG * speed;
+      cell.forceX -= roundDrag * cell.velocityX;
+      cell.forceY -= roundDrag * cell.velocityY;
+      continue;
+    }
+    let directionX = neighbours[1].x - neighbours[0].x;
+    let directionY = neighbours[1].y - neighbours[0].y;
+    const chord = vectorLength(directionX, directionY) || MIN_DISTANCE;
+    directionX /= chord;
+    directionY /= chord;
+    const skinShare = chord / (4 * CELL_RADIUS);           // this cell's share of the skin, about 1
+    const faceSpeed = cell.velocityY * directionX - cell.velocityX * directionY;
+    const edgeSpeed = cell.velocityX * directionX + cell.velocityY * directionY;
+    const faceDrag = SKIN_FACE_DRAG * faceSpeed + SKIN_FACE_SQUARE_DRAG * faceSpeed * Math.abs(faceSpeed);
+    const edgeDrag = SKIN_EDGE_DRAG * edgeSpeed;
+    // the face direction is the normal (-directionY, directionX)
+    cell.forceX -= skinShare * (faceDrag * -directionY + edgeDrag * directionX);
+    cell.forceY -= skinShare * (faceDrag * directionX + edgeDrag * directionY);
+  }
 }
 
 // Each angle spring turns the two arms at its pivot back toward their rest angle.

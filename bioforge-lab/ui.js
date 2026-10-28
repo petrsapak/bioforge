@@ -4,7 +4,7 @@
 // panel.js (with scope.js and coach.js), the dock in dock.js, the library in library.js, the tooltip in tooltip.js and
 // the sandbox in sandbox.js.
 
-const START_DESIGN = 'starter';
+const START_DESIGN = 'jet';
 const START_CELL_TYPE = 'muscle';
 const START_NEURON = 'pacemaker';
 const MAX_FRAME_TIME = 0.05;                              // s; a slower frame (below 20 fps) slows the game down
@@ -53,6 +53,10 @@ function createApp(canvas) {
     tank: null,                                           // the test tank driving the live grid and the preview
     world: null,                                          // the sandbox
     player: null,
+    sandboxLight: null,                                   // { x, y }: the mouse over the sandbox water, a light
+    sandboxSpeed: 1,                                     // share of the normal game speed (slow motion below 1)
+    paused: false,
+    stepRequested: false,                                 // paused: run one step on the next frame
     hudBars: [],
     isPreviewCollapsed: () => false,
     tooltip: createTooltipState(),
@@ -360,7 +364,10 @@ function hexUnderMouse(app, event) {
 
 function listenToMouse(app) {
   const canvas = app.canvas;
-  canvas.addEventListener('mousemove', event => trackMouse(app, event));
+  canvas.addEventListener('mousemove', event => {
+    trackMouse(app, event);
+    trackSandboxLight(app, event);
+  });
   canvas.addEventListener('mousedown', event => {
     if (app.mode === 'sandbox') handleSandboxClick(app, event);
     else handleBuilderMouseDown(app, event);

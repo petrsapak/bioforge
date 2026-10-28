@@ -41,7 +41,7 @@ function showScopeNeuron(scope, neuron) {
       signal: 0,
       neuronMemory: 0,
       boundKey: null,
-      creature: { abilityHeld: false, heldKeys: null, aiControlled: false, autopilot: false },
+      creature: { abilityHeld: false, heldKeys: null, aiControlled: false },
     };
   }
   scope.cell.neuron.setting = neuron.setting;

@@ -67,6 +67,7 @@ function newWorld(width, height, options = {}) {
     waterFeedRate: 0,                                     // energy per second Mouths take straight from the water
     spaceFiresAllSources: false,                          // Space fires every signal source, to try a design out
     enemiesIdle: false,                                   // sandbox: enemies hold still
+    light: null,                                          // { x, y } in px that Light eyes see (sandbox: the mouse)
     systems: new Set(systems),
     ...overrides,
   };
@@ -98,8 +99,9 @@ function createCreature(team, cells, options = {}) {
     cells,
     alive: true,
     aiControlled: false,
-    autopilot: false,
-    debris: false,                                        // a piece cut off from its nucleus, or a launched Bud part
+    autonomous: false,                                    // moves only by its own cells: no free swimming or turning
+    resting: false,                                       // a sandbox enemy holding still: its cilia rest too
+    debris: false,                                       // a piece cut off from its nucleus, or a launched Bud part
     launchedPart: false,                                  // a Bud part fired from its parent
     fueled: false,                                        // launched part: still carries O2 and energy
     heading: 0,                                           // radians clockwise from up
@@ -159,6 +161,7 @@ function createCell(typeName, q, r, creature) {
     efficiency: 1,                                        // share of its fuel demand it got
     adrenalineBoost: 1,
     onSurface: false,                                     // touches the water
+    skinNeighbours: [],                                   // the cells next to it along the skin
     starving: false,
     poisoned: false,
     boundKey: null,                                       // Command: number key it fires on
@@ -270,10 +273,14 @@ function updateRestFrame(creature) {
 }
 
 // A bond is on the outer membrane if fewer than two cells close a triangle over it; its cells touch the water.
+// Each skin cell also learns its neighbours along the skin, from which the water drag finds the skin's direction.
 function markSurface(world, creature) {
   const neighboursOf = new Map(creature.cells.map(cell => [cell, new Set()]));
   const ownBonds = world.bonds.filter(bond => bond.first.creature === creature);
-  for (const cell of creature.cells) cell.onSurface = creature.cells.length < 3;
+  for (const cell of creature.cells) {
+    cell.onSurface = creature.cells.length < 3;
+    cell.skinNeighbours = [];
+  }
   for (const bond of ownBonds) {
     neighboursOf.get(bond.first).add(bond.second);
     neighboursOf.get(bond.second).add(bond.first);
@@ -287,6 +294,8 @@ function markSurface(world, creature) {
     if (!bond.onSurface) continue;
     bond.first.onSurface = true;
     bond.second.onSurface = true;
+    bond.first.skinNeighbours.push(bond.second);
+    bond.second.skinNeighbours.push(bond.first);
   }
 }
 

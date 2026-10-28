@@ -64,8 +64,11 @@
     </div>
     <div class="keys-title">Sandbox</div>
     <div class="keys-grid">
-      <span><b>W</b><b>S</b> <b>A</b><b>D</b></span><span>swim and turn</span>
-      <span><b>T</b></span><span>autopilot</span>
+      <span>mouse</span><span>the light that Light eyes see</span>
+      <span><b>Space</b> <b>1</b>–<b>9</b></span><span>Command neurons</span>
+      <span><b>P</b></span><span>pause</span>
+      <span><b>.</b></span><span>one step</span>
+      <span><b>,</b></span><span>slow motion</span>
       <span><b>R</b></span><span>respawn</span>
     </div>
   </div>
@@ -77,6 +80,9 @@
   <button class="small" id="sandbox-enemy-mode">Enemies: hunt</button>
   <button class="small" id="sandbox-clear">Clear enemies</button>
   <button class="small" id="sandbox-respawn">Respawn me</button>
+  <button class="small time" id="sandbox-pause" title="Pause (P)">⏸</button>
+  <button class="small time" id="sandbox-step" title="One step (.)">⏭</button>
+  <button class="small time" id="sandbox-speed" title="Speed: normal, ½, ¼ (,)">1×</button>
   <button class="small" id="sandbox-exit">Builder</button>
 </div>
 <div id="dock"><div id="dock-inner">
@@ -92,6 +98,9 @@
   <div id="library-body">
     <div class="library-heading">Small (fit the budget)</div>
     <div class="row">
+      <button class="small" data-template="jet" title="The starting creature: a Pacemaker pulses two siphons, so it swims on its own">Jet</button>
+      <button class="small" data-template="paddler" title="Muscle swimmer: two muscle columns take turns, sweeping its front through the water">Paddler</button>
+      <button class="small" data-template="seeker" title="Follows the mouse in the Sandbox: two Light eyes, each wired across to the far siphon">Seeker</button>
       <button class="small" data-template="lancer" title="Thorn bruiser: Space fires the siphons for a dash into its thorns">Lancer</button>
       <button class="small" data-template="stinger" title="Nettle burst: its eyespot stings everything that comes close">Stinger</button>
       <button class="small" data-template="spitter" title="Ranged: Space fires four acid spitters">Spitter</button>

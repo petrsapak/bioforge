@@ -1,5 +1,5 @@
 'use strict';
-// Simple AI for sandbox enemies and the autopilot: swim at the nearest enemy and fire when close. Pure: no DOM.
+// Simple AI for sandbox enemies: swim at the nearest enemy and fire when close. Pure: no DOM.
 
 const AI_ABILITY_RANGE = 170;                             // px between centres within which the AI fires
 

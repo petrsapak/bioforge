@@ -24,6 +24,24 @@ check('sandbox starts with an empty arena',
   byId('hud').style.display === 'block' && byId('sandbox-bar').style.display === 'flex' && enemyCount() === 0,
   byId('hud-mode').textContent);
 
+const chips = () => byId('hud-chips').innerHTML;
+pressKey('p');
+runFrames(2);
+check('P pauses: the chip says so and the button offers to run', chips().includes('Paused') &&
+  byId('sandbox-pause').textContent === '▶', chips());
+pressKey('.');
+runFrames(2);
+check('. moves one step and stays paused', chips().includes('Paused'));
+byId('sandbox-pause').onclick();
+pressKey(',');
+runFrames(2);
+check(', slows it to half speed', byId('sandbox-speed').textContent === '½×' && chips().includes('Slow motion ½×'),
+  chips());
+byId('sandbox-speed').onclick();
+byId('sandbox-speed').onclick();
+runFrames(2);
+check('the speed button cycles back to normal', byId('sandbox-speed').textContent === '1×' && chips() === '');
+
 byId('sandbox-player').value = 'manta';
 byId('sandbox-player').onchange();
 runFrames(30);

@@ -2,12 +2,13 @@
 // Actuators: cells that act on a nerve signal (muscles, bloaters, nettles, snares, spitters), plus cooldown timers and
 // the rotting of debris. Pure: no DOM.
 
-const MUSCLE_MIN_SIZE = 0.35;
-const MUSCLE_CONTRACTION = 0.55;                          // size lost at full signal and power
+const MUSCLE_MIN_SIZE = 0.25;
+const MUSCLE_CONTRACTION = 0.7;                           // size lost at full signal and power
 const BLOATER_MAX_SIZE = 2;
 const BLOATER_SWELL = 0.8;                                // size gained at full signal and power
 const SIZE_SNAP_RATE = 16;                                // per second, toward the active size
 const SIZE_RELAX_RATE = 4;                                // per second, back to rest
+const MUSCLE_RELAX_RATE = 16;                             // per second; a muscle lets go as fast as it snaps
 const MIN_FIRING_EFFICIENCY = 0.3;                        // a weapon needs this share of its fuel to fire
 const DEBRIS_ROT_RATE = 6;                                // health per second lost by unfueled debris
 
@@ -41,7 +42,8 @@ function updateActuators(world, dt) {
   }
 }
 
-// Muscles contract and bloaters swell with their signal; both snap into action and relax slowly.
+// Muscles contract and bloaters swell with their signal. Both snap into action; a muscle lets go as fast, so a tail can
+// beat, while a bloater shrinks back slowly.
 function updateSize(cell, power, dt) {
   const signal = clamp01(cell.signal);
   let targetSize = 1;
@@ -49,7 +51,8 @@ function updateSize(cell, power, dt) {
   if (resize === 'contract') targetSize = Math.max(MUSCLE_MIN_SIZE, 1 - MUSCLE_CONTRACTION * signal * power);
   else if (resize === 'swell') targetSize = Math.min(BLOATER_MAX_SIZE, 1 + BLOATER_SWELL * signal * power);
   const snapping = resize === 'swell' ? targetSize > cell.size : targetSize < cell.size;
-  cell.size += (targetSize - cell.size) * Math.min(1, dt * (snapping ? SIZE_SNAP_RATE : SIZE_RELAX_RATE));
+  const relaxRate = resize === 'contract' ? MUSCLE_RELAX_RATE : SIZE_RELAX_RATE;
+  cell.size += (targetSize - cell.size) * Math.min(1, dt * (snapping ? SIZE_SNAP_RATE : relaxRate));
   cell.radius = CELL_RADIUS * cell.size;
 }
 

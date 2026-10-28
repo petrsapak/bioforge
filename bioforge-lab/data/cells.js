@@ -3,7 +3,8 @@
 //   category, name, cost (biomass), health, color, description: what the builder shows
 //   mass; stiffness (angle springs); bondStrength (bond springs, the weaker cell of a pair counts);
 //   swimPower (free swimming force); damageFactor (share of damage taken: 0.5 = half)
-//   senses: what the cell feels, as a nerve signal its fibres carry: 'enemy' (an enemy cell is near)
+//   senses: what the cell feels, as a nerve signal its fibres carry: 'enemy' (an enemy cell is near, on or off) or
+//     'light' (graded: how far the light lies on the cell's side of the body)
 //   fuelBurn: O2 + energy burned per second at full work (each unit burned becomes one unit of waste)
 //   oxygenCapacity, energyCapacity: how much the cell holds
 // Behaviours: what the cell does in each system. The systems read these, never the type's name.
@@ -15,7 +16,7 @@
 //   breathes: makes O2 from the water; dumpsWaste: dumps waste into the water from the surface
 //   pumps: speeds up fluid flow around it (Heart); gatesFlow: lets fluid through only while signalled (Valve)
 //   eatsFood: takes in food specks; bites: bites cells it touches; spiked: damages enemy cells it hits
-//   beats: extra swimming force (Cilia); jets: pushes the creature forward while signalled (Siphon)
+//   beats: pushes the creature forward, always (Cilia); jets: pushes the creature forward while signalled (Siphon)
 //   resize: 'contract' or 'swell' with its signal; trigger: what a signal fires: 'nettle', 'snare' or 'spit'
 //   growsParts: grows a saved part (Bud); rebuildsCells: regrows lost cells from repair fluid (Mender)
 // Builder hints (design.js): needsSignal: does nothing without a nerve signal; isWeapon: can hurt other creatures;
@@ -62,16 +63,23 @@ const CELLS = {
   cilia: cellType({
     category: 'Body', name: 'Cilia', cost: 2, health: 20, mass: 0.6, fuelBurn: 0.05, color: '#6ac9a0',
     work: 'swimming', beats: true,
-    description: 'Beating hairs. Swims 3.5x harder than a normal cell, but only while it is fed O₂ and energy.',
+    description: 'Beating hairs push the creature forward from where they sit, while fed O₂ and energy. Cilia on ' +
+      'one side turn it.',
   }),
   eyespot: cellType({
     category: 'Sense', name: 'Eyespot', cost: 3, health: 20, senses: 'enemy', color: '#4fd1c5',
     description: 'Signals while an enemy cell is near it. Lay fibres from it to the cells that should react.',
   }),
+  lighteye: cellType({
+    category: 'Sense', name: 'Light eye', cost: 3, health: 20, senses: 'light', color: '#f0c96a',
+    description: 'Signals how far the light lies on its side of the body: strongest when the light is straight out ' +
+      'from it, weakest when it is across the body. In the Sandbox the mouse is the light.',
+  }),
   muscle: cellType({
-    category: 'Action', name: 'Muscle', cost: 3, health: 30, mass: 1.2, fuelBurn: 0.1,
+    category: 'Action', name: 'Muscle', cost: 3, health: 30, mass: 1.2, stiffness: 0.05, fuelBurn: 0.1,
     color: '#d9544f', work: 'graded', resize: 'contract', needsSignal: true,
-    description: 'Contracts to 45% size on a nerve signal, pulling neighbours in and bending the body. Burns fuel.',
+    description: 'Contracts to 30% size on a nerve signal, bending the body. A tail swept fast through the water ' +
+      'pushes the creature along. Burns fuel.',
   }),
   bloater: cellType({
     category: 'Action', name: 'Bloater', cost: 3, health: 30, fuelBurn: 0.1, color: '#b77ee0',

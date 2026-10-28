@@ -34,6 +34,58 @@ function designFromArt(rows) {
 const designCost = design => design.cells.reduce((sum, cell) => sum + CELLS[cell.typeName].cost, 0);
 
 const TEMPLATES = {
+  // The default design: a Pacemaker in the Nucleus pulses two Siphons at the back, so it swims forward in pulses on
+  // its own. Mouth, gill and heart feed the siphons; the pore lets out waste. Written in the current format.
+  jet: {
+    cells: [
+      createDesignCell(0, 0, 'nucleus', { neuron: createNeuron('pacemaker') }),
+      createDesignCell(0, -1, 'mouth'),
+      createDesignCell(1, -1, 'gill'),
+      createDesignCell(-1, 0, 'heart'),
+      createDesignCell(1, 0, 'pore'),
+      createDesignCell(-1, 1, 'siphon'),
+      createDesignCell(0, 1, 'siphon'),
+    ],
+    fibres: [{ from: { q: 0, r: 0 }, to: { q: -1, r: 1 } }, { from: { q: 0, r: 0 }, to: { q: 0, r: 1 } }],
+  },
+  // Swims by muscle and water alone: two columns of muscles at the front, the left on the Nucleus's Pacemaker (1.6 Hz)
+  // and the right on an Inhibitor of it, so they take turns and sweep the front side to side. With the wide body of
+  // organs behind, that drives it forward, muscle end first (about 32 px/s). Slower or faster beats work less well.
+  paddler: {
+    cells: [
+      createDesignCell(0, 0, 'nucleus', { neuron: { ...createNeuron('pacemaker'), setting: 1.6 } }),
+      createDesignCell(-1, 0, 'gill'),
+      createDesignCell(1, 0, 'gill', { neuron: createNeuron('inhibitor') }),
+      createDesignCell(-1, 1, 'pore'),
+      createDesignCell(0, 1, 'mouth'),
+      createDesignCell(-1, 2, 'heart'),
+      createDesignCell(1, -2, 'joint'),
+      createDesignCell(2, -4, 'joint'),
+      createDesignCell(3, -6, 'mouth'),
+      ...[[0, -1], [0, -2], [1, -3], [1, -4], [2, -5]].map(([q, r]) => createDesignCell(q, r, 'muscle')),
+      ...[[1, -1], [2, -2], [2, -3], [3, -4], [3, -5]].map(([q, r]) => createDesignCell(q, r, 'muscle')),
+    ],
+    // a chain down each column of muscles: the left from the Nucleus, the right from the Inhibitor
+    fibres: [[0, 0, 1, 0], [0, 0, 0, -1], [0, -1, 0, -2], [0, -2, 1, -3], [1, -3, 1, -4], [1, -4, 2, -5],
+      [1, 0, 1, -1], [1, -1, 2, -2], [2, -2, 2, -3], [2, -3, 3, -4], [3, -4, 3, -5]]
+      .map(([fromQ, fromR, toQ, toR]) => ({ from: { q: fromQ, r: fromR }, to: { q: toQ, r: toR } })),
+  },
+  // Follows the light (in the Sandbox, the mouse): each Light eye is wired across to the Siphon on the far side, so
+  // the eye nearer the light drives the far siphon harder and turns the creature toward it (Braitenberg's vehicle).
+  seeker: {
+    cells: [
+      createDesignCell(0, 0, 'nucleus'),
+      createDesignCell(0, -1, 'lighteye'),
+      createDesignCell(1, -1, 'lighteye'),
+      createDesignCell(-1, 0, 'mouth'),
+      createDesignCell(1, 0, 'gill'),
+      createDesignCell(-1, 1, 'siphon'),
+      createDesignCell(0, 1, 'siphon'),
+      createDesignCell(1, 1, 'heart'),
+      createDesignCell(-2, 1, 'pore'),
+    ],
+    fibres: [{ from: { q: 0, r: -1 }, to: { q: 0, r: 1 } }, { from: { q: 1, r: -1 }, to: { q: -1, r: 1 } }],
+  },
   wiggler: designFromList([
     [0, 0, 'nucleus'], [0, -1, 'thorn'], [1, -1, 'mouth'], [-1, 0, 'gill'], [1, 0, 'heart'], [1, 1, 'pore'],
     [-1, 1, 'muscle'], [0, 1, 'bloater'], [-2, 2, 'muscle'], [-1, 2, 'pacemaker'], [0, 2, 'bloater'],

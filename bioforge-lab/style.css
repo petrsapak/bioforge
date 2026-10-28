@@ -258,6 +258,7 @@ details > summary:hover { background: #ffffff0d; color: #dfe4ea; }
   padding: 3px;
 }
 #sandbox-bar button.small { flex: none; }
+#sandbox-bar button.time { min-width: 34px; font-size: 15px; }
 
 /* ---------- Sandbox HUD: chips on top, vitals bottom-left, keys bottom-right; clicks pass through ---------- */
 #hud { position: absolute; inset: 0; display: none; pointer-events: none; }
@@ -301,7 +302,7 @@ details > summary:hover { background: #ffffff0d; color: #dfe4ea; }
 }
 #hud-chips .chip-starving { background: #5a3a10; color: #ffc46a; }
 #hud-chips .chip-poisoned { background: #3d4a12; color: #d8e070; }
-#hud-chips .chip-autopilot { background: #1d3d4a; color: #7fd8ff; }
+#hud-chips .chip-time { background: #1d3d4a; color: #7fd8ff; }
 #hud-dead {
   display: none; margin: 4px 0; color: #ff6a5a; font-size: 14px; font-weight: 800; letter-spacing: 2px;
   text-transform: uppercase; text-align: center;

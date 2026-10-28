@@ -19,6 +19,10 @@ Started 2026-10-28. It was copied from `bioforge-moba/`, which is now frozen.
 - **Metabolism:** creatures are built from materials, take materials from food and prey, store them, and secrete chemicals that break down or change materials. It is grounded in real biology and chemistry, but fun comes first. There are **5 materials**, introduced gradually (see Chapters).
 - **Puzzles and metabolism:** the level's material kit is the budget, materials you don't spend become the creature's starting reserves, and growth during a run comes from planned cells.
 - **Nerve fibres run from cell centre to cell centre** (changed 2026-10-28, user: "I don't like the nerves following the edges, make them connecting the centers of the cells instead"; until then they ran along hexagon sides). One step from a cell to its neighbour is one unit of nerve, and a level gives a limited number of units. Paths may cross.
+- **Water (2026-10-28):** the water pushes on the skin, not on every cell. A skin cell moving face-on meets 10x the drag of one sliding along the skin, plus a part that grows with the square of the speed; the skin's direction at a cell runs from one skin neighbour to the other, so the hex zig-zag counts as smooth. So shape matters: a tail beating side to side swims, a wave running down it swims faster, a blob that just pulses stays put, and wide bodies are slower than narrow ones. Cilia and siphons stay the easy way to move. Until then every cell had the same drag (1 per px/s) and the skin only a little more sideways.
+- **The default creature is the Jet** (2026-10-28, user: "create a simple creature that will be able to move and make it the default creature"; until then it was the Starter, which swam on cilia with no wiring). A Pacemaker in the Nucleus pulses two Siphons at the back, so it swims on its own and shows the nerve layer from the first second: 7 cells, 17 biomass, 1 neuron, 2 fibres, no warnings, about 23 px/s straight ahead.
+- **The mouse is a light, not a steering wheel** (2026-10-28, user: "I want the creature to always follow the mouse cursor"; chosen: "Cursor as a sense"). A Light eye cell (`senses: 'light'`) signals, graded 0 to 1, how far the light lies on its side of the body; in the Sandbox the mouse is the light. A creature follows the mouse only if it is wired to: the Seeker template crosses two Light eyes to two Siphons (Braitenberg). Turning toward the cursor in the physics was turned down, because it is piloting. Levels can place their own lights later.
+- **The sandbox runs in real time** (2026-10-28, user: "in the sandbox the creature moves so quickly why?", then "yes remove it"), like the builder's live grid; the speed button gives ½× and ¼×. Until then it ran 2.5 game s per real s, a leftover from steering with WASD.
 - **Vessels** are still planned along hexagon edges (milestone 3). Whether they should follow the nerves to the centres is open.
 - **Try before deciding:** whether chapter 1 uses Protein only, and whether hormones get their own layer, are decided after playing the first version.
 - **Self-harm is on for now:** acid leaks and toxins can hurt your own creature. If it turns out frustrating, it gets toned down or removed.
@@ -184,7 +188,7 @@ actuators.js    resizing, weapon triggers, timers, debris rot (pure); system: ac
 combat.js       damage, contact hits, aiming, snare lines, globs (pure); system: projectiles 70
 growth.js       Bud parts and Mender regrowth (pure); systems: buds 80, regrow 90 (switchable)
 food.js         food specks, eating, specks left by dead cells (pure); system: food 100 (switchable)
-ai.js           sandbox enemy and autopilot steering (pure)
+ai.js           sandbox enemy steering (pure)
 design.js       hex lookup, buildCheck (cells, biomass, neurons, fibre units), design warnings, the saved design
                 format, and the conversion of old saves and of designs from before the nerve layer (pure; loaded
                 before data/templates.js, which uses the conversion)
@@ -265,6 +269,7 @@ Planned additions: `data/levels.js`, `vascular.js`, `chemical.js`, `metabolism.j
    - Test: the logic neurons give the expected truth tables, a chain of fibres delays by one step each, fibres route and get cut as described, old designs still move after conversion, and the same design gives the same result on every run.
 2. **Autonomy, debugging and chapter 1.** No hidden steering. Probes with signal traces, slow motion and single-stepping. The level format, win checks, scores, and 5 Reflexes levels ending in a Braitenberg hunt.
    - Test: a scripted reference solution beats every level headless.
+   - Done so far (2026-10-28): autonomy and time controls. The player's creature is `autonomous`: no free swimming, no held heading, no WASD and no autopilot; Space and 1–9 still reach its Command neurons. Cilia push toward the front from where they sit, so cilia on one side turn it. Muscles move a creature only by pushing water (decided 2026-10-28, user: "I would like the movement behave like in water"; for a few hours before, a contracting muscle kicked the creature forward directly). See "Water" below. The sandbox has pause (P), one step (.) and speeds 1×, ½×, ¼× (,). Test: `tests/autonomy.js`, `tests/sandbox.js`.
 3. **Vascular layer and chapter 2.** Vessels, the Heart, valves; Sugar as fuel.
 4. **Metabolism and chapter 3.** Material recipes, eating, digestion, storage; Fat.
 5. **Secretions and chapter 4.** Mineral, mineralizer, acid, protease, self-harm.
@@ -280,7 +285,12 @@ Planned additions: `data/levels.js`, `vascular.js`, `chemical.js`, `metabolism.j
 
 ## Known limits
 - There is no map code: rocks and currents were removed with `map.js` and come back with levels (milestone 2).
-- Until milestone 2, the sandbox creature is still steered with WASD and the AI autopilot (T).
+- Sandbox enemies are still steered by the AI (`ai.js`), with free swimming and a held heading. Only the player's creature is autonomous. Prey and enemies with their own wiring come with the chapter 1 levels.
+- The light has no range or falloff: a Light eye sees only the direction, so a Seeker reacts the same to a light 20 px or 2000 px away, and once it reaches the light it parks on it.
+- Muscle swimming is touchy. The Paddler template (two muscle columns taking turns at the front, a wide body of organs behind, 45 biomass) swims about 32 px/s at 1.6 Hz, but at 1.2 Hz it spins and at 2 Hz it stalls. Its muscles are more than 3 cells from its Heart (a warning), because a Heart in the spine stiffens the front and it no longer swims. The same body drawn head-first swims backwards, muscle end first.
+- Muscle swimming is slow next to cilia. In 10 game s: a 6-muscle-a-side tail with a Pacemaker and an Inhibitor 7.6 px/s, the same tail driven by a perfect travelling wave 24 px/s, two cilia about 28 px/s. A Ganglion delay made it slower (5 px/s), because it smooths the signal; a neuron that delays a signal unchanged would help.
+- Free swimming (the AI enemies) now depends on shape: at `SWIM_FORCE` 200 they average 48 px/s as before (46), but the wide Manta went from 54 to 32 px/s and the narrow Starter from 64 to 62.
+- The showcase designs were built for WASD. Those without cilia, siphons or a muscle wave no longer move on their own; they are rewired with chapter 1.
 - **Nerve layer (2026-10-28):**
   - Fibres are routed automatically by the shortest path; a player can't choose a route yet. Two fibres that share a step are drawn on top of each other.
   - The built-in designs and the tooltip examples are still written in the old format and converted when loaded. Hand-wired versions come with the chapter 1 levels.

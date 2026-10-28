@@ -7,6 +7,8 @@ const NERVE_SUBSTEPS = 4;                                 // nerve steps per gam
 const EYESPOT_RANGE = 120;                                // px from an eyespot to an enemy cell it notices
 const SIGNAL_ON = 0.5;                                    // signal level above which on/off cells count as on
 const GANGLION_RATE = 2;                                  // share of the gap to its input a Ganglion closes per second
+const MIN_LIGHT_LENGTH = 0.001;                           // px²; nearer than this a Light eye can't tell a direction
+const UNSURE_LIGHT = 0.5;                                 // signal of a Light eye that can't tell where the light is
 
 // What each neuron kind makes of its input sum. The cell's previous signal and neuronMemory are its state.
 const NEURON_RULES = {
@@ -31,18 +33,24 @@ function canMakeSignals(cell) {
   return !cell.budParent && (!creature.debris || creature.launchedPart);
 }
 
-// What a sense organ feels now (0 or 1). In the test tank, Space stands in for every sense.
+// What each sense feels, from 0 to 1, by the cell type's `senses` behaviour (data/cells.js).
+const SENSES = {
+  enemy: (world, cell) => (enemyNear(world, cell) ? 1 : 0),
+  light: (world, cell) => lightSeen(world, cell),
+};
+
+// What a sense organ feels now. In the test tank, Space stands in for every sense.
 function senseOutput(world, cell) {
   if (!cell.type.senses || !canMakeSignals(cell)) return 0;
   if (world.spaceFiresAllSources) return cell.creature.abilityHeld ? 1 : 0;
-  return enemyNear(world, cell) ? 1 : 0;
+  return SENSES[cell.type.senses](world, cell);
 }
 
 // A bound Command fires on its number key for the player; unbound ones, the AI and the test tank use Space (ability).
 function commandOutput(world, cell) {
   const creature = cell.creature;
   const keyHeld = !!cell.boundKey && !!creature.heldKeys && creature.heldKeys.has(cell.boundKey);
-  const playerBound = cell.boundKey && !creature.aiControlled && !creature.autopilot && !world.spaceFiresAllSources;
+  const playerBound = cell.boundKey && !creature.aiControlled &&!world.spaceFiresAllSources;
   return (playerBound ? keyHeld : creature.abilityHeld || keyHeld) ? 1 : 0;
 }
 
@@ -54,6 +62,21 @@ function enemyNear(world, cell) {
     }
   }
   return false;
+}
+
+// Graded by direction: 1 when the light lies straight out from the cell's side of the body, a half when it lies
+// square to that side, 0 when it lies straight across the body. So a Light eye on the left sees more of a light on
+// the left than its twin on the right does, at any distance.
+function lightSeen(world, cell) {
+  const light = world.light;
+  if (!light) return 0;
+  const outwardX = cell.x - cell.creature.centerX;
+  const outwardY = cell.y - cell.creature.centerY;
+  const towardX = light.x - cell.x;
+  const towardY = light.y - cell.y;
+  const lengths = vectorLength(outwardX, outwardY) * vectorLength(towardX, towardY);
+  if (lengths < MIN_LIGHT_LENGTH) return UNSURE_LIGHT;
+  return (1 + (outwardX * towardX + outwardY * towardY) / lengths) / 2;
 }
 
 // the signal a cell takes on, given the sum of its fibre inputs and its sense
