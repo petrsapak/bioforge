@@ -23,7 +23,8 @@ function startLevel(level, design) {
   const player = spawn(world, design, level.start.x, level.start.y, level.start.heading, 0);
   player.autonomous = true;
   const creatures = level.creatures.map(entry => spawnLevelCreature(world, entry));
-  const run = { level, world, player, creatures, time: 0, goalTime: 0, outcome: null, reason: '' };
+  const run = { level, world, player, creatures, time: 0, goalTime: 0, outcome: null, reason: '',
+    playerSpeed: 0 };
   placeLevelLight(run);
   return run;
 }
@@ -39,10 +40,14 @@ function spawnLevelCreature(world, entry) {
 }
 
 // Puts the world's light where the level says: fixed, going round its path, or on the creature that carries it
-// (gone with that creature's death).
+// (gone with that creature's death). A blinking light is gone while it is off.
 function placeLevelLight(run) {
   const light = run.level.light;
   if (!light) return;
+  if (!isLevelLightOn(light, run.time)) {
+    run.world.light = null;
+    return;
+  }
   if (light.carriedBy !== undefined) {
     const carrier = run.creatures[light.carriedBy];
     run.world.light = carrier.alive ? createLight(carrier.centerX, carrier.centerY, light.range) : null;
@@ -54,6 +59,19 @@ function placeLevelLight(run) {
     return;
   }
   run.world.light = createLight(light.x, light.y, light.range);
+}
+
+// whether the level's light shines at this time (game s): always, unless it blinks or flashes once
+function isLevelLightOn(light, time) {
+  if (light.flash) return time >= light.flash.at && time < light.flash.at + light.flash.length;
+  return !light.blink || time % (light.blink.on + light.blink.off) < light.blink.on;
+}
+
+// how long (game s) the level's light has been shining without a break, or 0 while it is off
+function levelLightOnTime(light, time) {
+  if (!light || !isLevelLightOn(light, time)) return 0;
+  if (light.flash) return time - light.flash.at;
+  return light.blink ? time % (light.blink.on + light.blink.off) : time;
 }
 
 // the point (px) a distance (px) along a closed path of points, wrapping round
@@ -79,8 +97,11 @@ function pointAlongLoop(points, distance) {
 function stepLevel(run, dt, input) {
   if (run.outcome) return;
   placeLevelLight(run);
+  const lastX = run.player.centerX;
+  const lastY = run.player.centerY;
   step(run.world, dt, input);
   run.time += dt;
+  run.playerSpeed = vectorLength(run.player.centerX - lastX, run.player.centerY - lastY) / dt;
   checkLevelGoal(run, dt);
 }
 
@@ -96,7 +117,7 @@ const LEVEL_GOALS = {
 
 const distanceToPlayer = (run, x, y) => vectorLength(run.player.centerX - x, run.player.centerY - y);
 
-// Won when the goal is met; lost when the player's Nucleus is gone or the time is up.
+// Won when the goal is met; lost when the player's Nucleus is gone, it was seen moving, or the time is up.
 function checkLevelGoal(run, dt) {
   if (LEVEL_GOALS[run.level.goal.kind](run, run.level.goal, dt)) {
     run.outcome = 'won';
@@ -105,10 +126,31 @@ function checkLevelGoal(run, dt) {
   if (!run.player.alive) {
     run.outcome = 'lost';
     run.reason = 'Your Nucleus was destroyed.';
+  } else if (isSeenMoving(run)) {
+    run.outcome = 'lost';
+    run.reason = 'Seen moving while the light was on.';
+  } else if (isFalseStart(run)) {
+    run.outcome = 'lost';
+    run.reason = 'False start: you moved before the flash.';
   } else if (run.time >= run.level.timeLimit) {
     run.outcome = 'lost';
     run.reason = 'Out of time.';
   }
+}
+
+// A level with a stillWhileLit rule loses when the player swims faster than its speed while the light has been on
+// longer than its grace time (a moment to coast to a stop).
+function isSeenMoving(run) {
+  const rule = run.level.stillWhileLit;
+  if (!rule) return false;
+  return levelLightOnTime(run.level.light, run.time) > rule.grace && run.playerSpeed > rule.speed;
+}
+
+// A level with a stillUntilLit rule loses when the player swims faster than its speed before the light first comes on.
+function isFalseStart(run) {
+  const rule = run.level.stillUntilLit;
+  if (!rule) return false;
+  return run.time < run.level.light.flash.at && run.playerSpeed > rule.speed;
 }
 
 // A win's score: its time (game s), the design's biomass, and stars: one for the win, one for beating the par time

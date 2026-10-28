@@ -6,15 +6,23 @@
 //   limits: design limits ({ budget, maxCells, maxNeurons, maxFibreUnits }); any left out come from RULES
 //   start: the player's spawn { x, y } in px and heading in rad (0 faces up)
 //   light: null, or { range } plus where it is: { x, y } fixed, { path, speed } going round a loop of points (px)
-//     at speed px/s, or { carriedBy } the index of the level creature it sits on
+//     at speed px/s, or { carriedBy } the index of the level creature it sits on. It shines all the time, unless
+//     it has blink: { on, off } (game s on, then off, repeating from the start) or flash: { at, length } (once, at
+//     that game s, for that long)
 //   creatures: others in the arena: { design (a LEVEL_CREATURES or TEMPLATES name), x, y, heading, behaviour }.
 //     behaviour 'wired': it moves only by its own wiring; 'hunt': the AI steers it at the player
 //   goal: { kind: 'reach', x, y, radius } swim the creature's centre into the ring;
 //     { kind: 'stayNear', radius, seconds } stay that close to the light for that long in all
+//   stillWhileLit: { speed, grace }: lost when the player swims faster than speed (px/s) while the light has been
+//     on longer than grace (game s)
+//   stillUntilLit: { speed }: lost when the player swims faster than speed (px/s) before the light's flash
 //   timeLimit: game s; par: { seconds, biomass }: a win within each earns a star
 
 const ARENA = { width: 1400, height: 800 };               // px
 const CHAPTER_1_SYSTEMS = ['nerve'];
+const CHAPTER_NAMES = { 1: 'Reflexes', 2: 'Memory and logic' };
+const WATCHER_LIGHT = { x: 700, y: 60, range: 2000 };     // px: above the top ring, bright all over the arena
+const TOP_RING = { kind: 'reach', x: 700, y: 200, radius: 70 };   // px
 const START_BOTTOM = { x: 700, y: 680, heading: 0 };      // px, rad: bottom middle, facing up
 
 function createLevel(definition) {
@@ -73,6 +81,30 @@ const LEVELS = [
     creatures: [{ design: 'darter', x: 1050, y: 250, heading: 0, behaviour: 'wired' }],
     goal: { kind: 'stayNear', radius: 80, seconds: 8 },
     timeLimit: 60, par: { seconds: 30, biomass: 20 },
+  }),
+  createLevel({
+    id: 'freeze', chapter: 2, name: 'Freeze',
+    brief: 'Swim to the ring. The light above it watches: while it is on, hold still. Still moving a moment ' +
+      'after it comes on loses.',
+    hint: 'An Inhibitor is on while its input is off. Wire both Light eyes into an Inhibitor in the Nucleus, and ' +
+      'the Nucleus to both Siphons: you swim in the dark and stop in the light. One eye alone sits on one side ' +
+      'and turns you in circles.',
+    limits: { budget: 30 },
+    light: { ...WATCHER_LIGHT, blink: { on: 2, off: 3 } },
+    stillWhileLit: { speed: 10, grace: 0.75 },
+    goal: TOP_RING,
+    timeLimit: 35, par: { seconds: 18, biomass: 20 },
+  }),
+  createLevel({
+    id: 'false-start', chapter: 2, name: 'False start',
+    brief: 'Hold still until the light flashes, then swim to the ring. It flashes only once.',
+    hint: 'A Latch flips on at a pulse and stays on. Wire both Light eyes into a Latch in the Nucleus, and the ' +
+      'Nucleus to both Siphons.',
+    limits: { budget: 30 },
+    light: { ...WATCHER_LIGHT, flash: { at: 4, length: 0.5 } },
+    stillUntilLit: { speed: 10 },
+    goal: TOP_RING,
+    timeLimit: 30, par: { seconds: 16, biomass: 20 },
   }),
 ];
 

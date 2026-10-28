@@ -6,6 +6,7 @@ const ARENA_TOP_MARGIN = 84;                              // px of screen above 
 const ARENA_SIDE_MARGIN = 16;                             // px of screen left, right and below the arena
 const GOAL_COLOR = '127,224,160';                         // r,g,b of the goal rings
 const GOAL_PULSE_RATE = 2;                                // rad/s of the goal ring's breathing
+const DARK_LAMP_RADIUS = 9;                               // px in the arena: a light that is off
 const LEVEL_KEYS_HELP = '<b>Space</b> <b>1–9</b> Command neurons &nbsp;<b>P</b> pause &nbsp;<b>.</b> one step ' +
   '&nbsp;<b>,</b> speed<br><b>R</b> retry &nbsp;<b>Esc</b> builder';
 
@@ -47,6 +48,7 @@ function toggleLevelsSheet(app) {
   const list = byId('levels-list');
   list.innerHTML = '';
   LEVELS.forEach((level, i) => {
+    if (i === 0 || LEVELS[i - 1].chapter !== level.chapter) list.appendChild(chapterHeading(level.chapter));
     const row = document.createElement('button');
     row.className = 'level-row' + (level === app.level ? ' selected' : '');
     row.innerHTML = `<span class="level-number">${i + 1}</span><span class="level-name">${level.name}</span>` +
@@ -58,6 +60,14 @@ function toggleLevelsSheet(app) {
     };
     list.appendChild(row);
   });
+}
+
+// the line above a chapter's levels in the sheet
+function chapterHeading(chapter) {
+  const heading = document.createElement('div');
+  heading.className = 'chapter-heading';
+  heading.textContent = `Chapter ${chapter}: ${CHAPTER_NAMES[chapter]}`;
+  return heading;
 }
 
 // Makes the level the one the builder works toward (null: free build). Its limits become the builder's.
@@ -202,6 +212,7 @@ function drawLevelMode(app) {
   context.clip();
   drawWater(context, world, world.width, world.height);
   drawLevelGoal(context, run);
+  drawDarkLamp(context, run);
   drawLight(context, world.light);
   drawWorld(context, world, app.fluidView);
   context.restore();
@@ -221,6 +232,19 @@ function drawLevelGoal(context, run) {
   }
 }
 
+// A blinking or flashing light that is off still shows where it is, as a dim lamp.
+function drawDarkLamp(context, run) {
+  const light = run.level.light;
+  if (!light || run.world.light || light.x === undefined) return;
+  context.fillStyle = 'rgba(255,240,180,0.18)';
+  fillCircle(context, light.x, light.y, DARK_LAMP_RADIUS);
+  context.strokeStyle = 'rgba(255,240,180,0.35)';
+  context.lineWidth = 1.5;
+  context.beginPath();
+  context.arc(light.x, light.y, DARK_LAMP_RADIUS, 0, Math.PI * 2);
+  context.stroke();
+}
+
 function drawGoalRing(context, x, y, radius, rgb, pulse) {
   context.fillStyle = `rgba(${rgb},${0.06 + 0.06 * pulse})`;
   fillCircle(context, x, y, radius);
@@ -238,8 +262,19 @@ function showLevelHud(app, run) {
   byId('hud-fps').textContent = `${Math.round(app.fps)} fps`;
   byId('hud-mode').textContent = `${LEVELS.indexOf(run.level) + 1}. ${run.level.name}`;
   byId('hud-enemies').textContent = `${run.time.toFixed(1)} / ${run.level.timeLimit} s`;
-  showVitalsHud(app, run.world, run.player, [`<span class="chip-goal">${goalProgress(run)}</span>`]);
+  const chips = [`<span class="chip-goal">${goalProgress(run)}</span>`];
+  const stillness = stillnessRule(run);
+  if (stillness) chips.push(`<span class="chip-still">${stillness}</span>`);
+  showVitalsHud(app, run.world, run.player, chips);
   if (byId('hud-keys').innerHTML !== LEVEL_KEYS_HELP) byId('hud-keys').innerHTML = LEVEL_KEYS_HELP;
+}
+
+// what a level's stillness rule asks right now, or '' when it asks nothing
+function stillnessRule(run) {
+  const level = run.level;
+  if (level.stillWhileLit) return run.world.light ? 'Light on: hold still' : 'Dark: go';
+  if (level.stillUntilLit && run.time < level.light.flash.at) return 'Wait for the flash';
+  return '';
 }
 
 // the goal in a few words, with how far along it is

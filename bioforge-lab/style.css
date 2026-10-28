@@ -348,6 +348,8 @@ details > summary:hover { background: #ffffff0d; color: #dfe4ea; }
   text-align: left;
 }
 .level-row:hover { border-color: #5d6b77; }
+.chapter-heading { color: #9fb3c0; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  margin: 6px 0 0; }
 .level-row.selected { border-color: #e8c547; background: #2b2a1f; }
 .level-number { grid-row: span 2; color: #7fe0a0; font-size: 18px; font-weight: 800; text-align: center; }
 .level-name { color: #dfe4ea; font-weight: 700; }
@@ -386,3 +388,4 @@ button.small.run:hover { background: #4a8044; }
 #level-result .row { justify-content: center; }
 #level-result button.small { flex: none; padding: 5px 12px; }
 #hud-chips .chip-goal { background: #1e3d2a; color: #9ff0b8; }
+#hud-chips .chip-still { background: #3d3a1e; color: #f2e39b; }

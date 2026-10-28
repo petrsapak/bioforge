@@ -1,12 +1,12 @@
 'use strict';
-// Levels: every chapter 1 level is beaten headless by a reference solution and not by the wrong tool, runs are the
+// Levels: every level is beaten headless by a reference solution and not by the wrong tool, runs are the
 // same every time, stars follow the par; then the app (fake DOM) picks a level, runs it to a win, keeps the result
 // and moves on to the next level.
 const { load } = require('./load');
 const { startApp } = require('./dom');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['LEVELS', 'TEMPLATES', 'runLevel', 'levelScore', 'levelLimits', 'buildCheck',
-  'createDesignCell', 'createNeuron']);
+  'createDesignCell', 'createNeuron', 'isLevelLightOn']);
 
 const cell = (q, r, typeName, extra = {}) => sim.createDesignCell(q, r, typeName, extra);
 const fibre = (fromQ, fromR, toQ, toR) => ({ from: { q: fromQ, r: fromR }, to: { q: toQ, r: toR } });
@@ -15,6 +15,11 @@ const pacemakerNucleus = () => cell(0, 0, 'nucleus', { neuron: sim.createNeuron(
 const eyesAndSiphons = [cell(0, -1, 'lighteye'), cell(1, -1, 'lighteye'), cell(-1, 1, 'siphon'), cell(0, 1, 'siphon')];
 const CROSSED = [fibre(0, -1, 0, 1), fibre(1, -1, -1, 1)];
 const SAME_SIDE = [fibre(0, -1, -1, 1), fibre(1, -1, 0, 1)];
+// both Light eyes into the Nucleus, which holds a neuron of this kind and drives both Siphons
+function eyesThroughNucleus(neuronKind) {
+  return { cells: [cell(0, 0, 'nucleus', { neuron: sim.createNeuron(neuronKind) }), ...eyesAndSiphons],
+    fibres: [fibre(0, -1, 0, 0), fibre(1, -1, 0, 0), fibre(0, 0, -1, 1), fibre(0, 0, 0, 1)] };
+}
 const SOLUTIONS = {
   'first-stroke': { cells: [pacemakerNucleus(), cell(-1, 1, 'siphon'), cell(0, 1, 'siphon')],
     fibres: [fibre(0, 0, -1, 1), fibre(0, 0, 0, 1)] },
@@ -23,6 +28,8 @@ const SOLUTIONS = {
   shade: { cells: [pacemakerNucleus(), ...eyesAndSiphons],
     fibres: [...SAME_SIDE, fibre(0, 0, -1, 1), fibre(0, 0, 0, 1)] },
   hunt: { cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons], fibres: CROSSED },
+  freeze: eyesThroughNucleus('inhibitor'),
+  'false-start': eyesThroughNucleus('latch'),
 };
 // the wrong tool for each level: it must not win
 const WRONG_TOOLS = {
@@ -30,6 +37,8 @@ const WRONG_TOOLS = {
   moth: sim.TEMPLATES.jet,
   shade: SOLUTIONS.lighthouse,
   hunt: SOLUTIONS.shade,
+  freeze: SOLUTIONS.lighthouse,
+  'false-start': SOLUTIONS.freeze,
 };
 
 for (const level of sim.LEVELS) {
@@ -45,6 +54,14 @@ for (const level of sim.LEVELS) {
   check(`"${level.name}": the wrong tool doesn't win`, wrongRun.outcome === 'lost', wrongRun.reason);
 }
 
+const levelById = id => sim.LEVELS.find(level => level.id === id);
+const blinking = levelById('freeze').light;
+check('a blinking light is on for 2 s, off for 3 s, and round again',
+  [0.5, 2.5, 4.9, 5.1].map(time => sim.isLevelLightOn(blinking, time)).join() === 'true,false,false,true');
+const flashing = levelById('false-start').light;
+check('a flashing light shines once, for half a second at 4 s',
+  [3.9, 4.2, 4.6, 9.2].map(time => sim.isLevelLightOn(flashing, time)).join() === 'false,true,false,false');
+
 const firstLevel = sim.LEVELS[0];
 const firstTime = sim.runLevel(firstLevel, SOLUTIONS['first-stroke']).time;
 check('a level run is the same every time', sim.runLevel(firstLevel, SOLUTIONS['first-stroke']).time === firstTime,
@@ -59,9 +76,12 @@ const { byId, fire, runFrames, readGlobal, storage } = startApp([]);
 runFrames(3);
 check('no level is chosen at first: the card is hidden', byId('level-card').style.display === 'none');
 byId('show-levels').onclick();
-const rows = byId('levels-list').children;
-check('the levels sheet lists every level', byId('levels-sheet').style.display === 'flex' &&
-  rows.length === readGlobal('LEVELS.length'), rows.length + ' rows');
+const listed = byId('levels-list').children;
+const rows = listed.filter(child => child.className.startsWith('level-row'));
+const headings = listed.filter(child => child.className === 'chapter-heading');
+check('the levels sheet lists every level under its chapter', byId('levels-sheet').style.display === 'flex' &&
+  rows.length === readGlobal('LEVELS.length') && headings.length === 2 &&
+  headings[1].textContent === 'Chapter 2: Memory and logic', `${rows.length} rows, ${headings.length} headings`);
 rows[0].onclick();
 check('choosing a level closes the sheet and shows its card with its limits',
   byId('levels-sheet').style.display === 'none' && byId('level-card').style.display === 'block' &&
