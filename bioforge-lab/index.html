@@ -16,6 +16,9 @@
   <button class="tool layer" id="layer-nerve" title="Nerves: neurons and fibres (N)">
     <svg viewBox="0 0 24 24"><path d="M7 17L17 7" stroke="#f2d36b" stroke-width="2"/><path d="M17 7l-5.5 1.2M17 7l-1.2 5.5" stroke="#f2d36b" stroke-width="2" stroke-linecap="round"/><circle cx="6" cy="18" r="3.6" fill="#f2e35b"/><circle cx="18" cy="6" r="2.4" fill="#6fc3e0"/></svg>
     <span>Nerves</span></button>
+  <button class="tool layer" id="layer-vessel" title="Vessels: blood vessels pumped by Hearts (V)">
+    <svg viewBox="0 0 24 24"><path d="M5 18C9 18 9 6 13 6s4 6 6 6" fill="none" stroke="#e0485a" stroke-width="3.2" stroke-linecap="round"/><circle cx="5" cy="18" r="2.6" fill="#e0485a"/><circle cx="19" cy="12" r="2.6" fill="#e0485a"/></svg>
+    <span>Vessels</span></button>
   <div class="tool-gap"></div>
   <button class="tool" data-template="clear" title="Clear: start over with just the Nucleus">
     <svg viewBox="0 0 24 24"><path d="M5 7h14M10 4h4M7 7l1 13h8l1-13" fill="none" stroke="#b9c3cd" stroke-width="1.8" stroke-linejoin="round"/></svg></button>
@@ -76,6 +79,7 @@
       <span><b>Space</b></span><span>fire Commands and Eyespots (test)</span>
       <span><b>1</b>–<b>9</b></span><span>bind a clicked Command to a key</span>
       <span><b>N</b></span><span>Body / Nerves</span>
+      <span><b>V</b></span><span>Body / Vessels: drag from cell to cell</span>
       <span><b>F</b></span><span>show the whole grid</span>
       <span><b>Shift</b>+<b>1</b>–<b>6</b></span><span>fluid views</span>
       <span><b>M</b></span><span>music on / off</span>
@@ -199,6 +203,7 @@
 <script src="physics.js"></script>
 <script src="nerve.js"></script>
 <script src="fluid.js"></script>
+<script src="vascular.js"></script>
 <script src="combat.js"></script>
 <script src="actuators.js"></script>
 <script src="growth.js"></script>

@@ -35,6 +35,7 @@ function createApp(canvas) {
     partDrag: null,                                       // a Bud part being dragged: { budKey, grab, rotation }
     aimDragKey: null,                                     // the Bud whose aim arrow is being dragged
     fibreDrag: null,                                      // a fibre being laid: { fromKey }
+    vesselDrag: null,                                     // a vessel being laid: { fromKey }
     libraryDrag: null,                                    // a library entry being dragged onto a Bud
     panDrag: null,                                        // middle-drag: { panX, panY, mouseX, mouseY } at its start
     hoverHex: null,                                       // [q, r] under the mouse
@@ -160,14 +161,15 @@ function pickNeuron(app, kind) {
   refreshPanel(app);
 }
 
-// ---------- Body and Nerve views ----------
-// switches the builder between the Body view (cells) and the Nerve view (neurons and fibres)
+// ---------- Body, Nerve and Vessels views ----------
+// switches the builder between the Body view (cells), the Nerve view (neurons and fibres) and the Vessels view
 function showLayer(app, layer) {
   app.layer = layer;
   app.stamp = null;
   app.partDrag = null;
   app.aimDragKey = null;
   app.fibreDrag = null;
+  app.vesselDrag = null;
   app.showDockLayer(layer);
   refreshPanel(app);
 }
@@ -347,17 +349,19 @@ function bindFocusedCommand(app, digit) {
   rebuildTank(app);
 }
 
-// F fits the grid; N switches between the Body and Nerve views; H shows the keys; Esc drops what is in hand; Q/E turn
-// the stamp, the dragged part or the clicked Bud's part
+// F fits the grid; N switches between the Body and Nerve views, V between the Body and Vessels views; H shows the
+// keys; Esc drops what is in hand; Q/E turn the stamp, the dragged part or the clicked Bud's part
 function handleBuilderKey(app, key) {
   if (key === 'f') fitGridToScreen(app);
   if (key === 'h') toggleKeysSheet();
   if (key === 'n') showLayer(app, app.layer === 'nerve' ? 'body' : 'nerve');
+  if (key === 'v') showLayer(app, app.layer === 'vessel' ? 'body' : 'vessel');
   if (key === 'escape') {
-    if (app.partDrag || app.aimDragKey || app.fibreDrag) {
+    if (app.partDrag || app.aimDragKey || app.fibreDrag || app.vesselDrag) {
       app.partDrag = null;
       app.aimDragKey = null;
       app.fibreDrag = null;
+      app.vesselDrag = null;
     } else {
       app.stamp = null;
       app.selection.clear();
@@ -442,6 +446,10 @@ function handleBuilderMouseDown(app, event) {
     handleNerveMouseDown(app, event, q, r);
     return;
   }
+  if (app.layer === 'vessel') {
+    handleVesselMouseDown(app, event, q, r);
+    return;
+  }
   const key = hexKey(q, r);
   const isLeft = event.button === 0;
   const isRight = event.button === 2;
@@ -496,6 +504,28 @@ function finishFibreDrag(app, hex) {
   rebuildTank(app);
 }
 
+// Vessels view: a press on a cell starts a vessel from it (see finishVesselDrag) and selects it; a right-click takes
+// out the vessel under the mouse (the one drawn red).
+function handleVesselMouseDown(app, event, q, r) {
+  const key = hexKey(q, r);
+  if (event.button === 2) {
+    const vessel = vesselRemovalTarget(app.edited, screenToGrid(app, event.clientX, event.clientY));
+    if (!vessel) return;
+    removeVessel(app.edited, vessel);
+    rebuildTank(app);
+    return;
+  }
+  if (event.button !== 0 || !app.edited.cells.has(key)) return;
+  app.vesselDrag = { fromKey: key };
+  app.focusKey = key;
+  refreshPanel(app);
+}
+
+// letting go on another cell lays a vessel to it, or removes the one already there
+function finishVesselDrag(app, hex) {
+  if (toggleVessel(app.edited, app.vesselDrag.fromKey, hexKey(...hex))) rebuildTank(app);
+}
+
 // grabs the clicked Bud's aim arrow tip or a cell of a Bud's part, if one is under the mouse
 function grabBudHandle(app, q, r) {
   const handle = budHandleAt(app.edited, q, r, app.hoverPoint, app.focusKey);
@@ -530,6 +560,7 @@ function placeChosenCell(app, q, r) {
 function dropWhatIsInHand(app, event) {
   const hex = app.hoverHex;
   if (app.mode === 'build' && hex && app.fibreDrag) finishFibreDrag(app, hex);
+  if (app.mode === 'build' && hex && app.vesselDrag) finishVesselDrag(app, hex);
   if (app.mode === 'build' && hex) {
     const drag = app.partDrag;
     if (drag) {
@@ -551,6 +582,7 @@ function dropWhatIsInHand(app, event) {
   app.aimDragKey = null;
   app.libraryDrag = null;
   app.fibreDrag = null;
+  app.vesselDrag = null;
 }
 
 // ---------- Frames ----------

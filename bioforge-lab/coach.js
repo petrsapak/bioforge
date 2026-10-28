@@ -36,6 +36,14 @@ const COACH_STEPS = {
     },
     { caption: 'Right-click what turns red: take it out', drawScene: drawRemoveScene },
   ],
+  vessel: [
+    {
+      caption: 'Drag from a Heart to a cell: a vessel',
+      drawScene: drawLayVesselScene,
+      isDone: app => app.edited.vessels.length > 0,
+    },
+    { caption: 'Right-click a vessel: take it out', drawScene: drawRemoveVesselScene },
+  ],
 };
 
 function createCoach() {
@@ -292,6 +300,50 @@ function drawLayFibreScene(context, time) {
   }
   if (isLaid) drawFibre(context, [start, middle, end], null, isLit ? 1 : 0, null, 1, 1.6);
   drawCursor(context, pointer, pressAt(time, 0.6, 1.75));
+}
+
+// The pointer presses on a Heart, drags to a Siphon two cells away and lets go: the vessel runs through the middle
+// cell, lit while the Heart pumps it.
+function drawLayVesselScene(context, time) {
+  const start = [-COACH_STEP_X, 0];
+  const middle = [0, 0];
+  const end = [COACH_STEP_X, 0];
+  const isLaid = time > 1.75;
+  drawSceneCell(context, 'heart', ...start, { shaded: true });
+  drawSceneCell(context, 'tissue', ...middle, { shaded: true });
+  drawSceneCell(context, 'siphon', ...end, { shaded: true });
+  const pointer = time < 0.6 ? movePoint(time, 0, 0.5, COACH_REST_POINT, start)
+    : time < 2.2 ? movePoint(time, 0.7, 1.6, start, end)
+      : movePoint(time, 2.4, 3.1, end, COACH_REST_POINT);
+  if (time >= 0.6 && !isLaid) {                           // the drag: a dashed line to the pointer
+    context.strokeStyle = VESSEL_PUMPED_COLOR;
+    context.lineWidth = 1.4;
+    context.setLineDash([2, 1.5]);
+    strokeLine(context, ...start, ...pointer);
+    context.setLineDash([]);
+  }
+  if (isLaid) drawVessel(context, [start, middle, end], 'pumped', 1, 2.4);
+  drawCursor(context, pointer, pressAt(time, 0.6, 1.75));
+}
+
+// The pointer rests on a vessel, which turns red, and right-clicks it away.
+function drawRemoveVesselScene(context, time) {
+  const start = [-COACH_STEP_X / 2, 0];
+  const end = [COACH_STEP_X / 2, 0];
+  const onVessel = [0, 0];
+  drawSceneCell(context, 'heart', ...start, { shaded: true });
+  drawSceneCell(context, 'siphon', ...end, { shaded: true });
+  const pointer = time < 1.4 ? movePoint(time, 0.1, 0.7, COACH_REST_POINT, onVessel)
+    : movePoint(time, 1.6, 2.2, onVessel, COACH_REST_POINT);
+  if (time < 1.15) {
+    drawVessel(context, [start, end], 'pumped', 1, 2.4);
+    if (time > 0.6) {
+      context.strokeStyle = RIGHT_CLICK_COLOR;
+      context.lineWidth = 3;
+      strokeLine(context, ...start, ...end);
+    }
+  }
+  drawCursor(context, pointer, pressAt(time, 0.95, 1.15, 'right'));
 }
 
 // The pointer rests on a fibre, which turns red, and right-clicks it away; then it does the same to the neuron.

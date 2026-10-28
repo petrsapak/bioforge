@@ -78,7 +78,8 @@ check('a tail beating side to side swims it forward', swimming.forward > 20, swi
 const unwired = runCreature([[0, 0, 'nucleus'], [-1, 0, 'muscle'], [1, 0, 'muscle']], true);
 check('muscles with no signal do nothing', unwired.distance < STILL_DISTANCE, unwired.distance.toFixed(2) + ' px');
 const jet = runCreature(sim.TEMPLATES.jet, true);
-check('the default Jet swims straight ahead on its own wiring', jet.forward > 50 && Math.abs(jet.heading) < TURNED_ANGLE,
+check('the default Jet swims straight ahead on its own wiring',
+  jet.forward > 50 && Math.abs(jet.heading) < TURNED_ANGLE,
   `${jet.forward.toFixed(1)} px, ${jet.heading.toFixed(2)} rad`);
 const paddler = runCreature(sim.TEMPLATES.paddler, true);
 check('the Paddler swims forward by muscle alone', paddler.forward > 80, paddler.forward.toFixed(1) + ' px');

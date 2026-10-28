@@ -80,6 +80,7 @@ button.big:hover { background: #4a8044; }
 .icon-cells { background: #5fbf7a; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
 .icon-neurons { background: #f2e35b; border-radius: 50%; }
 .icon-fibre { background: linear-gradient(135deg, transparent 42%, #f2d36b 42% 58%, transparent 58%); }
+.icon-vessel { background: linear-gradient(135deg, transparent 32%, #e0485a 32% 68%, transparent 68%); }
 
 /* the card: a picture of the cell or neuron and a few words beside it */
 #card { display: flex; gap: 10px; align-items: flex-start; margin-top: 8px; }

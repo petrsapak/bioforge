@@ -40,11 +40,36 @@ function traceRoute(cameFrom, endKey) {
 
 // total fibre units of a design's fibres routed through its cells; fibres without a route count nothing
 function fibreUnits(design) {
-  const area = createRouteArea(design.cells);
-  return (design.fibres || []).reduce((sum, fibre) => {
-    const route = routeFibre(area, fibre.from, fibre.to);
+  return routedUnits(design.cells, design.fibres || []);
+}
+
+// total units of links ({ from, to }: fibres or vessels) routed through these cells; unroutable links count nothing
+function routedUnits(cells, links) {
+  const area = createRouteArea(cells);
+  return links.reduce((sum, link) => {
+    const route = routeFibre(area, link.from, link.to);
     return sum + (route ? route.units : 0);
   }, 0);
+}
+
+// Per group of the creature's living cells (the body, or one growing Bud part), the area its routes run through, made
+// on first use. Returns a function from the group (a Bud, or null for the body) to its area.
+function createGroupAreas(creature) {
+  const areas = new Map();
+  return group => {
+    if (!areas.has(group)) {
+      areas.set(group, createRouteArea(creature.cells.filter(cell => !cell.dead && cell.budParent === group)));
+    }
+    return areas.get(group);
+  };
+}
+
+// the creature's living cells along a route, from its start to its end
+function routeCells(creature, route) {
+  return route.hexes.map(key => {
+    const { q, r } = parseHexKey(key);
+    return liveCellAt(creature, q, r);
+  });
 }
 
 // ---------- Fibres in the world ----------
@@ -53,25 +78,14 @@ function fibreUnits(design) {
 // grow or regrow. Fibres already there are kept.
 function connectFibres(world, creature, designFibres) {
   if (!designFibres || !designFibres.length) return;
-  const areas = new Map();                                // per group: its living cells
-  const areaFor = group => {
-    if (!areas.has(group)) {
-      areas.set(group, createRouteArea(creature.cells.filter(cell => !cell.dead && cell.budParent === group)));
-    }
-    return areas.get(group);
-  };
+  const areaFor = createGroupAreas(creature);
   for (const designFibre of designFibres) {
     const from = liveCellAt(creature, designFibre.from.q, designFibre.from.r);
     const to = liveCellAt(creature, designFibre.to.q, designFibre.to.r);
     if (!from || !to || from.budParent !== to.budParent) continue;
     if (world.fibres.some(fibre => fibre.from === from && fibre.to === to)) continue;
     const route = routeFibre(areaFor(from.budParent), from, to);
-    if (!route) continue;
-    const path = route.hexes.map(key => {
-      const { q, r } = parseHexKey(key);
-      return liveCellAt(creature, q, r);
-    });
-    world.fibres.push(createFibre(from, to, path, route.units));
+    if (route) world.fibres.push(createFibre(from, to, routeCells(creature, route), route.units));
   }
 }
 

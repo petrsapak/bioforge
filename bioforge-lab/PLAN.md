@@ -27,7 +27,7 @@ Started 2026-10-28. It was copied from `bioforge-moba/`, which is now frozen.
 - **Light has a reach** (2026-10-28, user: "light range yes"). A light (`createLight` in `core.js`) reaches 450 px by default (`LIGHT_RANGE`); a Light eye's signal is its direction factor times a brightness that falls evenly from 1 at the light to 0 at the edge. So a crossed Seeker speeds up as it nears the light, Braitenberg's "aggressive" vehicle. Levels can give each light its own range. The Sandbox draws the reach as a dashed ring.
 - **The mouse is a light, not a steering wheel** (2026-10-28, user: "I want the creature to always follow the mouse cursor"; chosen: "Cursor as a sense"). A Light eye cell (`senses: 'light'`) signals, graded 0 to 1, how far the light lies on its side of the body; in the Sandbox the mouse is the light. A creature follows the mouse only if it is wired to: the Seeker template crosses two Light eyes to two Siphons (Braitenberg). Turning toward the cursor in the physics was turned down, because it is piloting. Levels can place their own lights later.
 - **The sandbox runs in real time** (2026-10-28, user: "in the sandbox the creature moves so quickly why?", then "yes remove it"), like the builder's live grid; the speed button gives ½× and ¼×. Until then it ran 2.5 game s per real s, a leftover from steering with WASD.
-- **Vessels** are still planned along hexagon edges (milestone 3). Whether they should follow the nerves to the centres is open.
+- **Vessels** (2026-10-28, chosen without asking with "commit and continue"; until then they were planned along hexagon edges). A vessel runs from cell centre to cell centre like a fibre, routed the same way, and is laid in the builder's Vessels view (V) by dragging from cell to cell. It has no direction and **connects only its two end cells**: blood (O₂, energy, waste, repair fluid; not hormones) flows between them from the fuller to the emptier, and the cells between only carry it. A fed **Heart anywhere on a vessel pumps it**: 0.4 flow per unit of fill difference unpumped (the same as seeping between touching cells), 4.4 with one Heart, up to 8. An unsignalled **Valve** on a vessel shuts it. The Heart no longer speeds up every link within 3 cells of itself; without vessels it pumps nothing. Vessels cost no biomass; `RULES.maxVesselUnits` (30) and a level's `maxVesselUnits` limit their steps. A vessel is cut when a cell it runs through dies, and comes back when the cell regrows. The vascular system is switchable (`vascular` in a level's `systems`).
 - **Try before deciding:** whether chapter 1 uses Protein only, and whether hormones get their own layer, are decided after playing the first version.
 - **Self-harm is on for now:** acid leaks and toxins can hurt your own creature. If it turns out frustrating, it gets toned down or removed.
 - **Every mechanic must be removable** (see "Removable mechanics"). Any part that turns out frustrating can be switched off without breaking the rest.
@@ -63,10 +63,10 @@ The layer split is a proposal, to try in play first. The creature has 4 layers o
 |---|---|---|---|
 | **Body** | Structural and organ cells: tissue, shell, muscle, gill, fat… They have mass, HP and shape, and each is made of materials. | Static | cells |
 | **Nerve** | Neurons (logic nodes) and nerve fibres from cell centre to cell centre. It carries graded signals and spikes. | Fast (ms) | Neurons inside body cells, fibres between them |
-| **Vascular** | Vessels along hexagon edges, a Heart that pumps along them, and valves on the vessels. It carries blood: O₂, sugar, waste and dissolved materials. | Medium (seconds) | Fluids seep cell to cell; a Heart boosts flow within 3 cells |
+| **Vascular** | Vessels from cell centre to cell centre, a Heart that pumps the vessels it sits on, and valves on the vessels. It carries blood: O₂, sugar, waste and dissolved materials. | Medium (seconds) | Vessels (2026-10-28); fluids also seep cell to cell |
 | **Chemical** | Glands release hormones (which spread slowly through the whole body, read by receptors) and secretions (which act on cells, your own or others'). | Slow (tens of seconds) | Adrenaline and repair fluid move like the other fluids |
 
-- **Routing:** a nerve fibre runs from the centre of its start cell through the centres of the cells between, to its end cell. One step is one unit, and each level limits the units. Vessels are still planned along the sides of the hexagons, one side per unit; a nerve and a vessel never compete for room.
+- **Routing:** a nerve fibre runs from the centre of its start cell through the centres of the cells between, to its end cell. One step is one unit, and each level limits the units. Vessels are routed the same way on their own layer (2026-10-28; until then planned along the hexagon sides), so a nerve and a vessel never compete for room.
 - **Crossing:** paths may cross, also inside a cell they both pass through; they stay separate, drawn with a bridge arc.
 - **Fibres connect only at their two ends** (decided 2026-10-28). You drag from one cell to another and the fibre routes through the cells between. The cells it passes through aren't affected.
 - **Fibres are directed** (decided 2026-10-28), drawn with an arrow, so a fibre is also a diode.
@@ -112,10 +112,10 @@ The kit-as-budget, reserves and growth-plan parts are confirmed; recipes and num
 | Material | Real basis | Comes from | Builds / used for | Chapter |
 |---|---|---|---|---|
 | **Protein** | Amino acids | Bacteria, other creatures' soft cells | Most cells: muscle, nerves, glands, enzymes | 1 |
-| **Sugar** | Carbohydrates | Algae, plant-like specks | Fuel in the blood; chitin | 2 |
-| **Fat** | Lipids | Most food | Long-term energy store, buoyancy | 3 |
-| **Mineral** | Calcium, silica | Seawater (slowly), diatoms, eaten shells | Shell, spines, thorns | 4 |
-| **Nucleic** (rare) | DNA/RNA | Only whole creatures | Growth, Buds, regrowth | 6 |
+| **Sugar** | Carbohydrates | Algae, plant-like specks | Fuel in the blood; chitin | 3 |
+| **Fat** | Lipids | Most food | Long-term energy store, buoyancy | 4 |
+| **Mineral** | Calcium, silica | Seawater (slowly), diatoms, eaten shells | Shell, spines, thorns | 5 |
+| **Nucleic** (rare) | DNA/RNA | Only whole creatures | Growth, Buds, regrowth | 7 |
 
 - **Each cell type has a recipe.** Eating a cell gives back its recipe minus a digestion loss, so a prey's body tells you what you'll get from it.
 - **Storage cells:** Fat stores fat and sugar; a vacuole stores protein; a deposit stores mineral.
@@ -155,16 +155,17 @@ This is like a developmental program: you draw the target body and wire the cond
 | **Metamorphosis** (boss) | Start as a swimmer and finish as an armoured crawler: dissolve your own fins and recycle them into shell. | Everything together |
 
 ## Chapters
-Each chapter teaches one new pattern set. Each development milestone ends with its chapter playable.
+Each chapter teaches one new pattern set. Each development milestone ends with its chapter playable. Memory and logic became chapter 2 on 2026-10-28, so the chapters after it moved up by one (Circulation was chapter 2).
 
 | Chapter | New pattern | Systems on | Materials |
 |---|---|---|---|
 | 1. **Reflexes** | Neurons and wiring: rhythm, steering (Braitenberg), sensing | Body, nerve | Protein only; it works like a single budget |
-| 2. **Circulation** | Vessels, the Heart, valves; fuel delivery | + vascular | + Sugar (fuel in the blood) |
-| 3. **Feeding** | Mouth, digestion, storage; self-sufficiency | + metabolism (eating, storage) | + Fat |
-| 4. **Armour** | Shells, mineralizing, acid; counterplay | + secretions | + Mineral |
-| 5. **Moods** | Hormones modulating neurons; the fed/starved economy; crosslinker and resilin | + chemical (hormones, treatments) | — |
-| 6. **Growth** | Growth plan, Buds, regrowth; hunting for nucleic | + growth | + Nucleic |
+| 2. **Memory and logic** | Inhibitor, Latch, Delay, Synapse: holding still, waiting, timing, thresholds | Body, nerve | Protein only |
+| 3. **Circulation** | Vessels, the Heart, valves; fuel delivery | + fluid, vascular | + Sugar (fuel in the blood) |
+| 4. **Feeding** | Mouth, digestion, storage; self-sufficiency | + metabolism (eating, storage) | + Fat |
+| 5. **Armour** | Shells, mineralizing, acid; counterplay | + secretions | + Mineral |
+| 6. **Moods** | Hormones modulating neurons; the fed/starved economy; crosslinker and resilin | + chemical (hormones, treatments) | — |
+| 7. **Growth** | Growth plan, Buds, regrowth; hunting for nucleic | + growth | + Nucleic |
 
 ## Removable mechanics
 Every mechanic is a separate switch, so any part that turns out frustrating can be turned off or tuned without breaking the rest:
@@ -183,11 +184,14 @@ math.js         deterministic sine, cosine, arcTangent2 and the seeded random ge
 core.js         constants, hex and math helpers, world (newWorld, newTestTank, randomFraction), creature and cell
                 factories, spawn, death and splitting, the system registry, step() and the cell-death hooks (pure);
                 systems: clock 30, cleanup 110, particles 120
-fibres.js       nerve fibre routing from cell centre to cell centre, units, adding fibres to a creature and
-                cutting broken ones (pure)
+fibres.js       nerve fibre routing from cell centre to cell centre (vessels use it too), units, adding fibres to
+                a creature and cutting broken ones (pure)
 physics.js      input, steering, springs, drag, collisions, integration (pure); systems: input 10, physics 20
 nerve.js        signals along fibres, senses, the neuron rules (pure); system: nerve 40 (switchable)
-fluid.js        work levels, fuel burning, products, fluid flow (pure); system: fluid 50 (switchable)
+fluid.js        work levels, fuel burning, products, fluids seeping between touching cells (pure); system: fluid
+                50 (switchable)
+vascular.js     blood vessels: units, adding a design's vessels to a creature, cutting broken ones, blood flow
+                between their ends pumped by Hearts and shut by Valves (pure); system: vascular 55 (switchable)
 actuators.js    resizing, weapon triggers, timers, debris rot (pure); system: actuators 60
 combat.js       damage, contact hits, aiming, snare lines, globs (pure); system: projectiles 70
 growth.js       Bud parts and Mender regrowth (pure); systems: buds 80, regrow 90 (switchable)
@@ -195,10 +199,10 @@ food.js         food specks, eating, specks left by dead cells (pure); system: f
 ai.js           sandbox enemy steering (pure)
 levels.js       levels: building a level's world, its light, stepping it, the goal checks, the score, a headless
                 run (pure)
-design.js       hex lookup, buildCheck (cells, biomass, neurons, fibre units), design warnings, the saved design
+design.js       hex lookup, buildCheck (cells, biomass, neurons, fibre and vessel units), design warnings, the saved design
                 format, and the conversion of old saves and of designs from before the nerve layer (pure; loaded
                 before data/templates.js, which uses the conversion)
-builder.js      the edited design and every editing rule: cells, Bud parts and aim, Command keys, stamps,
+builder.js      the edited design and every editing rule: cells, Bud parts and aim, Command keys, vessels, stamps,
                 saving a selection, the library list (pure)
 data/*.js       cells (stats and behaviour fields), neurons, fluids, templates (incl. the small builds), tips,
                 levels and the creatures that live in them
@@ -208,7 +212,8 @@ tipdemo.js      live example tank in the cell tooltip
 hud.js          HUD bars and vitals
 dock.js         the cell dock
 library.js      the template library window, saved in localStorage
-toolbar.js      the toolbar down the left edge: Body / Nerves, Clear, Save, Unlimited, fluid views, keys, Sandbox
+toolbar.js      the toolbar down the left edge: Body / Nerves / Vessels, Clear, Save, Unlimited, fluid views, keys,
+                Sandbox
 panel.js        the side panel: meters, a card with a picture of the clicked or chosen cell or neuron, stats
                 chips, warnings
 scope.js        the neuron scope: an animated input and output trace, run through the real neuron rules
@@ -224,14 +229,15 @@ music.js        the background music: starts on the first click or key; the tool
 audio/          the music track (mp3)
 ui.js           the app state, the controls, mouse and keyboard input, the frame loop
 tests/*.js      headless checks: node tests/all.js (autonomy, builder, design, determinism, editor, golden,
-                levels, music, nerve, probes, sandbox, showcase, systems, weapons); helpers: load.js, dom.js (fake browser), check.js
+                levels, music, nerve, probes, sandbox, showcase, systems, vascular, weapons); helpers: load.js,
+                dom.js (fake browser), check.js
 ```
 
-**The saved design format** (2026-10-28): a design cell is `{ q, r, typeName }`, plus on a Bud `budPart`, `partRotation`, `partOffset` and `partAim`, and on a Command `boundKey`. A library entry is `{ name, isCreature, cells }`. `migrateLibraryEntry()` in `design.js` reads the old short names (`t`, `tpl`, `bind`, `rot`, `off`, `aim`, `full`). The library lives under `bioforge-lab-library`; the first time, Lab copies Bioforge Moba's `bioforge-templates` list from it, and it never writes to that key, because pages opened from disk can share storage and Moba still uses it. Every Lab storage key starts with `bioforge-lab-`.
+**The saved design format** (2026-10-28): a design is `{ cells, fibres, vessels }`; fibres and vessels are `{ from: { q, r }, to: { q, r } }`. A design cell is `{ q, r, typeName }`, plus on a Bud `budPart`, `partRotation`, `partOffset` and `partAim`, and on a Command `boundKey`. A library entry is `{ name, isCreature, cells, fibres, vessels }`; one saved before vessels loads with none. `migrateLibraryEntry()` in `design.js` reads the old short names (`t`, `tpl`, `bind`, `rot`, `off`, `aim`, `full`). The library lives under `bioforge-lab-library`; the first time, Lab copies Bioforge Moba's `bioforge-templates` list from it, and it never writes to that key, because pages opened from disk can share storage and Moba still uses it. Every Lab storage key starts with `bioforge-lab-`.
 
 **Cell behaviours.** Systems never check a cell's type name. Each cell type in `data/cells.js` declares behaviour fields (`work`, `product`, `trigger`, `resize`, `breathes`, `pumps`, `gatesFlow`, `needsSignal`…), and the systems read those, some through small registries (`WORK_LEVELS` and `PRODUCTS` in `fluid.js`, `TRIGGERS` in `actuators.js`). A new cell type made from existing behaviours needs only data. `tests/determinism.js` fails if a pure file compares `typeName`.
 
-Planned additions: `data/levels.js`, `vascular.js`, `chemical.js`, `metabolism.js`, `level.js` (level loading, win checks, scores).
+Planned additions: `chemical.js`, `metabolism.js`.
 
 ## Milestones
 0. **Trim.** ✅ Done 2026-10-28.
@@ -289,17 +295,19 @@ Planned additions: `data/levels.js`, `vascular.js`, `chemical.js`, `metabolism.j
    - Done 2026-10-28: levels unlock in order (a locked row is dimmed, shows a lock and names the win that opens it), and Metronome, chapter 2's third level: the light comes on every 4 s and you must already be still (0.25 s grace): a Delay of 2.5–3 s in one Light eye stops the Freeze build before the next flash. Test: `tests/levels.js`.
    - Done 2026-10-28: Dock, chapter 2's fourth level and its Synapse level: a fixed light (900 px reach) above a ring; come to rest in the ring for 2 s. The eyes grow brighter on the way in, and a Synapse at threshold 1.5 into an Inhibitor stops the creature in the ring. New goal kind `restIn`. Test: `tests/levels.js`.
    - Done 2026-10-28: choosing which cells to probe. While the signals show, a left click on one of your own cells in a run adds its lane at the end, or removes it if it is probed (the rest are numbered again; a ninth lane replaces the eighth). In the Sandbox a click anywhere else still spawns an enemy. The choice is kept through respawns and retries, and a new run from the builder goes back to the automatic pick. Test: `tests/probes.js`.
-3. **Vascular layer and chapter 2.** Vessels, the Heart, valves; Sugar as fuel.
-4. **Metabolism and chapter 3.** Material recipes, eating, digestion, storage; Fat.
-5. **Secretions and chapter 4.** Mineral, mineralizer, acid, protease, self-harm.
-6. **Chemical layer and chapter 5.** Hormones, modulation, crosslinker and resilin.
-7. **Growth and chapter 6.** The growth plan, Buds, regrowth, Nucleic, and the metamorphosis boss.
+3. **Vascular layer and chapter 3.** Vessels, the Heart, valves; Sugar as fuel. (Until 2026-10-28 this was "chapter 2"; the later milestones moved up by one with it.)
+   - Done 2026-10-28: vessels (see Decisions). `vascular.js` with its own switchable system; the Heart pumps only the vessels it sits on, and the old "within 3 cells" boost is gone from `fluid.js`. The builder has a Vessels view (toolbar button or V): drag from cell to cell to lay a vessel or remove the one there, right-click a vessel to take it out, a vessel meter, and its own How to steps. Vessels are drawn bright while pumped, dark while idle, grey and dashed while a Valve shuts them, in the builder and in runs. Stamps, saved parts and creatures keep their vessels. Warnings: a Heart on no vessel, and fuel-burning cells more than 2 cells from the end of a pumped vessel. The Jet, Seeker, Paddler and the four small builds got vessels from their Hearts; their swim speeds are unchanged. Test: `tests/vascular.js`, `tests/editor.js`.
+   - Open: chapter 3's levels (fuel delivery puzzles, so fluids matter: the levels so far run the nerve only); Sugar as the name of the fuel (it is still "energy"); whether the Heart's rate follows a nerve signal; whether blood should flow one way (now from fuller to emptier); vessels in Bud parts.
+4. **Metabolism and chapter 4.** Material recipes, eating, digestion, storage; Fat.
+5. **Secretions and chapter 5.** Mineral, mineralizer, acid, protease, self-harm.
+6. **Chemical layer and chapter 6.** Hormones, modulation, crosslinker and resilin.
+7. **Growth and chapter 7.** The growth plan, Buds, regrowth, Nucleic, and the metamorphosis boss.
 
 ## Open questions
 - **Where do the levels live in the UI?** The flag button, levels sheet and level card above the panel are kept for now; the user doesn't like the placement (2026-10-28: "I don't like the placement from UX perspective but ok, keep it like this for now"). Redo it with the UI pass.
 - **How does a crossing look in the editor?** (milestone 1)
 - **Is the 4-layer split right?** Should hormones merge into the vascular layer? Decide after trying it.
-- **Which current cells stay, change or go?** Nerve cells and the Heart radius are replaced by the layers.
+- **Which current cells stay, change or go?** Nerve cells and the Heart radius were replaced by the layers (2026-10-28).
 - **Is Protein-only in chapter 1 too abstract?** Decide after trying it.
 
 ## Known limits
@@ -310,7 +318,7 @@ Planned additions: `data/levels.js`, `vascular.js`, `chemical.js`, `metabolism.j
 - All four chapter 2 levels share the same arena (spawn at the bottom, ring and light at the top).
 - Dock has one working threshold: 1.5 (thresholds step by 0.5; 1 stops at y 478 px, short of the ring, and 2 never stops). Its reference build needs a second Tissue cell only to keep the body even, or it turns.
 - A Seeker can't win by damage: it slows to a stop on the light, so Thorns barely hit (they need speed), and a Darter's 80-health Nucleus outlasts a 60 s level. So the Hunt asks to keep near the prey, not to kill it; the `kill` goal was left out until combat is tuned for wired creatures.
-- Muscle swimming is touchy. The Paddler template (two muscle columns taking turns at the front, a wide body of organs behind, 45 biomass) swims about 32 px/s at 1.6 Hz, but at 1.2 Hz it spins and at 2 Hz it stalls. Its muscles are more than 3 cells from its Heart (a warning), because a Heart in the spine stiffens the front and it no longer swims. The same body drawn head-first swims backwards, muscle end first.
+- Muscle swimming is touchy. The Paddler template (two muscle columns taking turns at the front, a wide body of organs behind, 45 biomass) swims about 32 px/s at 1.6 Hz, but at 1.2 Hz it spins and at 2 Hz it stalls. Its Heart sits behind the organs, because a Heart in the spine stiffens the front and it no longer swims; two vessels (10 units) carry blood from it to the middle of each muscle column (2026-10-28; until then its muscles were more than 3 cells from the Heart, a warning). The same body drawn head-first swims backwards, muscle end first.
 - Muscle swimming is slow next to cilia. In 10 game s: a 6-muscle-a-side tail with a Pacemaker and an Inhibitor 7.6 px/s, the same tail driven by a perfect travelling wave 24 px/s, two cilia about 28 px/s. A Ganglion delay made it slower (5 px/s), because it smooths the signal; the Delay neuron (2026-10-28) delays it unchanged, but no template uses it yet.
 - Free swimming (the AI enemies) now depends on shape: at `SWIM_FORCE` 200 they average 48 px/s as before (46), but the wide Manta went from 54 to 32 px/s and the narrow Starter from 64 to 62.
 - The showcase designs were built for WASD. Those without cilia, siphons or a muscle wave no longer move on their own; they are rewired with chapter 1.
@@ -319,5 +327,10 @@ Planned additions: `data/levels.js`, `vascular.js`, `chemical.js`, `metabolism.j
   - The built-in designs and the tooltip examples are still written in the old format and converted when loaded. Hand-wired versions come with the chapter 1 levels.
   - Neurons have no live tooltip demo; their dock buttons show the description as a plain tooltip.
   - Converted designs act on sharper signals: the old leaking signals faded slowly, fibres switch off at once. The Puffer's bloaters are on in 137 of 400 golden-scenario steps instead of 194.
+- **Vascular layer (2026-10-28):**
+  - Bud parts have no vessels: a part saved with vessels grows without them.
+  - The Vessels view is there in every level, also where the vascular system is off (chapters 1 and 2), where vessels do nothing.
+  - In the short runs measured, no template starves with or without vessels: the fuel budget isn't tight yet, so vessels don't change how the current designs swim. Chapter 3's levels have to make fuel delivery matter.
+  - The cell card lists a cell's fibres but not its vessels.
 - The tests run the scripts in a Node `vm` context, where every call of a global function goes through a slow lookup. The sim runs about 8x slower there than in a browser, and `node tests/all.js` takes about 18 s.
 - `sine` and `cosine` are within 1 unit in the last place for ordinary angles. Right next to a multiple of π/2 the error is larger relative to the tiny result, about 1e-26 in absolute terms, which doesn't matter for the game.

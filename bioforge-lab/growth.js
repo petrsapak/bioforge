@@ -276,6 +276,7 @@ function regrowCell(world, creature, blueprintCell) {
   if (blueprintCell.boundKey) cell.boundKey = blueprintCell.boundKey;
   if (cell.type.growsParts && blueprintCell.budPart) cell.budGrowth = newBudGrowth(creature.design, blueprintCell);
   connectFibres(world, creature, creature.designFibres);
+  connectVessels(world, creature, creature.designVessels);
   spawnSparks(world, cell.x, cell.y, CELLS.mender.color, 6);
   return cell;
 }

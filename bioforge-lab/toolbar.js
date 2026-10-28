@@ -1,6 +1,6 @@
 'use strict';
-// The builder's toolbar down the left edge: the Body and Nerve views, Clear, Save creature, Unlimited biomass, the
-// fluid views, the keys sheet and the Sandbox button (browser only).
+// The builder's toolbar down the left edge: the Body, Nerve and Vessels views, Clear, Save creature, Unlimited
+// biomass, the fluid views, the keys sheet and the Sandbox button (browser only).
 
 const NORMAL_VIEW_COLOR = '#dfe4ea';
 
@@ -14,6 +14,7 @@ function setUpToolbar(app) {
 function setUpLayerSwitch(app) {
   byId('layer-body').onclick = () => showLayer(app, 'body');
   byId('layer-nerve').onclick = () => showLayer(app, 'nerve');
+  byId('layer-vessel').onclick = () => showLayer(app, 'vessel');
 }
 
 // one round button per view, filled with its fluid's colour (also Shift+1–6); the first is the normal view

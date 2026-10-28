@@ -14,7 +14,8 @@
 //     'refillRepair' (until its repair fluid is nearly full), 'growPart' (while its Bud part is unfinished)
 //   product (fluid): what its burned fuel turns into: 'repair', 'adrenaline' or 'budPart'
 //   breathes: makes O2 from the water; dumpsWaste: dumps waste into the water from the surface
-//   pumps: speeds up fluid flow around it (Heart); gatesFlow: lets fluid through only while signalled (Valve)
+//   pumps: pumps the vessels it sits on (Heart); gatesFlow: lets fluid through only while signalled, both between
+//     touching cells and along a vessel that runs through it (Valve)
 //   eatsFood: takes in food specks; bites: bites cells it touches; spiked: damages enemy cells it hits
 //   beats: pushes the creature forward, always (Cilia); jets: pushes the creature forward while signalled (Siphon)
 //   resize: 'contract' or 'swell' with its signal; trigger: what a signal fires: 'nettle', 'snare' or 'spit'
@@ -135,13 +136,15 @@ const CELLS = {
   heart: cellType({
     category: 'Fluid', name: 'Heart', cost: 3, health: 30, fuelBurn: 0.04, color: '#b8243a', work: 'always',
     pumps: true,
-    description: `Pumps. While fed, fluids flow about 7x faster between cells up to ${HEART_REACH} cells away from it.`,
+    description: 'Pumps blood along every vessel it sits on (Vessels view): while fed, a vessel carries about ' +
+      `${Math.round((VESSEL_IDLE_CONDUCTANCE + VESSEL_PUMP_CONDUCTANCE) / VESSEL_IDLE_CONDUCTANCE)}x more. ` +
+      'Without vessels it does nothing. Burns a little fuel.',
   }),
   valve: cellType({
     category: 'Fluid', name: 'Valve', cost: 2, health: 25, color: '#7d97a8', gatesFlow: true,
     needsSignal: true,
-    description: 'Lets no fluid through unless it gets a nerve signal. Wall off a reservoir with Valves to ' +
-      'release it on command.',
+    description: 'Lets no fluid through unless it gets a nerve signal, neither to its neighbours nor along a ' +
+      'vessel that runs through it. Wall off a reservoir with Valves to release it on command.',
   }),
   airsac: cellType({
     category: 'Fluid', name: 'Air sac', cost: 2, health: 25, oxygenCapacity: 10, color: '#e8a0a8',

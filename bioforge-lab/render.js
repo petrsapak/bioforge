@@ -1,5 +1,6 @@
 'use strict';
-// Canvas drawing of the world: bonds, cells, nerve fibres, snare lines, globs, zaps, food and sparks (browser only).
+// Canvas drawing of the world: bonds, cells, blood vessels, nerve fibres, snare lines, globs, zaps, food and sparks
+// (browser only).
 
 // bond colour by team: 0 = the player's side, 1 = enemies, -1 = debris
 const BOND_COLORS = { 0: '#1f4a3a', 1: '#4a2430', '-1': '#2a2f33' };
@@ -9,6 +10,9 @@ const FIBRE_ACTIVE_COLOR = '#fffbe0';                     // a fibre carrying a 
 const FIBRE_ARROW_SIZE = 3;                               // px
 const LIGHT_GLOW_RADIUS = 40;                             // px of the glow drawn around the light
 const BRIDGE_RADIUS = 2.6;                               // px of the arc a fibre jumps over a crossing with
+const VESSEL_COLOR = '#8f1d2c';                           // a vessel no Heart pumps
+const VESSEL_PUMPED_COLOR = '#e0485a';                    // a vessel a fed Heart pumps
+const VESSEL_SHUT_COLOR = '#6a5a62';                      // a vessel an unsignalled Valve shuts
 
 // view 0 = normal, 1..5 = fill level of one fluid; viewBox = { minX, minY, maxX, maxY }: draw only cells inside it
 function drawWorld(context, world, view, viewBox) {
@@ -29,6 +33,7 @@ function drawWorld(context, world, view, viewBox) {
   for (const cell of world.cells) {
     if (isVisible(cell)) drawCell(context, cell, view);
   }
+  drawWorldVessels(context, world);
   if (!view) drawWorldFibres(context, world);
   drawSnareLines(context, world);
   drawGlobs(context, world);
@@ -103,6 +108,38 @@ function drawSparks(context, world) {
     context.fillRect(spark.x - 1.5, spark.y - 1.5, 3, 3);
   }
   context.globalAlpha = 1;
+}
+
+// ---------- Blood vessels ----------
+// A vessel as a thick line through the centres of its cells, with a dot on each end cell, where blood goes in and out.
+// state: 'pumped' (bright), 'idle' (dark) or 'shut' (grey, dashed); alpha and width: how strongly it is drawn.
+function drawVessel(context, points, state, alpha = 1, width = 3) {
+  context.globalAlpha = alpha;
+  context.strokeStyle = state === 'pumped' ? VESSEL_PUMPED_COLOR : state === 'shut' ? VESSEL_SHUT_COLOR : VESSEL_COLOR;
+  context.fillStyle = context.strokeStyle;
+  context.lineWidth = width;
+  context.lineCap = 'round';
+  context.lineJoin = 'round';
+  if (state === 'shut') context.setLineDash([width, width]);
+  context.beginPath();
+  for (const [x, y] of points) context.lineTo(x, y);
+  context.stroke();
+  context.setLineDash([]);
+  for (const [x, y] of [points[0], points[points.length - 1]]) fillCircle(context, x, y, width);
+  context.globalAlpha = 1;
+}
+
+// how a world vessel is drawn this frame: shut by a Valve, pumped by a Heart, or idle
+function vesselState(vessel) {
+  if (!vessel.open) return 'shut';
+  return vessel.pumping > 0 ? 'pumped' : 'idle';
+}
+
+// the world's vessels, through the moving centres of the cells they run through
+function drawWorldVessels(context, world) {
+  for (const vessel of world.vessels) {
+    drawVessel(context, vessel.path.map(cell => [cell.x, cell.y]), vesselState(vessel), 0.55, 2.2);
+  }
 }
 
 // ---------- Nerve fibres ----------

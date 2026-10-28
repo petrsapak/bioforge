@@ -1,7 +1,9 @@
 'use strict';
 // Builder design logic: hex lookup, the limits check, the design warnings, and the saved design format with the
 // conversion of older saves. Pure: no DOM.
-// A design is { cells, fibres } (the format is described under "Saved design format" below).
+// A design is { cells, fibres, vessels } (the format is described under "Saved design format" below).
+
+const VESSEL_SUPPLY_REACH = 2;                            // cells from a pumped vessel's end that blood reaches well
 
 // The checks read the cell types' behaviour fields (data/cells.js), never their names.
 const typeOfCell = cell => CELLS[cell.typeName];
@@ -51,7 +53,8 @@ function hexesReachableFromNucleus(isOpen) {
   return seen;
 }
 
-// why the design can't be run ('' = it can): the cell, biomass, neuron and fibre limits, from RULES or a level's
+// why the design can't be run ('' = it can): the cell, biomass, neuron, fibre and vessel limits, from RULES or a
+// level's
 function buildCheck(design, limits = RULES) {
   if (design.cells.length > limits.maxCells) return `Too many cells: ${design.cells.length} / ${limits.maxCells}`;
   if (designCost(design) > limits.budget) return `Over budget by ${designCost(design) - limits.budget}`;
@@ -59,11 +62,16 @@ function buildCheck(design, limits = RULES) {
   if (neuronCount > limits.maxNeurons) return `Too many neurons: ${neuronCount} / ${limits.maxNeurons}`;
   const units = fibreUnits(design);
   if (units > limits.maxFibreUnits) return `Too many fibre units: ${units} / ${limits.maxFibreUnits}`;
+  const vesselUnitCount = vesselUnits(design);
+  if (vesselUnitCount > limits.maxVesselUnits) {
+    return `Too many vessel units: ${vesselUnitCount} / ${limits.maxVesselUnits}`;
+  }
   return '';
 }
 
 // Design checks: signals, Bud parts, weapons, and whether the body has O2, energy and a waste exit for its working
-// cells. body: the cells joined to the nucleus and their fibres; plannedKeys: hex keys of cells not joined to it.
+// cells. body: the cells joined to the nucleus with their fibres and vessels; plannedKeys: hex keys of cells not
+// joined to it.
 // Returns warnings as { text, keys }, where keys are the hexes the warning is about (marked on the grid).
 function designWarnings(body, plannedKeys) {
   const bodyCells = body.cells;
@@ -80,6 +88,7 @@ function designWarnings(body, plannedKeys) {
   checkBuds(bodyCells, warn);
   if (!countWith('isWeapon')) warn('No weapons: it cannot hurt anything.');
   checkFluids(typeAt, countWith, warn);
+  checkVessels(body, warn);
   return warnings;
 }
 
@@ -164,11 +173,29 @@ function checkFluids(typeAt, countWith, warn) {
     warn(`${buried.length} Pore cell(s) are buried inside the body and do nothing: Pores must touch the water.`,
       buried);
   }
-  const hearts = keysWith('pumps').map(parseHexKey);
-  const farFromHeart = fueled.filter(key => !hearts.some(heart => hexDistance(parseHexKey(key), heart) <= HEART_REACH));
-  if (farFromHeart.length) {
-    warn(`${farFromHeart.length} fuel-burning cell(s) are more than ${HEART_REACH} cells from a Heart: ` +
-      'fluids reach them slowly.', farFromHeart);
+}
+
+// Hearts pump only the vessels they sit on, and blood reaches a working cell well only near the end of a pumped vessel
+// (elsewhere fluids only seep, slowly)
+function checkVessels(body, warn) {
+  const area = createRouteArea(body.cells);
+  const routes = (body.vessels || []).map(vessel => routeFibre(area, vessel.from, vessel.to)).filter(Boolean);
+  const pumpKeys = new Set(keysOf(body.cells.filter(cell => typeOfCell(cell).pumps)));
+  const onVessel = new Set(routes.flatMap(route => route.hexes));
+  const idleHearts = [...pumpKeys].filter(key => !onVessel.has(key));
+  if (idleHearts.length) {
+    warn(`${idleHearts.length} Heart(s) sit on no vessel and pump nothing: lay vessels through them (Vessels view, ` +
+      'V).', idleHearts);
+  }
+  const pumpedEnds = routes
+    .filter(route => route.hexes.some(key => pumpKeys.has(key)))
+    .flatMap(route => [route.hexes[0], route.hexes[route.hexes.length - 1]])
+    .map(parseHexKey);
+  const fueled = body.cells.filter(cell => typeOfCell(cell).fuelBurn);
+  const farFromBlood = fueled.filter(cell => !pumpedEnds.some(end => hexDistance(cell, end) <= VESSEL_SUPPLY_REACH));
+  if (farFromBlood.length) {
+    warn(`${farFromBlood.length} fuel-burning cell(s) are more than ${VESSEL_SUPPLY_REACH} cells from the end of a ` +
+      'vessel with a Heart on it: fluids only seep to them, slowly.', keysOf(farFromBlood));
   }
 }
 
@@ -201,14 +228,21 @@ function migrateBudPart(savedPart) {
   return part;
 }
 
-// A saved library entry in the current format: { name, isCreature, cells, fibres }. Old entries called isCreature
-// `full`, and entries from before the nerve layer get their neurons and fibres (see upgradeToNerveLayer).
+// A saved library entry in the current format: { name, isCreature, cells, fibres, vessels }. Old entries called
+// isCreature `full`, entries from before the nerve layer get their neurons and fibres (see upgradeToNerveLayer), and
+// entries from before the vascular layer have no vessels.
 function migrateLibraryEntry(savedEntry) {
   const isCreature = savedEntry.isCreature !== undefined ? savedEntry.isCreature : savedEntry.full;
   const design = { cells: savedEntry.cells.map(migrateDesignCell) };
   if (savedEntry.fibres) design.fibres = savedEntry.fibres;
   const upgraded = upgradeToNerveLayer(design);
-  return { name: String(savedEntry.name), isCreature: !!isCreature, cells: upgraded.cells, fibres: upgraded.fibres };
+  return {
+    name: String(savedEntry.name),
+    isCreature: !!isCreature,
+    cells: upgraded.cells,
+    fibres: upgraded.fibres,
+    vessels: savedEntry.vessels || [],
+  };
 }
 
 // ---------- Designs from before the nerve layer ----------

@@ -39,7 +39,7 @@ function buildDock(onPickCell, onPickNeuron) {
   }
   const showLayer = layer => {
     for (const section of sections) section.branch.style.display = section.layer === layer ? '' : 'none';
-    byId('dock-bar').textContent = layer === 'nerve' ? 'Neurons' : 'Cells';
+    byId('dock-bar').textContent = { body: 'Cells', nerve: 'Neurons', vessel: 'Vessels: drag cell to cell' }[layer];
     relayOut();
   };
   addEventListener('resize', relayOut);

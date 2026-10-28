@@ -39,6 +39,7 @@ const dockButtons = () => byId('palette').children.flatMap(section => section.ch
 const dockButton = typeName => dockButtons().find(button => button.dataset.type === typeName);
 const neuronButton = kind => dockButtons().find(button => button.dataset.neuron === kind);
 const fibreUnitsShown = () => +/Fibre: (\d+)/.exec(byId('budget').innerHTML)[1];
+const vesselUnitsShown = () => +/Vessels: (\d+)/.exec(byId('budget').innerHTML)[1];
 // the How to box's steps: their captions and which is marked next or done
 const coachSteps = () => byId('coach-steps').children.map(step => ({
   caption: step.children[1].textContent,
@@ -123,6 +124,21 @@ runFrames(1);
 check('a right-click on the neuron takes it out', /No neuron/.test(info()), info());
 pressKey('n');
 check('N goes back to the Body view', byId('dock-bar').textContent === 'Cells');
+
+pressKey('v');
+check('V opens the Vessels view', byId('layer-vessel').classList.contains('selected') &&
+  /Vessels/.test(byId('dock-bar').textContent) && /a vessel/.test(nextCoachStep()), nextCoachStep());
+moveMouseTo(-1, 0);
+fire('game', 'mousedown', { ...screenPointOf(-1, 0), button: 0, target: canvas });
+moveMouseTo(0, 1);
+fire('window', 'mouseup', { ...screenPointOf(0, 1), target: canvas });
+runFrames(1);
+check('a drag from the Gill to a Cilia lays a vessel of 2 units', vesselUnitsShown() === 2, String(vesselUnitsShown()));
+fire('game', 'mousedown', { ...screenPointOf(0, 1), button: 2, target: canvas });
+runFrames(1);
+check('a right-click on the vessel removes it', vesselUnitsShown() === 0, String(vesselUnitsShown()));
+pressKey('v');
+check('V goes back to the Body view', byId('dock-bar').textContent === 'Cells');
 pressKey('Escape');
 
 clickHex(0, -1, { ctrlKey: true });

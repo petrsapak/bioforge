@@ -63,6 +63,7 @@ function newWorld(width, height, options = {}) {
     angleSprings: [],                                     // keep chains of cells from folding
     fluidLinks: [],                                       // fluids move only along these, one per touching pair
     fibres: [],                                           // nerve fibres (fibres.js); signals travel only along these
+    vessels: [],                                          // blood vessels (vascular.js)
     globs: [],
     zaps: [],
     sparks: [],
@@ -125,6 +126,7 @@ function createCreature(team, cells, options = {}) {
     cellsByHex: null,
     design: null,                                         // the design's cells, for regrowing lost ones
     designFibres: [],                                     // the design's fibres, reconnected when cells regrow
+    designVessels: [],                                    // the design's vessels, reconnected when cells regrow
     bounds: null,                                         // { minX, minY, maxX, maxY }, updated by the physics
     regrowthPool: 0,                                      // repair fluid saved up for the next regrown cell
     spawnHealth: 0,                                       // total health at spawn, for the HUD
@@ -175,7 +177,6 @@ function createCell(typeName, q, r, creature) {
     budGrowth: null,                                      // Bud: { plan, progress, grownCount, done }
     budParent: null,                                      // a cell of a growing Bud part: its Bud
     snareLine: null,
-    heartPump: 0,
   };
 }
 
@@ -190,6 +191,7 @@ function spawn(world, design, x, y, angle, team) {
     cellsByHex: new Map(),
     design: design.cells,
     designFibres: design.fibres || [],
+    designVessels: design.vessels || [],
   });
   const cos = cosine(angle);
   const sin = sine(angle);
@@ -224,6 +226,7 @@ function spawn(world, design, x, y, angle, team) {
     addAngleSpringsAround(world, cell, neighbours);
   }
   connectFibres(world, creature, creature.designFibres);
+  connectVessels(world, creature, creature.designVessels);
   world.creatures.push(creature);
   markSurface(world, creature);
   return creature;
@@ -314,6 +317,7 @@ function removeCreature(world, creature) {
   world.angleSprings = world.angleSprings.filter(spring => !belongs(spring.pivot));
   world.fluidLinks = world.fluidLinks.filter(link => !belongs(link.first));
   world.fibres = world.fibres.filter(fibre => !belongs(fibre.from) && !belongs(fibre.to));
+  world.vessels = world.vessels.filter(vessel => !belongs(vessel.first));
   world.creatures = world.creatures.filter(other => other !== creature);
 }
 
@@ -347,6 +351,7 @@ function removeDeadCells(world) {
   world.fluidLinks = world.fluidLinks.filter(link => !link.first.dead && !link.second.dead);
   for (const creature of damagedCreatures) splitIntoPieces(world, creature);
   cutBrokenFibres(world);
+  cutBrokenVessels(world);
   world.creatures = world.creatures.filter(creature => creature.alive && creature.cells.length);
 }
 

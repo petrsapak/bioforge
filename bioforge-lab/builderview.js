@@ -19,6 +19,7 @@ const HOVERED_WARNING_COLOR = '#ffb48f';
 const SELECTION_COLOR = '#e8c547';
 const DIM_TEXT_COLOR = '#6f7b88';
 const NERVE_VIEW_SHADE = 'rgba(11,20,24,0.62)';           // laid over the cells in the Nerve view
+const VESSEL_VIEW_SHADE = 'rgba(11,20,24,0.4)';           // laid over the cells in the Vessels view
 const NEURON_GHOST_ALPHA = 0.5;                           // the neuron a click would put in, under the mouse
 const FIBRE_REMOVE_COLOR = '#ff7a6a';                     // a drag that would remove the fibre already there
 
@@ -76,6 +77,7 @@ function drawBuilder(app) {
   context.scale(app.gridView.zoom, app.gridView.zoom);
   drawGridHexes(app, origin);
   drawDesignCells(app);
+  drawVesselLayer(app);
   drawNerveLayer(app);
   drawBudParts(app);
   drawSelection(app);
@@ -85,6 +87,8 @@ function drawBuilder(app) {
   drawNeuronGhost(app);
   drawRemovalTarget(app);
   drawFibreDrag(app);
+  drawVesselRemovalTarget(app);
+  drawVesselDrag(app);
   drawGridLabels(app);
   context.restore();
   context.fillStyle = DIM_TEXT_COLOR;
@@ -112,7 +116,7 @@ function drawGridHexes(app, origin) {
   const context = app.context;
   const zoom = app.gridView.zoom;
   const margin = HEX_SPACING_X * zoom;                    // hexes this far off screen are skipped
-  const isBusy = app.layer === 'nerve' || app.stamp || app.partDrag || app.aimDragKey || app.libraryDrag;
+  const isBusy = app.layer !== 'body' || app.stamp || app.partDrag || app.aimDragKey || app.libraryDrag;
   for (let q = -GRID_RADIUS; q <= GRID_RADIUS; q++) {
     for (let r = -GRID_RADIUS; r <= GRID_RADIUS; r++) {
       if (!isInGrid(q, r)) continue;
@@ -161,14 +165,7 @@ function drawDesignCells(app) {
 function drawNerveLayer(app) {
   const context = app.context;
   const isNerveView = app.layer === 'nerve';
-  if (isNerveView) {
-    for (const designCell of app.edited.cells.values()) {
-      const [x, y] = hexToPixel(designCell.q, designCell.r);
-      traceHex(context, x, y, HEX_FILL_SIZE);
-      context.fillStyle = NERVE_VIEW_SHADE;
-      context.fill();
-    }
-  }
+  if (isNerveView) shadeCells(app, NERVE_VIEW_SHADE);
   const liveFibreKey = fibre => keyOfCell(fibre.from) + '>' + keyOfCell(fibre.to);
   const liveValues = new Map(app.tank.fibres.map(fibre => [liveFibreKey(fibre), fibre.value]));
   const usedCells = new Set();
@@ -180,6 +177,91 @@ function drawNerveLayer(app) {
     for (const key of route.hexes) usedCells.add(key);
   }
   if (isNerveView) drawNeuronBadges(app);
+}
+
+// lays a shade over every cell of the design, so a layer drawn on top stands out
+function shadeCells(app, shade) {
+  const context = app.context;
+  context.fillStyle = shade;
+  for (const designCell of app.edited.cells.values()) {
+    const [x, y] = hexToPixel(designCell.q, designCell.r);
+    traceHex(context, x, y, HEX_FILL_SIZE);
+    context.fill();
+  }
+}
+
+// Vessels from cell centre to cell centre, lit while a Heart pumps them in the test tank (grey and dashed while a Valve
+// shuts them). In the Vessels view the cells fade a little and the vessels stand out; in the other views they stay
+// faint.
+function drawVesselLayer(app) {
+  const isVesselView = app.layer === 'vessel';
+  if (isVesselView) shadeCells(app, VESSEL_VIEW_SHADE);
+  const liveStates = new Map(app.tank.vessels.map(vessel =>
+    [vesselKey(keyOfCell(vessel.first), keyOfCell(vessel.second)), vesselState(vessel)]));
+  for (const { link, route } of routedBodyVessels(app.edited)) {
+    const state = liveStates.get(vesselKey(fibreStartKey(link), fibreEndKey(link))) || 'idle';
+    drawVessel(app.context, route.hexes.map(keyToPixel), state, isVesselView ? 0.95 : 0.3, isVesselView ? 3.4 : 2);
+  }
+}
+
+// the same text for a vessel either way round
+function vesselKey(firstKey, secondKey) {
+  return firstKey < secondKey ? firstKey + '~' + secondKey : secondKey + '~' + firstKey;
+}
+
+// Vessels view: the vessel a right-click would take out, in red
+function drawVesselRemovalTarget(app) {
+  if (app.layer !== 'vessel' || app.vesselDrag || !app.hoverPoint) return;
+  const vessel = vesselRemovalTarget(app.edited, app.hoverPoint);
+  const routed = vessel && routedBodyVessels(app.edited).find(({ link }) => link === vessel);
+  if (!routed) return;
+  const context = app.context;
+  context.strokeStyle = FIBRE_REMOVE_COLOR;
+  context.lineWidth = 4.4;
+  context.lineCap = 'round';
+  context.beginPath();
+  routed.route.hexes.map(keyToPixel).forEach(([x, y]) => context.lineTo(x, y));
+  context.stroke();
+}
+
+// A vessel being laid: over another cell, the route it would take through the body with its units ("+3"), or in red
+// with "remove" if that vessel is already there; elsewhere a dashed line from its start cell to the mouse.
+function drawVesselDrag(app) {
+  if (!app.vesselDrag || !app.hoverPoint) return;
+  const context = app.context;
+  const fromKey = app.vesselDrag.fromKey;
+  const [startX, startY] = keyToPixel(fromKey);
+  const toKey = app.hoverHex ? hexKey(...app.hoverHex) : null;
+  const route = toKey && toKey !== fromKey
+    ? routeFibre(createRouteArea(bodyCells(app.edited)), parseHexKey(fromKey), parseHexKey(toKey))
+    : null;
+  context.strokeStyle = SELECTION_COLOR;
+  context.lineWidth = 1.2;
+  strokeCircle(context, startX, startY, CELL_RADIUS);
+  if (!route) {
+    context.strokeStyle = VESSEL_PUMPED_COLOR;
+    context.lineWidth = 2;
+    context.setLineDash([3, 2]);
+    strokeLine(context, startX, startY, app.hoverPoint[0], app.hoverPoint[1]);
+    context.setLineDash([]);
+    return;
+  }
+  const isThere = app.edited.vessels.some(vessel => isVesselBetween(vessel, fromKey, toKey));
+  const points = route.hexes.map(keyToPixel);
+  if (isThere) {
+    context.strokeStyle = FIBRE_REMOVE_COLOR;
+    context.lineWidth = 4.4;
+    context.beginPath();
+    points.forEach(([x, y]) => context.lineTo(x, y));
+    context.stroke();
+  } else {
+    drawVessel(context, points, 'pumped', 0.9, 3.4);
+  }
+  const [endX, endY] = keyToPixel(toKey);
+  context.font = 'bold 7px system-ui';
+  context.textAlign = 'left';
+  context.fillStyle = isThere ? FIBRE_REMOVE_COLOR : VESSEL_PUMPED_COLOR;
+  context.fillText(isThere ? 'remove' : `+${route.units}`, endX + CELL_RADIUS + 2, endY - CELL_RADIUS);
 }
 
 // the neurons on top of the faded cells, lit with their live signal

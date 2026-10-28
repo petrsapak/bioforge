@@ -199,13 +199,15 @@ const TIPS = {
     },
   },
   heart: {
-    howToUse: 'Keep it fed and near the cells that work hardest: it speeds up the flow within ' +
-      `${HEART_REACH} cells of itself. More hearts add up to a limit.`,
+    howToUse: 'Lay vessels through it (Vessels view, V): each vessel it sits on carries blood fast between its two ' +
+      'ends. Run them from the Gill and the Mouth to the cells that work hardest. More hearts on one vessel add up ' +
+      'to a limit.',
     example: {
       cells: [
         [0, 0, 'nucleus'], [0, -1, 'gill'], [-1, 0, 'heart'], [0, 1, 'tissue'], [0, 2, 'tissue'], [0, 3, 'tissue'],
         [0, 4, 'muscle'], [1, 3, 'pacemaker'],
       ],
+      vessels: [[0, -1, -1, 0], [-1, 0, 0, 4]],
       fluidView: 1,
     },
   },

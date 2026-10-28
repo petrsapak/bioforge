@@ -3,7 +3,8 @@
 //   id, chapter, name; brief: what to do; hint: a nudge toward how
 //   arena: { width, height } in px; systems: the switchable systems that run (chapter 1: nerve only, so every
 //     cell works at full power and nothing starves)
-//   limits: design limits ({ budget, maxCells, maxNeurons, maxFibreUnits }); any left out come from RULES
+//   limits: design limits ({ budget, maxCells, maxNeurons, maxFibreUnits, maxVesselUnits }); any left out come from
+//   RULES
 //   start: the player's spawn { x, y } in px and heading in rad (0 faces up)
 //   light: null, or { range } plus where it is: { x, y } fixed, { path, speed } going round a loop of points (px)
 //     at speed px/s, or { carriedBy } the index of the level creature it sits on. It shines all the time, unless

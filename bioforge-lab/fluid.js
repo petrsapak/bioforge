@@ -1,12 +1,9 @@
 'use strict';
-// Fluid system: cells burn O2 and energy into waste, glands make repair fluid and adrenaline, and fluids flow between
-// touching cells from fuller to emptier. Pure: no DOM.
+// Fluid system: cells burn O2 and energy into waste, glands make repair fluid and adrenaline, and fluids seep between
+// touching cells from fuller to emptier. Vessels carry them farther and faster (vascular.js). Pure: no DOM.
 
 const FUEL_BURN_SCALE = 0.25;                             // every cell burns fuelBurn * this per second at full work
 const FLOW_CONDUCTANCE = 0.4;                             // flow between touching cells, per unit of fill difference
-const HEART_CONDUCTANCE = 2.5;                            // extra flow per beating heart in reach
-const MAX_CONDUCTANCE = 8;
-const HEART_REACH = 3;                                    // cells from a heart whose links it speeds up
 const FLOW_INTERVAL = 1 / 20 - 1e-6;                      // s between flow passes; fluids move slowly
 const FLOW_SUBSTEPS = 8;                                  // pipes hold little, so flow takes small steps
 const GILL_OXYGEN_RATE = 0.25;                            // O2 per second a gill makes
@@ -127,22 +124,11 @@ function isFueled(creature) {
   return creature.cells.some(cell => cell.type.fuelBurn) && carries(FLUID_OXYGEN) && carries(FLUID_ENERGY);
 }
 
-// Fluids move between touching cells from the fuller one to the emptier one (by fill level).
-// A fed heart speeds up every link with a cell within HEART_REACH of it; a valve without a signal lets nothing through.
+// Fluids seep between touching cells from the fuller one to the emptier one (by fill level); a valve without a signal
+// lets nothing through. (Until 2026-10-28 a fed Heart sped up every link within 3 cells of it; now it pumps vessels.)
 function updateFluidFlow(world, dt) {
-  for (const cell of world.cells) cell.heartPump = 0;
-  for (const heart of world.cells) {
-    if (!heart.type.pumps || heart.efficiency <= 0) continue;
-    for (const cell of heart.creature.cells) {
-      if (hexDistance(cell, heart) <= HEART_REACH) cell.heartPump += heart.efficiency;
-    }
-  }
   const valveOpen = cell => !cell.type.gatesFlow || cell.signal > SIGNAL_ON;
-  for (const link of world.fluidLinks) {
-    link.open = valveOpen(link.first) && valveOpen(link.second);
-    const pumping = Math.max(link.first.heartPump, link.second.heartPump);
-    link.conductance = Math.min(MAX_CONDUCTANCE, FLOW_CONDUCTANCE + HEART_CONDUCTANCE * pumping);
-  }
+  for (const link of world.fluidLinks) link.open = valveOpen(link.first) && valveOpen(link.second);
   const substep = dt / FLOW_SUBSTEPS;
   for (let i = 0; i < FLOW_SUBSTEPS; i++) {
     for (const link of world.fluidLinks) {

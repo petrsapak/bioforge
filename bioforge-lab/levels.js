@@ -18,6 +18,7 @@ function levelLimits(level) {
     maxCells: RULES.maxCells,
     maxNeurons: RULES.maxNeurons,
     maxFibreUnits: RULES.maxFibreUnits,
+    maxVesselUnits: RULES.maxVesselUnits,
     ...level.limits,
   };
 }

@@ -45,6 +45,7 @@ function showSelectedButtons(app) {
   for (const [kind, button] of app.neuronButtons) button.classList.toggle('selected', kind === app.selectedNeuron);
   byId('layer-body').classList.toggle('selected', app.layer === 'body');
   byId('layer-nerve').classList.toggle('selected', app.layer === 'nerve');
+  byId('layer-vessel').classList.toggle('selected', app.layer === 'vessel');
   app.fluidViewButtons.forEach((button, view) => button.classList.toggle('selected', view === app.fluidView));
   for (const { entry, row } of app.libraryRows) {
     row.classList.toggle('selected', !!app.stamp && app.stamp.template === entry);
@@ -53,8 +54,8 @@ function showSelectedButtons(app) {
 }
 
 // ---------- Meters ----------
-// Four bars: biomass and cells (the Body view's), neurons and fibre units (the Nerve view's, which stand out there).
-// The full wording is each bar's tooltip.
+// Five bars: biomass and cells (the Body view's), neurons and fibre units (the Nerve view's) and vessel units (the
+// Vessels view's); each view's bars stand out in it. The full wording is each bar's tooltip.
 function showMeters(app) {
   const limits = chosenLimits(app);
   const problem = buildCheck(bodyDesign(app.edited), limits);
@@ -62,16 +63,20 @@ function showMeters(app) {
   const isUnlimited = app.edited.biomassLimit === Infinity;
   const used = bodyCost(app.edited);
   const cellCount = bodyCells(app.edited).length;
+  const vesselCount = vesselUsage(app.edited);
+  const isBodyView = app.layer === 'body';
   const isNerveView = app.layer === 'nerve';
   byId('budget').innerHTML = '<div class="meters">' +
     meterHtml('biomass', `Biomass used: ${formatBiomass(used)} of ${limits.budget}` +
-      (isUnlimited ? ' (unlimited: the Sandbox takes any size)' : ''), used, limits.budget, isNerveView,
+      (isUnlimited ? ' (unlimited: the Sandbox takes any size)' : ''), used, limits.budget, !isBodyView,
       isUnlimited ? '∞' : `${formatBiomass(limits.budget - used)} left`) +
-    meterHtml('cells', `Cells: ${cellCount} of ${limits.maxCells}`, cellCount, limits.maxCells, isNerveView) +
+    meterHtml('cells', `Cells: ${cellCount} of ${limits.maxCells}`, cellCount, limits.maxCells, !isBodyView) +
     meterHtml('neurons', `Neurons: ${nerve.neurons} of ${limits.maxNeurons}`, nerve.neurons, limits.maxNeurons,
       !isNerveView) +
     meterHtml('fibre', `Fibre: ${nerve.units} of ${limits.maxFibreUnits} units`, nerve.units, limits.maxFibreUnits,
       !isNerveView) +
+    meterHtml('vessel', `Vessels: ${vesselCount} of ${limits.maxVesselUnits} units`, vesselCount,
+      limits.maxVesselUnits, app.layer !== 'vessel') +
     '</div>' + (problem ? `<div class="warn">⚠ ${problem}</div>` : '');
 }
 
