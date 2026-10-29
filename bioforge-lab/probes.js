@@ -1,15 +1,13 @@
 'use strict';
-// Signal probes: a live trace of what a creature's senses, neurons and signalled cells do, one lane per cell, with a
-// matching number tag on each probed cell. In Sandbox and level runs they trace the player (a click on one of its
-// cells adds or removes its lane); in the builder's Nerve view the Traces window traces the test tank's creature
-// (browser only).
+// Signal probes: a live trace of what a creature's senses, neurons and signalled cells do, one lane per cell. In
+// Sandbox and level runs they trace the player (a click on one of its cells adds or removes its lane); in the
+// builder's Nerve view the Traces window traces the test tank's creature (browser only).
 
 const PROBE_SECONDS = 6;                                  // game s of trace shown across a lane
 const PROBE_MAX_LANES = 8;
 const PROBE_LANE_HEIGHT = 17;                             // px (canvas units) per lane
 const TRACES_LANE_HEIGHT = 24;                            // px per lane in the builder's Traces window
 const PROBE_LABEL_WIDTH = 78;                             // px (canvas units) left of the traces for the lane names
-const PROBE_TAG_RADIUS = 6;                               // px in the world: the number tag on a probed cell
 const PROBE_GROUPS = ['sense', 'neuron', 'action'];      // lane order: senses first, then neurons, then actions
 
 // hiddenCount: probe-worthy cells beyond the lanes; chosenHexes: the hex keys the player clicked, in lane order, or
@@ -175,7 +173,7 @@ function runBuilderTraces(app) {
   byId('traces-note').textContent = traces.lanes.length === 0
     ? 'No neurons, senses or signalled cells yet.'
     : (traces.hiddenCount ? `+${traces.hiddenCount} more not shown · ` : '') +
-      'the numbers match the tags on the grid · Space and bound keys fire Commands';
+      'Space and bound keys fire Commands';
 }
 
 // the line under the lanes: how to add one when there are none, or how many probe-worthy cells didn't fit
@@ -185,36 +183,3 @@ function probeFootnote(probes) {
   return '';
 }
 
-// the lane numbers of the builder's traces on their hexes of the grid (Nerve view)
-function drawBuilderTraceTags(app, context) {
-  context.font = 'bold 8px sans-serif';
-  context.textAlign = 'center';
-  context.textBaseline = 'middle';
-  for (const lane of app.builderTraces.lanes) {
-    const [x, y] = hexToPixel(lane.cell.q, lane.cell.r);
-    drawProbeTag(context, x + CELL_RADIUS * 0.7, y - CELL_RADIUS * 0.7, lane.number);
-  }
-  context.textAlign = 'start';
-  context.textBaseline = 'alphabetic';
-}
-
-function drawProbeTag(context, x, y, number) {
-  context.fillStyle = '#0e181de6';
-  fillCircle(context, x, y, PROBE_TAG_RADIUS);
-  context.fillStyle = '#dfe4ea';
-  context.fillText(String(number), x, y + 0.5);
-}
-
-// the lane numbers on the probed cells, in world coordinates (the caller sets up any arena transform)
-function drawProbeTags(app, context) {
-  if (!app.isProbesShown) return;
-  context.font = 'bold 8px sans-serif';
-  context.textAlign = 'center';
-  context.textBaseline = 'middle';
-  for (const lane of app.probes.lanes) {
-    const cell = lane.cell;
-    if (cell.dead || !cell.creature.alive) continue;
-    drawProbeTag(context, cell.x + cell.radius * 0.7, cell.y - cell.radius * 0.7, lane.number);
-  }
-  context.textAlign = 'start';
-}

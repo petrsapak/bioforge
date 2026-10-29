@@ -178,7 +178,6 @@ function drawSandbox(app) {
   drawWater(app.context, app.world, app.canvas.width, app.canvas.height);
   drawLight(app.context, app.world.light);
   drawWorld(app.context, app.world, app.fluidView);
-  drawProbeTags(app, app.context);
   drawProbes(app, app.world);
   showSandboxHud(app);
 }

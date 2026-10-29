@@ -95,7 +95,6 @@ function drawBuilder(app) {
   drawSelection(app);
   drawSameTypeCells(app);
   drawWarningMarks(app);
-  if (app.layer === 'nerve') drawBuilderTraceTags(app, context);
   drawLibraryDragHint(app);
   drawPlacementGhost(app);
   drawNeuronGhost(app);

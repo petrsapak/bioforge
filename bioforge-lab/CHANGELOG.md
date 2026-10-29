@@ -13,6 +13,7 @@ afterwards, from the git history.
 - Fibres are thinner. Fibres that share a cell run side by side in different colours instead of on top of each
   other. Point at a fibre, or at its row in the cell card, to light it up from start to end.
 - Metronome's hint says to keep the body even, and why.
+- The numbered circles on probed cells are gone; they were large and covered the fibres.
 - Fixed: pointing at a Bud in the builder froze the game. The screen stopped updating, cells couldn't be added or
   removed, and the Sandbox didn't start.
 

@@ -285,7 +285,6 @@ function drawLevelMode(app) {
   drawDarkLamp(context, run);
   drawLight(context, world.light);
   drawWorld(context, world, app.fluidView);
-  drawProbeTags(app, context);
   context.restore();
   context.strokeStyle = '#2c4650';
   context.lineWidth = 2;

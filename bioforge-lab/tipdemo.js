@@ -130,9 +130,6 @@ function drawDemo(spaceHeld) {
   }
   context.setLineDash([]);
   context.globalAlpha = 1;
-  if (tracesCanvas) {                                     // numbered tags matching the lanes under the tank
-    for (const lane of probes.lanes) drawProbeTag(context, lane.cell.x, lane.cell.y, lane.number);
-  }
   context.font = '11px system-ui';
   if (example.spaceLabel) {
     context.textAlign = 'left';
