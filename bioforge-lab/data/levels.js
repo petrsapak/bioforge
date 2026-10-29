@@ -179,6 +179,21 @@ const LEVELS = [
     goal: { kind: 'stayNear', radius: 100, seconds: 120 },
     timeLimit: 240, par: { seconds: 190, biomass: 25 },
   }),
+  createLevel({
+    id: 'marathon', chapter: 3, name: 'Marathon',
+    brief: 'Cold water again, and the light drifts as slowly as in Long haul, but keep close to it for 200 s in ' +
+      'all. That is longer than the Cold water build\'s O₂ and sugar last.',
+    hint: 'Everything from this chapter at once. Two Fats on the sides for sugar, a Gill beside each Siphon for ' +
+      'O₂, the Pore at the back for waste, and a Heart at the front with a vessel to each of them and to both ' +
+      'Siphons. A Gill makes O₂ for every cell only if blood carries it away. Keep the body short and even, or ' +
+      'it turns.',
+    systems: CIRCULATION_SYSTEMS,
+    seepFactor: 0.05,
+    limits: { budget: 30 },
+    light: DRIFTING_LIGHT,
+    goal: { kind: 'stayNear', radius: 100, seconds: 200 },
+    timeLimit: 300, par: { seconds: 280, biomass: 28 },
+  }),
 ];
 
 // Creatures that live in levels. The Darter holds still until its Eyespot sees an enemy within reach (120 px), then

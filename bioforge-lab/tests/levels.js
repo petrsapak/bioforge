@@ -45,6 +45,17 @@ const coldWaterBuild = withHeart => withHeart ?
     vessels: [fibre(1, -2, -1, 0), fibre(1, -2, 1, 0), fibre(1, -2, -1, 1), fibre(1, -2, 0, 1), fibre(1, -2, -1, 2)] } :
   { cells: EXHAUST_BODY.cells, fibres: CROSSED,
     vessels: [fibre(-1, 0, 0, 1), fibre(1, 0, -1, 1), fibre(-1, 0, -1, 1), fibre(1, 0, 0, 1), fibre(-1, 2, -1, 0)] };
+// The Cold water build lasting longer: two Fats on the sides, a Gill beside each Siphon, and a vessel from the
+// Heart to each Gill too. airSac: an Air sac on the right side instead of the second Fat; plumbed: false leaves the
+// Gills off the vessels.
+const marathonBuild = ({ airSac = false, plumbed = true } = {}) => {
+  const coldWater = coldWaterBuild(true);
+  const cells = coldWater.cells.map(bodyCell =>
+    bodyCell.typeName === 'airsac' && !airSac ? cell(1, 0, 'fat') : bodyCell);
+  const gillVessels = plumbed ? [fibre(1, -2, -2, 1), fibre(1, -2, 1, 1)] : [];
+  return { cells: [...cells, cell(-2, 1, 'gill'), cell(1, 1, 'gill')], fibres: CROSSED,
+    vessels: [...coldWater.vessels, ...gillVessels] };
+};
 const SOLUTIONS = {
   'first-stroke': { cells: [pacemakerNucleus(), cell(-1, 1, 'siphon'), cell(0, 1, 'siphon')],
     fibres: [fibre(0, 0, -1, 1), fibre(0, 0, 0, 1)] },
@@ -60,6 +71,7 @@ const SOLUTIONS = {
   'long-haul': seekerWithFat(true),
   exhaust: EXHAUST_BODY,
   'cold-water': coldWaterBuild(true),
+  marathon: marathonBuild(),
 };
 // the wrong tool for each level: it must not win
 const WRONG_TOOLS = {
@@ -74,6 +86,7 @@ const WRONG_TOOLS = {
   'long-haul': SOLUTIONS.moth,
   exhaust: SOLUTIONS['long-haul'],
   'cold-water': SOLUTIONS.exhaust,
+  marathon: SOLUTIONS['cold-water'],
 };
 
 for (const level of sim.LEVELS) {
@@ -102,6 +115,11 @@ check('"Exhaust": the same body with Tissue for the Pore loses its Siphons to wa
 const unpumped = sim.runLevel(levelById('cold-water'), coldWaterBuild(false));
 check('"Cold water": the same vessels without a Heart lose', unpumped.outcome === 'lost',
   `${unpumped.reason} ${unpumped.goalTime.toFixed(0)} s near the light`);
+const marathonRuns = [marathonBuild({ airSac: true }), marathonBuild({ plumbed: false })]
+  .map(build => sim.runLevel(levelById('marathon'), build));
+check('"Marathon": an Air sac for the second Fat runs out of sugar, and Gills off the vessels don\'t feed the Siphons',
+  marathonRuns.every(run => run.outcome === 'lost'),
+  marathonRuns.map(run => `${run.reason} ${run.goalTime.toFixed(0)} s near the light`).join(', '));
 const blinking = levelById('freeze').light;
 check('a blinking light is on for 2 s, off for 3 s, and round again',
   [0.5, 2.5, 4.9, 5.1].map(time => sim.isLevelLightOn(blinking, time)).join() === 'true,false,false,true');
