@@ -7,6 +7,13 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.5.2 (2026-10-29)
+- You choose where a nerve fibre runs: drag through the cells you want it to pass, and it follows the mouse. Go back
+  over the path to undo a step. Drawing a fibre that is already there along a new path moves it.
+- Fibres are thinner. Fibres that share a cell run side by side in different colours instead of on top of each
+  other. Point at a fibre, or at its row in the cell card, to light it up from start to end.
+- Metronome's hint says to keep the body even, and why.
+
 ## 0.5.1 (2026-10-29)
 - A new look for cells: see-through, as under a microscope, with a coloured membrane and a clearer symbol for
   each type. Tissue, Joint and Bloater now have one, and the Nose and Light eye no longer look like the Eyespot.

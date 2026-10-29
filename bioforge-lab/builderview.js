@@ -23,6 +23,11 @@ const NERVE_VIEW_SHADE = 'rgba(11,20,24,0.62)';           // laid over the cells
 const VESSEL_VIEW_SHADE = 'rgba(11,20,24,0.4)';           // laid over the cells in the Vessels view
 const NEURON_GHOST_ALPHA = 0.5;                           // the neuron a click would put in, under the mouse
 const FIBRE_REMOVE_COLOR = '#ff7a6a';                     // a drag that would remove the fibre already there
+const FIBRE_NERVE_VIEW_WIDTH = 1;                         // grid px
+const FIBRE_BODY_VIEW_WIDTH = 0.7;                        // grid px
+const FIBRE_HIGHLIGHT_WIDTH = 1.9;                        // grid px: the fibre under the mouse, or one being laid
+const FIBRE_BODY_VIEW_ALPHA = 0.3;
+const FIBRE_DIMMED_ALPHA = 0.22;                          // the other fibres while one is highlighted
 const MIRROR_AXIS_COLOR = 'rgba(126,200,240,0.55)';
 const SAME_TYPE_COLOR = '#7fe8ff';                        // Shift: the outline on every cell of the chosen type
 const SAME_TYPE_SHADE = 'rgba(11,20,24,0.55)';            // Shift: laid over the other cells
@@ -253,24 +258,51 @@ function drawDesignCells(app) {
   }
 }
 
-// Fibres from cell centre to cell centre, with a bridge arc where one crosses a fibre drawn before it, brighter
-// while they carry a signal in the test tank. In the Nerve view the cells fade and the neurons and fibres stand out;
-// in the Body view the fibres stay faint.
+// Fibres side by side in their lanes, in different colours where they share a cell (see laidOutBodyFibres), brighter
+// while they carry a signal in the test tank. In the Nerve view the cells fade and the neurons and fibres stand out,
+// and the highlighted fibre is drawn whole and bold over the others, which dim; in the Body view the fibres stay
+// faint. The fibres go over the neuron badges, so that every cell they pass through shows.
 function drawNerveLayer(app) {
   const context = app.context;
   const isNerveView = app.layer === 'nerve';
   if (isNerveView) shadeCells(app, NERVE_VIEW_SHADE);
+  if (isNerveView) drawNeuronBadges(app);
   const liveFibreKey = fibre => keyOfCell(fibre.from) + '>' + keyOfCell(fibre.to);
   const liveValues = new Map(app.tank.fibres.map(fibre => [liveFibreKey(fibre), fibre.value]));
-  const usedCells = new Set();
-  for (const { fibre, route } of routedBodyFibres(app.edited)) {
-    const crossings = new Set(route.hexes.filter(key => usedCells.has(key)));
-    const value = liveValues.get(fibreStartKey(fibre) + '>' + fibreEndKey(fibre)) || 0;
-    const points = route.hexes.map(keyToPixel);
-    drawFibre(context, points, route.hexes, value, crossings, isNerveView ? 1 : 0.35, isNerveView ? 2.2 : 1.2);
-    for (const key of route.hexes) usedCells.add(key);
+  const valueOf = fibre => liveValues.get(fibreStartKey(fibre) + '>' + fibreEndKey(fibre)) || 0;
+  const highlighted = isNerveView ? highlightedFibre(app) : null;
+  const width = isNerveView ? FIBRE_NERVE_VIEW_WIDTH : FIBRE_BODY_VIEW_WIDTH;
+  const laidOut = laidOutBodyFibres(app.edited, FIBRE_COLORS.length);
+  for (const { fibre, points, colorIndex } of laidOut) {
+    if (fibre === highlighted) continue;
+    const alpha = !isNerveView ? FIBRE_BODY_VIEW_ALPHA : highlighted ? FIBRE_DIMMED_ALPHA : 1;
+    drawFibre(context, points, valueOf(fibre), { color: FIBRE_COLORS[colorIndex], alpha, width });
   }
-  if (isNerveView) drawNeuronBadges(app);
+  const shown = laidOut.find(({ fibre }) => fibre === highlighted);
+  if (shown) drawHighlightedFibre(app, shown, valueOf(shown.fibre));
+}
+
+// the fibre to highlight: the one whose row in the card is hovered, else the one under the mouse (the one a
+// right-click takes out), but not while one is being laid
+function highlightedFibre(app) {
+  if (app.hoveredFibre) return app.hoveredFibre;
+  if (app.fibreDrag || !app.hoverPoint) return null;
+  const target = nerveRemovalTarget(app.edited, app.hoverPoint);
+  return target && target.fibre ? target.fibre : null;
+}
+
+// a highlighted fibre: bold in its colour from start to end, with a ring round the cell it starts in and the cell it
+// ends in
+function drawHighlightedFibre(app, { fibre, points, colorIndex }, value) {
+  const context = app.context;
+  const color = FIBRE_COLORS[colorIndex];
+  drawFibre(context, points, Math.max(value, 0.6), { color, width: FIBRE_HIGHLIGHT_WIDTH });
+  context.strokeStyle = color;
+  context.lineWidth = 1;
+  for (const key of [fibreStartKey(fibre), fibreEndKey(fibre)]) {
+    const [x, y] = keyToPixel(key);
+    strokeCircle(context, x, y, CELL_RADIUS);
+  }
 }
 
 // lays a shade over every cell of the design, so a layer drawn on top stands out
@@ -369,28 +401,17 @@ function drawNeuronBadges(app) {
   }
 }
 
-// Nerve view: what a right-click would take out, in red: the fibre or neuron under the mouse, or the fibre whose row
-// in the card is hovered
+// Nerve view: the neuron a right-click would take out, ringed in red. A fibre it would take out is the highlighted
+// one (see highlightedFibre).
 function drawRemovalTarget(app) {
-  if (app.layer !== 'nerve' || app.fibreDrag) return;
-  const target = app.hoveredFibre ? { fibre: app.hoveredFibre }
-    : app.hoverPoint ? nerveRemovalTarget(app.edited, app.hoverPoint) : null;
-  if (!target) return;
+  if (app.layer !== 'nerve' || app.fibreDrag || app.hoveredFibre || !app.hoverPoint) return;
+  const target = nerveRemovalTarget(app.edited, app.hoverPoint);
+  if (!target || !target.neuronKey) return;
   const context = app.context;
+  const [x, y] = keyToPixel(target.neuronKey);
   context.strokeStyle = FIBRE_REMOVE_COLOR;
-  if (target.neuronKey) {
-    const [x, y] = keyToPixel(target.neuronKey);
-    context.lineWidth = 1.5;
-    strokeCircle(context, x, y, CELL_RADIUS * 0.65);
-    return;
-  }
-  const routed = routedBodyFibres(app.edited).find(({ fibre }) => fibre === target.fibre);
-  if (!routed) return;
-  context.lineWidth = 3;
-  context.lineCap = 'round';
-  context.beginPath();
-  routed.route.hexes.map(keyToPixel).forEach(([x, y]) => context.lineTo(x, y));
-  context.stroke();
+  context.lineWidth = 1.5;
+  strokeCircle(context, x, y, CELL_RADIUS * 0.65);
 }
 
 // Nerve view: the chosen neuron, faint, in the empty cell under the mouse, showing what a click would do
@@ -404,49 +425,45 @@ function drawNeuronGhost(app) {
   app.context.globalAlpha = 1;
 }
 
-// A fibre being laid: over another cell, the route it would take through the body with its units ("+3"), or in red
-// with "remove" if that fibre is already there; elsewhere a dashed line from its start cell to the mouse.
+// A fibre being laid, along the cells the mouse has passed through (see extendFibrePath). With the mouse on the cell
+// its path ends in, it shows what letting go does: its units ("+3"), "reroute" for a fibre already there on another
+// route, or "remove" in red for one already there on this route. Elsewhere a dashed line runs on to the mouse.
 function drawFibreDrag(app) {
   if (!app.fibreDrag || !app.hoverPoint) return;
   const context = app.context;
-  const fromKey = app.fibreDrag.fromKey;
+  const { fromKey, pathKeys } = app.fibreDrag;
   const [startX, startY] = keyToPixel(fromKey);
-  const toKey = app.hoverHex ? hexKey(...app.hoverHex) : null;
-  const route = toKey && toKey !== fromKey
-    ? routeFibre(createRouteArea(bodyCells(app.edited)), parseHexKey(fromKey), parseHexKey(toKey))
-    : null;
   context.strokeStyle = SELECTION_COLOR;
   context.lineWidth = 1.2;
   strokeCircle(context, startX, startY, CELL_RADIUS);
-  if (!route) {
+  const points = pathKeys.map(keyToPixel);
+  const endKey = pathKeys[pathKeys.length - 1];
+  const isOnEnd = pathKeys.length > 1 && !!app.hoverHex && hexKey(...app.hoverHex) === endKey;
+  if (!isOnEnd) {
+    if (points.length > 1) drawFibre(context, points, 1, { color: FIBRE_ACTIVE_COLOR, width: FIBRE_HIGHLIGHT_WIDTH });
+    const [lastX, lastY] = points[points.length - 1];
     context.globalAlpha = 0.9;
     context.strokeStyle = FIBRE_COLOR;
-    context.lineWidth = 1.5;
+    context.lineWidth = 1;
     context.setLineDash([3, 2]);
-    strokeLine(context, startX, startY, app.hoverPoint[0], app.hoverPoint[1]);
+    strokeLine(context, lastX, lastY, app.hoverPoint[0], app.hoverPoint[1]);
     context.setLineDash([]);
     context.globalAlpha = 1;
     return;
   }
-  const isThere = app.edited.fibres.some(fibre => fibreStartKey(fibre) === fromKey && fibreEndKey(fibre) === toKey);
-  const [endX, endY] = keyToPixel(toKey);
-  context.strokeStyle = isThere ? FIBRE_REMOVE_COLOR : FIBRE_ACTIVE_COLOR;
+  const toggle = planFibreToggle(app.edited, fromKey, endKey, pathKeys.slice(1, -1));
+  const isRemoval = toggle.result === 'removed';
+  const color = isRemoval ? FIBRE_REMOVE_COLOR : FIBRE_ACTIVE_COLOR;
+  const [endX, endY] = points[points.length - 1];
+  context.strokeStyle = color;
   context.lineWidth = 1.2;
   strokeCircle(context, endX, endY, CELL_RADIUS);
-  if (isThere) {
-    context.globalAlpha = 0.9;
-    context.lineWidth = 2.6;
-    context.beginPath();
-    route.hexes.map(keyToPixel).forEach(([x, y]) => context.lineTo(x, y));
-    context.stroke();
-    context.globalAlpha = 1;
-  } else {
-    drawFibre(context, route.hexes.map(keyToPixel), null, 1, null, 0.9, 2.2);
-  }
+  drawFibre(context, points, isRemoval ? 0 : 1, { color, width: FIBRE_HIGHLIGHT_WIDTH });
   context.font = 'bold 7px system-ui';
   context.textAlign = 'left';
-  context.fillStyle = isThere ? FIBRE_REMOVE_COLOR : FIBRE_ACTIVE_COLOR;
-  context.fillText(isThere ? 'remove' : `+${route.units}`, endX + CELL_RADIUS + 2, endY - CELL_RADIUS);
+  context.fillStyle = color;
+  const label = isRemoval ? 'remove' : toggle.result === 'rerouted' ? 'reroute' : `+${pathKeys.length - 1}`;
+  context.fillText(label, endX + CELL_RADIUS + 2, endY - CELL_RADIUS);
 }
 
 // where each Bud's part will grow (dots, brighter for the clicked Bud) and its aim arrow (its tip is a drag handle)

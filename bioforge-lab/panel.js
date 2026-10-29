@@ -170,15 +170,18 @@ function describeFocusedCell(app, cell) {
   return heading + describeNeuron(cell) + fibres;
 }
 
-// The cell's fibres, one row each: the cell at the other end, and a × that removes the fibre. Hovering a row shows
-// the fibre in red on the grid.
+// The cell's fibres, one row each: its colour on the grid, the cell at the other end, and a × that removes the
+// fibre. Hovering a row highlights the whole fibre on the grid.
 function describeCellFibres(app, key) {
   app.cardFibres = app.edited.fibres.filter(fibre => fibreStartKey(fibre) === key || fibreEndKey(fibre) === key);
+  const colors = new Map(laidOutBodyFibres(app.edited, FIBRE_COLORS.length)
+    .map(({ fibre, colorIndex }) => [fibre, FIBRE_COLORS[colorIndex]]));
   return app.cardFibres.map((fibre, i) => {
     const isOutgoing = fibreStartKey(fibre) === key;
     const other = app.edited.cells.get(isOutgoing ? fibreEndKey(fibre) : fibreStartKey(fibre));
     const title = isOutgoing ? 'Carries this cell\'s signal to' : 'Brings the signal of';
     return `<div class="fibre-row" data-fibre="${i}" title="${title} this ${CELLS[other.typeName].name}">` +
+      `<i class="fibre-swatch" style="background:${colors.get(fibre) || FIBRE_COLOR}"></i>` +
       `<span>${isOutgoing ? 'out →' : 'in ←'} ${cellLabel(other)}</span>` +
       `<button class="small" id="remove-fibre-${i}" title="Remove this fibre">×</button></div>`;
   }).join('');

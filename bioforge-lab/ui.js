@@ -40,7 +40,7 @@ function createApp(canvas) {
     cursorStyle: '',                                      // the canvas's CSS cursor, set when it changes
     partDrag: null,                                       // a Bud part being dragged: { budKey, grab, rotation }
     aimDragKey: null,                                     // the Bud whose aim arrow is being dragged
-    fibreDrag: null,                                      // a fibre being laid: { fromKey }
+    fibreDrag: null,                                      // a fibre being laid: { fromKey, pathKeys }
     vesselDrag: null,                                     // a vessel being laid: { fromKey }
     libraryDrag: null,                                    // a library entry being dragged onto a Bud
     panDrag: null,                                        // middle-drag: { panX, panY, mouseX, mouseY } at its start
@@ -466,6 +466,9 @@ function trackMouse(app, event) {
   app.hoverHex = hexUnderMouse(app, event);
   app.hoverPoint = screenToGrid(app, event.clientX, event.clientY);
   if (app.paintDrag) paintAlongStroke(app);
+  if (app.fibreDrag) {
+    app.fibreDrag.pathKeys = extendFibrePath(app.edited, app.fibreDrag.pathKeys, hexKey(...app.hoverHex));
+  }
 }
 
 // Middle button pans. Left: grab a Bud's aim arrow or part, Ctrl+click selects, a click on a cell sets it up, a click
@@ -533,7 +536,8 @@ function paintAlongStroke(app) {
   rebuildTank(app);
 }
 
-// Nerve view: a press on a cell starts a fibre from it (see finishFibreDrag) and selects it; a right-click takes out
+// Nerve view: a press on a cell starts a fibre from it, which runs through the cells the mouse passes over (see
+// finishFibreDrag), and selects it; a right-click takes out
 // the fibre or neuron under the mouse (the one drawn red, see nerveRemovalTarget).
 function handleNerveMouseDown(app, event, q, r) {
   const key = hexKey(q, r);
@@ -548,13 +552,15 @@ function handleNerveMouseDown(app, event, q, r) {
   }
   if (!app.edited.cells.has(key)) return;
   if (event.button !== 0) return;
-  app.fibreDrag = { fromKey: key };
+  app.fibreDrag = { fromKey: key, pathKeys: [key] };
   app.focusKey = key;
   refreshPanel(app);
 }
 
-// Letting go on another cell lays a fibre to it (or removes the one already there); letting go on the same cell puts
-// the chosen neuron in, if the cell has none.
+// Letting go on another cell lays a fibre to it along the cells the mouse passed over (moves the one already there
+// onto that route, or removes it if it already runs there); letting go on the same cell puts the chosen neuron in,
+// if the cell has none. A cell the path can't reach (one not joined to the body yet) gets a fibre on the shortest
+// route.
 function finishFibreDrag(app, hex) {
   const fromKey = app.fibreDrag.fromKey;
   const toKey = hexKey(...hex);
@@ -563,8 +569,10 @@ function finishFibreDrag(app, hex) {
     placeNeuron(app.edited, fromKey, app.selectedNeuron);
     playSound(app, 'place');
   } else {
-    const result = toggleFibre(app.edited, fromKey, toKey);
-    if (result) playSound(app, result === 'laid' ? 'wire' : 'remove');
+    const pathKeys = extendFibrePath(app.edited, app.fibreDrag.pathKeys, toKey);
+    const isDrawn = pathKeys.length > 1 && pathKeys[pathKeys.length - 1] === toKey;
+    const result = toggleFibre(app.edited, fromKey, toKey, isDrawn ? pathKeys.slice(1, -1) : null);
+    if (result) playSound(app, result === 'removed' ? 'remove' : 'wire');
   }
   rebuildTank(app);
 }

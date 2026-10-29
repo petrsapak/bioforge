@@ -9,7 +9,7 @@ const BUD_AIM_ARROW_LENGTH = 18;                          // grid px
 const MIN_AIM_DRAG = 2;                                   // grid px the aim tip must be dragged to count
 const NAME_MAX_LENGTH = 40;                               // characters in a saved name
 const NEURON_PICK_RADIUS = 6;                             // grid px around a cell's centre that pick its neuron
-const FIBRE_PICK_DISTANCE = 3.5;                          // grid px from a fibre's line that pick the fibre
+const FIBRE_PICK_DISTANCE = 3;                            // grid px from a fibre's line that pick the fibre
 const VESSEL_PICK_DISTANCE = 5;                           // grid px from a vessel's line that pick the vessel
 const STROKE_SAMPLE_SPACING = HEX_SPACING_X / 4;          // grid px between the points a painting drag is read at
 
@@ -33,12 +33,22 @@ function createEditedDesign(design, biomassLimit = RULES.budget, kit = null) {
   };
 }
 
-// a copy of a fibre or vessel ({ from, to })
-const copyLink = link => ({ from: { ...link.from }, to: { ...link.to } });
+// a copy of a fibre or vessel ({ from, to }, and a fibre's via cells if it has them)
+function copyLink(link) {
+  const copy = { from: { ...link.from }, to: { ...link.to } };
+  if (link.via) copy.via = link.via.map(point => ({ ...point }));
+  return copy;
+}
+
 const fibreStartKey = fibre => hexKey(fibre.from.q, fibre.from.r);
 const fibreEndKey = fibre => hexKey(fibre.to.q, fibre.to.r);
 // whether a fibre or vessel has both ends among these hex keys
 const isLinkWithin = (link, keys) => keys.has(fibreStartKey(link)) && keys.has(fibreEndKey(link));
+// the link, without its via cells if one of them is not among these hex keys (it then takes the shortest route)
+function keepViaWithin(link, keys) {
+  if (link.via && !link.via.every(point => keys.has(hexKey(point.q, point.r)))) delete link.via;
+  return link;
+}
 // whether a vessel runs between these two hex keys, either way round
 const isVesselBetween = (vessel, firstKey, secondKey) =>
   (fibreStartKey(vessel) === firstKey && fibreEndKey(vessel) === secondKey) ||
@@ -110,7 +120,7 @@ function placeCell(edited, q, r, typeName) {
 }
 
 // Removes the cell on (q, r) with its neuron, fibres and vessels, except the Nucleus. Cells cut off from the Nucleus
-// stay, as planned cells.
+// stay, as planned cells. A fibre laid through the cell keeps its ends and takes the shortest route again.
 function removeCell(edited, q, r) {
   const key = hexKey(q, r);
   const cell = edited.cells.get(key);
@@ -119,6 +129,9 @@ function removeCell(edited, q, r) {
   const isElsewhere = link => fibreStartKey(link) !== key && fibreEndKey(link) !== key;
   edited.fibres = edited.fibres.filter(isElsewhere);
   edited.vessels = edited.vessels.filter(isElsewhere);
+  for (const fibre of edited.fibres) {
+    if (fibre.via && fibre.via.some(point => hexKey(point.q, point.r) === key)) delete fibre.via;
+  }
 }
 
 // ---------- Symmetry ----------
@@ -232,23 +245,69 @@ function changeNeuronSetting(edited, key, steps) {
   neuron.setting = Math.round(Math.max(setting.min, Math.min(setting.max, value)) * 100) / 100;
 }
 
-// Lays a fibre from one cell to another, or removes it if it is already there. Returns what happened: 'laid',
-// 'removed', or '' when there is nothing to do (the same cell, or a hex without a cell).
-function toggleFibre(edited, fromKey, toKey) {
-  if (fromKey === toKey || !edited.cells.has(fromKey) || !edited.cells.has(toKey)) return '';
-  const index = edited.fibres.findIndex(fibre => fibreStartKey(fibre) === fromKey && fibreEndKey(fibre) === toKey);
-  if (index >= 0) {
-    edited.fibres.splice(index, 1);
-    return 'removed';
-  }
-  edited.fibres.push({ from: parseHexKey(fromKey), to: parseHexKey(toKey) });
-  return 'laid';
+// Lays a fibre from one cell to another, or removes it if it is already there. viaKeys: the hex keys of the cells it
+// runs through between its ends, as the player drew it (null: the shortest route). A fibre already there on another
+// route is moved onto this one instead. Returns what happened: 'laid', 'rerouted', 'removed', or '' when there is
+// nothing to do (the same cell, or a hex without a cell).
+function toggleFibre(edited, fromKey, toKey, viaKeys = null) {
+  const toggle = planFibreToggle(edited, fromKey, toKey, viaKeys);
+  if (toggle.result === 'laid') edited.fibres.push(toggle.fibre);
+  if (toggle.result === 'removed') edited.fibres.splice(toggle.index, 1);
+  if (toggle.result === 'rerouted') edited.fibres[toggle.index] = toggle.fibre;
+  return toggle.result;
 }
 
-// the body's fibres with their routes through the body's cells, for drawing: [{ fibre, route }]
+// What toggleFibre would do, without doing it: { result, fibre (the new one), index (of the one already there) }.
+function planFibreToggle(edited, fromKey, toKey, viaKeys = null) {
+  if (fromKey === toKey || !edited.cells.has(fromKey) || !edited.cells.has(toKey)) return { result: '' };
+  const fibre = { from: parseHexKey(fromKey), to: parseHexKey(toKey) };
+  if (viaKeys) fibre.via = viaKeys.map(parseHexKey);
+  const index = edited.fibres.findIndex(other => fibreStartKey(other) === fromKey && fibreEndKey(other) === toKey);
+  if (index < 0) return { result: 'laid', fibre };
+  const area = createRouteArea(bodyCells(edited));
+  const oldRoute = fibreRoute(area, edited.fibres[index]);
+  const newRoute = fibreRoute(area, fibre);
+  const isSameRoute = !viaKeys || !oldRoute || !newRoute || oldRoute.hexes.join() === newRoute.hexes.join();
+  return { result: isSameRoute ? 'removed' : 'rerouted', fibre, index };
+}
+
+// The route a fibre being drawn takes after the mouse moves onto the cell at key: pathKeys (its hex keys so far, from
+// its start) with the cell added if it touches the last one, cut back to it if the path already runs through it,
+// or joined to it by the shortest way round the path's own cells if the mouse skipped cells. Hexes outside the body
+// leave the path as it was.
+function extendFibrePath(edited, pathKeys, key) {
+  const lastKey = pathKeys[pathKeys.length - 1];
+  const bodyKeys = createRouteArea(bodyCells(edited));
+  if (key === lastKey || !bodyKeys.has(key)) return pathKeys;
+  const index = pathKeys.indexOf(key);
+  if (index >= 0) return pathKeys.slice(0, index + 1);
+  if (areHexNeighbours(parseHexKey(lastKey), parseHexKey(key))) return [...pathKeys, key];
+  const earlier = new Set(pathKeys.slice(0, -1));
+  const freeArea = new Set([...bodyKeys].filter(bodyKey => !earlier.has(bodyKey)));
+  const detour = routeFibre(freeArea, parseHexKey(lastKey), parseHexKey(key));
+  return detour ? [...pathKeys, ...detour.hexes.slice(1)] : pathKeys;
+}
+
+// the body's fibres with their routes through the body's cells: [{ fibre, route }]
 function routedBodyFibres(edited) {
   const body = bodyDesign(edited);
-  return routeLinks(body.cells, body.fibres).map(({ link, route }) => ({ fibre: link, route }));
+  const area = createRouteArea(body.cells);
+  return body.fibres
+    .map(fibre => ({ fibre, route: fibreRoute(area, fibre) }))
+    .filter(({ route }) => route);
+}
+
+// The body's fibres for drawing, side by side where they share cells (see layOutFibreLanes): [{ fibre, route,
+// points (grid px), lane, colorIndex }]. paletteSize: how many fibre colours there are to share out.
+function laidOutBodyFibres(edited, paletteSize = 1) {
+  const routed = routedBodyFibres(edited);
+  const paths = routed.map(({ route }) => route.hexes.map(key => {
+    const { q, r } = parseHexKey(key);
+    const [x, y] = hexToPixel(q, r);
+    return { node: key, x, y };
+  }));
+  const lanes = layOutFibreLanes(paths, paletteSize);
+  return routed.map((entry, i) => ({ ...entry, ...lanes[i] }));
 }
 
 // links (fibres or vessels) with their routes through these cells; links without a route are left out
@@ -280,8 +339,8 @@ function nerveRemovalTarget(edited, [x, y]) {
   const [centerX, centerY] = hexToPixel(q, r);
   const hasNeuron = !!cell && !!cell.neuron;
   if (hasNeuron && distanceSquared(x, y, centerX, centerY) <= square(NEURON_PICK_RADIUS)) return { neuronKey: key };
-  const body = bodyDesign(edited);
-  const nearest = nearestRoutedLink(routeLinks(body.cells, body.fibres), x, y, FIBRE_PICK_DISTANCE);
+  const laidOut = laidOutBodyFibres(edited).map(({ fibre, points }) => ({ link: fibre, points }));
+  const nearest = nearestLink(laidOut, x, y, FIBRE_PICK_DISTANCE);
   if (nearest) return { fibre: nearest };
   return hasNeuron ? { neuronKey: key } : null;
 }
@@ -289,13 +348,22 @@ function nerveRemovalTarget(edited, [x, y]) {
 // The link whose route passes nearest the grid point (x, y), within reach; the one drawn last, on top, when tied.
 // routed: [{ link, route }]. null if none is in reach.
 function nearestRoutedLink(routed, x, y, reach) {
-  let nearest = null;
-  let nearestDistance = reach;
-  for (const { link, route } of routed) {
-    const points = route.hexes.map(routeKey => {
+  const drawn = routed.map(({ link, route }) => ({
+    link,
+    points: route.hexes.map(routeKey => {
       const point = parseHexKey(routeKey);
       return hexToPixel(point.q, point.r);
-    });
+    }),
+  }));
+  return nearestLink(drawn, x, y, reach);
+}
+
+// The link whose drawn line passes nearest the grid point (x, y), within reach; the one drawn last when tied.
+// drawn: [{ link, points ([x, y] grid px) }]. null if none is in reach.
+function nearestLink(drawn, x, y, reach) {
+  let nearest = null;
+  let nearestDistance = reach;
+  for (const { link, points } of drawn) {
     for (let i = 1; i < points.length; i++) {
       const distance = distanceToSegment(x, y, points[i - 1], points[i]);
       if (distance <= nearestDistance) {
@@ -555,8 +623,9 @@ function placeStampLinks(links, rotation, q, r, placedKeys) {
     return { q: turned.q, r: turned.r };
   };
   return (links || [])
-    .map(link => ({ from: place(link.from), to: place(link.to) }))
-    .filter(link => isLinkWithin(link, placedKeys));
+    .map(link => moveLink(link, place))
+    .filter(link => isLinkWithin(link, placedKeys))
+    .map(link => keepViaWithin(link, placedKeys));
 }
 
 // a saved cell turned by steps of 60° around the template's anchor and moved to (q, r); its Bud part turns with it
@@ -591,7 +660,7 @@ function templateFromSelection(edited, selectedKeys, name) {
   const selected = new Set(selectedKeys);
   const shiftLinks = links => links
     .filter(link => isLinkWithin(link, selected))
-    .map(link => ({ from: shift(link.from), to: shift(link.to) }));
+    .map(link => keepViaWithin(moveLink(link, shift), selected));
   return {
     name: cleanName(name),
     isCreature,

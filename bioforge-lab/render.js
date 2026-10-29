@@ -8,9 +8,11 @@ const BOND_WIDTH_STEP = 0.5;                              // px: bond widths are
 const VIEW_MARGIN = 30;                                   // px around the view box in which cells are still drawn
 const FIBRE_COLOR = '#f2d36b';
 const FIBRE_ACTIVE_COLOR = '#fffbe0';                     // a fibre carrying a signal
-const FIBRE_ARROW_SIZE = 3;                               // px
+// fibres that share a cell get different colours from this list (see layOutFibreLanes); no red, which marks removal
+const FIBRE_COLORS = ['#f2d36b', '#5fd4f4', '#ff9f5a', '#b79cff', '#7ee08a', '#ff7fc8', '#6aa8ff', '#d9e2e6'];
+const FIBRE_WIDTH = 0.9;                                  // px
+const FIBRE_ARROW_SIZE = 2.2;                             // px
 const LIGHT_GLOW_RADIUS = 40;                             // px of the glow drawn around the light
-const BRIDGE_RADIUS = 2.6;                               // px of the arc a fibre jumps over a crossing with
 const VESSEL_COLOR = '#8f1d2c';                           // a vessel no Heart pumps
 const VESSEL_PUMPED_COLOR = '#e0485a';                    // a vessel a fed Heart pumps
 const VESSEL_SHUT_COLOR = '#6a5a62';                      // a vessel an unsignalled Valve shuts
@@ -168,61 +170,59 @@ function drawWorldVessels(context, world) {
 }
 
 // ---------- Nerve fibres ----------
-// A fibre as a line through the centres of its cells, brighter while it carries a signal, with an arrow on its last
-// step. pointKeys: the hex key of each point; crossings: hex keys where it jumps over another fibre with a small arc;
-// alpha and width: how strongly it is drawn.
-function drawFibre(context, points, pointKeys, value, crossings = null, alpha = 1, width = 1.3) {
+// A fibre as a thin line through its points ([x, y]: its cells' centres, or its lane beside them), with a dot where
+// it starts and an arrowhead on its last step. It brightens with the signal it carries (value), and shows a white
+// core while the signal is on. style: { color, alpha, width (px) }.
+function drawFibre(context, points, value, { color = FIBRE_COLOR, alpha = 1, width = FIBRE_WIDTH } = {}) {
   context.globalAlpha = alpha * (0.6 + 0.4 * clamp01(value));
-  context.strokeStyle = value > SIGNAL_ON ? FIBRE_ACTIVE_COLOR : FIBRE_COLOR;
+  context.strokeStyle = color;
+  context.fillStyle = color;
   context.lineWidth = width;
-  context.beginPath();
-  context.moveTo(points[0][0], points[0][1]);
-  for (let i = 1; i < points.length; i++) {
-    const [x, y] = points[i];
-    if (crossings && i < points.length - 1 && crossings.has(pointKeys[i])) traceBridge(context, points[i - 1], [x, y]);
-    context.lineTo(x, y);
-  }
+  context.lineCap = 'round';
+  context.lineJoin = 'round';
+  traceFibreLine(context, points);
   context.stroke();
-  drawFibreArrow(context, points[points.length - 2], points[points.length - 1]);
+  if (value > SIGNAL_ON) {
+    context.strokeStyle = FIBRE_ACTIVE_COLOR;
+    context.lineWidth = width * 0.45;
+    context.stroke();
+    context.strokeStyle = color;
+    context.lineWidth = width;
+  }
+  fillCircle(context, points[0][0], points[0][1], width * 0.8 + 0.5);
+  drawFibreArrow(context, points[points.length - 2], points[points.length - 1], width);
   context.globalAlpha = 1;
 }
 
-// a small half circle just before the corner, so the line visibly jumps over the fibre it crosses there
-function traceBridge(context, [fromX, fromY], [toX, toY]) {
-  const length = vectorLength(toX - fromX, toY - fromY) || 1;
-  const directionX = (toX - fromX) / length;
-  const directionY = (toY - fromY) / length;
-  const startX = toX - directionX * BRIDGE_RADIUS * 2;
-  const startY = toY - directionY * BRIDGE_RADIUS * 2;
-  context.lineTo(startX, startY);
-  const centreX = toX - directionX * BRIDGE_RADIUS;
-  const centreY = toY - directionY * BRIDGE_RADIUS;
-  const angle = Math.atan2(directionY, directionX);
-  context.arc(centreX, centreY, BRIDGE_RADIUS, angle + Math.PI, angle, false);
-}
-
-// an arrowhead in the middle of the fibre's last side, pointing toward its end
-function drawFibreArrow(context, [fromX, fromY], [toX, toY]) {
-  const length = vectorLength(toX - fromX, toY - fromY) || 1;
-  const directionX = (toX - fromX) / length;
-  const directionY = (toY - fromY) / length;
-  const tipX = (fromX + toX) / 2 + directionX * FIBRE_ARROW_SIZE;
-  const tipY = (fromY + toY) / 2 + directionY * FIBRE_ARROW_SIZE;
+function traceFibreLine(context, points) {
   context.beginPath();
-  context.moveTo(tipX - directionX * FIBRE_ARROW_SIZE * 2 - directionY * FIBRE_ARROW_SIZE,
-    tipY - directionY * FIBRE_ARROW_SIZE * 2 + directionX * FIBRE_ARROW_SIZE);
-  context.lineTo(tipX, tipY);
-  context.lineTo(tipX - directionX * FIBRE_ARROW_SIZE * 2 + directionY * FIBRE_ARROW_SIZE,
-    tipY - directionY * FIBRE_ARROW_SIZE * 2 - directionX * FIBRE_ARROW_SIZE);
-  context.stroke();
+  context.moveTo(points[0][0], points[0][1]);
+  for (let i = 1; i < points.length; i++) context.lineTo(points[i][0], points[i][1]);
 }
 
-// the world's fibres, through the moving centres of the cells they run through
+// a filled arrowhead in the middle of the fibre's last side, pointing toward its end, sized to the line
+function drawFibreArrow(context, [fromX, fromY], [toX, toY], width) {
+  const length = vectorLength(toX - fromX, toY - fromY) || 1;
+  const directionX = (toX - fromX) / length;
+  const directionY = (toY - fromY) / length;
+  const size = FIBRE_ARROW_SIZE * Math.max(1, width / FIBRE_WIDTH * 0.7);
+  const tipX = (fromX + toX) / 2 + directionX * size;
+  const tipY = (fromY + toY) / 2 + directionY * size;
+  context.beginPath();
+  context.moveTo(tipX - directionX * size * 2 - directionY * size, tipY - directionY * size * 2 + directionX * size);
+  context.lineTo(tipX, tipY);
+  context.lineTo(tipX - directionX * size * 2 + directionY * size, tipY - directionY * size * 2 - directionX * size);
+  context.closePath();
+  context.fill();
+}
+
+// the world's fibres side by side in their lanes, through the moving centres of the cells they run through
 function drawWorldFibres(context, world) {
-  for (const fibre of world.fibres) {
-    const points = fibre.path.map(cell => [cell.x, cell.y]);
-    drawFibre(context, points, null, fibre.value, null, 0.6);
-  }
+  const paths = world.fibres.map(fibre => fibre.path.map(cell => ({ node: cell, x: cell.x, y: cell.y })));
+  const lanes = layOutFibreLanes(paths, FIBRE_COLORS.length);
+  world.fibres.forEach((fibre, i) => {
+    drawFibre(context, lanes[i].points, fibre.value, { color: FIBRE_COLORS[lanes[i].colorIndex], alpha: 0.85 });
+  });
 }
 
 // ---------- Cells ----------

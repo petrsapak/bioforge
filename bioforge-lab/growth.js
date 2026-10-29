@@ -53,7 +53,7 @@ function placePartFibres(fibres, rotation, anchorQ, anchorR) {
     const [turnedQ, turnedR] = rotateHex(q, r, rotation);
     return { q: turnedQ + anchorQ, r: turnedR + anchorR };
   };
-  return fibres.map(fibre => ({ from: place(fibre.from), to: place(fibre.to) }));
+  return fibres.map(fibre => moveLink(fibre, place));
 }
 
 // the direction the part points: turned by the player, or away from the body's middle

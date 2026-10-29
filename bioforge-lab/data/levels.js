@@ -139,7 +139,8 @@ const LEVELS = [
       'there is no moment to coast to a stop.',
     hint: 'The Freeze build stops too late. Give one Light eye a Delay neuron: its late copy of a flash comes back ' +
       'just before the next flash, and the Inhibitor stops you in time. Try a delay between 2.5 and 3 s; the ' +
-      'longer, the more you swim.',
+      'longer, the more you swim. Keep the body even: one that turns stops seeing the light, and the Inhibitor ' +
+      'lets it swim while the light is on.',
     limits: { budget: 40 },
     light: { ...WATCHER_LIGHT, blink: { on: 1.5, off: 2.5 } },
     stillWhileLit: { speed: 10, grace: 0.25 },

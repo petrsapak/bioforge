@@ -4,7 +4,7 @@ const { load } = require('./load');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['newWorld', 'spawn', 'step', 'createNeuron', 'createDesignCell', 'createRouteArea',
   'routeFibre', 'fibreUnits', 'upgradeToNerveLayer', 'hexKey', 'TEMPLATES', 'NERVE_SUBSTEPS', 'NEURONS', 'NEURON_TIPS',
-  'exampleCells', 'linksFromList', 'newTestTank']);
+  'exampleCells', 'linksFromList', 'newTestTank', 'fibreRoute', 'layOutFibreLanes', 'placePartFibres']);
 
 const STEP = 1 / 40;
 const cellAt = (creature, q, r) => creature.cells.find(cell => cell.q === q && cell.r === r);
@@ -113,6 +113,38 @@ check('Inhibitor is NOT (of the sum)', truthTable(sim.createNeuron('inhibitor'))
   check('no route to a hex without a cell', sim.routeFibre(area, row[0], { q: 5, r: 5 }) === null);
   const design = { cells: row.map(({ q, r }) => sim.createDesignCell(q, r, 'tissue')), fibres: [fibre(0, 0, 2, 0)] };
   check('fibreUnits adds up the routes', sim.fibreUnits(design) === 2);
+}
+
+{ // a fibre with via cells runs through exactly those
+  const cells = [[0, 0], [1, 0], [1, -1], [0, -1], [2, -1]].map(([q, r]) => sim.createDesignCell(q, r, 'tissue'));
+  const area = sim.createRouteArea(cells);
+  const roundabout = { ...fibre(0, 0, 1, 0), via: [{ q: 0, r: -1 }, { q: 1, r: -1 }] };
+  check('the route runs through its via cells', sim.fibreRoute(area, roundabout).hexes.join(' ') ===
+    '0,0 0,-1 1,-1 1,0' && sim.fibreRoute(area, roundabout).units === 3);
+  check('via cells that don\'t touch give no route',
+    sim.fibreRoute(area, { ...fibre(0, 0, 1, 0), via: [{ q: 2, r: -1 }] }) === null);
+  check('a via cell that is gone gives no route',
+    sim.fibreRoute(area, { ...fibre(0, 0, 1, 0), via: [{ q: 0, r: 1 }] }) === null);
+  const world = sim.newWorld(600, 600, { systems: ['nerve'] });
+  sim.spawn(world, { cells: [sim.createDesignCell(0, 0, 'nucleus'), ...cells.slice(1)], fibres: [roundabout] },
+    300, 300, 0, 0);
+  check('a creature\'s fibre runs through its via cells', world.fibres.length === 1 &&
+    world.fibres[0].path.map(cell => cell.q + ',' + cell.r).join(' ') === '0,0 0,-1 1,-1 1,0');
+  const placed = sim.placePartFibres([roundabout], 3, 5, 5)[0];
+  check('a Bud part turns a fibre\'s via cells with it', placed.via.length === 2 &&
+    sim.fibreRoute(sim.createRouteArea([placed.from, ...placed.via, placed.to]), placed) !== null);
+}
+
+{ // lanes: fibres sharing a side, either way round, never share a line
+  const stop = (node, x) => ({ node, x, y: 0 });
+  const there = [stop('a', 0), stop('b', 10)];
+  const back = [stop('b', 10), stop('a', 0)];
+  const [first, second] = sim.layOutFibreLanes([there, back], 8);
+  check('a fibre alone keeps the centre line', sim.layOutFibreLanes([there], 8)[0].points[0][1] === 0);
+  check('a fibre running back along it takes another line',
+    Math.abs(first.points[0][1] - second.points[1][1]) > 1, `${first.points[0][1]} ${second.points[1][1]}`);
+  check('the colours run out gracefully',
+    sim.layOutFibreLanes(Array.from({ length: 10 }, () => there), 3).every(entry => entry.colorIndex < 3));
 }
 
 { // a fibre is cut when a cell it runs through dies, and only then

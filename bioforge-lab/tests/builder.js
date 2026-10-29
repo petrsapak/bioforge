@@ -1,6 +1,6 @@
 // builder.js and the saved format (sim only): placing and removing cells (mirrored too), painting strokes, planned
-// cells, Command keys, Bud parts and their aim, stamping, saving a selection, the library, and carrying old saves
-// over to the current format.
+// cells, Command keys, Bud parts and their aim, fibres drawn along a route, stamping, saving a selection, the
+// library, and carrying old saves over to the current format.
 const { load } = require('./load');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['createEditedDesign', 'canPlaceCell', 'placeCell', 'removeCell', 'bodyCells',
@@ -9,7 +9,8 @@ const { X: sim } = load({}, ['createEditedDesign', 'canPlaceCell', 'placeCell', 
   'storeTemplate', 'migrateLibraryEntry', 'createDesignCell', 'hexKey', 'newWorld', 'spawn', 'step', 'placeNeuron',
   'removeNeuron', 'changeNeuronSetting', 'toggleFibre', 'bodyDesign', 'nerveUsage', 'fibresAt', 'removeFibre',
   'nerveRemovalTarget', 'hexToPixel', 'mirrorImages', 'mirroredPlacement', 'placeMirrored', 'removeMirrored',
-  'hexesAlongStroke', 'MIRROR_AXIS_COUNT', 'FRONT_TO_BACK_AXIS']);
+  'hexesAlongStroke', 'MIRROR_AXIS_COUNT', 'FRONT_TO_BACK_AXIS', 'extendFibrePath', 'laidOutBodyFibres',
+  'planFibreToggle', 'fibreUnits']);
 
 const cellsOf = list => list.map(([q, r, typeName]) => sim.createDesignCell(q, r, typeName));
 const editedFrom = (cells, biomassLimit) => sim.createEditedDesign({ cells, fibres: [] }, biomassLimit);
@@ -143,6 +144,53 @@ const editedFrom = (cells, biomassLimit) => sim.createEditedDesign({ cells, fibr
   check('removeFibre takes out just that fibre', edited.fibres.length === 0 && !!edited.cells.get(tissueKey).neuron);
 }
 
+{ // a fibre drawn along the cells the mouse passed over
+  // a ring of six cells round the Nucleus: (1,0) to (-1,0) can go over the top or under the bottom
+  const ring = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
+  const edited = editedFrom(cellsOf([[0, 0, 'nucleus'], ...ring.map(([q, r]) => [q, r, 'tissue'])]));
+  const key = sim.hexKey;
+  let path = [key(1, 0)];
+  for (const [q, r] of [[1, -1], [0, -1], [-1, 0]]) path = sim.extendFibrePath(edited, path, key(q, r));
+  check('the path follows the mouse from cell to cell', path.join(' ') === '1,0 1,-1 0,-1 -1,0');
+  check('going back over the path cuts it back',
+    sim.extendFibrePath(edited, path, key(1, -1)).join(' ') === '1,0 1,-1');
+  check('a hex without a cell leaves the path as it is', sim.extendFibrePath(edited, path, key(5, 5)) === path);
+  const skipped = sim.extendFibrePath(edited, [key(1, 0)], key(-1, 1));
+  check('a skipped cell is filled in, without running back through the path',
+    skipped[0] === key(1, 0) && skipped[skipped.length - 1] === key(-1, 1) && skipped.length === 3, skipped.join(' '));
+  check('a drawn fibre is laid along its route', sim.toggleFibre(edited, key(1, 0), key(-1, 0), path.slice(1, -1)) ===
+    'laid' && sim.laidOutBodyFibres(edited)[0].route.hexes.join(' ') === path.join(' '));
+  check('its units are its steps, not the shortest route\'s', sim.fibreUnits(sim.bodyDesign(edited)) === 3);
+  const under = [key(0, 1), key(-1, 1)];
+  check('drawing it again another way round moves it', sim.planFibreToggle(edited, key(1, 0), key(-1, 0), under)
+    .result === 'rerouted' && sim.toggleFibre(edited, key(1, 0), key(-1, 0), under) === 'rerouted' &&
+    edited.fibres.length === 1 && edited.fibres[0].via.length === 2);
+  check('drawing it again the same way removes it',
+    sim.toggleFibre(edited, key(1, 0), key(-1, 0), under) === 'removed' && edited.fibres.length === 0);
+  sim.toggleFibre(edited, key(1, 0), key(-1, 0), under);
+  sim.removeCell(edited, 0, 1);
+  check('removing a cell on its route keeps the fibre, on the shortest route',
+    edited.fibres.length === 1 && !edited.fibres[0].via && sim.laidOutBodyFibres(edited).length === 1);
+  const copy = sim.createEditedDesign({ cells: [...edited.cells.values()], fibres: [{ ...edited.fibres[0], via: [{ q: 0,
+    r: -1 }] }] });
+  check('a copied design keeps the route', copy.fibres[0].via[0].r === -1);
+}
+
+{ // fibres sharing cells are drawn side by side, in different colours
+  const edited = editedFrom(cellsOf([[0, 0, 'nucleus'], [1, 0, 'tissue'], [2, 0, 'tissue'], [3, 0, 'muscle'],
+    [2, -1, 'tissue']]));
+  sim.toggleFibre(edited, sim.hexKey(1, 0), sim.hexKey(3, 0));
+  sim.toggleFibre(edited, sim.hexKey(2, -1), sim.hexKey(2, 0), []);
+  sim.toggleFibre(edited, sim.hexKey(3, 0), sim.hexKey(1, 0));
+  const laidOut = sim.laidOutBodyFibres(edited, 8);
+  const lanes = laidOut.map(entry => entry.lane);
+  check('fibres through one cell get different lanes', new Set(lanes).size === 3, lanes.join(' '));
+  check('and different colours', new Set(laidOut.map(entry => entry.colorIndex)).size === 3);
+  const [there, , back] = laidOut;
+  const apart = Math.abs(there.points[1][1] - back.points[1][1]);
+  check('two fibres along the same cells run apart, not on top of each other', apart > 1.5, apart.toFixed(2) + " px");
+}
+
 { // fibres travel with saved parts: saving a selection, stamping it, and growing it on a Bud
   const edited = editedFrom(cellsOf([[0, 0, 'nucleus'], [1, 0, 'tissue'], [2, 0, 'muscle'], [0, -1, 'bud']]), Infinity);
   sim.placeNeuron(edited, sim.hexKey(1, 0), 'pacemaker');
@@ -152,6 +200,12 @@ const editedFrom = (cells, biomassLimit) => sim.createEditedDesign({ cells, fibr
     part.fibres.length === 1 && part.cells.some(cell => cell.neuron && cell.neuron.kind === 'pacemaker'));
   check('a stamped part brings its fibres', sim.placeStamp(edited, { template: part, rotation: 0 }, 1, 2) === '' &&
     edited.fibres.length === 2);
+  const drawn = { name: 'Bent', isCreature: false,
+    cells: cellsOf([[0, 0, 'tissue'], [1, 0, 'tissue'], [1, -1, 'muscle']]),
+    fibres: [{ from: { q: 0, r: 0 }, to: { q: 1, r: -1 }, via: [{ q: 1, r: 0 }] }], vessels: [] };
+  const turned = sim.stampPlacement(edited, { template: drawn, rotation: 2 }, 6, 6).fibres[0];
+  check('a turned stamp turns a drawn route with it', !!turned && turned.via.length === 1 &&
+    sim.hexKey(turned.via[0].q, turned.via[0].r) !== sim.hexKey(7, 6));
   sim.giveBudPart(edited, sim.hexKey(0, -1), part);
   const budPart = edited.cells.get(sim.hexKey(0, -1)).budPart;
   check('a Bud part keeps its fibres and neurons',

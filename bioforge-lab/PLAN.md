@@ -13,7 +13,7 @@ Started 2026-10-28. It was copied from `bioforge-moba/`, which is now frozen.
   - **Signals travel only along fibres.** Touching cells no longer pass signals to each other (user: "1 no", read as agreeing with "no more leaking"). The Nerve cell type goes.
   - **Pacemaker, Ganglion and Command become neurons** that sit inside any body cell. **Eyespot stays a body cell** (a sense organ), and its fibres carry what it senses.
   - **One step of delay per fibre:** a fibre delivers what its start cell had one nerve step earlier. Loops become oscillators that behave the same on every run, and long wiring is slower.
-  - **Crossings are drawn with a small bridge arc.** Fibres connect only at their ends, so a crossing never connects anything.
+  - **Fibres sharing a cell are drawn side by side** (2026-10-29, user: "They are too thick and the overlaps aren't the best design ... If there are multiple nerve lines in one cell I want them to be lined next to each other color distictive and highlightable (the whole start to end)"). Each fibre gets its own lane beside the cells' centres and a colour no other fibre through one of its cells has (8 colours, none red). In the Nerve view the fibre under the mouse, or whose row in the cell card is hovered, is drawn bold from start to end with rings round its two end cells, and the others dim. Until then fibres ran through the cells' centres, drawn on top of each other, with a small bridge arc at crossings. Fibres connect only at their ends, so a crossing never connects anything.
   - **Limits come from `RULES`:** `maxNeurons` and `maxFibreUnits` (user: "limit with rules"). Neither costs biomass.
   - **Neurons cost no materials** (2026-10-28, user: "neurons do not cost material now"); only the neuron count limits them. This can be revisited when the material kits arrive (milestone 4).
   - **The neuron set is a trial** (user: "don't know, have to try"): Pacemaker, Ganglion, Inhibitor, Synapse, Latch, Command, and Delay (added 2026-10-28, user: "Delay neuron - ok"). They are data, so any of them can be cut or changed after playing.
@@ -81,8 +81,9 @@ The layer split is a proposal, to try in play first. The creature has 4 layers o
 | **Chemical** | Glands release hormones (which spread slowly through the whole body, read by receptors) and secretions (which act on cells, your own or others'). | Slow (tens of seconds) | Adrenaline and repair fluid move like the other fluids |
 
 - **Routing:** a nerve fibre runs from the centre of its start cell through the centres of the cells between, to its end cell. One step is one unit, and each level limits the units. Vessels are routed the same way on their own layer (2026-10-28; until then planned along the hexagon sides), so a nerve and a vessel never compete for room.
-- **Crossing:** paths may cross, also inside a cell they both pass through; they stay separate, drawn with a bridge arc.
-- **Fibres connect only at their two ends** (decided 2026-10-28). You drag from one cell to another and the fibre routes through the cells between. The cells it passes through aren't affected.
+- **Crossing:** paths may cross, also inside a cell they both pass through; they stay separate, each in its own lane (a bridge arc until 2026-10-29).
+- **Fibres connect only at their two ends** (decided 2026-10-28). The cells it passes through aren't affected.
+- **The player chooses a fibre's route** (2026-10-29, user: "I want to be able to tell in which cell the fibre goes through - now algorithm decides that"). A drag lays the fibre through the cells the mouse passes over; going back over the path cuts it back, and cells the mouse skipped are filled in by the shortest way. The design keeps the cells between the ends as the fibre's `via` list. Drawing a fibre that is already there on another route moves it; drawing it on the same route removes it. Fibres without `via` (older saves, levels, tips, and a fibre whose drawn route lost a cell in the editor) take the shortest route, as all fibres did until then.
 - **Fibres are directed** (decided 2026-10-28), drawn with an arrow, so a fibre is also a diode.
 - **Neurons sit as an overlay inside a body cell** (decided 2026-10-28), one per cell, with fibres attached to it. Logic doesn't take up body space.
 - Nerves and vessels **run through body cells and need them**: a fibre is cut when a cell it runs through dies, so injuries can disable circuits.
@@ -207,8 +208,9 @@ math.js         deterministic sine, cosine, arcTangent2 and the seeded random ge
 core.js         constants, hex and math helpers, world (newWorld, newTestTank, randomFraction), creature and cell
                 factories, spawn, death and splitting, the system registry, step() and the cell-death hooks (pure);
                 systems: clock 30, cleanup 110, particles 120
-fibres.js       nerve fibre routing from cell centre to cell centre (vessels use it too), units, adding fibres to
-                a creature and cutting broken ones (pure)
+fibres.js       nerve fibre routing from cell centre to cell centre, along drawn routes or the shortest way (vessels
+                use it too), units, side-by-side lanes and colours for drawing, adding fibres to a creature and
+                cutting broken ones (pure)
 physics.js      input, steering, springs, drag, collisions, integration (anchored creatures stay put) (pure);
                 systems: input 10, physics 20
 nerve.js        signals along fibres, senses, the neuron rules (pure); system: nerve 40 (switchable)
@@ -235,7 +237,8 @@ design.js       hex lookup, buildCheck (cells, biomass or the kit, neurons, fibr
                 Needs rows they fill, the sugar supply, the saved design format, and the conversion of old saves and of designs from before the nerve layer (pure; loaded
                 before data/templates.js, which uses the conversion)
 builder.js      the edited design and every editing rule: cells (mirrored across symmetry axes, painting strokes),
-                Bud parts and aim, Command keys, vessels, stamps, saving a selection, the library list (pure)
+                Bud parts and aim, Command keys, fibres drawn along a route, vessels, stamps, saving a selection,
+                the library list (pure)
 data/*.js       cells (stats, recipes and behaviour fields), materials, neurons, fluids, templates (incl. the small builds), tips,
                 levels and the creatures that live in them, sound effects
 cellart.js      how each cell and neuron badge looks (Microscope style): see-through body, membrane, a symbol per type
@@ -331,7 +334,7 @@ tests/          the save file test, and a CRLF check of these files
    - **Fibres** are routed automatically from the start cell's centre through the fewest cells to the end cell's centre. Neighbours are 1 unit. A fibre is cut when its start, its end or a cell it runs through dies. Regrown cells and growing Bud parts get their fibres back once both ends are there.
    - **Old designs** (built-in, tooltip examples, saved creatures) are converted when loaded: Nerve cells become Tissue, Pacemaker, Ganglion and Command cells become Tissue with that neuron, and the old touch-wiring becomes fibres. Each signal source is wired outward through the cells that used to carry signals.
    - **The editor** gets a Body view and a Nerve view. In the Nerve view the dock shows the neurons; a click puts the chosen neuron into a cell, and a drag from one cell to another lays a fibre. A right-click takes out whatever is drawn red under the mouse: the neuron near a cell's centre, otherwise the fibre whose line is nearest (changed 2026-10-28, user: "we need better system for fibre removal"; until then a right-click only took out neurons, and a fibre went only by repeating its drag, which still works). The panel shows the units used, the clicked cell's neuron setting, and its fibres, each with a × that removes it.
-   - Chosen without asking: two fibres may share cells and steps; fibres are routed automatically (choosing a route by hand can come later); the sandbox limits are 12 neurons and 40 fibre units.
+   - Chosen without asking: two fibres may share cells and steps; fibres are routed automatically (choosing a route by hand came on 2026-10-29); the sandbox limits are 12 neurons and 40 fibre units.
    - Test: the logic neurons give the expected truth tables, a chain of fibres delays by one step each, fibres route and get cut as described, old designs still move after conversion, and the same design gives the same result on every run.
 2. **Autonomy, debugging and chapter 1.** ✅ Done 2026-10-28. No hidden steering. Probes with signal traces, slow motion and single-stepping. The level format, win checks, scores, and 5 Reflexes levels ending in a Braitenberg hunt.
    - Test: a scripted reference solution beats every level headless.
@@ -399,7 +402,8 @@ tests/          the save file test, and a CRLF check of these files
 - Free swimming (the AI enemies) now depends on shape: at `SWIM_FORCE` 200 they average 48 px/s as before (46), but the wide Manta went from 54 to 32 px/s and the narrow Starter from 64 to 62.
 - The showcase designs were built for WASD. Those without cilia, siphons or a muscle wave no longer move on their own; they are rewired with chapter 1.
 - **Nerve layer (2026-10-28):**
-  - Fibres are routed automatically by the shortest path; a player can't choose a route yet. Two fibres that share a step are drawn on top of each other.
+  - A fibre with a drawn route that loses a cell on it in a run is cut, like any fibre; in the editor, removing that cell puts the fibre back on the shortest route.
+  - With many fibres through one cell the lanes squeeze together (at most 6.5 px from the centre), and colours repeat after 8. Laying out the lanes costs about 0.7 ms per builder frame for 20 fibres on 37 cells.
   - The built-in designs and the tooltip examples are still written in the old format and converted when loaded. Hand-wired versions come with the chapter 1 levels.
   - Converted designs act on sharper signals: the old leaking signals faded slowly, fibres switch off at once. The Puffer's bloaters are on in 137 of 400 golden-scenario steps instead of 194.
 - **Vascular layer (2026-10-28):**

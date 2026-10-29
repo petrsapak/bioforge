@@ -8,6 +8,7 @@ const COACH_WIDTH = 104;                                  // px (CSS) of one ste
 const COACH_HEIGHT = 56;                                  // px (CSS)
 const COACH_PIXEL_RATIO = 2;                              // canvas pixels per CSS px, for sharp drawing
 const COACH_SCENE_SCALE = 1.35;                           // CSS px per grid px in the animations
+const COACH_FIBRE_WIDTH = 1.2;                            // grid px: thicker than in the builder, for small pictures
 const COACH_STEP_X = HEX_SPACING_X;                       // grid px between neighbouring cells in a row
 const RIGHT_CLICK_COLOR = '#ff7a6a';
 
@@ -240,7 +241,7 @@ function drawSwitchToNervesScene(context, time) {
     context.globalAlpha = 1;
   }
   drawSceneNeuron(context, 'pacemaker', ...left, popScale(time, 0.7), isLit ? 1 : 0);
-  if (time > 1.1) drawFibre(context, [left, [0, 0], right], null, isLit ? 1 : 0, null, 1, 1.6);
+  if (time > 1.1) drawFibre(context, [left, [0, 0], right], isLit ? 1 : 0, { width: COACH_FIBRE_WIDTH });
 }
 
 // a small dock of three neurons; the pointer clicks the chosen one, which lights up
@@ -298,7 +299,7 @@ function drawLayFibreScene(context, time) {
     strokeLine(context, ...start, ...pointer);
     context.setLineDash([]);
   }
-  if (isLaid) drawFibre(context, [start, middle, end], null, isLit ? 1 : 0, null, 1, 1.6);
+  if (isLaid) drawFibre(context, [start, middle, end], isLit ? 1 : 0, { width: COACH_FIBRE_WIDTH });
   drawCursor(context, pointer, pressAt(time, 0.6, 1.75));
 }
 
@@ -360,7 +361,7 @@ function drawRemoveScene(context, time) {
   const isNeuronThere = time < 2.35;
   if (isFibreThere) {
     const isTargeted = time > 0.6;
-    drawFibre(context, [start, end], null, 0, null, 1, 1.6);
+    drawFibre(context, [start, end], 0, { width: COACH_FIBRE_WIDTH });
     if (isTargeted) {
       context.strokeStyle = RIGHT_CLICK_COLOR;
       context.lineWidth = 2.4;
