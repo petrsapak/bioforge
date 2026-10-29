@@ -42,4 +42,31 @@ const nextMusic = fakeAudio(second.byId('music'));
 second.fire('window', 'pointerdown', {});
 check('switched off stays off on the next visit', nextMusic.playCount === 0 &&
   second.byId('toggle-music').classList.contains('off'));
+
+// ---------- The seamless loop ----------
+// Two copies take turns: near the end of one, the other starts inside the track and the volumes cross.
+const third = startApp([]);
+const copyA = fakeAudio(third.byId('music'));
+const copyB = fakeAudio(third.byId('music-b'));
+copyA.currentTime = 0;
+third.fire('window', 'pointerdown', {});
+third.runFrames(1);
+check('the first turn plays the track from its start', !copyA.paused && copyB.paused);
+copyA.currentTime = 171;
+third.runFrames(1);
+check('near the end the other copy starts silent, after the track\'s fade-in',
+  !copyB.paused && copyB.currentTime === 6 && copyB.volume === 0, `at ${copyB.currentTime}, volume ${copyB.volume}`);
+copyB.currentTime = 8;
+third.runFrames(1);
+const full = third.readGlobal('MUSIC_VOLUME');
+const half = full * Math.SQRT1_2;
+check('halfway both play at equal power', Math.abs(copyA.volume - half) < 1e-9 && Math.abs(copyB.volume - half) < 1e-9,
+  `${copyA.volume} ${copyB.volume}`);
+copyB.currentTime = 10;
+third.runFrames(1);
+check('after the fade the old copy stops and the new one plays at full volume',
+  copyA.paused && !copyB.paused && copyB.volume === full);
+third.fire('music-b', 'ended', {});
+check('a copy that played to its end (hidden tab) hands over at full volume',
+  !copyA.paused && copyA.currentTime === 6 && copyA.volume === full);
 done();

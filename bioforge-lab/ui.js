@@ -15,7 +15,7 @@ const SAVE_MENU_WIDTH = 230;                              // px kept free right 
 const SAVE_MENU_HEIGHT = 120;                             // px
 const LAYER_BY_KEY = { 1: 'body', 2: 'nerve', 3: 'vessel' };    // the builder's tab each number key opens
 // keys with a job of their own, which a Command can't be bound to: the tabs, Q/E, F, H, M, and P, R, T in runs
-const RESERVED_KEYS = new Set(['1', '2', '3', 'e', 'f', 'h', 'm', 'p', 'q', 'r', 't']);
+const RESERVED_KEYS = new Set(['1', '2', '3', 'e', 'f', 'h', 'm', 'n', 'p', 'q', 'r', 't']);
 
 // The one place the app state is built. Every browser file reads and changes the app through this object.
 function createApp(canvas) {
@@ -69,6 +69,7 @@ function createApp(canvas) {
     levelResults: {},                                     // best result per level id: { stars, seconds, biomass }
     isHintShown: false,
     musicOff: false,                                     // the player switched the background music off
+    soundsOff: false,                                    // the player switched the sound effects off (sound.js)
     probes: createProbes(),                               // the signal traces of the player's cells in a run
     isProbesShown: true,
     hudBars: [],
@@ -100,6 +101,7 @@ function boot() {
   setUpSaveMenu(app);
   setUpSandboxBar(app);
   setUpMusic(app);
+  setUpSounds(app);
   setUpLevels(app);
   app.isProbesShown = readStorage('probes-shown', true);
   app.hudBars = makeHudBars(byId('hud-bars'));
@@ -330,6 +332,7 @@ function listenToKeyboard(app) {
     app.keysHeld.add(key);
     if (key === ' ') event.preventDefault();
     if (key === 'm' && !event.repeat) toggleMusic(app);
+    if (key === 'n' && !event.repeat) toggleSounds(app);
     if (key === 't' && !event.repeat && app.mode !== 'build') toggleProbes(app);
     const digit = digitOf(event);
     const commandKey = commandKeyOf(event);
@@ -498,8 +501,13 @@ function handleBuilderMouseDown(app, event) {
     refreshPanel(app);
     return;
   }
-  if (isRight) removeCell(app.edited, q, r);
-  else if (!placeChosenCell(app, q, r)) return;
+  if (isRight) {
+    removeCell(app.edited, q, r);
+    playSound(app, 'remove');
+  } else if (!placeChosenCell(app, q, r)) {
+    playSound(app, 'refuse');
+    return;
+  }
   rebuildTank(app);
 }
 
@@ -512,6 +520,7 @@ function handleNerveMouseDown(app, event, q, r) {
     if (!target) return;
     if (target.fibre) removeFibre(app.edited, target.fibre);
     else removeNeuron(app.edited, target.neuronKey);
+    playSound(app, 'remove');
     rebuildTank(app);
     return;
   }
@@ -528,8 +537,13 @@ function finishFibreDrag(app, hex) {
   const fromKey = app.fibreDrag.fromKey;
   const toKey = hexKey(...hex);
   const cell = app.edited.cells.get(fromKey);
-  if (toKey === fromKey && !cell.neuron) placeNeuron(app.edited, fromKey, app.selectedNeuron);
-  else toggleFibre(app.edited, fromKey, toKey);
+  if (toKey === fromKey && !cell.neuron) {
+    placeNeuron(app.edited, fromKey, app.selectedNeuron);
+    playSound(app, 'place');
+  } else {
+    const result = toggleFibre(app.edited, fromKey, toKey);
+    if (result) playSound(app, result === 'laid' ? 'wire' : 'remove');
+  }
   rebuildTank(app);
 }
 
@@ -541,6 +555,7 @@ function handleVesselMouseDown(app, event, q, r) {
     const vessel = vesselRemovalTarget(app.edited, screenToGrid(app, event.clientX, event.clientY));
     if (!vessel) return;
     removeVessel(app.edited, vessel);
+    playSound(app, 'remove');
     rebuildTank(app);
     return;
   }
@@ -552,7 +567,10 @@ function handleVesselMouseDown(app, event, q, r) {
 
 // letting go on another cell lays a vessel to it, or removes the one already there
 function finishVesselDrag(app, hex) {
-  if (toggleVessel(app.edited, app.vesselDrag.fromKey, hexKey(...hex))) rebuildTank(app);
+  const result = toggleVessel(app.edited, app.vesselDrag.fromKey, hexKey(...hex));
+  if (!result) return;
+  playSound(app, result === 'laid' ? 'vessel' : 'remove');
+  rebuildTank(app);
 }
 
 // grabs the clicked Bud's aim arrow tip or a cell of a Bud's part, if one is under the mouse
@@ -573,14 +591,20 @@ function useStamp(app, isRight, q, r) {
     return;
   }
   const problem = placeStamp(app.edited, app.stamp, q, r);
-  if (problem) showMessage(problem);
-  else rebuildTank(app);
+  if (problem) {
+    showMessage(problem);
+    playSound(app, 'refuse');
+  } else {
+    playSound(app, 'place');
+    rebuildTank(app);
+  }
 }
 
 // places the chosen cell type; a new Bud is clicked at once, ready to be given a part
 function placeChosenCell(app, q, r) {
   if (!canPlaceCell(app.edited, q, r, app.selectedType)) return false;
   placeCell(app.edited, q, r, app.selectedType);
+  playSound(app, 'place');
   app.focusKey = CELLS[app.selectedType].growsParts ? hexKey(q, r) : null;
   return true;
 }
@@ -620,12 +644,15 @@ function runFrame(app, now) {
   const dt = Math.min(MAX_FRAME_TIME, frameTime);
   app.lastFrameTime = now;
   app.fps += (1 / Math.max(frameTime, 1e-3) - app.fps) * FPS_SMOOTHING;
+  updateMusic(app);
   if (app.mode === 'build') runBuilderFrame(app, dt, now);
   else if (app.mode === 'sandbox') {
     stepSandbox(app, dt);
+    listenToWorld(app, app.world, app.player);
     drawSandbox(app);
   } else {
     stepLevelMode(app, dt);
+    listenToWorld(app, app.levelRun.world, app.levelRun.player, app.levelRun);
     drawLevelMode(app);
   }
   requestAnimationFrame(time => runFrame(app, time));

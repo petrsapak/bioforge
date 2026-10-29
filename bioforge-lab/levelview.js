@@ -61,6 +61,7 @@ function toggleLevelsSheet(app) {
     return;
   }
   sheet.style.display = 'flex';
+  playSound(app, 'open');
   app.sheetLevel = app.level || latestOpenLevel(app);
   app.isHintShown = false;
   showLevelTiles(app);
@@ -164,6 +165,7 @@ function startLevelRun(app) {
   const problem = buildCheck(design, chosenLimits(app));
   if (problem) {
     showMessage(`It doesn't fit this level: ${problem}.`);
+    playSound(app, 'refuse');
     return;
   }
   app.mode = 'level';
@@ -181,6 +183,7 @@ function startLevelRun(app) {
 // starts the run over with the same design, running at the chosen speed
 function retryLevel(app) {
   app.levelRun = startLevel(app.level, app.levelDesign);
+  playSound(app, 'start');
   noteSpawnHealth(app.levelRun.player);
   resetProbes(app.probes, app.levelRun.player);
   app.paused = false;
@@ -204,6 +207,7 @@ function stepLevelMode(app, dt) {
 // The result box: stars, time and biomass for a win (kept if it is the best so far), or why the run was lost.
 function showLevelResult(app, run) {
   const isWon = run.outcome === 'won';
+  playSound(app, isWon ? 'win' : 'lose');
   const isLast = LEVELS.indexOf(run.level) === LEVELS.length - 1;
   byId('result-title').textContent = isWon ? 'Level done' : 'Not this time';
   if (isWon) {

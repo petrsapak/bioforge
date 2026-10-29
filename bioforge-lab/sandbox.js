@@ -56,6 +56,7 @@ const sandboxDesign = (app, designName) => designName === OWN_DESIGN ? bodyDesig
 
 function startSandbox(app) {
   app.mode = 'sandbox';
+  playSound(app, 'start');
   app.world = newWorld(app.canvas.width, app.canvas.height);
   app.world.enemiesIdle = byId('sandbox-enemy-mode').textContent.endsWith('idle');
   app.player = null;
