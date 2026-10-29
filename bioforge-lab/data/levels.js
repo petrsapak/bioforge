@@ -3,6 +3,8 @@
 //   id, chapter, name; brief: what to do; hint: a nudge toward how
 //   arena: { width, height } in px; systems: the switchable systems that run (chapters 1 and 2: nerve only, so
 //     every cell works at full power and nothing starves; chapter 3 adds fluid and vascular)
+//   seepFactor: share of the usual seeping between cells and unpumped vessel flow (cold water: less); a Heart's
+//     pumping is not slowed
 //   limits: design limits ({ budget, maxCells, maxNeurons, maxFibreUnits, maxVesselUnits }); any left out come from
 //   RULES
 //   start: the player's spawn { x, y } in px and heading in rad (0 faces up)
@@ -33,8 +35,8 @@ const DRIFTING_LIGHT = {                                  // round a loop of poi
 };
 
 function createLevel(definition) {
-  return { arena: ARENA, systems: CHAPTER_1_SYSTEMS, limits: {}, start: START_BOTTOM, light: null, creatures: [],
-    hint: '', ...definition };
+  return { arena: ARENA, systems: CHAPTER_1_SYSTEMS, seepFactor: 1, limits: {}, start: START_BOTTOM, light: null,
+    creatures: [], hint: '', ...definition };
 }
 
 const LEVELS = [
@@ -161,6 +163,21 @@ const LEVELS = [
     light: { ...DRIFTING_LIGHT, speed: 24 },
     goal: { kind: 'stayNear', radius: 100, seconds: 120 },
     timeLimit: 240, par: { seconds: 190, biomass: 20 },
+  }),
+  createLevel({
+    id: 'cold-water', chapter: 3, name: 'Cold water',
+    brief: 'The same chase as Exhaust, in cold water: fluids barely seep from cell to cell (20x slower), and ' +
+      'blood in a vessel barely moves on its own. Your Siphons burn through their own O₂ and sugar, and the ' +
+      'stores and the Pore beside them can\'t keep up.',
+    hint: 'The cold doesn\'t slow a beating Heart. Put a Heart at the front between the eyes, and in the Vessels ' +
+      'view (3) lay a vessel from it to the Fat, the Air sac, each Siphon and the Pore. Blood flows from the ' +
+      'stores through the Heart to the Siphons, and their waste flows on to the Pore.',
+    systems: CIRCULATION_SYSTEMS,
+    seepFactor: 0.05,
+    limits: { budget: 30 },
+    light: { ...DRIFTING_LIGHT, speed: 24 },
+    goal: { kind: 'stayNear', radius: 100, seconds: 120 },
+    timeLimit: 240, par: { seconds: 190, biomass: 25 },
   }),
 ];
 

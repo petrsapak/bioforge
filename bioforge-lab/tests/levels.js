@@ -37,6 +37,14 @@ const seekerWithFat = withGill => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSi
 // the crossed Seeker with a Fat and an Air sac on the sides, and this cell at the back touching both Siphons
 const seekerWithStores = backTypeName => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(-1, 0, 'fat'),
   cell(1, 0, 'airsac'), cell(-1, 2, backTypeName)], fibres: CROSSED });
+// Exhaust's body plumbed for cold water. heart: a Heart at the front between the eyes, with a vessel from it to the
+// Fat, the Air sac, each Siphon and the Pore; no heart: vessels straight from the stores to the Siphons and the Pore.
+const EXHAUST_BODY = seekerWithStores('pore');
+const coldWaterBuild = withHeart => withHeart ?
+  { cells: [...EXHAUST_BODY.cells, cell(1, -2, 'heart')], fibres: CROSSED,
+    vessels: [fibre(1, -2, -1, 0), fibre(1, -2, 1, 0), fibre(1, -2, -1, 1), fibre(1, -2, 0, 1), fibre(1, -2, -1, 2)] } :
+  { cells: EXHAUST_BODY.cells, fibres: CROSSED,
+    vessels: [fibre(-1, 0, 0, 1), fibre(1, 0, -1, 1), fibre(-1, 0, -1, 1), fibre(1, 0, 0, 1), fibre(-1, 2, -1, 0)] };
 const SOLUTIONS = {
   'first-stroke': { cells: [pacemakerNucleus(), cell(-1, 1, 'siphon'), cell(0, 1, 'siphon')],
     fibres: [fibre(0, 0, -1, 1), fibre(0, 0, 0, 1)] },
@@ -50,7 +58,8 @@ const SOLUTIONS = {
   metronome: eyesThroughNucleus('inhibitor', { kind: 'delay', setting: 3 }),
   dock: eyesThroughSynapse(1.5),
   'long-haul': seekerWithFat(true),
-  exhaust: seekerWithStores('pore'),
+  exhaust: EXHAUST_BODY,
+  'cold-water': coldWaterBuild(true),
 };
 // the wrong tool for each level: it must not win
 const WRONG_TOOLS = {
@@ -64,6 +73,7 @@ const WRONG_TOOLS = {
   dock: SOLUTIONS.freeze,
   'long-haul': SOLUTIONS.moth,
   exhaust: SOLUTIONS['long-haul'],
+  'cold-water': SOLUTIONS.exhaust,
 };
 
 for (const level of sim.LEVELS) {
@@ -89,6 +99,9 @@ check('"Long haul": Fat alone is not enough, it runs out of O2', fatOnly.outcome
 const tissueBack = sim.runLevel(levelById('exhaust'), seekerWithStores('tissue'));
 check('"Exhaust": the same body with Tissue for the Pore loses its Siphons to waste', tissueBack.outcome === 'lost' &&
   tissueBack.player.cells.filter(playerCell => playerCell.type.jets).length < 2, tissueBack.reason);
+const unpumped = sim.runLevel(levelById('cold-water'), coldWaterBuild(false));
+check('"Cold water": the same vessels without a Heart lose', unpumped.outcome === 'lost',
+  `${unpumped.reason} ${unpumped.goalTime.toFixed(0)} s near the light`);
 const blinking = levelById('freeze').light;
 check('a blinking light is on for 2 s, off for 3 s, and round again',
   [0.5, 2.5, 4.9, 5.1].map(time => sim.isLevelLightOn(blinking, time)).join() === 'true,false,false,true');

@@ -49,6 +49,18 @@ check('a vessel carries O2 from the Nucleus to the far Siphon', idle > 0.01, idl
 check('a Heart on the vessel pumps it several times faster', pumped > 3 * idle,
   `pumped ${pumped.toFixed(3)}, idle ${idle.toFixed(3)}`);
 check('without a vessel nothing reaches it (seeping is the fluid system\'s, off here)', none === 0, String(none));
+// cold water (a world seepFactor below 1) slows the unpumped flow, not a Heart's push
+const coldColumn = middleType => {
+  const column = createColumn({ middleType });
+  column.world.seepFactor = 0.05;
+  return column;
+};
+const coldIdle = siphonOxygenAfter(coldColumn('tissue'), 0.2);
+const coldPumped = siphonOxygenAfter(coldColumn('heart'), 0.2);
+check('in cold water an unpumped vessel carries 20x less', Math.abs(coldIdle / idle - 0.05) < 0.005,
+  `${coldIdle.toFixed(4)} vs ${idle.toFixed(4)}`);
+check('in cold water a pumped vessel loses only its unpumped share', coldPumped > 0.9 * pumped,
+  `${coldPumped.toFixed(4)} vs ${pumped.toFixed(4)}`);
 const switchedOff = siphonOxygenAfter(createColumn({ systems: [] }), 1);
 check('with the vascular system off, vessels carry nothing', switchedOff === 0, String(switchedOff));
 

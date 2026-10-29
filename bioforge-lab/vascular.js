@@ -66,13 +66,14 @@ function cutBrokenVessels(world) {
 
 // ---------- Blood flow ----------
 // Each step a vessel is pumped by its fed Hearts and shut by any Valve on it that gets no signal; then blood flows
-// between its two ends, from the fuller to the emptier, in small steps.
+// between its two ends, from the fuller to the emptier, in small steps. The world's seepFactor (a level's cold water)
+// slows the unpumped flow as it slows seeping; a Heart's push is not slowed.
 function updateVascular(world, dt) {
   for (const vessel of world.vessels) {
     vessel.pumping = vessel.hearts.reduce((sum, heart) => sum + heart.efficiency, 0);
     vessel.open = vessel.valves.every(valve => valve.signal > SIGNAL_ON);
     vessel.conductance = Math.min(VESSEL_MAX_CONDUCTANCE,
-      VESSEL_IDLE_CONDUCTANCE + VESSEL_PUMP_CONDUCTANCE * vessel.pumping);
+      VESSEL_IDLE_CONDUCTANCE * world.seepFactor + VESSEL_PUMP_CONDUCTANCE * vessel.pumping);
   }
   const substep = dt / VESSEL_SUBSTEPS;
   for (let i = 0; i < VESSEL_SUBSTEPS; i++) {

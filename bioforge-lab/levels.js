@@ -26,7 +26,8 @@ function levelLimits(level) {
 // A level in play: its world, the player's creature, the level's other creatures, the clock and the outcome
 // ('won', 'lost' or null while it runs). goalTime counts the seconds a stayNear goal has been met.
 function startLevel(level, design) {
-  const world = newWorld(level.arena.width, level.arena.height, { systems: level.systems, seed: LEVEL_SEED });
+  const world = newWorld(level.arena.width, level.arena.height,
+    { systems: level.systems, seed: LEVEL_SEED, seepFactor: level.seepFactor });
   const player = spawn(world, design, level.start.x, level.start.y, level.start.heading, 0);
   player.autonomous = true;
   const creatures = level.creatures.map(entry => spawnLevelCreature(world, entry));

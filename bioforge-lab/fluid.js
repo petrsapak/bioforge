@@ -126,24 +126,27 @@ function isFueled(creature) {
 
 // Fluids seep between touching cells from the fuller one to the emptier one (by fill level); a valve without a signal
 // lets nothing through. (Until 2026-10-28 a fed Heart sped up every link within 3 cells of it; now it pumps vessels.)
+// The world's seepFactor slows it all down (a level's cold water).
 function updateFluidFlow(world, dt) {
   const valveOpen = cell => !cell.type.gatesFlow || cell.signal > SIGNAL_ON;
   for (const link of world.fluidLinks) link.open = valveOpen(link.first) && valveOpen(link.second);
   const substep = dt / FLOW_SUBSTEPS;
   for (let i = 0; i < FLOW_SUBSTEPS; i++) {
     for (const link of world.fluidLinks) {
-      if (link.open) flowAlongLink(link, substep);
+      if (link.open) flowAlongLink(link, world.seepFactor, substep);
     }
   }
 }
 
-function flowAlongLink(link, dt) {
+// moves each fluid between the link's two cells by their difference in fill level
+function flowAlongLink(link, seepFactor, dt) {
   const { first, second } = link;
+  const conductance = link.conductance * seepFactor;
   for (let fluid = 0; fluid < FLUID_COUNT; fluid++) {
     const firstFill = first.fluids[fluid] / first.fluidCapacity[fluid];
     const secondFill = second.fluids[fluid] / second.fluidCapacity[fluid];
     const fillDifference = firstFill - secondFill;
-    let amount = link.conductance * FLUIDS[fluid].flowRate * fillDifference * dt;
+    let amount = conductance * FLUIDS[fluid].flowRate * fillDifference * dt;
     amount = Math.max(-second.fluids[fluid], Math.min(first.fluids[fluid], amount));
     first.fluids[fluid] -= amount;
     second.fluids[fluid] += amount;

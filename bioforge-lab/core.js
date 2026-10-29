@@ -72,6 +72,7 @@ function newWorld(width, height, options = {}) {
     flowTimer: 0,
     randomState: seed | 0,                                // the seeded random generator; see randomFraction()
     waterFeedRate: 0,                                     // sugar per second Mouths take straight from the water
+    seepFactor: 1,                                        // share of the usual seeping and unpumped vessel flow
     spaceFiresAllSources: false,                          // Space fires every signal source, to try a design out
     enemiesIdle: false,                                   // sandbox: enemies hold still
     light: null,                                          // createLight(): what Light eyes see (sandbox: the mouse)
