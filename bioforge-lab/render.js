@@ -14,7 +14,8 @@ const VESSEL_COLOR = '#8f1d2c';                           // a vessel no Heart p
 const VESSEL_PUMPED_COLOR = '#e0485a';                    // a vessel a fed Heart pumps
 const VESSEL_SHUT_COLOR = '#6a5a62';                      // a vessel an unsignalled Valve shuts
 
-// view 0 = normal, 1..5 = fill level of one fluid; viewBox = { minX, minY, maxX, maxY }: draw only cells inside it
+// view 0 = normal, 1..5 = fill level of one fluid; viewBox = { minX, minY, maxX, maxY }: draw only cells inside it.
+// Vessels and fibres are left out, since they clutter the game and the builder's preview; the tip demos add them.
 function drawWorld(context, world, view, viewBox) {
   const isVisible = viewBox
     ? cell => cell.x > viewBox.minX - VIEW_MARGIN && cell.x < viewBox.maxX + VIEW_MARGIN &&
@@ -33,8 +34,6 @@ function drawWorld(context, world, view, viewBox) {
   for (const cell of world.cells) {
     if (isVisible(cell)) drawCell(context, cell, view);
   }
-  drawWorldVessels(context, world);
-  if (!view) drawWorldFibres(context, world);
   drawSnareLines(context, world);
   drawGlobs(context, world);
   drawZaps(context, world);

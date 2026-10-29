@@ -111,6 +111,8 @@ function drawDemo(spaceHeld) {
   const context = tooltipDemo.canvas.getContext('2d');
   drawWater(context, world, DEMO_WIDTH, DEMO_HEIGHT);
   drawWorld(context, world, example.fluidView || 0);
+  drawWorldVessels(context, world);
+  if (!example.fluidView) drawWorldFibres(context, world);
   // the cell type or neuron being explained gets a pulsing dashed ring
   context.strokeStyle = '#fff';
   context.lineWidth = 1.5;

@@ -1,12 +1,9 @@
 'use strict';
-// The builder's toolbar down the left edge (Clear, Save creature, Unlimited biomass, Symmetry, the fluid views, the
-// keys sheet and the Sandbox button) and the Body, Nerves and Vessels tabs at the top (browser only).
-
-const NORMAL_VIEW_COLOR = '#dfe4ea';
+// The builder's toolbar down the left edge (Clear, Save creature, Unlimited biomass, Symmetry, the keys sheet and
+// the Sandbox button), the fluid views (Shift+1–6) and the Body, Nerves and Vessels tabs at the top (browser only).
 
 function setUpToolbar(app) {
   setUpLayerSwitch(app);
-  setUpFluidViews(app);
   setUpDesignButtons(app);
   setUpMirrorMenu(app);
   setUpKeysSheet();
@@ -19,20 +16,8 @@ function setUpLayerSwitch(app) {
   byId('layer-vessel').onclick = () => showLayer(app, 'vessel');
 }
 
-// one round button per view, filled with its fluid's colour (also Shift+1–6); the first is the normal view
-function setUpFluidViews(app) {
-  const views = [{ name: 'Normal', color: NORMAL_VIEW_COLOR }, ...FLUIDS];
-  views.forEach((view, i) => {
-    const button = document.createElement('button');
-    button.className = 'view-dot' + (i === 0 ? ' normal' : '');
-    button.title = `${view.name} view (Shift+${i + 1})`;
-    button.style.setProperty('--dot-color', view.color);
-    button.onclick = () => showFluidView(app, i);
-    byId('fluid-views').appendChild(button);
-    app.fluidViewButtons.push(button);
-  });
-}
-
+// shows fluid view number `view` (0 = normal, otherwise 1 + its index in FLUIDS): from Shift+1–6, and in the builder
+// from a click on a Needs row (panel.js)
 function showFluidView(app, view) {
   app.fluidView = view;
   if (app.mode === 'build') refreshPanel(app);

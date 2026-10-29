@@ -6,12 +6,12 @@
 const VESSEL_SUPPLY_REACH = 2;                            // cells from a pumped vessel's end that blood reaches well
 
 // The rows of the builder's Needs card, in the order a player should fix them. A Buds row only shows on a body with
-// Buds.
+// Buds. A click on a row with a `fluid` (a FLUIDS id) shows that fluid's view.
 const NEED_ROWS = [
   { need: 'signal', icon: '↯', label: 'Signal' },
-  { need: 'oxygen', icon: 'O₂', label: 'Oxygen' },
-  { need: 'sugar', icon: '⚡', label: 'Sugar' },
-  { need: 'waste', icon: '☁', label: 'Waste' },
+  { need: 'oxygen', icon: 'O₂', label: 'Oxygen', fluid: 'oxygen' },
+  { need: 'sugar', icon: '⚡', label: 'Sugar', fluid: 'sugar' },
+  { need: 'waste', icon: '☁', label: 'Waste', fluid: 'waste' },
   { need: 'blood', icon: '♥', label: 'Blood' },
   { need: 'weapon', icon: '⚔', label: 'Weapon' },
   { need: 'buds', icon: '✿', label: 'Buds' },

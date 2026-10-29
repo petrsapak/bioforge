@@ -233,9 +233,9 @@ hud.js          HUD bars and vitals
 dock.js         the cell dock: a tab per category, two rows of hexagons; the neurons in the Nerve view
 library.js      the template library window, saved in localStorage
 toolbar.js      the Body / Nerves / Vessels tabs at the top; the toolbar down the left edge: Clear, Save,
-                Unlimited, Symmetry (its dial of axes), fluid views, keys, Sandbox
+                Unlimited, Symmetry (its dial of axes), keys, Sandbox; Shift+1–6 fluid views
 panel.js        the limits line under the tabs (biomass, or the kit's materials and reserves), a message line, the card of the clicked cell or the stamp, and the
-                Needs card (sugar time, a row per need, the next fix)
+                Needs card (sugar time, a row per need, a fluid's row clicked to show its fluid view, the next fix)
 coach.js        the How to box: small looping animations of each step, ticked off as the design does them
 builderview.js  drawing the builder grid (with the symmetry axes and the Shift highlight) and the preview window;
                 zoom and pan; the builder's cursor

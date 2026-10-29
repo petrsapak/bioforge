@@ -53,7 +53,6 @@ function showSelectedButtons(app) {
   byId('layer-body').classList.toggle('selected', app.layer === 'body');
   byId('layer-nerve').classList.toggle('selected', app.layer === 'nerve');
   byId('layer-vessel').classList.toggle('selected', app.layer === 'vessel');
-  app.fluidViewButtons.forEach((button, view) => button.classList.toggle('selected', view === app.fluidView));
   for (const { entry, row } of app.libraryRows) {
     row.classList.toggle('selected', !!app.stamp && app.stamp.template === entry);
   }
@@ -218,7 +217,7 @@ function describeBud(bud, cellType) {
 
 // ---------- The Needs card ----------
 // How long the sugar lasts, a row per need (✓ met, ✗ missing with its fix, ~ works poorly, – not needed yet) and the
-// next thing to fix. Hovering a row marks its cells on the grid.
+// next thing to fix. Hovering a row marks its cells on the grid; clicking one with a view shows it (see showNeedView).
 function showNeeds(app) {
   const body = bodyDesign(app.edited);
   app.warnings = designWarnings(body, plannedKeys(app.edited));
@@ -227,7 +226,8 @@ function showNeeds(app) {
   const next = nextNeed(app.needRows);
   const needs = byId('needs');
   needs.innerHTML = '<div class="needs-title">Creature</div>' + sugarHtml(sugarSupply(body)) +
-    '<div class="need-rows">' + app.needRows.map(needRowHtml).join('') + '</div>' +
+    '<div class="need-rows">' + app.needRows.map(row => needRowHtml(row, isNeedViewShown(app, row))).join('') +
+    '</div>' +
     `<div class="need-next">${next ? '<b>Next:</b> ' + next : 'Ready: try it in the Sandbox (▶).'}</div>` +
     (planned ? `<div class="need-planned" data-need="planned">${planned.text}</div>` : '');
   needs.onmouseover = event => {
@@ -237,6 +237,28 @@ function showNeeds(app) {
   needs.onmouseleave = () => {
     app.hoveredNeed = null;
   };
+  needs.onclick = event => {
+    const rowElement = event.target.closest && event.target.closest('[data-need]');
+    const row = rowElement && app.needRows.find(needRow => needRow.need === rowElement.dataset.need);
+    if (row) showNeedView(app, row);
+  };
+}
+
+// the fluid view's number (1 + its index in FLUIDS) a need row shows, or 0 when it shows none
+function needFluidView(row) {
+  return row.fluid ? FLUIDS.findIndex(fluid => fluid.id === row.fluid) + 1 : 0;
+}
+
+// whether the fluid view a need row shows is the one on screen now; null for a row with no fluid
+function isNeedViewShown(app, row) {
+  if (!row.fluid) return null;
+  return app.fluidView === needFluidView(row);
+}
+
+// shows a need row's fluid view, or the normal view again when it is already shown
+function showNeedView(app, row) {
+  if (!row.fluid) return;
+  showFluidView(app, isNeedViewShown(app, row) ? 0 : needFluidView(row));
 }
 
 // how long the stored sugar lasts with every cell working, in big type
@@ -251,10 +273,12 @@ function sugarHtml(supply) {
 
 const NEED_STATE_MARKS = { ok: '✓', missing: '✗', weak: '~', none: '–' };
 
-// one need: icon, name, its mark and, when it isn't met, the fix in a few words; the whole warning is its tooltip
-function needRowHtml(row) {
+// One need: icon, name, its mark and, when it isn't met, the fix in a few words; the whole warning is its tooltip.
+// isShown: whether its view is on screen (aria-pressed), or null for a row with no view to show.
+function needRowHtml(row, isShown) {
   const fix = row.state === 'ok' ? '' : row.short;
-  return `<div class="need-row ${row.state}" data-need="${row.need}" title="${escapeHtml(row.text)}">` +
+  const pressed = isShown === null ? '' : ` aria-pressed="${isShown}"`;
+  return `<div class="need-row ${row.state}" data-need="${row.need}"${pressed} title="${escapeHtml(row.text)}">` +
     `<span class="need-icon">${row.icon}</span><span class="need-label">${row.label}</span>` +
     `<span class="need-mark">${NEED_STATE_MARKS[row.state]}</span><span class="need-fix">${fix}</span></div>`;
 }

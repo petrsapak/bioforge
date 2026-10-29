@@ -57,7 +57,6 @@ function createApp(canvas) {
     dockButtons: new Map(),                               // cell types
     neuronButtons: new Map(),
     showDockLayer: () => {},
-    fluidViewButtons: [],
     tank: null,                                           // the test tank driving the live grid and the preview
     world: null,                                          // the sandbox
     player: null,

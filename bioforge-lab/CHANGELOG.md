@@ -12,6 +12,9 @@ afterwards, from the git history.
   cell of the chosen type, a hex cursor in the chosen cell's colour.
 - The desktop build (Electron, `desktop/`): a Windows app with saves in a file, fullscreen on F11.
 - Version numbers and this changelog. The version shows on the keys sheet (H).
+- Runs and the preview tank no longer draw nerve fibres and blood vessels; they show only in the builder and the tips.
+- The fluid view dots on the toolbar are gone: click the Oxygen, Sugar or Waste row of the Creature card instead to see
+  that fluid, and click it again to go back. Shift+1–6 still work.
 
 ## 0.4.0 (2026-10-29)
 - Milestone 4, metabolism. Chapter 4, Feeding: Packed lunch, Grazing, Bloom.
