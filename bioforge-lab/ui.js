@@ -35,6 +35,9 @@ function createApp(canvas) {
     focusKey: null,                                       // the clicked cell, shown and set up in the panel
     selection: new Set(),                                 // Ctrl+clicked hexes
     stamp: null,                                          // a saved part being placed: { template, rotation }
+    mirrorAxes: readStorage('mirror-axes', []),           // the symmetry axes on, as turns of 30° (builder.js)
+    paintDrag: null,                                      // a held button painting cells: { isErasing, lastPoint }
+    cursorStyle: '',                                      // the canvas's CSS cursor, set when it changes
     partDrag: null,                                       // a Bud part being dragged: { budKey, grab, rotation }
     aimDragKey: null,                                     // the Bud whose aim arrow is being dragged
     fibreDrag: null,                                      // a fibre being laid: { fromKey }
@@ -463,6 +466,7 @@ function trackMouse(app, event) {
   }
   app.hoverHex = hexUnderMouse(app, event);
   app.hoverPoint = screenToGrid(app, event.clientX, event.clientY);
+  if (app.paintDrag) paintAlongStroke(app);
 }
 
 // Middle button pans. Left: grab a Bud's aim arrow or part, Ctrl+click selects, a click on a cell sets it up, a click
@@ -501,13 +505,32 @@ function handleBuilderMouseDown(app, event) {
     refreshPanel(app);
     return;
   }
+  app.paintDrag = { isErasing: isRight, lastPoint: screenToGrid(app, event.clientX, event.clientY) };
   if (isRight) {
-    removeCell(app.edited, q, r);
-    playSound(app, 'remove');
+    if (removeMirrored(app.edited, q, r, app.mirrorAxes)) playSound(app, 'remove');
   } else if (!placeChosenCell(app, q, r)) {
     playSound(app, 'refuse');
     return;
   }
+  rebuildTank(app);
+}
+
+// While the button that placed or removed a cell is held, every hex the mouse passes over gets the same: the
+// chosen cell, or removal. Hexes that can't take the cell are passed over quietly.
+function paintAlongStroke(app) {
+  const drag = app.paintDrag;
+  if (app.mode !== 'build' || app.layer !== 'body' || app.stamp) {
+    app.paintDrag = null;
+    return;
+  }
+  let changed = 0;
+  for (const [q, r] of hexesAlongStroke(drag.lastPoint, app.hoverPoint).slice(1)) {
+    if (drag.isErasing) changed += removeMirrored(app.edited, q, r, app.mirrorAxes);
+    else changed += placeMirrored(app.edited, q, r, app.selectedType, app.mirrorAxes);
+  }
+  drag.lastPoint = app.hoverPoint;
+  if (!changed) return;
+  playSound(app, drag.isErasing ? 'remove' : 'place');
   rebuildTank(app);
 }
 
@@ -600,10 +623,9 @@ function useStamp(app, isRight, q, r) {
   }
 }
 
-// places the chosen cell type; a new Bud is clicked at once, ready to be given a part
+// places the chosen cell type, and its mirror images; a new Bud is clicked at once, ready to be given a part
 function placeChosenCell(app, q, r) {
-  if (!canPlaceCell(app.edited, q, r, app.selectedType)) return false;
-  placeCell(app.edited, q, r, app.selectedType);
+  if (!placeMirrored(app.edited, q, r, app.selectedType, app.mirrorAxes)) return false;
   playSound(app, 'place');
   app.focusKey = CELLS[app.selectedType].growsParts ? hexKey(q, r) : null;
   return true;
@@ -631,6 +653,7 @@ function dropWhatIsInHand(app, event) {
     }
   }
   app.panDrag = null;
+  app.paintDrag = null;
   app.partDrag = null;
   app.aimDragKey = null;
   app.libraryDrag = null;
@@ -645,6 +668,7 @@ function runFrame(app, now) {
   app.lastFrameTime = now;
   app.fps += (1 / Math.max(frameTime, 1e-3) - app.fps) * FPS_SMOOTHING;
   updateMusic(app);
+  updateCursor(app);
   if (app.mode === 'build') runBuilderFrame(app, dt, now);
   else if (app.mode === 'sandbox') {
     stepSandbox(app, dt);

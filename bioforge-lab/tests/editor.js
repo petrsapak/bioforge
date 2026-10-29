@@ -236,6 +236,34 @@ runFrames(15);
 check('back in the builder, the pan is reset: the Nucleus is in the middle of the screen',
   /<b>Nucleus<\/b>/.test(byId('tooltip').innerHTML), byId('tooltip').innerHTML);
 
+// painting: hold the left button and drag; the right button removes along the way; with an axis on, mirrored
+templateButton('clear').onclick();
+dockButton('tissue').onclick();
+moveMouseTo(1, 0);
+fire('game', 'mousedown', { ...screenPointOf(1, 0), button: 0, target: canvas });
+moveMouseTo(4, 0);
+fire('window', 'mouseup', { ...screenPointOf(4, 0), target: canvas });
+runFrames(1);
+check('a held left button paints the chosen cell on every hex the mouse passes over', cellCount() === 5);
+moveMouseTo(6, -3);
+runFrames(1);
+check('after letting go, moving the mouse paints nothing', cellCount() === 5);
+moveMouseTo(4, 0);
+fire('game', 'mousedown', { ...screenPointOf(4, 0), button: 2, target: canvas });
+moveMouseTo(2, 0);
+fire('window', 'mouseup', { ...screenPointOf(2, 0), target: canvas });
+runFrames(1);
+check('a held right button removes along the way', cellCount() === 2);
+byId('mirror-axes').onclick();
+byId('mirror-dial').children.find(line => line.dataset.axis === '3').onclick();
+check('the Symmetry dial turns an axis on, lights it and remembers it',
+  byId('mirror-axes').classList.contains('selected') && storage.items['bioforge-lab-mirror-axes'] === '[3]');
+clickHex(0, -1);
+check('with the front-to-back axis on, a click places the cell and its mirror image', cellCount() === 4);
+byId('mirror-none').onclick();
+clickHex(0, 1);
+check('No symmetry places single cells again', cellCount() === 5 && !byId('mirror-axes').classList.contains('selected'));
+
 check("Bioforge Moba's old library carries over", byId('my-creatures').children.length === 1);
 check('the old library is left as it was', storage.items['bioforge-templates'] === OLD_LIBRARY);
 done();

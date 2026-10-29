@@ -29,6 +29,8 @@
     <svg viewBox="0 0 24 24"><path d="M12 4v10M7.5 9.5L12 14l4.5-4.5M5 16v4h14v-4" fill="none" stroke="#b9c3cd" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   <button class="tool" id="unlimited-biomass" title="Unlimited biomass (the Sandbox takes any size)">
     <svg viewBox="0 0 24 24"><path d="M12 12c-2-2.8-3.6-4-5.4-4a4 4 0 000 8c1.8 0 3.4-1.2 5.4-4s3.6-4 5.4-4a4 4 0 010 8c-1.8 0-3.4-1.2-5.4-4z" fill="none" stroke="#e8c547" stroke-width="1.8"/></svg></button>
+  <button class="tool" id="mirror-axes" title="Symmetry: mirror what you add and remove across axes">
+    <svg viewBox="0 0 24 24"><path d="M12 2v20" stroke="#7ec8f0" stroke-width="1.6" stroke-dasharray="2.5 2"/><path d="M9.5 7L4 12l5.5 5z" fill="#b9c3cd"/><path d="M14.5 7L20 12l-5.5 5z" fill="none" stroke="#b9c3cd" stroke-width="1.5" stroke-linejoin="round"/></svg></button>
   <div class="tool-gap"></div>
   <div id="fluid-views"></div>
   <div class="tool-space"></div>
@@ -59,8 +61,9 @@
   <div id="keys-sheet-inner">
     <div class="keys-title">Mouse and keys</div>
     <div class="keys-grid">
-      <span class="mouse left"></span><span>add a cell · click a cell to set it up</span>
-      <span class="mouse right"></span><span>remove</span>
+      <span class="mouse left"></span><span>add a cell · hold and drag: paint cells · click a cell to set it up</span>
+      <span class="mouse right"></span><span>remove · hold and drag: remove along the way</span>
+      <span><b>Shift</b></span><span>show every cell of the chosen type</span>
       <span class="mouse middle"></span><span>drag: pan · wheel: zoom</span>
       <span><b>Ctrl</b>+<span class="mouse left"></span></span><span>select cells, then right-click them: save as a part</span>
       <span><b>Q</b><b>E</b></span><span>turn a part</span>
@@ -191,6 +194,12 @@
     <div id="my-parts"></div>
     <div class="help">Ctrl+click cells to select, right-click a selected cell to save. Click a part to stamp it: Q/E rotate, click to place, right-click or Esc to stop. Drag a part onto a Bud to make the Bud grow it. Edit → Save creature saves the whole creature to My creatures; click one to load it (replaces the design). Saving under the same name overwrites.</div>
   </div>
+</div>
+<div id="mirror-menu">
+  <div class="keys-title">Symmetry</div>
+  <div id="mirror-dial"><span class="mirror-centre"></span></div>
+  <div class="help">Click the axes to mirror across. Cells you add or remove, also by dragging, are mirrored across every axis that is on, through the Nucleus.</div>
+  <button class="small" id="mirror-none">No symmetry</button>
 </div>
 <div id="save-menu">
   <div id="save-menu-title"></div>

@@ -23,6 +23,11 @@ const NERVE_VIEW_SHADE = 'rgba(11,20,24,0.62)';           // laid over the cells
 const VESSEL_VIEW_SHADE = 'rgba(11,20,24,0.4)';           // laid over the cells in the Vessels view
 const NEURON_GHOST_ALPHA = 0.5;                           // the neuron a click would put in, under the mouse
 const FIBRE_REMOVE_COLOR = '#ff7a6a';                     // a drag that would remove the fibre already there
+const MIRROR_AXIS_COLOR = 'rgba(126,200,240,0.55)';
+const SAME_TYPE_COLOR = '#7fe8ff';                        // Shift: the outline on every cell of the chosen type
+const SAME_TYPE_SHADE = 'rgba(11,20,24,0.55)';            // Shift: laid over the other cells
+const SAME_TYPE_COUNT_Y = 112;                             // px from the top: the Shift count, under the limits
+const CURSOR_SIZE = 32;                                   // px of the cursor image
 
 // ---------- Zoom and pan ----------
 function createGridView() {
@@ -77,11 +82,13 @@ function drawBuilder(app) {
   context.translate(origin.x, origin.y);
   context.scale(app.gridView.zoom, app.gridView.zoom);
   drawGridHexes(app, origin);
+  drawMirrorAxes(app);
   drawDesignCells(app);
   drawVesselLayer(app);
   drawNerveLayer(app);
   drawBudParts(app);
   drawSelection(app);
+  drawSameTypeCells(app);
   drawWarningMarks(app);
   if (app.layer === 'nerve') drawBuilderTraceTags(app, context);
   drawLibraryDragHint(app);
@@ -97,6 +104,7 @@ function drawBuilder(app) {
   context.font = '12px system-ui';
   context.textAlign = 'center';
   context.fillText('Wheel: zoom · Middle-drag: pan · F: whole grid', app.canvas.width / 2, 20);
+  if (isShowingSameType(app)) drawSameTypeCount(app);
 }
 
 function traceHex(context, x, y, size) {
@@ -113,12 +121,14 @@ function keyToPixel(key) {
   return hexToPixel(q, r);
 }
 
-// the empty grid; the hex under the mouse is tinted green if the chosen cell can go there, red if not
+// the empty grid; the hex under the mouse, and its mirror images, are tinted green if the chosen cell can go there,
+// red if not
 function drawGridHexes(app, origin) {
   const context = app.context;
   const zoom = app.gridView.zoom;
   const margin = HEX_SPACING_X * zoom;                    // hexes this far off screen are skipped
   const isBusy = app.layer !== 'body' || app.stamp || app.partDrag || app.aimDragKey || app.libraryDrag;
+  const tinted = isBusy ? new Map() : hoverTints(app);
   for (let q = -GRID_RADIUS; q <= GRID_RADIUS; q++) {
     for (let r = -GRID_RADIUS; r <= GRID_RADIUS; r++) {
       if (!isInGrid(q, r)) continue;
@@ -128,13 +138,95 @@ function drawGridHexes(app, origin) {
       const offScreen = screenX < -margin || screenX > app.canvas.width + margin ||
         screenY < -margin || screenY > app.canvas.height + margin;
       if (offScreen) continue;
-      const isHovered = !isBusy && app.hoverHex && app.hoverHex[0] === q && app.hoverHex[1] === r;
       traceHex(context, x, y, HEX_FILL_SIZE);
-      context.fillStyle = !isHovered ? '#132228'
-        : canPlaceCell(app.edited, q, r, app.selectedType) ? PLACEABLE_TINT : BLOCKED_TINT;
+      context.fillStyle = tinted.get(hexKey(q, r)) || '#132228';
       context.fill();
     }
   }
+}
+
+// the tint of each hex a click would fill: the hex under the mouse and its free mirror images, or the hex alone in
+// red if the cells don't fit there. Over a cell, nothing is tinted.
+function hoverTints(app) {
+  const tints = new Map();
+  if (!app.hoverHex || app.edited.cells.has(hexKey(...app.hoverHex))) return tints;
+  const hexes = mirroredPlacement(app.edited, ...app.hoverHex, app.selectedType, app.mirrorAxes);
+  if (!hexes.length) tints.set(hexKey(...app.hoverHex), BLOCKED_TINT);
+  for (const hex of hexes) tints.set(hexKey(...hex), PLACEABLE_TINT);
+  return tints;
+}
+
+// the symmetry axes: dashed lines across the grid through the Nucleus
+function drawMirrorAxes(app) {
+  if (!app.mirrorAxes.length) return;
+  const context = app.context;
+  const [centreX, centreY] = hexToPixel(...mirrorCentre(app.edited));
+  const reach = 2 * GRID_RADIUS * HEX_SPACING_X;
+  context.strokeStyle = MIRROR_AXIS_COLOR;
+  context.lineWidth = 1;
+  context.setLineDash([6, 4]);
+  for (const axisTurns of app.mirrorAxes) {
+    const angle = axisTurns * Math.PI / 6;
+    context.beginPath();
+    context.moveTo(centreX - Math.cos(angle) * reach, centreY - Math.sin(angle) * reach);
+    context.lineTo(centreX + Math.cos(angle) * reach, centreY + Math.sin(angle) * reach);
+    context.stroke();
+  }
+  context.setLineDash([]);
+}
+
+// Shift held in the Body view shows where the chosen cell type is used
+const isShowingSameType = app => app.keysHeld.has('shift') && app.layer === 'body' && !app.stamp;
+
+// Shift: the other cells shaded, and every cell of the chosen type outlined
+function drawSameTypeCells(app) {
+  if (!isShowingSameType(app)) return;
+  const context = app.context;
+  for (const cell of app.edited.cells.values()) {
+    const [x, y] = hexToPixel(cell.q, cell.r);
+    traceHex(context, x, y, HEX_FILL_SIZE);
+    if (cell.typeName !== app.selectedType) {
+      context.fillStyle = SAME_TYPE_SHADE;
+      context.fill();
+      continue;
+    }
+    context.strokeStyle = SAME_TYPE_COLOR;
+    context.lineWidth = 2;
+    context.stroke();
+  }
+}
+
+// Shift: how many cells of the chosen type the design has, under the limits line at the top
+function drawSameTypeCount(app) {
+  const count = [...app.edited.cells.values()].filter(cell => cell.typeName === app.selectedType).length;
+  const context = app.context;
+  context.fillStyle = SAME_TYPE_COLOR;
+  context.font = '13px system-ui';
+  context.textAlign = 'center';
+  const label = `${count} ${CELLS[app.selectedType].name} cell${count === 1 ? '' : 's'}`;
+  context.fillText(label, app.canvas.width / 2, SAME_TYPE_COUNT_Y);
+}
+
+// The canvas cursor: in the Body view a hex ring filled with the chosen cell's colour (red with a minus while a
+// right-drag removes), elsewhere the browser's own. Set only when it changes, since setting it restarts the cursor.
+function updateCursor(app) {
+  const style = app.mode === 'build' && app.layer === 'body' && !app.stamp ? cellCursor(app) : '';
+  if (style === app.cursorStyle) return;
+  app.cursorStyle = style;
+  app.canvas.style.cursor = style;
+}
+
+// a CSS cursor of a small hex, its hot spot in the middle
+function cellCursor(app) {
+  const isErasing = app.paintDrag && app.paintDrag.isErasing;
+  const fill = isErasing ? '#e05a4a' : CELLS[app.selectedType].color;
+  const mark = isErasing ? '<path d="M11 16h10" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>' : '';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${CURSOR_SIZE}" height="${CURSOR_SIZE}">` +
+    '<path d="M16 3l11.3 6.5v13L16 29 4.7 22.5v-13z" fill="#0b1418" fill-opacity=".35" stroke="#fff" ' +
+    'stroke-width="1.6"/>' +
+    `<circle cx="16" cy="16" r="6" fill="${fill}" stroke="#0b1418" stroke-width="1"/>${mark}</svg>`;
+  const half = CURSOR_SIZE / 2;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${half} ${half}, crosshair`;
 }
 
 // Each cell is drawn as a still copy of its live test tank cell, at its grid slot. Planned cells (not joined to the

@@ -1,5 +1,6 @@
-// builder.js and the saved format (sim only): placing and removing cells, planned cells, Command keys, Bud parts and
-// their aim, stamping, saving a selection, the library, and carrying old saves over to the current format.
+// builder.js and the saved format (sim only): placing and removing cells (mirrored too), painting strokes, planned
+// cells, Command keys, Bud parts and their aim, stamping, saving a selection, the library, and carrying old saves
+// over to the current format.
 const { load } = require('./load');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['createEditedDesign', 'canPlaceCell', 'placeCell', 'removeCell', 'bodyCells',
@@ -7,7 +8,8 @@ const { X: sim } = load({}, ['createEditedDesign', 'canPlaceCell', 'placeCell', 
   'aimBudPart', 'resetBudAim', 'budHandleAt', 'stampPlacement', 'placeStamp', 'templateFromSelection',
   'storeTemplate', 'migrateLibraryEntry', 'createDesignCell', 'hexKey', 'newWorld', 'spawn', 'step', 'placeNeuron',
   'removeNeuron', 'changeNeuronSetting', 'toggleFibre', 'bodyDesign', 'nerveUsage', 'fibresAt', 'removeFibre',
-  'nerveRemovalTarget', 'hexToPixel']);
+  'nerveRemovalTarget', 'hexToPixel', 'mirrorImages', 'mirroredPlacement', 'placeMirrored', 'removeMirrored',
+  'hexesAlongStroke', 'MIRROR_AXIS_COUNT', 'FRONT_TO_BACK_AXIS']);
 
 const cellsOf = list => list.map(([q, r, typeName]) => sim.createDesignCell(q, r, typeName));
 const editedFrom = (cells, biomassLimit) => sim.createEditedDesign({ cells, fibres: [] }, biomassLimit);
@@ -183,4 +185,51 @@ const editedFrom = (cells, biomassLimit) => sim.createEditedDesign({ cells, fibr
   check('an entry in the current format stays as it is',
     JSON.stringify(sim.migrateLibraryEntry(entry)) === JSON.stringify(entry));
 }
+{ // symmetry: each axis mirrors a hex as the line at its angle mirrors the hex's centre on screen
+  const edited = editedFrom(cellsOf([[0, 0, 'nucleus']]), 40);
+  const mismatches = [];
+  for (let axisTurns = 0; axisTurns < sim.MIRROR_AXIS_COUNT; axisTurns++) {
+    const angle = axisTurns * Math.PI / 6;
+    for (const [q, r] of [[1, 0], [2, -1], [3, 2], [-1, 4]]) {
+      const [x, y] = sim.hexToPixel(q, r);
+      const along = x * Math.cos(angle) + y * Math.sin(angle);
+      const expected = [2 * along * Math.cos(angle) - x, 2 * along * Math.sin(angle) - y];
+      const image = sim.mirrorImages(edited, q, r, [axisTurns])[1] || [q, r];
+      const [imageX, imageY] = sim.hexToPixel(...image);
+      if (Math.abs(imageX - expected[0]) + Math.abs(imageY - expected[1]) > 1e-6) mismatches.push([axisTurns, q, r]);
+    }
+  }
+  check('each of the six axes mirrors hexes exactly as its line does on screen', !mismatches.length,
+    JSON.stringify(mismatches));
+  check('the front-to-back axis pairs the two hexes ahead of the Nucleus',
+    JSON.stringify(sim.mirrorImages(edited, 0, -1, [sim.FRONT_TO_BACK_AXIS])) === '[[0,-1],[1,-1]]');
+  check('two crossing axes give four images, and a hex on an axis is its own image',
+    sim.mirrorImages(edited, 2, -1, [0, 3]).length === 4 && sim.mirrorImages(edited, 2, 0, [0]).length === 1);
+  const offCentre = editedFrom(cellsOf([[3, 1, 'nucleus']]), 40);
+  check('the axes run through the Nucleus wherever it is',
+    JSON.stringify(sim.mirrorImages(offCentre, 3, 0, [sim.FRONT_TO_BACK_AXIS])) === '[[3,0],[4,0]]');
+
+  const front = sim.FRONT_TO_BACK_AXIS;
+  check('a mirrored click places the cell and its image', sim.placeMirrored(edited, 1, 0, 'muscle', [front]) === 2 &&
+    edited.cells.get(sim.hexKey(-1, 0)).typeName === 'muscle');
+  sim.placeCell(edited, 2, 0, 'tissue');
+  check('an image on a cell already there is skipped, and that cell kept',
+    sim.placeMirrored(edited, -2, 0, 'muscle', [front]) === 1 &&
+    edited.cells.get(sim.hexKey(2, 0)).typeName === 'tissue');
+  check('a mirrored right-click removes the cell and its images of the same type, not other types',
+    sim.removeMirrored(edited, 1, 0, [front]) === 2 && sim.removeMirrored(edited, -2, 0, [front]) === 1 &&
+    edited.cells.has(sim.hexKey(2, 0)));
+  const tight = editedFrom(cellsOf([[0, 0, 'nucleus']]), 2);
+  check('a click whose images would go over the limit places nothing',
+    !sim.mirroredPlacement(tight, 1, 0, 'muscle', [front]).length &&
+    sim.placeMirrored(tight, 1, 0, 'tissue', [front]) === 2);
+  check('with no axes, a click places one cell', sim.placeMirrored(edited, 0, 1, 'tissue', []) === 1);
+}
+
+{ // painting: a stroke passes over every hex between two mouse points, each once
+  const stroke = sim.hexesAlongStroke(sim.hexToPixel(0, 0), sim.hexToPixel(5, 0));
+  check('a fast stroke along a row covers all six hexes, in order',
+    JSON.stringify(stroke) === JSON.stringify([0, 1, 2, 3, 4, 5].map(q => [q, 0])), JSON.stringify(stroke));
+}
+
 done();

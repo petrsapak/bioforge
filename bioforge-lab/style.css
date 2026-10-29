@@ -237,6 +237,29 @@ button.big:hover { background: #4a8044; }
 .library-row button.small { flex: none; padding: 2px 6px; }
 
 /* ---------- Save menu (right-click on a selection) ---------- */
+/* the Symmetry dial: six axis buttons turned around one centre */
+#mirror-menu {
+  display: none; position: absolute; top: 120px; left: 76px; z-index: 5; width: 200px; padding: 10px;
+  background: #0e181d; border: 1px solid #2c3f48; border-radius: 12px; color: #b9c3cd; font-size: 12px;
+}
+#mirror-menu .help { margin: 6px 0; }
+#mirror-menu button.small { width: 100%; }
+#mirror-dial { position: relative; width: 150px; height: 150px; margin: 6px auto; }
+.mirror-axis {
+  position: absolute; left: 0; top: 66px; width: 150px; height: 18px; padding: 0; background: none; border: 0;
+  cursor: pointer; transform: rotate(var(--angle));
+}
+.mirror-axis::before {
+  content: ''; position: absolute; left: 4px; right: 4px; top: 8px; height: 2px; border-radius: 1px;
+  background: #3a4d57;
+}
+.mirror-axis:hover::before { background: #8a96a3; }
+.mirror-axis.selected::before { height: 3px; top: 7px; background: #7ec8f0; box-shadow: 0 0 6px #7ec8f088; }
+.mirror-centre {
+  position: absolute; left: 66px; top: 66px; width: 18px; height: 18px; border-radius: 50%; background: #e8c547;
+  z-index: 1; pointer-events: none;
+}
+
 #save-menu {
   position: absolute; display: none; z-index: 20; width: 220px; padding: 8px; background: #0d1519f2;
   border: 1px solid #2c4650; border-radius: 7px; font-size: 13px;

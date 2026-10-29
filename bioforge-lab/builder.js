@@ -11,6 +11,7 @@ const NAME_MAX_LENGTH = 40;                               // characters in a sav
 const NEURON_PICK_RADIUS = 6;                             // grid px around a cell's centre that pick its neuron
 const FIBRE_PICK_DISTANCE = 3.5;                          // grid px from a fibre's line that pick the fibre
 const VESSEL_PICK_DISTANCE = 5;                           // grid px from a vessel's line that pick the vessel
+const STROKE_SAMPLE_SPACING = HEX_SPACING_X / 4;          // grid px between the points a painting drag is read at
 
 const keyOfCell = cell => hexKey(cell.q, cell.r);
 // biomass shown to the half point
@@ -118,6 +119,92 @@ function removeCell(edited, q, r) {
   const isElsewhere = link => fibreStartKey(link) !== key && fibreEndKey(link) !== key;
   edited.fibres = edited.fibres.filter(isElsewhere);
   edited.vessels = edited.vessels.filter(isElsewhere);
+}
+
+// ---------- Symmetry ----------
+// A mirror axis runs through the Nucleus at a multiple of 30° (its number of turns, 0–5, clockwise on screen from
+// the horizontal; 3 is the front-to-back line). Only those angles map every hex onto a hex.
+const MIRROR_AXIS_COUNT = 6;
+const FRONT_TO_BACK_AXIS = 3;
+
+// the hex of the design's Nucleus, which the mirror axes run through
+function mirrorCentre(edited) {
+  for (const cell of edited.cells.values()) {
+    if (CELLS[cell.typeName].isNucleus) return [cell.q, cell.r];
+  }
+  return [0, 0];
+}
+
+// (q, r) mirrored across one axis through the centre: flipped top to bottom, then turned twice the axis angle
+function mirrorHex(q, r, axisTurns, [centreQ, centreR]) {
+  const offsetQ = q - centreQ;
+  const offsetR = r - centreR;
+  const [turnedQ, turnedR] = rotateHex(offsetQ + offsetR, -offsetR, axisTurns);
+  return [centreQ + turnedQ, centreR + turnedR];
+}
+
+// (q, r) and all its mirror images across the axes and their combinations, (q, r) first, each hex once
+function mirrorImages(edited, q, r, axes) {
+  const centre = mirrorCentre(edited);
+  const images = [[q, r]];
+  const seen = new Set([hexKey(q, r)]);
+  for (let i = 0; i < images.length; i++) {
+    for (const axisTurns of axes) {
+      const image = mirrorHex(images[i][0], images[i][1], axisTurns, centre);
+      if (seen.has(hexKey(...image))) continue;
+      seen.add(hexKey(...image));
+      images.push(image);
+    }
+  }
+  return images;
+}
+
+// Where a click on (q, r) puts cells with the axes on: (q, r) and each free mirror image. Images on another cell or
+// a Bud part's hex are skipped; the whole group must fit the biomass limit or the kit. Empty if it can't be placed.
+function mirroredPlacement(edited, q, r, typeName, axes) {
+  if (!canPlaceCell(edited, q, r, typeName)) return [];
+  const reserved = reservedHexes(edited);
+  const hexes = mirrorImages(edited, q, r, axes).filter(([imageQ, imageR]) => isInGrid(imageQ, imageR) &&
+    !edited.cells.has(hexKey(imageQ, imageR)) && !reserved.has(hexKey(imageQ, imageR)));
+  const added = hexes.map(([imageQ, imageR]) => createDesignCell(imageQ, imageR, typeName));
+  const fits = usesKit(edited) ? !kitShortfallWithAdded(edited, added)
+    : costWithAdded(edited, added) <= edited.biomassLimit;
+  return fits ? hexes : [];
+}
+
+// places the chosen cell on (q, r) and on its free mirror images; the number of cells placed (0: it didn't fit)
+function placeMirrored(edited, q, r, typeName, axes) {
+  const hexes = mirroredPlacement(edited, q, r, typeName, axes);
+  for (const [imageQ, imageR] of hexes) placeCell(edited, imageQ, imageR, typeName);
+  return hexes.length;
+}
+
+// removes the cell on (q, r) and the cells of its type on its mirror images; the number of cells removed
+function removeMirrored(edited, q, r, axes) {
+  const cell = edited.cells.get(hexKey(q, r));
+  if (!cell || CELLS[cell.typeName].isNucleus) return 0;
+  const twins = mirrorImages(edited, q, r, axes).filter(([imageQ, imageR]) => {
+    const image = edited.cells.get(hexKey(imageQ, imageR));
+    return image && typeOfCell(image) === typeOfCell(cell);
+  });
+  for (const [imageQ, imageR] of twins) removeCell(edited, imageQ, imageR);
+  return twins.length;
+}
+
+// the hexes a stroke from one grid point to another passes over, in order, each once (a fast drag skips hexes
+// between two mouse moves otherwise)
+function hexesAlongStroke([fromX, fromY], [toX, toY]) {
+  const length = Math.sqrt((toX - fromX) * (toX - fromX) + (toY - fromY) * (toY - fromY));
+  const steps = Math.max(1, Math.ceil(length / STROKE_SAMPLE_SPACING));
+  const hexes = [];
+  const seen = new Set();
+  for (let i = 0; i <= steps; i++) {
+    const hex = pixelToHex(fromX + (toX - fromX) * i / steps, fromY + (toY - fromY) * i / steps);
+    if (seen.has(hexKey(...hex))) continue;
+    seen.add(hexKey(...hex));
+    hexes.push(hex);
+  }
+  return hexes;
 }
 
 // ---------- The nerve layer ----------
