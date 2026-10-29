@@ -43,6 +43,7 @@ Started 2026-10-28. It was copied from `bioforge-moba/`, which is now frozen.
   - **Mineralizer:** stores up to 6 mineral (a kit's leftover mineral, and mineral specks). While signalled it hardens one cell every 1.5 s for 1 mineral: the nearest soft cell of its creature within 2 hexes, itself first. A hardened cell takes half damage and counts as hard.
   - **Mineral specks:** a broken hard cell always leaves one (a soft one a sugar speck 35% of the time, as before), and a level can lay them out. A creature with a Mouth eats them into a mineral store with room.
   - **Level additions:** `survive` and `kill` goals, creatures that arrive later (`at`), and anchored creatures that nothing moves (a clam on the rock).
+- **Cell look (2026-10-29): Microscope.** Cells are see-through with a coloured membrane and a line-art symbol per type, turned to face away from the body (the Nucleus and Siphon face the way the creature swims). Bonds are soft see-through flesh. Neuron badges are small see-through nerve cells with dendrite ticks and a drawn symbol per kind (a bound Command shows its key). Chosen from six styles on a study page; until 2026-10-29 cells were solid discs with dark details, and Tissue, Joint and Bloater had no symbol.
 - **Every mechanic must be removable** (see "Removable mechanics"). Any part that turns out frustrating can be switched off without breaking the rest.
 - **Bit-identical determinism:** the same design, level and seed must give exactly the same result in every browser and in Node, for fair scoring, solvable puzzles and shareable solutions. The sim uses its own seeded random generator and its own math functions for sin, cos, atan2 and exp.
 - **Code quality:** readable names, no one-letter variables, a 120-character line limit, and one system per file (rules in `CLAUDE.md`). The core is rebuilt to this standard in milestone 0.5, before any layer work.
@@ -237,7 +238,8 @@ builder.js      the edited design and every editing rule: cells (mirrored across
                 Bud parts and aim, Command keys, vessels, stamps, saving a selection, the library list (pure)
 data/*.js       cells (stats, recipes and behaviour fields), materials, neurons, fluids, templates (incl. the small builds), tips,
                 levels and the creatures that live in them, sound effects
-render.js       canvas drawing of a world
+cellart.js      how each cell and neuron badge looks (Microscope style): see-through body, membrane, a symbol per type
+render.js       canvas drawing of a world: bonds, cells (through cellart.js), overlays, fibres, vessels, food
 windows.js      DOM and storage helpers (localStorage, or the desktop save file), floating windows, remembered
                 menu branches
 tipdemo.js      live example tank in the cell and neuron tooltips, with signal lanes under a neuron's example
@@ -391,6 +393,7 @@ tests/          the save file test, and a CRLF check of these files
   - A crossed Seeker drives into an anchored clam well only with an even body; one heavier side curves it past the clam.
   - A clam costs 3.2 ms of sim per game second with the player's Nucleus alone (a 19-cell anchored body; its own springs are skipped), Siege 5.3 ms with the Puffer; Bloom costs 0.9 ms.
   - The Needs card doesn't warn about a Mineralizer that can get no mineral (no kit mineral and no Mouth).
+- **Cell look (2026-10-29):** drawing 225 cells and 486 bonds takes 6.9 ms per frame in headless Edge with software rendering, against 5.9 ms with the old solid cells (GPU drawing should be cheaper). Fine detail (inner membrane line, specks) is drawn only from 14 px of radius on screen.
 - Muscle swimming is touchy. The Paddler template (two muscle columns taking turns at the front, a wide body of organs behind, 45 biomass) swims about 32 px/s at 1.6 Hz, but at 1.2 Hz it spins and at 2 Hz it stalls. Its Heart sits behind the organs, because a Heart in the spine stiffens the front and it no longer swims; two vessels (10 units) carry blood from it to the middle of each muscle column (2026-10-28; until then its muscles were more than 3 cells from the Heart, a warning). The same body drawn head-first swims backwards, muscle end first.
 - Muscle swimming is slow next to cilia. In 10 game s: a 6-muscle-a-side tail with a Pacemaker and an Inhibitor 7.6 px/s, the same tail driven by a perfect travelling wave 24 px/s, two cilia about 28 px/s. A Ganglion delay made it slower (5 px/s), because it smooths the signal; the Delay neuron (2026-10-28) delays it unchanged, but no template uses it yet.
 - Free swimming (the AI enemies) now depends on shape: at `SWIM_FORCE` 200 they average 48 px/s as before (46), but the wide Manta went from 54 to 32 px/s and the narrow Starter from 64 to 62.

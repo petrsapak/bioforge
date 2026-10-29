@@ -90,3 +90,9 @@ for (const need of ['signal', 'blood', 'weapon']) {
     !new RegExp(`data-need="${need}" aria-pressed`).test(needs()) && byId('layer-body').classList.contains('selected'),
     pressedRows());
 }
+
+// The fake DOM has no layout, so this reads the style sheet: without a fixed width the side column grows to fit its
+// longest line, and a long Next hint stretched the Creature card and How to box across the grid (user, 2026-10-29).
+const styleSheet = require('fs').readFileSync(require('path').join(__dirname, '..', 'style.css'), 'utf8');
+check('the side column (Creature card, How to) keeps a fixed width',
+  /#side-column\s*\{[^}]*\bwidth:\s*\d+px/.test(styleSheet));

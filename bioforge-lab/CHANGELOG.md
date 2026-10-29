@@ -17,6 +17,10 @@ afterwards, from the git history.
   and the Mineralizer spends stored mineral to harden your own cells. None of them hurt your own creature.
 - Levels can have creatures that arrive later, clams fixed to the rock, and goals to survive or to destroy a
   creature.
+- A new look for cells: see-through, as under a microscope, with a coloured membrane and a clearer symbol for
+  each type. Tissue, Joint and Bloater now have one, and the Nose and Light eye no longer look like the Eyespot.
+  The bonds between cells are soft see-through flesh, and hardened cells wear a faceted mineral crust. Neurons
+  match: small see-through nerve cells with a drawn symbol for each kind (a wave, a key, chevrons…).
 
 ## 0.4.1 (2026-10-29)
 - Faster building: hold and drag to paint or remove cells, symmetry axes through the Nucleus, Shift highlights every

@@ -7,6 +7,10 @@ const DOCK_HEX_WIDTH = 54;                                // px
 const DOCK_HEX_HEIGHT = Math.round(DOCK_HEX_WIDTH * 2 / Math.sqrt(3));
 const DOCK_HEX_GAP = 3;                                   // px
 const DOCK_ROWS = 2;                                      // rows of hexagons in every section
+const DOCK_ICON_ZOOM = 1.5;                               // how much bigger than in the creature a dock icon is
+// the cell radius (px) at which a neuron badge's disc is as big as a whole cell's body, so neuron icons in the
+// dock are as big as cell icons (in the creature a badge is about half the cell)
+const DOCK_NEURON_CELL_RADIUS = CELL_RADIUS * 0.9 * MEMBRANE_RADIUS / NEURON_BADGE_SIZE;
 
 // Builds the dock. Clicking a cell type calls onPickCell(typeName), a neuron onPickNeuron(kind). Returns the buttons
 // by type name and by neuron kind, and showLayer(layer), which shows the tabs and sections of 'body' or 'nerve'.
@@ -123,7 +127,7 @@ function makeDockButton(typeName) {
   if (!context) return button;
   context.save();
   context.translate(width / 2, height / 2);
-  context.scale(1.5, 1.5);
+  context.scale(DOCK_ICON_ZOOM, DOCK_ICON_ZOOM);
   drawCell(context, makeDisplayCell(typeName, 0, 0, { centerX: 0, centerY: 10, heading: 0 }), 0);
   context.restore();
   return button;
@@ -137,8 +141,8 @@ function makeNeuronButton(kind) {
   const cell = { ...makeDisplayCell('tissue', 0, 0), neuron: { kind } };
   context.save();
   context.translate(width / 2, height / 2);
-  context.scale(1.6, 1.6);
-  drawNeuronBadge(context, cell, CELL_RADIUS * 0.9);
+  context.scale(DOCK_ICON_ZOOM, DOCK_ICON_ZOOM);
+  drawNeuronBadge(context, cell, DOCK_NEURON_CELL_RADIUS);
   context.restore();
   return button;
 }

@@ -78,6 +78,9 @@ button.big:hover { background: #4a8044; }
 .tool.off .music-off-cross { display: inline; }
 .tool-gap { width: 30px; height: 1px; margin: 3px 0; background: #2a3b44; }
 .tool-space { flex: 1 1 8px; min-height: 8px; }
+#side-column {
+  display: flex; flex-direction: column; gap: 8px; width: 264px; max-height: calc(100vh - 20px); overflow-y: auto;
+}
 #panel, #coach {
   padding: 8px 10px; background: #0e181dcc; border: 1px solid #23323a88; border-radius: 12px;
   backdrop-filter: blur(3px);
