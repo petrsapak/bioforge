@@ -96,3 +96,24 @@ for (const need of ['signal', 'blood', 'weapon']) {
 const styleSheet = require('fs').readFileSync(require('path').join(__dirname, '..', 'style.css'), 'utf8');
 check('the side column (Creature card, How to) keeps a fixed width',
   /#side-column\s*\{[^}]*\bwidth:\s*\d+px/.test(styleSheet));
+
+{ // every tooltip demo starts and runs; hovering the Bud stopped every frame after it in 0.5.1, because its example
+  // lists its neuron as an old cell type (user, 2026-10-29)
+  const demoCanvas = byId('tooltip-demo');
+  const failed = [];
+  const tryDemo = (name, start) => {
+    try {
+      start();
+      for (let i = 0; i < 30; i++) readGlobal('runDemo')(1 / 60);
+    } catch (error) {
+      failed.push(name + ': ' + error.message);
+    }
+  };
+  for (const typeName of Object.keys(readGlobal('TIPS'))) {
+    tryDemo(typeName, () => readGlobal('startDemo')(typeName, demoCanvas));
+  }
+  for (const kind of Object.keys(readGlobal('NEURON_TIPS'))) {
+    tryDemo(kind, () => readGlobal('startNeuronDemo')(kind, demoCanvas, byId('tooltip-traces')));
+  }
+  check('every cell and neuron tooltip demo starts and runs', failed.length === 0, failed.join('; '));
+}

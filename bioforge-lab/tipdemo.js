@@ -37,15 +37,16 @@ function exampleCells(example) {
 // gets a lane per cell in example.traces.
 function startExample(example, isShown, canvas, tracesCanvas) {
   const cells = exampleCells(example);
-  if (example.budPart) {
-    for (const cell of cells) if (CELLS[cell.typeName].growsParts) cell.budPart = example.budPart;
-  }
   const world = newTestTank(DEMO_WIDTH, DEMO_HEIGHT);
   // examples are in the format from before the nerve layer, unless they list their own fibres as
   // [fromQ, fromR, toQ, toR]; vessels are listed the same way
   const fibres = example.fibres && linksFromList(example.fibres);
   const design = upgradeToNerveLayer(fibres ? { cells, fibres } : { cells });
   design.vessels = linksFromList(example.vessels || []);
+  // after the upgrade: an old example lists its neurons as cell types (command, pacemaker) that CELLS no longer has
+  if (example.budPart) {
+    for (const cell of design.cells) if (CELLS[cell.typeName].growsParts) cell.budPart = example.budPart;
+  }
   const creature = spawn(world, design, DEMO_WIDTH / 2, DEMO_HEIGHT / 2 + 10, 0, 0);
   for (const cell of creature.cells) {
     if (example.startsHurt && example.startsHurt.includes(cell.typeName)) cell.health = cell.maxHealth * 0.1;
