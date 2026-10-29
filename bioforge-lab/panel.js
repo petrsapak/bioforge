@@ -104,11 +104,17 @@ function kitLimitsHtml(app, body) {
   });
   const reserves = kitReserves(body, kit);
   const room = reserveRoom(body.cells.map(cell => CELLS[cell.typeName]));
-  const lost = Math.max(0, reserves.sugar - room.sugar) + Math.max(0, reserves.fat - room.fat);
+  const lost = Math.max(0, reserves.sugar - room.sugar) + Math.max(0, reserves.fat - room.fat) +
+    Math.max(0, reserves.mineral - room.mineral);
+  const hasMineral = reserves.mineral > 0 || room.mineral > 0;
+  const mineralTitle = hasMineral ? `, ${formatBiomass(reserves.mineral)} mineral in Mineralizers ` +
+    `(room for ${formatBiomass(room.mineral)})` : '';
   const reservesTitle = `Left over for the run: ${formatBiomass(reserves.sugar)} sugar spread over the body ` +
     `(room for ${formatBiomass(room.sugar)}), ${formatBiomass(reserves.fat)} fat in Fat cells ` +
-    `(room for ${formatBiomass(room.fat)})` + (lost ? `. ${formatBiomass(lost)} has no room and is lost.` : '');
-  const reservesText = `${formatBiomass(reserves.sugar)} sugar · ${formatBiomass(reserves.fat)} fat`;
+    `(room for ${formatBiomass(room.fat)})` + mineralTitle +
+    (lost ? `. ${formatBiomass(lost)} has no room and is lost.` : '');
+  const reservesText = `${formatBiomass(reserves.sugar)} sugar · ${formatBiomass(reserves.fat)} fat` +
+    (hasMineral ? ` · ${formatBiomass(reserves.mineral)} mineral` : '');
   return materialSpans.join('') + limitHtml('body', app.layer, 'Reserves', reservesTitle, reservesText, lost > 0);
 }
 

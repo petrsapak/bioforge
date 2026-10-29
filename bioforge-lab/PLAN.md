@@ -33,9 +33,16 @@ Started 2026-10-28. It was copied from `bioforge-moba/`, which is now frozen.
 - **Fat and feeding** (2026-10-29, chosen without asking while building chapter 4). The `metabolism` system (switchable, `metabolism.js`): a Fat cell stores up to 10 fat; above 9/10 full of sugar it turns the spare into fat (2.5 sugar per fat), below half full it turns fat back into sugar (2 per fat), 0.25 fat per s either way. Fat doesn't flow between cells. Food: a level sets its food supply (how many specks, how often, a fixed trail, near the light, until when); the creature counts the specks it eats, and a new goal `eat` asks for a number of them. Eating is unchanged: any cell touching a speck eats it while a Mouth has room, and a Mouth makes room only by passing sugar on, so it needs a store beside it. The **Nose** is a new sense cell: like a Light eye, but toward the nearest food speck within 300 px.
 - **Loose limits, tight par** (2026-10-29, user: "I want the levels to be completable by everyone on 1 star", with tight spots for 3 stars). A level's budget or kit leaves room to spare; the par biomass and par time stay where the reference solutions are, so the stars still ask for a tight build. Budgets: chapters 1 and 2 40 (Hunt 50), chapter 3 45 (Marathon 50); until then 30 (Hunt 40). Kits: Packed lunch 32 protein · 4 sugar · 7 fat, Grazing 30 · 3 · 2, Bloom 38 · 2 · 3; until then 22 · 3 · 5, 20 · 3 · 1 and 26 · 2 · 2. The kits' sugar and fat grew only as far as the levels' wrong tools still lose: more fuel in Bloom let a build without a Mouth win, and more in Grazing slowed the reference past its par time (86 s), since a fuller body drains the Mouth more slowly.
 - **Desktop build** (2026-10-29, user: "I want this to be a desktop game", then "let's introduce versioning and Electron"). Electron, because it ships its own Chromium: one engine to keep fast everywhere, and the usual way web games reach Steam. It lives in `desktop/` beside the game, with its own npm packages and build; `bioforge-lab/` still opens from disk unchanged. The window is maximized with no menu bar (so no reload, zoom or developer tools keys), F11 or Alt+Enter switch fullscreen (remembered), the page can't navigate away, zoom or open windows, and the sim isn't slowed behind other windows. Saves go to one JSON file, `%APPDATA%\Bioforge Lab\save.json`, written 0.5 s after the last change through a temporary file; `readStorage` and `writeStorage` use it through `window.desktopSaves`, which the preload gives the page. The music starts without a click. Only one copy runs at a time. Chosen without asking: a maximized window rather than fullscreen at first start (there is no Quit button yet), an installer and a portable .exe, no icon yet.
-- **Versions** (2026-10-29): `0.<milestone>.<patch>` until the first release, in `data/version.js`, with `CHANGELOG.md` written for players. 0.4.1 is milestone 4 plus faster building and the desktop build; the earlier versions were numbered afterwards from the git history. The keys sheet shows the version.
+- **Versions** (2026-10-29): `0.<milestone>.<patch>` until the first release, in `data/version.js`, with `CHANGELOG.md` written for players. 0.4.1 was milestone 4 plus faster building and the desktop build, 0.5.0 is milestone 5; the earlier versions were numbered afterwards from the git history. The keys sheet shows the version.
 - **Try before deciding:** whether chapter 1 uses Protein only, and whether hormones get their own layer, are decided after playing the first version.
-- **Self-harm is on for now:** acid leaks and toxins can hurt your own creature. If it turns out frustrating, it gets toned down or removed.
+- **No self-harm** (2026-10-29, user chose "No self-harm"; until then the plan had acid leaks and toxins hurting your own creature, with `RULES.selfHarm` on). Secretions never hurt their own creature, and `RULES.selfHarm` is gone.
+- **Secretions and Mineral** (2026-10-29, user chose all three secretions: acid, Mineralizer and protease; the numbers were chosen without asking while tuning chapter 5). The `secretions` system (switchable, `secretions.js`):
+  - **Mineral** is the fourth material. Shell is built from 1 protein + 1 mineral and a Thorn from 2 protein + 1 mineral, so their biomass cost (2 and 3) is unchanged and budget levels play as before.
+  - **Hard cells** are cells built with mineral (Shell, Thorn) or hardened by a Mineralizer. They feel only a quarter of a thorn hit or a nettle sting, on top of their armour (shell beats spikes), and acid eats them (acid beats shell). Until 2026-10-29 Shell only halved damage, and a Puffer's thorns broke a ring of Shell in about 15 s.
+  - **Acid gland:** while signalled, 24 health per second to each hard enemy cell within reach (12 through Shell's armour), 2 to a soft one. **Protease gland:** 10 per second to soft enemy cells and debris, none to hard ones, and the gland takes in 0.1 sugar per point of health. A gland reaches cells 12 px beyond touching: with plain touching, whether a row of glands opened a clam depended on how its front happened to line up with the shell.
+  - **Mineralizer:** stores up to 6 mineral (a kit's leftover mineral, and mineral specks). While signalled it hardens one cell every 1.5 s for 1 mineral: the nearest soft cell of its creature within 2 hexes, itself first. A hardened cell takes half damage and counts as hard.
+  - **Mineral specks:** a broken hard cell always leaves one (a soft one a sugar speck 35% of the time, as before), and a level can lay them out. A creature with a Mouth eats them into a mineral store with room.
+  - **Level additions:** `survive` and `kill` goals, creatures that arrive later (`at`), and anchored creatures that nothing moves (a clam on the rock).
 - **Every mechanic must be removable** (see "Removable mechanics"). Any part that turns out frustrating can be switched off without breaking the rest.
 - **Bit-identical determinism:** the same design, level and seed must give exactly the same result in every browser and in Node, for fair scoring, solvable puzzles and shareable solutions. The sim uses its own seeded random generator and its own math functions for sin, cos, atan2 and exp.
 - **Code quality:** readable names, no one-letter variables, a 120-character line limit, and one system per file (rules in `CLAUDE.md`). The core is rebuilt to this standard in milestone 0.5, before any layer work.
@@ -177,13 +184,13 @@ Each chapter teaches one new pattern set. Each development milestone ends with i
 | 2. **Memory and logic** | Inhibitor, Latch, Delay, Synapse: holding still, waiting, timing, thresholds | Body, nerve | Protein only |
 | 3. **Circulation** | Vessels, the Heart, valves; fuel delivery | + fluid, vascular | + Sugar (fuel in the blood) |
 | 4. **Feeding** | Material kits and reserves, smelling food (Nose), a Mouth with a store; self-sufficiency | + metabolism (Fat storage), food | + Fat |
-| 5. **Armour** | Shells, mineralizing, acid; counterplay | + secretions | + Mineral |
+| 5. **Armour** | Shells, mineralizing, acid and protease; counterplay | + secretions | + Mineral |
 | 6. **Moods** | Hormones modulating neurons; the fed/starved economy; crosslinker and resilin | + chemical (hormones, treatments) | — |
 | 7. **Growth** | Growth plan, Buds, regrowth; hunting for nucleic | + growth | + Nucleic |
 
 ## Removable mechanics
 Every mechanic is a separate switch, so any part that turns out frustrating can be turned off or tuned without breaking the rest:
-- **Global switches:** `data/rules.js` holds a `RULES` object, for example `{ selfHarm: true, crossingAxons: 'bridge', digestionLoss: 0.3 }`.
+- **Global switches:** `data/rules.js` holds a `RULES` object with the limits and the switchable systems, for example `{ budget: 50, maxCells: 24, systems: ['nerve', 'fluid', …, 'secretions'] }`. Planned: `digestionLoss`.
 - **Per level:** each level lists the systems it uses (`systems: ['nerve', 'vascular', 'metabolism']`). A system that is off isn't stepped, isn't drawn, and its cells can't be placed.
 - **One system per file:** each system (nerve, vascular, chemical, metabolism, growth) is its own pure file with its own step function, called from one place. Turning a system off must never need edits inside another system.
 - **Tests run with systems on and off,** so turning one off is always known to work.
@@ -193,7 +200,7 @@ The same rules as the other projects apply: plain `<script src>` files and pure 
 
 ```
 data/version.js GAME_VERSION; CHANGELOG.md lists what each version brought (pure data)
-data/rules.js   RULES: budget, cell cap, selfHarm, switchable systems (pure data)
+data/rules.js   RULES: budget, cell cap, neuron and unit limits, switchable systems (pure data)
 data/fluids.js  FLUIDS: the fluid channels (name, layer, flow rate, decay, capacity, start fill) (pure data)
 math.js         deterministic sine, cosine, arcTangent2 and the seeded random generator (pure)
 core.js         constants, hex and math helpers, world (newWorld, newTestTank, randomFraction), creature and cell
@@ -201,7 +208,8 @@ core.js         constants, hex and math helpers, world (newWorld, newTestTank, r
                 systems: clock 30, cleanup 110, particles 120
 fibres.js       nerve fibre routing from cell centre to cell centre (vessels use it too), units, adding fibres to
                 a creature and cutting broken ones (pure)
-physics.js      input, steering, springs, drag, collisions, integration (pure); systems: input 10, physics 20
+physics.js      input, steering, springs, drag, collisions, integration (anchored creatures stay put) (pure);
+                systems: input 10, physics 20
 nerve.js        signals along fibres, senses, the neuron rules (pure); system: nerve 40 (switchable)
 fluid.js        work levels, fuel burning, products, fluids seeping between touching cells (pure); system: fluid
                 50 (switchable)
@@ -210,13 +218,17 @@ vascular.js     blood vessels: units, adding a design's vessels to a creature, c
 metabolism.js   Fat cells storing spare sugar as fat and turning it back; filling a new creature's stores from a
                 kit's leftovers (pure); system: metabolism 57 (switchable)
 actuators.js    resizing, weapon triggers, timers, debris rot (pure); system: actuators 60
-combat.js       damage, contact hits, aiming, snare lines, globs (pure); system: projectiles 70
+secretions.js   hard cells; acid and protease glands on touching enemy cells, the Mineralizer hardening its own
+                cells (pure); system: secretions 62 (switchable)
+combat.js       damage (armour, hardening), contact hits (hard cells blunt thorns and stings), aiming, snare
+                lines, globs (pure); system: projectiles 70
 growth.js       Bud parts and Mender regrowth (pure); systems: buds 80, regrow 90 (switchable)
 food.js         the food supply (how many specks, how often, where: anywhere, near the light, a fixed trail; until
-                when), eating and counting it, specks left by dead cells (pure); system: food 100 (switchable)
+                when; mineral specks), eating and counting it, specks left by dead cells (pure); system: food 100
+                (switchable)
 ai.js           sandbox enemy steering (pure)
-levels.js       levels: building a level's world, its light, its food and the kit's reserves, stepping it, the goal
-                checks, the score, a headless run (pure)
+levels.js       levels: building a level's world, its light, its food and the kit's reserves, creatures arriving
+                later, stepping it, the goal checks, the score, a headless run (pure)
 design.js       hex lookup, buildCheck (cells, biomass or the kit, neurons, fibre and vessel units), material kits
                 (a design's materials, the kit's leftovers and reserves), design warnings and the
                 Needs rows they fill, the sugar supply, the saved design format, and the conversion of old saves and of designs from before the nerve layer (pure; loaded
@@ -252,7 +264,7 @@ sound.js        sound effects: playing them, the toolbar button and N, the creat
 audio/          the music track (mp3) and the sound effects in audio/sfx/ (wav)
 ui.js           the app state, the controls, mouse and keyboard input, the frame loop
 tests/*.js      headless checks: node tests/all.js (autonomy, builder, design, determinism, editor, golden,
-                levels, metabolism, music, nerve, probes, sandbox, showcase, sound, systems, vascular, weapons); helpers: load.js,
+                levels, metabolism, music, nerve, probes, sandbox, secretions, showcase, sound, systems, vascular, weapons); helpers: load.js,
                 dom.js (fake browser), check.js
 ```
 
@@ -260,7 +272,7 @@ tests/*.js      headless checks: node tests/all.js (autonomy, builder, design, d
 
 **Cell behaviours.** Systems never check a cell's type name. Each cell type in `data/cells.js` declares behaviour fields (`work`, `product`, `trigger`, `resize`, `breathes`, `pumps`, `gatesFlow`, `needsSignal`…), and the systems read those, some through small registries (`WORK_LEVELS` and `PRODUCTS` in `fluid.js`, `TRIGGERS` in `actuators.js`). A new cell type made from existing behaviours needs only data. `tests/determinism.js` fails if a pure file compares `typeName`.
 
-Planned additions: `chemical.js`, `metabolism.js`.
+Planned additions: `chemical.js`.
 
 The desktop build sits beside the game, in `desktop/` (Node and Electron, not loaded by the page):
 
@@ -348,7 +360,13 @@ tests/          the save file test, and a CRLF check of these files
    - Done 2026-10-29: Grazing: eat 13 of a trail of 15 specks about 90 px apart, within 100 s; kit 30 protein · 3 sugar · 2 fat (20 · 3 · 1 until loosened). Two Noses crossed to two Siphons, a Mouth and a Fat beside it (18 biomass) eat 13 in 64.5 s. Without the Fat the Mouth stays full and eats 9; crossed Light eyes, a Jet and same-side Noses eat none.
    - Done 2026-10-29: Bloom: the drifting light, 180 s near it within 260 s; food grows within 120 px of the light every 2 s (8 at most) for the first 80 s; kit 38 protein · 2 sugar · 3 fat (26 · 2 · 2 until loosened). The Seeker with a Fat and a Mouth on its sides, a Pore at the back and a Gill beside each Siphon (24 biomass) eats 12 and wins in 244.5 s. Tissue for the Fat: 61 s near the light; Packed lunch's answer (no Mouth): 140 s near the light of 180; a Mouth without Gills runs out of O₂ (about 100 s). It still wins with food ending at 70–90 s or growing within 100 px; with a kit of 1 sugar it loses.
    - Open: digestion loss (a speck gives its whole sugar; the `RULES.digestionLoss` named under Removable mechanics does not exist yet), food that gives Protein or Fat, eating other creatures' recipes, and a use for leftover Protein.
-5. **Secretions and chapter 5.** Mineral, mineralizer, acid, protease, self-harm.
+5. **Secretions and chapter 5.** ✅ Done 2026-10-29. Mineral, hard cells, the Acid gland, the Protease gland and the Mineralizer, mineral specks; survive and kill goals, late arrivals, anchored creatures. Chapter 5, Armour, has 4 levels: Bulwark (Shell), Clam (acid and protease), Quarry (the Mineralizer) and Siege (everything).
+   - Test: `tests/secretions.js`, `tests/levels.js`.
+   - Done 2026-10-29: Bulwark: the Puffer hunts from the start; keep the Nucleus alive 60 s; kit 30 protein · 4 sugar · 6 mineral. A Nucleus in a ring of six Shell wins (its first cell lost at 57.2 s); a ring of Tissue dies at 22.1 s. A ring of Thorns wins too, by killing the Puffer.
+   - Done 2026-10-29: Clam: an anchored clam (a Nucleus in two rings of Shell, 19 cells) carries the light; destroy its Nucleus within 50 s; kit 30 protein · 4 sugar · 3 fat. The crossed Seeker with acid, protease, acid across the front, fired by an Eyespot, wins in about 34 s; protease, acid, protease in about 46 s. Three acid glands run out of fuel on the soft Nucleus; three protease glands can't open the Shell; Nettles and Thorns don't get through in time (Nettles took 46–63 s with a looser kit).
+   - Done 2026-10-29: Quarry: Grazing's trail as mineral specks, the Puffer arriving at 30 s; survive 80 s; kit 30 protein · 6 sugar · 2 fat, no mineral. Grazing's body with a Mineralizer (with a Pacemaker) for the Fat eats 13 specks and hardens its whole body; with Tissue for the Mineralizer it dies at about 74 s.
+   - Done 2026-10-29: Siege: the clam again and the Puffer at 50 s; survive 120 s; kit 40 protein · 6 sugar · 2 fat, no mineral. Three acid glands open the clam, a Mouth eats 6 mineral specks from the broken Shell and a Mineralizer hardens 6 cells by 40 s. Without the Mineralizer, the acid or the Mouth it dies at 75–80 s.
+   - Open: protease isn't needed in Siege (Clam teaches it); a level where digesting prey is the only food; whether hardening should make a cell heavier or stiffer.
 6. **Chemical layer and chapter 6.** Hormones, modulation, crosslinker and resilin.
 7. **Growth and chapter 7.** The growth plan, Buds, regrowth, Nucleic, and the metamorphosis boss.
    - Open: vessels in Bud parts (moved from milestone 3 on 2026-10-29).
@@ -367,7 +385,12 @@ tests/          the save file test, and a CRLF check of these files
 - Three chapter 1 levels (Lighthouse, Moth, Hunt) are beaten by the same 5-cell crossed Seeker. They teach one idea three times. Chapter 2 has the Inhibitor, the Latch, the Delay and the Synapse (Dock). A blinking light far away (Afterimage) didn't need the Delay: a Seeker with a Pacemaker cruises through the dark, and far light is too faint to drive the Siphons fast anyway.
 - All four chapter 2 levels share the same arena (spawn at the bottom, ring and light at the top).
 - Dock has one working threshold: 1.5 (thresholds step by 0.5; 1 stops at y 478 px, short of the ring, and 2 never stops). Its reference build needs a second Tissue cell only to keep the body even, or it turns.
-- A Seeker can't win by damage: it slows to a stop on the light, so Thorns barely hit (they need speed), and a Darter's 80-health Nucleus outlasts a 60 s level. So the Hunt asks to keep near the prey, not to kill it; the `kill` goal was left out until combat is tuned for wired creatures.
+- A Seeker can't win by Thorns: it slows to a stop on the light, so Thorns barely hit (they need speed), and a Darter's 80-health Nucleus outlasts a 60 s level. So the Hunt asks to keep near the prey, not to kill it. The `kill` goal came with chapter 5 (2026-10-29), where acid and protease glands work by touch.
+- **Secretions (2026-10-29):**
+  - Fights with a hunting Puffer are chaotic: in Bulwark, which ring of Shell and Thorns wins changes with the angle of the first hit (Shell, Thorn, Shell… won, Thorn, Thorn, Shell… lost). The reference solutions are robust; mixed rings are not.
+  - A crossed Seeker drives into an anchored clam well only with an even body; one heavier side curves it past the clam.
+  - A clam costs 3.2 ms of sim per game second with the player's Nucleus alone (a 19-cell anchored body; its own springs are skipped), Siege 5.3 ms with the Puffer; Bloom costs 0.9 ms.
+  - The Needs card doesn't warn about a Mineralizer that can get no mineral (no kit mineral and no Mouth).
 - Muscle swimming is touchy. The Paddler template (two muscle columns taking turns at the front, a wide body of organs behind, 45 biomass) swims about 32 px/s at 1.6 Hz, but at 1.2 Hz it spins and at 2 Hz it stalls. Its Heart sits behind the organs, because a Heart in the spine stiffens the front and it no longer swims; two vessels (10 units) carry blood from it to the middle of each muscle column (2026-10-28; until then its muscles were more than 3 cells from the Heart, a warning). The same body drawn head-first swims backwards, muscle end first.
 - Muscle swimming is slow next to cilia. In 10 game s: a 6-muscle-a-side tail with a Pacemaker and an Inhibitor 7.6 px/s, the same tail driven by a perfect travelling wave 24 px/s, two cilia about 28 px/s. A Ganglion delay made it slower (5 px/s), because it smooths the signal; the Delay neuron (2026-10-28) delays it unchanged, but no template uses it yet.
 - Free swimming (the AI enemies) now depends on shape: at `SWIM_FORCE` 200 they average 48 px/s as before (46), but the wide Manta went from 54 to 32 px/s and the narrow Starter from 64 to 62.

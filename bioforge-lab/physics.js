@@ -149,6 +149,7 @@ function applySteering(creature) {
 function applyBondForces(world) {
   for (const bond of world.bonds) {
     const { first, second } = bond;
+    if (first.creature.anchored) continue;                // it can't move, so its own springs do nothing
     let directionX = second.x - first.x;
     let directionY = second.y - first.y;
     const distance = vectorLength(directionX, directionY) || MIN_DISTANCE;
@@ -202,6 +203,7 @@ function applySkinDrag(world) {
 function applyAngleSpringForces(world) {
   for (const spring of world.angleSprings) {
     const { pivot, first, second } = spring;
+    if (pivot.creature.anchored) continue;                // it can't move, so its own springs do nothing
     const firstArmX = first.x - pivot.x;
     const firstArmY = first.y - pivot.y;
     const secondArmX = second.x - pivot.x;
@@ -309,9 +311,15 @@ function collideCreatures(world, firstCreature, secondCreature) {
 }
 
 // ---------- Integration ----------
-// Moves every cell by its velocity (semi-implicit Euler) and bounces it off the world's edges.
+// Moves every cell by its velocity (semi-implicit Euler) and bounces it off the world's edges. An anchored
+// creature's cells stay where they are.
 function integrate(world, dt) {
   for (const cell of world.cells) {
+    if (cell.creature.anchored) {
+      cell.forceX = 0;
+      cell.forceY = 0;
+      continue;
+    }
     const mass = cell.type.mass;
     cell.velocityX += cell.forceX / mass * dt;
     cell.velocityY += cell.forceY / mass * dt;

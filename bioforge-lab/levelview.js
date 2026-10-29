@@ -363,5 +363,7 @@ function goalProgress(run) {
   if (goal.kind === 'stayNear') return `Near the light ${run.goalTime.toFixed(1)} / ${goal.seconds} s`;
   if (goal.kind === 'restIn') return `At rest in the ring ${run.goalTime.toFixed(1)} / ${goal.seconds} s`;
   if (goal.kind === 'eat') return `Eaten ${run.player.foodEaten} / ${goal.count}`;
+  if (goal.kind === 'survive') return `Alive ${Math.min(run.time, goal.seconds).toFixed(1)} / ${goal.seconds} s`;
+  if (goal.kind === 'kill') return 'Destroy its Nucleus';
   return 'Reach the ring';
 }

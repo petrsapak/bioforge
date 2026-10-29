@@ -66,6 +66,25 @@ const grazingBuild = rightTypeName => ({ cells: [cell(0, 0, 'nucleus'), cell(0, 
 // beside each Siphon
 const bloomBuild = storeTypeName => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(-1, 0, storeTypeName),
   cell(1, 0, 'mouth'), cell(-1, 2, 'pore'), cell(-2, 1, 'gill'), cell(1, 1, 'gill')], fibres: CROSSED });
+// Bulwark: a Nucleus inside a ring of six cells of this type
+const ringBuild = typeName => ({ cells: [cell(0, 0, 'nucleus'), ...[[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]]
+  .map(([q, r]) => cell(q, r, typeName))] });
+// Clam and Siege: the crossed Seeker with a row of three cells across the front, all fired by an Eyespot on the
+// left; on the right this cell (a Mineralizer gets a Pacemaker), and any more cells
+const glandRowBuild = ([left, tip, right], rightTypeName = 'fat', extra = []) => ({
+  cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(0, -2, left), cell(1, -2, tip), cell(2, -2, right),
+    cell(-1, 0, 'eyespot'),
+    cell(1, 0, rightTypeName, rightTypeName === 'mineralizer' ? { neuron: sim.createNeuron('pacemaker') } : {}),
+    ...extra],
+  fibres: [...CROSSED, fibre(-1, 0, 0, -2), fibre(-1, 0, 1, -2), fibre(-1, 0, 2, -2)] });
+// Siege: three acid glands, a Mineralizer with a Pacemaker, a Mouth and a Fat; one of them swapped for Tissue
+const siegeBuild = (front = ['acid', 'acid', 'acid'], store = 'mineralizer', mouth = 'mouth') =>
+  glandRowBuild(front, store, [cell(1, 1, mouth), cell(-2, 1, 'fat')]);
+// Quarry: Grazing's body with this cell in the Fat's place (a Mineralizer gets a Pacemaker)
+const quarryBuild = rightTypeName => ({ cells: [cell(0, 0, 'nucleus'), cell(0, -1, 'nose'), cell(1, -1, 'nose'),
+  cell(-1, 1, 'siphon'), cell(0, 1, 'siphon'), cell(-1, 0, 'mouth'),
+  cell(1, 0, rightTypeName, rightTypeName === 'mineralizer' ? { neuron: sim.createNeuron('pacemaker') } : {})],
+  fibres: CROSSED });
 const SOLUTIONS = {
   'first-stroke': { cells: [pacemakerNucleus(), cell(-1, 1, 'siphon'), cell(0, 1, 'siphon')],
     fibres: [fibre(0, 0, -1, 1), fibre(0, 0, 0, 1)] },
@@ -85,6 +104,10 @@ const SOLUTIONS = {
   'packed-lunch': lunchBuild('fat'),
   grazing: grazingBuild('fat'),
   bloom: bloomBuild('fat'),
+  bulwark: ringBuild('shell'),
+  clam: glandRowBuild(['acid', 'protease', 'acid']),
+  quarry: quarryBuild('mineralizer'),
+  siege: siegeBuild(),
 };
 // the wrong tool for each level: it must not win
 const WRONG_TOOLS = {
@@ -104,6 +127,10 @@ const WRONG_TOOLS = {
   grazing: { cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(-1, 0, 'mouth'), cell(1, 0, 'fat')],
     fibres: CROSSED },
   bloom: SOLUTIONS['packed-lunch'],
+  bulwark: ringBuild('tissue'),
+  clam: glandRowBuild(['acid', 'acid', 'acid']),
+  quarry: quarryBuild('tissue'),
+  siege: siegeBuild(['acid', 'acid', 'acid'], 'tissue'),
 };
 
 for (const level of sim.LEVELS) {
@@ -172,7 +199,7 @@ allOpen.readGlobal('RULES.allLevelsOpen = true');
 allOpen.runFrames(3);
 allOpen.byId('show-levels').onclick();
 const openTiles = allOpen.byId('levels-list').children.filter(child => child.className.startsWith('level-tile'));
-const bloomTile = openTiles[openTiles.length - 1];
+const bloomTile = openTiles[sim.LEVELS.findIndex(level => level.id === 'bloom')];
 bloomTile.onclick();
 allOpen.byId('level-build').onclick();
 check('with every level open, any level can be chosen, and the builder takes its limits',
@@ -189,8 +216,8 @@ const listed = byId('levels-list').children;
 const rows = listed.filter(child => child.className.startsWith('level-tile'));
 const headings = listed.filter(child => child.className === 'chapter-heading');
 check('the levels sheet lists every level under its chapter', byId('levels-sheet').style.display === 'flex' &&
-  rows.length === readGlobal('LEVELS.length') && headings.length === 4 &&
-  headings[3].textContent === 'Chapter 4: Feeding', `${rows.length} rows, ${headings.length} headings`);
+  rows.length === readGlobal('LEVELS.length') && headings.length === 5 &&
+  headings[4].textContent === 'Chapter 5: Armour', `${rows.length} rows, ${headings.length} headings`);
 check('at first only level 1 is open: the others are locked and say which win opens them',
   !rows[0].className.includes('locked') && rows.slice(1).every(row => row.className.includes('locked')) &&
   rows[1].title === 'Win “First stroke” to open it.', rows[1].title);

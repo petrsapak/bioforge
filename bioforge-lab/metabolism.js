@@ -37,15 +37,18 @@ function releaseFat(cell, dt) {
   cell.fluids[FLUID_SUGAR] += fatUsed * FAT_SUGAR_YIELD;
 }
 
-// Fills a new creature's stores from a kit's leftovers ({ sugar, fat }): the sugar spread so that every cell is
-// equally full, the fat the same over the cells that store fat. Any beyond the body's room is lost. Mouths start
-// empty, ready to eat. O2 comes from the water and is left as it was.
+// Fills a new creature's stores from a kit's leftovers ({ sugar, fat, mineral }): the sugar spread so that every
+// cell is equally full, the fat the same over the cells that store fat, the mineral over the mineral stores. Any
+// beyond the body's room is lost. Mouths start empty, ready to eat. O2 comes from the water and is left as it was.
 function stockReserves(creature, reserves) {
   fillEvenly(creature.cells, sugarRoom, reserves.sugar, (cell, amount) => {
     cell.fluids[FLUID_SUGAR] = amount;
   });
   fillEvenly(creature.cells, cell => cell.type.fatCapacity, reserves.fat, (cell, amount) => {
     cell.fat = amount;
+  });
+  fillEvenly(creature.cells, cell => cell.type.mineralCapacity, reserves.mineral, (cell, amount) => {
+    cell.mineral = amount;
   });
 }
 
@@ -59,12 +62,14 @@ function fillEvenly(cells, roomOf, total, setAmount) {
   for (const cell of cells) setAmount(cell, roomOf(cell) * share);
 }
 
-// the reserves a creature can hold: its sugar room (none in Mouths), and its fat room (Fat cells)
+// the reserves a creature can hold: its sugar room (none in Mouths), its fat room (Fat cells) and its mineral room
+// (Mineralizers)
 function reserveRoom(cellTypes) {
   const sugarRoomOf = cellType => (cellType.eatsFood ? 0 : fluidCapacityOf(cellType, FLUIDS[FLUID_SUGAR]));
   return {
     sugar: cellTypes.reduce((sum, cellType) => sum + sugarRoomOf(cellType), 0),
     fat: cellTypes.reduce((sum, cellType) => sum + cellType.fatCapacity, 0),
+    mineral: cellTypes.reduce((sum, cellType) => sum + cellType.mineralCapacity, 0),
   };
 }
 

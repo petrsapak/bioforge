@@ -95,9 +95,17 @@ function drawZaps(context, world) {
   }
 }
 
+// sugar specks as dots, mineral specks as small diamonds
 function drawFood(context, world) {
-  context.fillStyle = '#d8e070';
-  for (const speck of world.food) fillCircle(context, speck.x, speck.y, 2.5);
+  for (const speck of world.food) {
+    if (speck.mineral) {
+      context.fillStyle = MATERIALS_BY_ID.mineral.color;
+      fillDiamond(context, speck.x, speck.y, 2.5, 3.5);
+      continue;
+    }
+    context.fillStyle = '#d8e070';
+    fillCircle(context, speck.x, speck.y, 2.5);
+  }
 }
 
 function drawSparks(context, world) {
@@ -431,7 +439,43 @@ const CELL_DETAILS = {
     context.arc(cell.x, cell.y, radius * 0.6, -Math.PI / 2, -Math.PI / 2 + TAU * growth.grownCount / partSize);
     context.stroke();
   },
+  // a drop, bright while it secretes
+  acid(context, cell, radius) {
+    drawDrop(context, cell, radius, cell.signal > SIGNAL_ON ? '#fff2a0' : '#5a1e08');
+  },
+  protease(context, cell, radius) {
+    drawDrop(context, cell, radius, cell.signal > SIGNAL_ON ? '#fff8e0' : '#5a3a08');
+  },
+  // a crystal that fills with the mineral it stores
+  mineralizer(context, cell, radius) {
+    const fill = cell.type.mineralCapacity ? clamp01(cell.mineral / cell.type.mineralCapacity) : 0;
+    context.fillStyle = '#1e2c36';
+    fillDiamond(context, cell.x, cell.y, radius * 0.4, radius * 0.6);
+    context.fillStyle = MATERIALS_BY_ID.mineral.color;
+    fillDiamond(context, cell.x, cell.y, radius * 0.4 * fill, radius * 0.6 * fill);
+  },
 };
+
+// a drop pointing up, for the secreting glands
+function drawDrop(context, cell, radius, color) {
+  context.fillStyle = color;
+  context.beginPath();
+  context.moveTo(cell.x, cell.y - radius * 0.6);
+  context.quadraticCurveTo(cell.x + radius * 0.5, cell.y + radius * 0.05, cell.x, cell.y + radius * 0.45);
+  context.quadraticCurveTo(cell.x - radius * 0.5, cell.y + radius * 0.05, cell.x, cell.y - radius * 0.6);
+  context.fill();
+}
+
+// a diamond centred on (x, y), halfWidth by halfHeight px
+function fillDiamond(context, x, y, halfWidth, halfHeight) {
+  context.beginPath();
+  context.moveTo(x, y - halfHeight);
+  context.lineTo(x + halfWidth, y);
+  context.lineTo(x, y + halfHeight);
+  context.lineTo(x - halfWidth, y);
+  context.closePath();
+  context.fill();
+}
 
 function drawCellOverlays(context, cell, radius) {
   if (cell.neuron) drawNeuronBadge(context, cell, radius);
@@ -439,6 +483,15 @@ function drawCellOverlays(context, cell, radius) {
     context.globalAlpha = clamp01(cell.signal) * 0.55;
     context.fillStyle = '#fff6a0';
     fillCircle(context, cell.x, cell.y, radius * 0.75);
+  }
+  if (cell.mineralized) {                                 // hardened by a Mineralizer: a mineral rim, dark-edged
+    context.globalAlpha = 1;
+    context.strokeStyle = '#1e2c36';
+    context.lineWidth = 4;
+    strokeCircle(context, cell.x, cell.y, radius - 1.5);
+    context.strokeStyle = MATERIALS_BY_ID.mineral.color;
+    context.lineWidth = 2.5;
+    strokeCircle(context, cell.x, cell.y, radius - 1.5);
   }
   if (cell.fluids[FLUID_ADRENALINE] > 0.05) {             // adrenaline rim
     context.globalAlpha = clamp01(cell.fluids[FLUID_ADRENALINE]);
@@ -523,6 +576,8 @@ function makeDisplayCell(typeName, x, y, creature = { centerX: 0, centerY: 0, he
     budGrowth: null,
     starving: false,
     poisoned: false,
+    mineral: 0,
+    mineralized: false,
     creature,
   };
 }

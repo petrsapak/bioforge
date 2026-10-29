@@ -1,15 +1,16 @@
 'use strict';
 // Cell types (pure data). Field meanings:
 //   category, name, health, color, description: what the builder shows
-//   cost: biomass, all of it Protein; or recipe: the materials it is built from ({ protein, fat }, data/materials.js),
-//     and its cost is their sum
+//   cost: biomass, all of it Protein; or recipe: the materials it is built from ({ protein, fat, mineral },
+//     data/materials.js), and its cost is their sum. A recipe with mineral makes a hard cell (secretions.js)
 //   mass; stiffness (angle springs); bondStrength (bond springs, the weaker cell of a pair counts);
 //   swimPower (free swimming force); damageFactor (share of damage taken: 0.5 = half)
 //   senses: what the cell feels, as a nerve signal its fibres carry: 'enemy' (an enemy cell is near, on or off) or
 //     'light' (graded: how far the light lies on the cell's side of the body, fading with distance) or 'food' (the
 //     same for the nearest food speck)
 //   fuelBurn: O2 + sugar burned per second at full work (each unit burned becomes one unit of waste)
-//   oxygenCapacity, sugarCapacity: how much the cell holds; fatCapacity: how much fat it stores (metabolism.js)
+//   oxygenCapacity, sugarCapacity: how much the cell holds; fatCapacity: how much fat it stores (metabolism.js);
+//   mineralCapacity: how much mineral it stores (a kit's leftover mineral and eaten mineral specks go there)
 // Behaviours: what the cell does in each system. The systems read these, never the type's name.
 //   isNucleus: the creature dies with it
 //   work (fluid): how hard it works, which sets its fuel use: 'graded' (with its signal), 'onSignal' (fully while
@@ -23,8 +24,10 @@
 //   beats: pushes the creature forward, always (Cilia); jets: pushes the creature forward while signalled (Siphon)
 //   resize: 'contract' or 'swell' with its signal; trigger: what a signal fires: 'nettle', 'snare' or 'spit'
 //   growsParts: grows a saved part (Bud); rebuildsCells: regrows lost cells from repair fluid (Mender)
+//   secretes (secretions.js): what it puts on touching enemy cells while signalled: 'acid' or 'protease';
+//   mineralizes: while signalled, spends its stored mineral to harden its creature's cells near it
 // Builder hints (design.js): needsSignal: does nothing without a nerve signal; isWeapon: can hurt other creatures;
-//   storesSugar: a sugar reservoir (Fat)
+//   storesSugar: a sugar reservoir (Fat); storesMineral: a mineral store
 // Cells that burn no fuel are pipes: they pass O2 and sugar on to their neighbours but hold only a little.
 const PIPE_CAPACITY = 0.3;
 
@@ -41,6 +44,7 @@ function cellType(definition) {
     oxygenCapacity: pipeOrStore,
     sugarCapacity: pipeOrStore,
     fatCapacity: 0,
+    mineralCapacity: 0,
     ...definition,
     recipe,
     cost: Object.values(recipe).reduce((sum, amount) => sum + amount, 0),
@@ -59,9 +63,10 @@ const CELLS = {
     description: 'Cheap filler. Holds shape, and can hold a neuron like any cell.',
   }),
   shell: cellType({
-    category: 'Body', name: 'Shell', cost: 2, health: 90, mass: 2, stiffness: 2, bondStrength: 2, swimPower: 0.5,
-    damageFactor: 0.5, color: '#c9c2b0',
-    description: 'Armour. Takes half damage, very stiff and heavy.',
+    category: 'Body', name: 'Shell', recipe: { protein: 1, mineral: 1 }, health: 90, mass: 2, stiffness: 2,
+    bondStrength: 2, swimPower: 0.5, damageFactor: 0.5, color: '#c9c2b0',
+    description: 'Armour. Takes half damage, and thorns and nettle stings barely scratch it. Very stiff and ' +
+      'heavy. Built with mineral, so acid eats it.',
   }),
   joint: cellType({
     category: 'Body', name: 'Joint', cost: 1, health: 25, mass: 0.8, stiffness: 0.03, bondStrength: 0.35,
@@ -123,8 +128,10 @@ const CELLS = {
       `${SPIT_RANGE} px (straight out if none). Burns fuel while signalled.`,
   }),
   thorn: cellType({
-    category: 'Action', name: 'Thorn', cost: 3, health: 35, color: '#8fd16a', spiked: true, isWeapon: true,
-    description: 'Damages enemy cells it hits. Faster hits hurt more. Needs no fuel.',
+    category: 'Action', name: 'Thorn', recipe: { protein: 2, mineral: 1 }, health: 35, color: '#8fd16a', spiked: true,
+    isWeapon: true,
+    description: 'Damages enemy cells it hits. Faster hits hurt more. Needs no fuel. Built with mineral, so acid ' +
+      'eats it.',
   }),
   bud: cellType({
     category: 'Action', name: 'Bud', cost: 4, health: 30, fuelBurn: 0.4, color: '#c8e07a',
@@ -143,7 +150,7 @@ const CELLS = {
     category: 'Fluid', name: 'Mouth', cost: 2, health: 35, sugarCapacity: 2, color: '#d98a6a',
     eatsFood: true, bites: true, isWeapon: true,
     description: 'Eats food specks that touch the body, and bites enemies and debris it touches, for sugar. ' +
-      'Leaves food alone while full.',
+      'Leaves food alone while full. Mineral specks go to a Mineralizer with room.',
   }),
   heart: cellType({
     category: 'Fluid', name: 'Heart', cost: 3, health: 30, fuelBurn: 0.04, color: '#b8243a', work: 'always',
@@ -184,5 +191,27 @@ const CELLS = {
     work: 'onSignal', product: 'adrenaline', needsSignal: true,
     description: 'On a nerve signal, turns sugar into adrenaline. Muscles, cilia, siphons, bloaters and nettles ' +
       'that receive it work up to 80% harder.',
+  }),
+  acid: cellType({
+    category: 'Gland', name: 'Acid gland', cost: 3, health: 25, fuelBurn: 0.12, color: '#ff7a3c',
+    work: 'onSignal', secretes: 'acid', needsSignal: true, isWeapon: true,
+    description: 'On a nerve signal, dissolves the enemy cells it touches. It eats hard cells (Shell, Thorns, ' +
+      'cells a Mineralizer hardened) fast, soft ones only slowly. Never hurts your own cells. Burns fuel while ' +
+      'signalled.',
+  }),
+  protease: cellType({
+    category: 'Gland', name: 'Protease gland', cost: 3, health: 25, fuelBurn: 0.12, sugarCapacity: 3,
+    color: '#e8b04a', work: 'onSignal', secretes: 'protease', needsSignal: true, isWeapon: true,
+    description: 'On a nerve signal, digests the soft enemy cells and debris it touches, and takes in sugar ' +
+      'from them. It can\'t touch hard cells (Shell, Thorns, hardened cells). Never hurts your own cells. Burns ' +
+      'fuel while signalled.',
+  }),
+  mineralizer: cellType({
+    category: 'Gland', name: 'Mineralizer', cost: 3, health: 25, fuelBurn: 0.1, color: '#8fb0c8',
+    mineralCapacity: MINERALIZER_CAPACITY, work: 'onSignal', mineralizes: true, needsSignal: true,
+    storesMineral: true,
+    description: `Stores up to ${MINERALIZER_CAPACITY} mineral: a kit's leftover mineral, and mineral specks a ` +
+      `Mouth eats. On a nerve signal it spends one every ${MINERALIZE_TIME} s to harden its own cells, nearest ` +
+      `first, up to ${MINERALIZE_REACH} cells away. A hardened cell takes half damage, but acid eats it.`,
   }),
 };

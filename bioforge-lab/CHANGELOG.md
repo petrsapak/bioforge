@@ -7,6 +7,17 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.5.0 (2026-10-29)
+- Milestone 5, secretions. Chapter 5, Armour: Bulwark, Clam, Quarry, Siege.
+- Mineral, a new material. Shell and Thorns are built with it, and a broken Shell or Thorn leaves a mineral speck
+  that a creature with a Mouth can eat.
+- Shell, Thorns and hardened cells now shrug off thorn hits and nettle stings (a quarter of the damage, on top of
+  Shell's armour).
+- Three new glands: the Acid gland eats Shell and Thorns, the Protease gland digests soft cells and feeds on them,
+  and the Mineralizer spends stored mineral to harden your own cells. None of them hurt your own creature.
+- Levels can have creatures that arrive later, clams fixed to the rock, and goals to survive or to destroy a
+  creature.
+
 ## 0.4.1 (2026-10-29)
 - Faster building: hold and drag to paint or remove cells, symmetry axes through the Nucleus, Shift highlights every
   cell of the chosen type, a hex cursor in the chosen cell's colour.

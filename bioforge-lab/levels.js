@@ -40,7 +40,7 @@ function startLevel(level, design) {
   player.autonomous = true;
   const kit = levelLimits(level).kit;
   if (kit) stockReserves(player, kitReserves(design, kit));
-  const creatures = level.creatures.map(entry => spawnLevelCreature(world, entry));
+  const creatures = level.creatures.map(entry => (entry.at ? null : spawnLevelCreature(world, entry)));
   const run = { level, world, player, creatures, time: 0, goalTime: 0, outcome: null, reason: '',
     playerSpeed: 0 };
   placeLevelLight(run);
@@ -49,17 +49,25 @@ function startLevel(level, design) {
 }
 
 // A 'wired' creature moves only by its own wiring, like the player's; a 'hunt' creature is steered by the AI
-// (ai.js) toward its nearest enemy.
+// (ai.js) toward its nearest enemy. One with an arrival time (at) is spawned then (spawnArrivals), null until.
 function spawnLevelCreature(world, entry) {
   const design = LEVEL_CREATURES[entry.design] || TEMPLATES[entry.design];
   const creature = spawn(world, design, entry.x, entry.y, entry.heading || 0, 1);
   creature.aiControlled = entry.behaviour === 'hunt';
   creature.autonomous = entry.behaviour !== 'hunt';
+  creature.anchored = !!entry.anchored;
   return creature;
 }
 
+// spawns the level creatures whose arrival time has come
+function spawnArrivals(run) {
+  run.level.creatures.forEach((entry, i) => {
+    if (!run.creatures[i] && entry.at && run.time >= entry.at) run.creatures[i] = spawnLevelCreature(run.world, entry);
+  });
+}
+
 // Puts the world's light where the level says: fixed, going round its path, or on the creature that carries it
-// (gone with that creature's death). A blinking light is gone while it is off.
+// (gone with that creature's death, and before it arrives). A blinking light is gone while it is off.
 function placeLevelLight(run) {
   const light = run.level.light;
   if (!light) return;
@@ -69,7 +77,7 @@ function placeLevelLight(run) {
   }
   if (light.carriedBy !== undefined) {
     const carrier = run.creatures[light.carriedBy];
-    run.world.light = carrier.alive ? createLight(carrier.centerX, carrier.centerY, light.range) : null;
+    run.world.light = carrier && carrier.alive ? createLight(carrier.centerX, carrier.centerY, light.range) : null;
     return;
   }
   if (light.path) {
@@ -112,9 +120,11 @@ function pointAlongLoop(points, distance) {
   return points[0];
 }
 
-// one step of the level: moves the light, steps the world, then checks the goal and the clock
+// one step of the level: brings in arriving creatures, moves the light, steps the world, then checks the goal and
+// the clock
 function stepLevel(run, dt, input) {
   if (run.outcome) return;
+  spawnArrivals(run);
   placeLevelLight(run);
   const lastX = run.player.centerX;
   const lastY = run.player.centerY;
@@ -133,6 +143,8 @@ const LEVEL_GOALS = {
     return run.goalTime >= goal.seconds;
   },
   eat: (run, goal) => run.player.foodEaten >= goal.count,
+  survive: (run, goal) => run.time >= goal.seconds,
+  kill: (run, goal) => !!run.creatures[goal.creature] && !run.creatures[goal.creature].alive,
   restIn: (run, goal, dt) => {
     const isResting = distanceToPlayer(run, goal.x, goal.y) < goal.radius && run.playerSpeed < goal.speed;
     run.goalTime = isResting ? run.goalTime + dt : 0;

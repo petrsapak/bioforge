@@ -3,12 +3,12 @@
 //   id, chapter, name; brief: what to do; hint: a nudge toward how
 //   arena: { width, height } in px; systems: the switchable systems that run (chapters 1 and 2: nerve only, so
 //     every cell works at full power and nothing starves; chapter 3 adds fluid and vascular; chapter 4 metabolism
-//     and food)
+//     and food; chapter 5 secretions)
 //   seepFactor: share of the usual seeping between cells and unpumped vessel flow (cold water: less); a Heart's
 //     pumping is not slowed
 //   limits: design limits ({ budget, maxCells, maxNeurons, maxFibreUnits, maxVesselUnits }); any left out come from
-//   RULES. kit: { protein, sugar, fat } (data/materials.js) instead of a budget: the body's recipes must fit it, and
-//   what is left is the creature's starting sugar and fat, in place of stores two thirds full
+//   RULES. kit: { protein, sugar, fat, mineral } (data/materials.js) instead of a budget: the body's recipes must fit
+//   it, and what is left is the creature's starting sugar, fat and mineral, in place of stores two thirds full
 //   food: the food supply (createFoodSupply in food.js), where the food system runs
 //   start: the player's spawn { x, y } in px and heading in rad (0 faces up)
 //   light: null, or { range } plus where it is: { x, y } fixed, { path, speed } going round a loop of points (px)
@@ -16,22 +16,27 @@
 //     it has blink: { on, off } (game s on, then off, repeating from the start) or flash: { at, length } (once, at
 //     that game s, for that long)
 //   creatures: others in the arena: { design (a LEVEL_CREATURES or TEMPLATES name), x, y, heading, behaviour }.
-//     behaviour 'wired': it moves only by its own wiring; 'hunt': the AI steers it at the player
+//     behaviour 'wired': it moves only by its own wiring; 'hunt': the AI steers it at the player; at: game s it
+//     arrives (left out: there from the start); anchored: fixed in place, nothing moves it
 //   goal: { kind: 'reach', x, y, radius } swim the creature's centre into the ring;
 //     { kind: 'stayNear', radius, seconds } stay that close to the light for that long in all;
 //     { kind: 'eat', count } eat that many food specks;
 //     { kind: 'restIn', x, y, radius, speed, seconds } stay in the ring, slower than speed (px/s), that long without
-//     a break
+//     a break;
+//     { kind: 'survive', seconds } keep the Nucleus alive that long;
+//     { kind: 'kill', creature } destroy the Nucleus of that level creature (its index in creatures)
 //   stillWhileLit: { speed, grace }: lost when the player swims faster than speed (px/s) while the light has been
 //     on longer than grace (game s)
 //   stillUntilLit: { speed }: lost when the player swims faster than speed (px/s) before the light's flash
-//   timeLimit: game s; par: { seconds, biomass }: a win within each earns a star
+//   timeLimit: game s; par: { seconds, biomass }: a win within each earns a star (a survive level's par seconds is its
+//   time limit: every win earns that star)
 
 const ARENA = { width: 1400, height: 800 };               // px
 const CHAPTER_1_SYSTEMS = ['nerve'];
 const CIRCULATION_SYSTEMS = ['nerve', 'fluid', 'vascular'];
 const FEEDING_SYSTEMS = ['nerve', 'fluid', 'vascular', 'metabolism', 'food'];
-const CHAPTER_NAMES = { 1: 'Reflexes', 2: 'Memory and logic', 3: 'Circulation', 4: 'Feeding' };
+const ARMOUR_SYSTEMS = [...FEEDING_SYSTEMS, 'secretions'];
+const CHAPTER_NAMES = { 1: 'Reflexes', 2: 'Memory and logic', 3: 'Circulation', 4: 'Feeding', 5: 'Armour' };
 const WATCHER_LIGHT = { x: 700, y: 60, range: 2000 };     // px: above the top ring, bright all over the arena
 const TOP_RING = { kind: 'reach', x: 700, y: 200, radius: 70 };   // px
 const START_BOTTOM = { x: 700, y: 680, heading: 0 };      // px, rad: bottom middle, facing up
@@ -41,6 +46,11 @@ const FOOD_TRAIL = [[200, 600], [220, 510], [270, 430], [340, 370], [430, 340], 
 const DRIFTING_LIGHT = {                                  // round a loop of points (px) at 18 px/s
   path: [[700, 420], [1050, 250], [1100, 550], [350, 600], [300, 250]], speed: 18, range: 450,
 };
+// a clam fixed to the rock in the upper middle, with the light on it so Light eyes find it
+const ANCHORED_CLAM = { design: 'clam', x: 700, y: 200, heading: 0, behaviour: 'wired', anchored: true };
+const CLAM_LIGHT = { carriedBy: 0, range: 900 };          // px
+// the Puffer hunting from the bottom right corner, arriving at a given game s
+const pufferArriving = at => ({ design: 'puffer', x: 1250, y: 700, heading: 0, behaviour: 'hunt', at });
 
 function createLevel(definition) {
   return { arena: ARENA, systems: CHAPTER_1_SYSTEMS, seepFactor: 1, limits: {}, start: START_BOTTOM, light: null,
@@ -243,10 +253,69 @@ const LEVELS = [
     goal: { kind: 'stayNear', radius: 100, seconds: 180 },
     timeLimit: 260, par: { seconds: 250, biomass: 24 },
   }),
+  createLevel({
+    id: 'bulwark', chapter: 5, name: 'Bulwark',
+    brief: 'The Puffer hunts you, and you can\'t outswim it. Keep your Nucleus alive for 60 s.',
+    hint: 'Shell takes half damage, and thorns barely scratch it. Wall the Nucleus in with Shell on all six sides. ' +
+      'Shell and Thorns are built with mineral: the kit has just enough for a ring.',
+    systems: ARMOUR_SYSTEMS,
+    limits: { kit: { protein: 30, sugar: 4, mineral: 6 } },
+    food: { maxCount: 0 },
+    start: { x: 700, y: 400, heading: 0 },
+    creatures: [{ design: 'puffer', x: 250, y: 150, heading: 2, behaviour: 'hunt' }],
+    goal: { kind: 'survive', seconds: 60 },
+    timeLimit: 70, par: { seconds: 70, biomass: 12 },
+  }),
+  createLevel({
+    id: 'clam', chapter: 5, name: 'Clam',
+    brief: 'A clam sits on the rock, its Nucleus behind two layers of Shell, and the light is on it. Destroy its ' +
+      'Nucleus.',
+    hint: 'Acid eats Shell fast but soft cells only slowly; protease digests soft cells but can\'t touch Shell. Put ' +
+      'a row of glands across the front (acid, protease, acid), fired by an Eyespot, and let crossed Light eyes ' +
+      'drive you into the clam. Keep the body even, or it turns.',
+    systems: ARMOUR_SYSTEMS,
+    limits: { kit: { protein: 30, sugar: 4, fat: 3 } },
+    food: { maxCount: 0 },
+    start: { x: 700, y: 550, heading: 0 },
+    light: CLAM_LIGHT,
+    creatures: [ANCHORED_CLAM],
+    goal: { kind: 'kill', creature: 0 },
+    timeLimit: 50, par: { seconds: 36, biomass: 28 },
+  }),
+  createLevel({
+    id: 'quarry', chapter: 5, name: 'Quarry',
+    brief: 'Grazing\'s trail again, but the specks are mineral, and at 30 s the Puffer comes for you. Your kit has ' +
+      'no mineral: eat it, armour yourself and keep your Nucleus alive for 80 s.',
+    hint: 'Grazing\'s Noses and Mouth follow the trail. Put a Mineralizer where the Fat was, with a Pacemaker in it: ' +
+      'each mineral speck you eat lets it harden one cell, nearest first, until the whole body is armoured.',
+    systems: ARMOUR_SYSTEMS,
+    limits: { kit: { protein: 30, sugar: 6, fat: 2 } },
+    food: { maxCount: 0, mineralSpecks: FOOD_TRAIL },
+    start: { x: 200, y: 700, heading: 0 },
+    creatures: [pufferArriving(30)],
+    goal: { kind: 'survive', seconds: 80 },
+    timeLimit: 90, par: { seconds: 90, biomass: 19 },
+  }),
+  createLevel({
+    id: 'siege', chapter: 5, name: 'Siege',
+    brief: 'The clam again, and at 50 s the Puffer. Your kit has no mineral, but the clam\'s Shell is made of it. ' +
+      'Keep your Nucleus alive for 120 s.',
+    hint: 'Everything from this chapter: acid at the front to break the Shell, a Mouth to eat the mineral that falls ' +
+      'out, and a Mineralizer with a Pacemaker to harden your body before the Puffer arrives. Keep the body even, ' +
+      'or it turns.',
+    systems: ARMOUR_SYSTEMS,
+    limits: { kit: { protein: 40, sugar: 6, fat: 2 } },
+    food: { maxCount: 0 },
+    start: { x: 700, y: 550, heading: 0 },
+    light: CLAM_LIGHT,
+    creatures: [ANCHORED_CLAM, pufferArriving(50)],
+    goal: { kind: 'survive', seconds: 120 },
+    timeLimit: 130, par: { seconds: 130, biomass: 34 },
+  }),
 ];
 
 // Creatures that live in levels. The Darter holds still until its Eyespot sees an enemy within reach (120 px), then
-// jets straight ahead on both Siphons.
+// jets straight ahead on both Siphons. The Clam is a Nucleus inside two rings of Shell, and does nothing.
 const LEVEL_CREATURES = {
   darter: {
     cells: [
@@ -257,4 +326,11 @@ const LEVEL_CREATURES = {
     ],
     fibres: [{ from: { q: 0, r: -1 }, to: { q: -1, r: 1 } }, { from: { q: 0, r: -1 }, to: { q: 0, r: 1 } }],
   },
+  clam: designFromArt([
+    '  S S S',
+    ' S S S S',
+    'S S N S S',
+    ' S S S S',
+    '  S S S',
+  ]),
 };

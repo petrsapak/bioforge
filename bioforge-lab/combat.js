@@ -27,11 +27,13 @@ const SPIT_RANGE = 280;                                   // px
 const SPIT_COOLDOWN = 0.7;                                // s between globs
 const SPIT_RECOIL = 40;                                   // px/s the spitter is pushed back
 const HIT_MARGIN = 4;                                     // px added to a cell's radius for line and glob hits
+const HARD_CELL_STING_SHARE = 0.25;                       // share of a thorn hit or nettle sting a hard cell feels
 
-// inflicts damage on a cell, scaled by its armour
+// inflicts damage on a cell, scaled by its armour: its type's, and half again once a Mineralizer hardened it
 function damageCell(cell, damage) {
   if (cell.dead) return;
-  cell.health -= damage * cell.type.damageFactor;
+  const hardening = cell.mineralized ? MINERALIZED_DAMAGE_FACTOR : 1;
+  cell.health -= damage * cell.type.damageFactor * hardening;
   cell.hitFlash = HIT_FLASH_TIME;
 }
 
@@ -46,10 +48,11 @@ function applyContactHits(world, firstCell, secondCell) {
   applyBite(world, secondCell, firstCell);
 }
 
+// a thorn hit, harder at speed; hard cells feel less of it
 function applyThornHit(world, thorn, target, impactSpeed) {
   if (!thorn.type.spiked || thorn.cooldown > 0 || thorn.dead) return;
   thorn.cooldown = THORN_COOLDOWN;
-  damageCell(target, THORN_DAMAGE + THORN_SPEED_DAMAGE * impactSpeed);
+  damageCell(target, (THORN_DAMAGE + THORN_SPEED_DAMAGE * impactSpeed) * stingShare(target));
   spawnSparks(world, (thorn.x + target.x) / 2, (thorn.y + target.y) / 2, '#ffffff', 4);
 }
 
@@ -62,6 +65,10 @@ function applyBite(world, mouth, target) {
   mouth.fluids[FLUID_SUGAR] = Math.min(mouth.fluidCapacity[FLUID_SUGAR], sugar);
   spawnSparks(world, (mouth.x + target.x) / 2, (mouth.y + target.y) / 2, FLUIDS[FLUID_SUGAR].color, 3);
 }
+
+// Hard cells (Shell, Thorns, hardened cells) blunt thorns and nettle stings, on top of their armour: shell beats
+// spikes, and acid (secretions.js) beats shell.
+const stingShare = target => (isHardCell(target) ? HARD_CELL_STING_SHARE : 1);
 
 // unit vector from the cell to the nearest enemy cell within range, or straight out from its body if there is none
 function aimAtNearestEnemy(world, cell, range) {
@@ -82,14 +89,14 @@ function aimAtNearestEnemy(world, cell, range) {
   return [directionX / length, directionY / length];
 }
 
-// a nettle stings every enemy cell within reach
+// a nettle stings every enemy cell within reach; hard cells feel less of it
 function fireNettle(world, nettle, power) {
   let hitSomething = false;
   for (const other of world.creatures) {
     if (other.team === nettle.creature.team) continue;
     for (const otherCell of other.cells) {
       if (distanceSquared(nettle.x, nettle.y, otherCell.x, otherCell.y) > NETTLE_RANGE * NETTLE_RANGE) continue;
-      damageCell(otherCell, NETTLE_DAMAGE * power);
+      damageCell(otherCell, NETTLE_DAMAGE * power * stingShare(otherCell));
       hitSomething = true;
       const zap = { fromX: nettle.x, fromY: nettle.y, toX: otherCell.x, toY: otherCell.y, lifetime: NETTLE_ZAP_TIME };
       world.zaps.push(zap);

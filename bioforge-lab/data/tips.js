@@ -3,7 +3,8 @@
 // (tipdemo.js). Examples are written in the format from before the nerve layer (Pacemaker and Command cells, wired
 // by touch); tipdemo.js converts them (see upgradeToNerveLayer in design.js). Example fields:
 //   cells: [q, r, typeName] for each cell; spaceLabel: what the demo shows while it holds Space (every other second);
-//   swims: swims forward; hasDummyEnemy: a dummy enemy just in front; fluidView: the fluid shown (1 = O2 ..
+//   swims: swims forward; hasDummyEnemy: a dummy enemy just in front, of dummyType cells (default Tissue), touching
+//   the creature if dummyTouches; fluidView: the fluid shown (1 = O2 ..
 //   5 = adrenaline); startsHurt: cell types that start damaged; startsEmpty: cell types that start with no O2 or
 //   sugar; budPart: the part a Bud grows
 // Neuron examples (NEURON_TIPS) are in the current format: cells are [q, r, typeName, neuronKind, setting], with
@@ -297,6 +298,45 @@ const TIPS = {
       spaceLabel: 'Space held',
       swims: true,
       fluidView: 5,
+    },
+  },
+  acid: {
+    howToUse: 'Put it on the surface where it will touch the enemy, and wire it to an Eyespot (or a Command) so ' +
+      'it fires only when something is near. Use it to open shells; protease or weapons finish the soft cells.',
+    example: {
+      cells: [[0, 0, 'nucleus'], [0, -1, 'eyespot'], [1, -1, 'acid'], [-1, 0, 'acid'], [-1, 1, 'gill'], [1, 0, 'fat']],
+      fibres: [[0, -1, 1, -1], [0, -1, -1, 0]],
+      spaceLabel: 'Enemy near',
+      hasDummyEnemy: true,
+      dummyType: 'shell',
+      dummyTouches: true,
+    },
+  },
+  protease: {
+    howToUse: 'Put it on the surface where it will touch prey, and wire it to an Eyespot (or a Command). What it ' +
+      'digests becomes sugar in the gland, which seeps on to your other cells. Hard cells need acid first.',
+    example: {
+      cells: [
+        [0, 0, 'nucleus'], [0, -1, 'eyespot'], [1, -1, 'protease'], [-1, 0, 'protease'], [-1, 1, 'gill'],
+        [1, 0, 'fat'],
+      ],
+      fibres: [[0, -1, 1, -1], [0, -1, -1, 0]],
+      spaceLabel: 'Enemy near',
+      hasDummyEnemy: true,
+      dummyTouches: true,
+      fluidView: 2,
+    },
+  },
+  mineralizer: {
+    howToUse: 'Give it mineral (leftover in a kit, or mineral specks a Mouth eats) and a nerve signal. Put it ' +
+      'among the cells you want armoured: it hardens the nearest ones first, itself included.',
+    example: {
+      cells: [
+        [0, -2, 'tissue'], [1, -2, 'tissue'], [1, -1, 'tissue'], [-1, -1, 'tissue'], [0, -1, 'mineralizer'],
+        [0, 0, 'nucleus'], [-1, 0, 'tissue', 'command'], [1, 0, 'gill'], [-1, 1, 'fat'],
+      ],
+      fibres: [[-1, 0, 0, -1]],
+      spaceLabel: 'Space held',
     },
   },
 };

@@ -7,6 +7,8 @@ const DEMO_HEIGHT = 190;                                  // px
 const DEMO_RESET_TIME = 8;                                // s before the demo restarts
 const DEMO_CENTER_PULL = 0.05;                            // share of the offset from the middle closed per frame
 const DEMO_LANE_HEIGHT = 20;                              // px per signal lane under a neuron's example
+const DUMMY_GAP = 30;                                     // px from the creature's front to the dummy enemy
+const DUMMY_TOUCHING_GAP = 34;                            // px: its nearest cell just within a gland's reach
 let tooltipDemo = null;
 
 // starts the example for a cell type, drawn into canvas, with the cells of that type ringed
@@ -54,8 +56,12 @@ function startExample(example, isShown, canvas, tracesCanvas) {
   }
   if (example.hasDummyEnemy) {                            // a dummy enemy just in front of the creature
     const front = Math.min(...creature.cells.map(cell => cell.y));
-    const dummyDesign = { cells: blueprintFromList([[0, 0, 'tissue'], [1, 0, 'tissue'], [0, 1, 'tissue']]) };
-    spawn(world, dummyDesign, DEMO_WIDTH / 2, front - 30, 0, 1).aiControlled = false;
+    const dummyType = example.dummyType || 'tissue';
+    const dummyDesign = { cells: blueprintFromList([[0, 0, dummyType], [1, 0, dummyType], [0, 1, dummyType]]) };
+    const gap = example.dummyTouches ? DUMMY_TOUCHING_GAP : DUMMY_GAP;
+    const dummy = spawn(world, dummyDesign, DEMO_WIDTH / 2, front - gap, 0, 1);
+    dummy.aiControlled = false;
+    dummy.anchored = !!example.dummyTouches;               // held in place, so the glands keep touching it
   }
   const probes = createProbes();
   probes.creature = creature;

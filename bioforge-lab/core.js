@@ -39,6 +39,7 @@ function rotateHex(q, r, steps) {
 
 // ---------- World ----------
 const TEST_TANK_FEED_RATE = 0.15;                         // sugar per second the test tank's water gives a Mouth
+const TEST_TANK_MINERAL_RATE = 1;                         // mineral per second it gives a Mineralizer
 const DEFAULT_SEED = 1;
 const LIGHT_RANGE = 450;                                  // px a light reaches; Light eyes beyond it see nothing
 
@@ -73,6 +74,7 @@ function newWorld(width, height, options = {}) {
     flowTimer: 0,
     randomState: seed | 0,                                // the seeded random generator; see randomFraction()
     waterFeedRate: 0,                                     // sugar per second Mouths take straight from the water
+    waterMineralRate: 0,                                  // mineral per second Mineralizers take from the water
     seepFactor: 1,                                        // share of the usual seeping and unpumped vessel flow
     spaceFiresAllSources: false,                          // Space fires every signal source, to try a design out
     enemiesIdle: false,                                   // sandbox: enemies hold still
@@ -90,12 +92,13 @@ function randomFraction(world) {
   return fraction;
 }
 
-// The builder preview and the tooltip demos: no food specks, so the water feeds Mouths instead, and Space fires
-// every signal source so the design can be tried out.
+// The builder preview and the tooltip demos: no food specks, so the water feeds Mouths (and Mineralizers) instead,
+// and Space fires every signal source so the design can be tried out.
 function newTestTank(width, height) {
   return newWorld(width, height, {
     systems: RULES.systems.filter(name => name !== 'food'),
     waterFeedRate: TEST_TANK_FEED_RATE,
+    waterMineralRate: TEST_TANK_MINERAL_RATE,
     spaceFiresAllSources: true,
   });
 }
@@ -110,6 +113,7 @@ function createCreature(team, cells, options = {}) {
     aiControlled: false,
     autonomous: false,                                    // moves only by its own cells: no free swimming or turning
     resting: false,                                       // a sandbox enemy holding still: its cilia rest too
+    anchored: false,                                      // fixed to the rock: its cells never move (a level's clam)
     debris: false,                                       // a piece cut off from its nucleus, or a launched Bud part
     launchedPart: false,                                  // a Bud part fired from its parent
     fueled: false,                                        // launched part: still carries O2 and sugar
@@ -132,6 +136,7 @@ function createCreature(team, cells, options = {}) {
     bounds: null,                                         // { minX, minY, maxX, maxY }, updated by the physics
     regrowthPool: 0,                                      // repair fluid saved up for the next regrown cell
     foodEaten: 0,                                         // food specks its Mouths have taken in
+    mineralEaten: 0,                                      // mineral specks it has taken in
     spawnHealth: 0,                                       // total health at spawn, for the HUD
     ...options,
   };
@@ -175,6 +180,9 @@ function createCell(typeName, q, r, creature) {
     onSurface: false,                                     // touches the water
     skinNeighbours: [],                                   // the cells next to it along the skin
     fat: 0,                                               // fat stored in the cell (metabolism.js)
+    mineral: 0,                                           // mineral stored in the cell (Mineralizer, secretions.js)
+    mineralized: false,                                   // hardened by a Mineralizer: takes half damage, acid eats it
+    mineralizeProgress: 0,                                // Mineralizer: share of the way to hardening the next cell
     starving: false,
     poisoned: false,
     boundKey: null,                                       // Command: the key it fires on ('a'–'z', '0'–'9')
