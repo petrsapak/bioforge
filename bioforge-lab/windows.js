@@ -11,19 +11,24 @@ const byId = id => document.getElementById(id);
 const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
 const escapeHtml = text => String(text).replace(/[&<>"]/g, character => HTML_ESCAPES[character]);
 
+// Where settings and progress are kept: the desktop build's save file (desktop/preload.js gives it localStorage's
+// getItem and setItem), or the browser's localStorage.
+const savedStore = () => window.desktopSaves || localStorage;
+
 // a value saved with writeStorage, or fallback if there is none (or storage is blocked)
 function readStorage(name, fallback) {
   try {
-    const saved = localStorage.getItem(STORAGE_PREFIX + name);
+    const saved = savedStore().getItem(STORAGE_PREFIX + name);
     return saved === null ? fallback : JSON.parse(saved);
   } catch (error) {
     return fallback;
   }
 }
 
+// keeps a value under name, read back with readStorage
 function writeStorage(name, value) {
   try {
-    localStorage.setItem(STORAGE_PREFIX + name, JSON.stringify(value));
+    savedStore().setItem(STORAGE_PREFIX + name, JSON.stringify(value));
   } catch (error) {
     // storage blocked (private mode, file:// rules): the setting just isn't remembered
   }

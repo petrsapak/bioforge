@@ -1,0 +1,46 @@
+{
+  "name": "bioforge-lab-desktop",
+  "productName": "Bioforge Lab",
+  "version": "0.4.1",
+  "description": "Bioforge Lab as a desktop game: an Electron window around bioforge-lab/index.html.",
+  "private": true,
+  "main": "main.js",
+  "author": "Petr Sapak",
+  "scripts": {
+    "start": "electron .",
+    "test": "node tests/all.js",
+    "pack": "node copy-game.js && electron-builder --dir",
+    "dist": "node copy-game.js && electron-builder"
+  },
+  "build": {
+    "appId": "com.bioforge.lab",
+    "productName": "Bioforge Lab",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "saves.js",
+      "package.json",
+      "game/**/*"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "portable": {
+      "artifactName": "${productName} ${version} portable.${ext}"
+    }
+  },
+  "devDependencies": {
+    "electron": "^45.1.0",
+    "electron-builder": "^26.18.0"
+  }
+}

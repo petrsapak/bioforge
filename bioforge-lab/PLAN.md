@@ -32,6 +32,8 @@ Started 2026-10-28. It was copied from `bioforge-moba/`, which is now frozen.
 - **Material kits** (2026-10-29, user chose "Full material kits" over feeding levels on the biomass budget). Materials are data (`data/materials.js`): Protein, Sugar and Fat so far. Each cell type has a recipe: Protein only (its old biomass cost), except Fat (1 Protein, 1 Fat). A level may hand out a kit (`limits.kit`, for example 20 protein · 3 sugar · 1 fat) instead of a biomass budget: the body's recipes must fit it, and the builder refuses a cell or stamp the kit can't pay for. What the body leaves becomes its starting reserves instead of stores two thirds full: the Sugar spread so every cell is equally full, the Fat only into Fat cells; any beyond the body's room is lost, and leftover Protein is kept for nothing yet (growth, milestone 7). A Mouth starts empty. The limits line shows each material against the kit and the reserves (orange when some has no room); the level card shows the kit. Levels without a kit (chapters 1–3) and the Sandbox keep the biomass budget, and a design's biomass is still its recipes' total, so the par biomass works for both. Neurons still cost nothing.
 - **Fat and feeding** (2026-10-29, chosen without asking while building chapter 4). The `metabolism` system (switchable, `metabolism.js`): a Fat cell stores up to 10 fat; above 9/10 full of sugar it turns the spare into fat (2.5 sugar per fat), below half full it turns fat back into sugar (2 per fat), 0.25 fat per s either way. Fat doesn't flow between cells. Food: a level sets its food supply (how many specks, how often, a fixed trail, near the light, until when); the creature counts the specks it eats, and a new goal `eat` asks for a number of them. Eating is unchanged: any cell touching a speck eats it while a Mouth has room, and a Mouth makes room only by passing sugar on, so it needs a store beside it. The **Nose** is a new sense cell: like a Light eye, but toward the nearest food speck within 300 px.
 - **Loose limits, tight par** (2026-10-29, user: "I want the levels to be completable by everyone on 1 star", with tight spots for 3 stars). A level's budget or kit leaves room to spare; the par biomass and par time stay where the reference solutions are, so the stars still ask for a tight build. Budgets: chapters 1 and 2 40 (Hunt 50), chapter 3 45 (Marathon 50); until then 30 (Hunt 40). Kits: Packed lunch 32 protein · 4 sugar · 7 fat, Grazing 30 · 3 · 2, Bloom 38 · 2 · 3; until then 22 · 3 · 5, 20 · 3 · 1 and 26 · 2 · 2. The kits' sugar and fat grew only as far as the levels' wrong tools still lose: more fuel in Bloom let a build without a Mouth win, and more in Grazing slowed the reference past its par time (86 s), since a fuller body drains the Mouth more slowly.
+- **Desktop build** (2026-10-29, user: "I want this to be a desktop game", then "let's introduce versioning and Electron"). Electron, because it ships its own Chromium: one engine to keep fast everywhere, and the usual way web games reach Steam. It lives in `desktop/` beside the game, with its own npm packages and build; `bioforge-lab/` still opens from disk unchanged. The window is maximized with no menu bar (so no reload, zoom or developer tools keys), F11 or Alt+Enter switch fullscreen (remembered), the page can't navigate away, zoom or open windows, and the sim isn't slowed behind other windows. Saves go to one JSON file, `%APPDATA%\Bioforge Lab\save.json`, written 0.5 s after the last change through a temporary file; `readStorage` and `writeStorage` use it through `window.desktopSaves`, which the preload gives the page. The music starts without a click. Only one copy runs at a time. Chosen without asking: a maximized window rather than fullscreen at first start (there is no Quit button yet), an installer and a portable .exe, no icon yet.
+- **Versions** (2026-10-29): `0.<milestone>.<patch>` until the first release, in `data/version.js`, with `CHANGELOG.md` written for players. 0.4.1 is milestone 4 plus faster building and the desktop build; the earlier versions were numbered afterwards from the git history. The keys sheet shows the version.
 - **Try before deciding:** whether chapter 1 uses Protein only, and whether hormones get their own layer, are decided after playing the first version.
 - **Self-harm is on for now:** acid leaks and toxins can hurt your own creature. If it turns out frustrating, it gets toned down or removed.
 - **Every mechanic must be removable** (see "Removable mechanics"). Any part that turns out frustrating can be switched off without breaking the rest.
@@ -190,6 +192,7 @@ Every mechanic is a separate switch, so any part that turns out frustrating can 
 The same rules as the other projects apply: plain `<script src>` files and pure sim files (see `CLAUDE.md`). Each sim file registers its systems with `registerSystem({ name, order, switchable, update })`, and `step()` runs them in order. Switchable systems run only when the world's system list names them.
 
 ```
+data/version.js GAME_VERSION; CHANGELOG.md lists what each version brought (pure data)
 data/rules.js   RULES: budget, cell cap, selfHarm, switchable systems (pure data)
 data/fluids.js  FLUIDS: the fluid channels (name, layer, flow rate, decay, capacity, start fill) (pure data)
 math.js         deterministic sine, cosine, arcTangent2 and the seeded random generator (pure)
@@ -223,7 +226,8 @@ builder.js      the edited design and every editing rule: cells (mirrored across
 data/*.js       cells (stats, recipes and behaviour fields), materials, neurons, fluids, templates (incl. the small builds), tips,
                 levels and the creatures that live in them, sound effects
 render.js       canvas drawing of a world
-windows.js      DOM and storage helpers, floating windows, remembered menu branches
+windows.js      DOM and storage helpers (localStorage, or the desktop save file), floating windows, remembered
+                menu branches
 tipdemo.js      live example tank in the cell and neuron tooltips, with signal lanes under a neuron's example
 hud.js          HUD bars and vitals
 dock.js         the cell dock: a tab per category, two rows of hexagons; the neurons in the Nerve view
@@ -242,7 +246,7 @@ probes.js       signal probes: a live 6 s trace per sense, neuron and signalled 
 sandbox.js      sandbox mode: its bar, steps, drawing and HUD; the time controls and vitals HUD it shares with levels
 levelview.js    levels in the app: the levels sheet (level tiles, and the chosen level's card beside them), a
                 level run with its bar, arena, HUD and result box, the best results
-music.js        the background music: starts on the first click or key, loops by crossfading two copies; the
+music.js        the background music: starts at once where allowed (desktop), else on the first click or key, loops by crossfading two copies; the
                 toolbar button and M switch it
 sound.js        sound effects: playing them, the toolbar button and N, the creature's sounds from world changes
 audio/          the music track (mp3) and the sound effects in audio/sfx/ (wav)
@@ -257,6 +261,16 @@ tests/*.js      headless checks: node tests/all.js (autonomy, builder, design, d
 **Cell behaviours.** Systems never check a cell's type name. Each cell type in `data/cells.js` declares behaviour fields (`work`, `product`, `trigger`, `resize`, `breathes`, `pumps`, `gatesFlow`, `needsSignal`…), and the systems read those, some through small registries (`WORK_LEVELS` and `PRODUCTS` in `fluid.js`, `TRIGGERS` in `actuators.js`). A new cell type made from existing behaviours needs only data. `tests/determinism.js` fails if a pure file compares `typeName`.
 
 Planned additions: `chemical.js`, `metabolism.js`.
+
+The desktop build sits beside the game, in `desktop/` (Node and Electron, not loaded by the page):
+
+```
+main.js         the Electron window around the game page, fullscreen keys, the save file's messages
+preload.js      gives the page window.desktopSaves (getItem / setItem), read once at start
+saves.js        the save file: one JSON file, written after a delay through a temporary file (Node only)
+copy-game.js    copies bioforge-lab into game/ before a build, without tests, logs and plans
+tests/          the save file test, and a CRLF check of these files
+```
 
 ## Milestones
 0. **Trim.** ✅ Done 2026-10-28.

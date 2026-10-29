@@ -16,6 +16,19 @@ Games about soft-body creatures built from cells. You design a creature on a hex
 
 There is no build step and there are no dependencies. Open `index.html` from any version folder straight from disk in a browser.
 
+## Desktop build
+
+[`desktop/`](desktop/) wraps Bioforge Lab in [Electron](https://www.electronjs.org/), as a Windows game. It is the only folder with npm packages; the game folder stays as it is.
+
+```
+cd desktop
+npm install           # once: Electron and electron-builder
+npm start             # runs the live bioforge-lab folder in the desktop window
+npm run dist          # builds dist/Bioforge Lab Setup <version>.exe and a portable .exe
+```
+
+The desktop build saves to `%APPDATA%\Bioforge Lab\save.json` instead of the browser's storage. F11 or Alt+Enter switches fullscreen; F12 opens the developer tools when run with `npm start`. The version is in `bioforge-lab/data/version.js`, and [`bioforge-lab/CHANGELOG.md`](bioforge-lab/CHANGELOG.md) lists what each version brought.
+
 ## Tests
 
 The tests are headless and need [Node.js](https://nodejs.org/) (any recent LTS):
@@ -24,7 +37,8 @@ The tests are headless and need [Node.js](https://nodejs.org/) (any recent LTS):
 npm test              # bioforge-lab
 npm run test:moba     # bioforge-moba
 npm run test:online   # bioforge-online
-npm run test:all      # all three
+npm run test:desktop  # desktop (the save file)
+npm run test:all      # all of them
 ```
 
 You can also run `node tests/all.js` inside a project folder.

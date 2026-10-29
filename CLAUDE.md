@@ -9,6 +9,7 @@ Games about soft-body creatures built from cells. [`README.md`](README.md) has t
 
 ## Code rules
 - **No dependencies and no build step.** Every `index.html` must open straight from disk. Don't add npm packages, bundlers, TypeScript or ES modules.
+  - The one exception is `desktop/` (user, 2026-10-29: "let's introduce versioning and Electron"). It wraps `bioforge-lab/` in an Electron window and has its own npm packages (Electron, electron-builder) and build. The game folder itself stays dependency-free and never needs `desktop/` to run. Code that only the desktop build needs goes in `desktop/`; the game only checks whether `window.desktopSaves` exists.
 - **Plain `<script src>` files in one global namespace.** A new script goes into `index.html` in load order. The tests read that list (`tests/load.js`), so they pick it up automatically.
   - Top-level names are shared by every file, so check that a new global name isn't taken (`grep -n "^const NAME\|^function NAME"`).
 - **Pure files have no DOM.** In Lab these are the sim files (`math.js`, `core.js`, `fibres.js`, `physics.js`, `nerve.js`, `fluid.js`, `metabolism.js`, `actuators.js`, `combat.js`, `growth.js`, `food.js`, `ai.js`, `levels.js`), `design.js`, `builder.js` and `data/*.js`. They must not touch `document`, `window`, canvas or `localStorage`, so that a Node server can run them later. Browser-only code goes in `render.js`, `windows.js`, `tipdemo.js`, `hud.js`, `dock.js`, `library.js`, `toolbar.js`, `panel.js`, `coach.js`, `builderview.js`, `tooltip.js`, `probes.js`, `sandbox.js`, `levelview.js`, `music.js`, `sound.js` or `ui.js`.
@@ -38,21 +39,27 @@ Games about soft-body creatures built from cells. [`README.md`](README.md) has t
 - **Performance:** the user has reported low fps before. After changing the sim or the renderer, note the cost (ms of sim per game second, or per frame) in the session log. Keep swim speeds unchanged unless the user asks for a change.
 
 ## Tests
-- Run `npm test` (lab), `npm run test:moba`, `npm run test:online` or `npm run test:all` from the repo root. Inside a project folder, `node tests/all.js` does the same. Node.js is required.
+- Run `npm test` (lab), `npm run test:moba`, `npm run test:online`, `npm run test:desktop` or `npm run test:all` from the repo root. Inside a project folder, `node tests/all.js` does the same. Node.js is required.
 - **Run the tests before saying a change is done.** If they can't run (for example, Node is missing), say so plainly.
 - New pure logic gets a check in `tests/`. Use `load()` from `tests/load.js` for sim-only tests, and `startApp()` from `tests/dom.js` (Lab; `app()` in the frozen projects) for UI tests. Print `PASS`/`FAIL` lines through `check` from `tests/check.js`, and end with `done()`.
 - The fake DOM can't show layout or drawing problems. After a UI change, also run the page in a real browser if one is available (headless Edge works; see the 2026-10-28 session log).
 - Don't weaken a failing check to make it pass. If the check was wrong, explain why in a comment next to it.
 
 ## Git
-- Commit only when the user asks. The default branch is `main`.
+- Commit only when the user asks. The default branch is `main`. Tag only when the user asks (`lab-v0.4.1`).
 - Commit messages say what changed, such as `moba: split ui.js into design/windows/tipdemo/hud`, not `updates`. Start the message with the project folder's short name (`moba:`, `online:`, `docs:`).
+
+## Versions (Lab)
+- The version is `GAME_VERSION` in `bioforge-lab/data/version.js`, and `desktop/package.json` carries the same number. `bioforge-lab/tests/version.js` checks both against the top entry of `bioforge-lab/CHANGELOG.md`.
+- Until the first release it is `0.<milestone>.<patch>`. Finishing a milestone raises the minor number and resets the patch. Otherwise a change that players notice goes into the top changelog entry; once a build of that version has been given out (`npm run dist` in `desktop/`, shared with someone), the next such change starts a new patch entry.
+- Changelog lines are written for players: what changed in the game, not which files.
 
 ## Documentation
 | File | What goes in it | When to update it |
 |---|---|---|
 | `README.md` (root) | What Bioforge is, the version table, how to run and test, the code layout | When a project is added, frozen or its status changes |
 | `CLAUDE.md` (root) | These working rules | When the user gives a lasting rule or a convention changes |
+| `bioforge-lab/CHANGELOG.md` | What each version brought, for players | With every change players notice (see "Versions") |
 | `<project>/PLAN.md` | The design and the decisions that shape it (see below) | Whenever a decision is made or changed, or a milestone is finished |
 | `<project>/sessions/session_YYYY-MM-DD.md` | What happened in one working session | At the end of every session that changed code or decisions |
 

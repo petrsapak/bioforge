@@ -198,6 +198,7 @@ button.big:hover { background: #4a8044; }
 }
 .keys-title { margin: 4px 0 8px; color: #e8c547; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
 .keys-grid { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; align-items: center; margin-bottom: 8px; }
+.keys-version { margin-top: 4px; color: #6f7f8a; font-size: 11px; text-align: right; }
 .keys-grid > span:nth-child(odd) { text-align: right; white-space: nowrap; }
 
 /* ---------- Preview and library: floating windows that fold to their title bar ---------- */

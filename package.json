@@ -1,11 +1,13 @@
 {
   "name": "bioforge",
   "private": true,
-  "description": "Soft-body cell creature games. No dependencies: open any index.html in a browser.",
+  "description": "Soft-body cell creature games. The games need no dependencies: open any index.html in a browser. desktop/ wraps Bioforge Lab in Electron.",
   "scripts": {
     "test": "node bioforge-lab/tests/all.js",
     "test:moba": "node bioforge-moba/tests/all.js",
     "test:online": "node bioforge-online/tests/all.js",
-    "test:all": "node bioforge-lab/tests/all.js && node bioforge-moba/tests/all.js && node bioforge-online/tests/all.js"
+    "test:all": "node bioforge-lab/tests/all.js && node bioforge-moba/tests/all.js && node bioforge-online/tests/all.js && node desktop/tests/all.js",
+    "test:desktop": "node desktop/tests/all.js",
+    "desktop": "npm --prefix desktop start"
   }
 }

@@ -10,7 +10,8 @@ const MUSIC_LOOP_START = 6;                               // track s the next tu
 const MUSIC_LOOP_END = 174;                               // track s a turn has faded out by
 const MUSIC_CROSSFADE = 4;                                // s the two copies overlap
 
-// Browsers block sound until the page is clicked or a key is pressed, so the track starts on the first of those.
+// Browsers block sound until the page is clicked or a key is pressed, so the track starts on the first of those. The
+// desktop build allows it at once, so it is tried as the page starts too.
 // Whether it is off is remembered.
 function setUpMusic(app) {
   for (const id of ['music', 'music-b']) {
@@ -26,6 +27,7 @@ function setUpMusic(app) {
   };
   addEventListener('pointerdown', () => playMusic(app));
   addEventListener('keydown', () => playMusic(app));
+  playMusic(app);
 }
 
 // starts the track if it is on and not playing yet; a refused start (no click yet) is tried again on the next one

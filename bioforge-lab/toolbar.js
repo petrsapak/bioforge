@@ -109,6 +109,7 @@ function showMirrorAxes(app) {
 function setUpKeysSheet() {
   byId('show-keys').onclick = toggleKeysSheet;
   byId('keys-sheet').onclick = toggleKeysSheet;
+  byId('game-version').textContent = 'Bioforge Lab ' + GAME_VERSION;
 }
 
 function toggleKeysSheet() {
