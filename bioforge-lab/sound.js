@@ -103,7 +103,7 @@ function listenToWorld(app, world, player, run = null) {
   for (const [name, nearness] of Object.entries(othersHeard)) {
     if (nearness > 0) playSound(app, name, nearness * OTHER_LOUDNESS, name + ' other');
   }
-  if (now.mouthSugar > last.mouthSugar + FOOD_SUGAR * EAT_SUGAR_JUMP) playSound(app, 'eat');
+  if (now.mouthSugar > last.mouthSugar + world.foodSupply.sugar * EAT_SUGAR_JUMP) playSound(app, 'eat');
   // a launched Bud part only moves cells to another creature, so only fewer cells in all is a death
   if (now.allCells < last.allCells) {
     playSound(app, 'death', now.playerCells < last.playerCells ? 1 : OTHER_DEATH_LOUDNESS);

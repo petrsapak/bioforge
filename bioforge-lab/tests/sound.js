@@ -62,7 +62,7 @@ check('other creatures\' weapons are heard: spits, snare shots and catches',
 // a level run whose goal counts up, stops (out of the ring) and counts up again: the tune plays only the first time
 first.readGlobal(`globalThis.goalTest = {
   app: { soundsOff: false, soundVoices: {}, soundPlayedAt: {}, soundWatch: null },
-  world: { cells: [] }, run: { goalTime: 0, time: 0 } }`);
+  world: { cells: [], foodSupply: createFoodSupply() }, run: { goalTime: 0, time: 0 } }`);
 const goalFrame = (time, goalTime) => {
   first.runFrames(90);                                    // 1.5 real s, longer than the tune's shortest gap
   first.readGlobal(`goalTest.run.time = ${time}; goalTest.run.goalTime = ${goalTime};

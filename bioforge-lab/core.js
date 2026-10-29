@@ -69,6 +69,7 @@ function newWorld(width, height, options = {}) {
     sparks: [],
     food: [],
     foodTimer: 0,
+    foodSupply: createFoodSupply(),                       // food.js: how much food there is and where it appears
     flowTimer: 0,
     randomState: seed | 0,                                // the seeded random generator; see randomFraction()
     waterFeedRate: 0,                                     // sugar per second Mouths take straight from the water
@@ -130,6 +131,7 @@ function createCreature(team, cells, options = {}) {
     designVessels: [],                                    // the design's vessels, reconnected when cells regrow
     bounds: null,                                         // { minX, minY, maxX, maxY }, updated by the physics
     regrowthPool: 0,                                      // repair fluid saved up for the next regrown cell
+    foodEaten: 0,                                         // food specks its Mouths have taken in
     spawnHealth: 0,                                       // total health at spawn, for the HUD
     ...options,
   };
@@ -172,6 +174,7 @@ function createCell(typeName, q, r, creature) {
     adrenalineBoost: 1,
     onSurface: false,                                     // touches the water
     skinNeighbours: [],                                   // the cells next to it along the skin
+    fat: 0,                                               // fat stored in the cell (metabolism.js)
     starving: false,
     poisoned: false,
     boundKey: null,                                       // Command: the key it fires on ('a'–'z', '0'–'9')

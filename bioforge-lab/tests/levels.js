@@ -6,7 +6,7 @@ const { load } = require('./load');
 const { startApp } = require('./dom');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['LEVELS', 'TEMPLATES', 'runLevel', 'levelScore', 'levelLimits', 'buildCheck',
-  'createDesignCell', 'createNeuron', 'isLevelLightOn', 'isLevelOpen', 'FLUID_OXYGEN']);
+  'createDesignCell', 'createNeuron', 'isLevelLightOn', 'isLevelOpen', 'isLevelEarned', 'RULES', 'FLUID_OXYGEN']);
 
 const cell = (q, r, typeName, extra = {}) => sim.createDesignCell(q, r, typeName, extra);
 const fibre = (fromQ, fromR, toQ, toR) => ({ from: { q: fromQ, r: fromR }, to: { q: toQ, r: toR } });
@@ -56,6 +56,16 @@ const marathonBuild = ({ airSac = false, plumbed = true } = {}) => {
   return { cells: [...cells, cell(-2, 1, 'gill'), cell(1, 1, 'gill')], fibres: CROSSED,
     vessels: [...coldWater.vessels, ...gillVessels] };
 };
+// Packed lunch: the crossed Seeker with this store on the left, a Gill on the right and a Pore at the back
+const lunchBuild = storeTypeName => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(-1, 0, storeTypeName),
+  cell(1, 0, 'gill'), cell(-1, 2, 'pore')], fibres: CROSSED });
+// Grazing: two Noses at the front crossed to the Siphons, a Mouth on the left and this cell on the right
+const grazingBuild = rightTypeName => ({ cells: [cell(0, 0, 'nucleus'), cell(0, -1, 'nose'), cell(1, -1, 'nose'),
+  cell(-1, 1, 'siphon'), cell(0, 1, 'siphon'), cell(-1, 0, 'mouth'), cell(1, 0, rightTypeName)], fibres: CROSSED });
+// Bloom: the crossed Seeker with this store on the left and a Mouth on the right, a Pore at the back and a Gill
+// beside each Siphon
+const bloomBuild = storeTypeName => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(-1, 0, storeTypeName),
+  cell(1, 0, 'mouth'), cell(-1, 2, 'pore'), cell(-2, 1, 'gill'), cell(1, 1, 'gill')], fibres: CROSSED });
 const SOLUTIONS = {
   'first-stroke': { cells: [pacemakerNucleus(), cell(-1, 1, 'siphon'), cell(0, 1, 'siphon')],
     fibres: [fibre(0, 0, -1, 1), fibre(0, 0, 0, 1)] },
@@ -72,6 +82,9 @@ const SOLUTIONS = {
   exhaust: EXHAUST_BODY,
   'cold-water': coldWaterBuild(true),
   marathon: marathonBuild(),
+  'packed-lunch': lunchBuild('fat'),
+  grazing: grazingBuild('fat'),
+  bloom: bloomBuild('fat'),
 };
 // the wrong tool for each level: it must not win
 const WRONG_TOOLS = {
@@ -87,6 +100,10 @@ const WRONG_TOOLS = {
   exhaust: SOLUTIONS['long-haul'],
   'cold-water': SOLUTIONS.exhaust,
   marathon: SOLUTIONS['cold-water'],
+  'packed-lunch': lunchBuild('tissue'),
+  grazing: { cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(-1, 0, 'mouth'), cell(1, 0, 'fat')],
+    fibres: CROSSED },
+  bloom: SOLUTIONS['packed-lunch'],
 };
 
 for (const level of sim.LEVELS) {
@@ -120,6 +137,12 @@ const marathonRuns = [marathonBuild({ airSac: true }), marathonBuild({ plumbed: 
 check('"Marathon": an Air sac for the second Fat runs out of sugar, and Gills off the vessels don\'t feed the Siphons',
   marathonRuns.every(run => run.outcome === 'lost'),
   marathonRuns.map(run => `${run.reason} ${run.goalTime.toFixed(0)} s near the light`).join(', '));
+const fullMouth = sim.runLevel(levelById('grazing'), grazingBuild('tissue'));
+check('"Grazing": without a Fat beside the Mouth, the Mouth stays full and eats too little',
+  fullMouth.outcome === 'lost' && fullMouth.player.foodEaten < 13, `ate ${fullMouth.player.foodEaten}`);
+const noStore = sim.runLevel(levelById('bloom'), bloomBuild('tissue'));
+check('"Bloom": with Tissue for the Fat, the bloom\'s food has nowhere to go', noStore.outcome === 'lost',
+  `near the light ${noStore.goalTime.toFixed(0)} s, ate ${noStore.player.foodEaten}`);
 const blinking = levelById('freeze').light;
 check('a blinking light is on for 2 s, off for 3 s, and round again',
   [0.5, 2.5, 4.9, 5.1].map(time => sim.isLevelLightOn(blinking, time)).join() === 'true,false,false,true');
@@ -127,9 +150,11 @@ const flashing = levelById('false-start').light;
 check('a flashing light shines once, for half a second at 4 s',
   [3.9, 4.2, 4.6, 9.2].map(time => sim.isLevelLightOn(flashing, time)).join() === 'false,true,false,false');
 
-check('levels open in order: the first always, the next once the one before is won',
-  sim.isLevelOpen({}, 0) && !sim.isLevelOpen({}, 1) && sim.isLevelOpen({ 'first-stroke': { stars: 1 } }, 1) &&
-  !sim.isLevelOpen({ 'first-stroke': { stars: 1 } }, 2));
+check('levels are earned in order: the first always, the next once the one before is won',
+  sim.isLevelEarned({}, 0) && !sim.isLevelEarned({}, 1) && sim.isLevelEarned({ 'first-stroke': { stars: 1 } }, 1) &&
+  !sim.isLevelEarned({ 'first-stroke': { stars: 1 } }, 2));
+check('levels open only once earned, unless RULES.allLevelsOpen (testing) opens them all',
+  sim.isLevelOpen({}, 5) === !!sim.RULES.allLevelsOpen);
 
 const firstLevel = sim.LEVELS[0];
 const firstTime = sim.runLevel(firstLevel, SOLUTIONS['first-stroke']).time;
@@ -141,7 +166,22 @@ check('the Jet wins the first level, but over the par biomass and time: 1 star',
   `${jetRun.time.toFixed(1)} s`);
 
 // ---------- The app ----------
+// with every level open (RULES.allLevelsOpen, for testing), a later level can be chosen and brings its kit
+const allOpen = startApp([]);
+allOpen.readGlobal('RULES.allLevelsOpen = true');
+allOpen.runFrames(3);
+allOpen.byId('show-levels').onclick();
+const openTiles = allOpen.byId('levels-list').children.filter(child => child.className.startsWith('level-tile'));
+const bloomTile = openTiles[openTiles.length - 1];
+bloomTile.onclick();
+allOpen.byId('level-build').onclick();
+check('with every level open, any level can be chosen, and the builder takes its limits',
+  openTiles.every(tile => !tile.className.includes('locked')) && /Protein/.test(allOpen.byId('budget').innerHTML) &&
+  /\/ 38/.test(allOpen.byId('budget').innerHTML), allOpen.byId('budget').innerHTML.slice(0, 200));
+
+// the rest runs with levels opening in order, as a player will have them
 const { byId, fire, runFrames, readGlobal, storage } = startApp([]);
+readGlobal('RULES.allLevelsOpen = false');
 runFrames(3);
 check('no level is chosen at first', !byId('show-levels').classList.contains('selected'));
 byId('show-levels').onclick();
@@ -149,14 +189,14 @@ const listed = byId('levels-list').children;
 const rows = listed.filter(child => child.className.startsWith('level-tile'));
 const headings = listed.filter(child => child.className === 'chapter-heading');
 check('the levels sheet lists every level under its chapter', byId('levels-sheet').style.display === 'flex' &&
-  rows.length === readGlobal('LEVELS.length') && headings.length === 3 &&
-  headings[2].textContent === 'Chapter 3: Circulation', `${rows.length} rows, ${headings.length} headings`);
+  rows.length === readGlobal('LEVELS.length') && headings.length === 4 &&
+  headings[3].textContent === 'Chapter 4: Feeding', `${rows.length} rows, ${headings.length} headings`);
 check('at first only level 1 is open: the others are locked and say which win opens them',
   !rows[0].className.includes('locked') && rows.slice(1).every(row => row.className.includes('locked')) &&
   rows[1].title === 'Win “First stroke” to open it.', rows[1].title);
 check('the sheet shows the latest open level\'s card at first, with its limits and par',
   byId('level-card-title').innerHTML.includes('First stroke') && rows[0].className.includes('selected') &&
-  /Biomass<\/span><b>30/.test(byId('level-card-rules').innerHTML), byId('level-card-rules').innerHTML);
+  /Biomass<\/span><b>40/.test(byId('level-card-rules').innerHTML), byId('level-card-rules').innerHTML);
 rows[1].onclick();
 check('a locked level can\'t be shown', byId('level-card-title').innerHTML.includes('First stroke'));
 check('showing a level doesn\'t choose it: the builder keeps its limits until Build or Run',
@@ -165,7 +205,7 @@ byId('level-hint').onclick();
 check('Hint shows the level\'s hint', byId('level-card-hint').textContent.includes('Pacemaker'));
 byId('level-build').onclick();
 check('Build for it chooses the level and goes back to the builder with its limits',
-  byId('levels-sheet').style.display === 'none' && byId('budget').innerHTML.includes('of 30') &&
+  byId('levels-sheet').style.display === 'none' && byId('budget').innerHTML.includes('of 40') &&
   byId('show-levels').classList.contains('selected'));
 byId('show-levels').onclick();
 check('while a level is chosen, the sheet offers to leave it',
@@ -199,7 +239,7 @@ check('the win opens level 2, and only level 2', !rowsAfterWin[1].className.incl
   rowsAfterWin[2].className.includes('locked'));
 check('Next level goes back to the builder with level 2 chosen, and the sheet shows it',
   byId('hud').style.display === 'none' && byId('level-card-title').innerHTML.includes('Lighthouse') &&
-  byId('level-result').style.display === 'none' && byId('budget').innerHTML.includes('of 30'));
+  byId('level-result').style.display === 'none' && byId('budget').innerHTML.includes('of 40'));
 byId('level-leave').onclick();
 check('leaving the level brings back the free-build limits', byId('budget').innerHTML.includes('of 50') &&
   !byId('show-levels').classList.contains('selected') && byId('level-leave').style.display === 'none');

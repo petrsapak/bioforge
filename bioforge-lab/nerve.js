@@ -9,6 +9,7 @@ const SIGNAL_ON = 0.5;                                    // signal level above 
 const GANGLION_RATE = 2;                                  // share of the gap to its input a Ganglion closes per second
 const MIN_LIGHT_LENGTH = 0.001;                           // px²; nearer than this a Light eye can't tell a direction
 const UNSURE_LIGHT = 0.5;                                 // signal of a Light eye that can't tell where the light is
+const NOSE_RANGE = 300;                                   // px a Nose smells food from
 
 // What each neuron kind makes of its input sum. The cell's previous signal and neuronMemory are its state.
 const NEURON_RULES = {
@@ -57,6 +58,7 @@ function canMakeSignals(cell) {
 const SENSES = {
   enemy: (world, cell) => (enemyNear(world, cell) ? 1 : 0),
   light: (world, cell) => lightSeen(world, cell),
+  food: (world, cell) => foodSmelled(world, cell),
 };
 
 // What a sense organ feels now. In the test tank, Space stands in for every sense.
@@ -84,22 +86,40 @@ function enemyNear(world, cell) {
   return false;
 }
 
-// Graded by direction and by distance. Direction: 1 when the light lies straight out from the cell's side of the
-// body, a half when it lies square to that side, 0 when it lies straight across the body, so a Light eye on the left
-// sees more of a light on the left than its twin on the right does. Distance: full at the light, fading evenly to
-// nothing at the light's range.
+// what a Light eye sees of the world's light (see directionalSense)
 function lightSeen(world, cell) {
   const light = world.light;
   if (!light) return 0;
+  return directionalSense(cell, light.x, light.y, light.range);
+}
+
+// what a Nose smells of the nearest food speck within its range (see directionalSense)
+function foodSmelled(world, cell) {
+  let nearest = null;
+  let nearestDistanceSquared = NOSE_RANGE * NOSE_RANGE;
+  for (const speck of world.food) {
+    const speckDistanceSquared = distanceSquared(cell.x, cell.y, speck.x, speck.y);
+    if (speckDistanceSquared >= nearestDistanceSquared) continue;
+    nearest = speck;
+    nearestDistanceSquared = speckDistanceSquared;
+  }
+  return nearest ? directionalSense(cell, nearest.x, nearest.y, NOSE_RANGE) : 0;
+}
+
+// A sense graded by direction and by distance to a target at (x, y). Direction: 1 when the target lies straight out
+// from the cell's side of the body, a half when it lies square to that side, 0 when it lies straight across the body,
+// so a Light eye on the left sees more of a light on the left than its twin on the right does. Distance: full at the
+// target, fading evenly to nothing at range (px).
+function directionalSense(cell, x, y, range) {
   const outwardX = cell.x - cell.creature.centerX;
   const outwardY = cell.y - cell.creature.centerY;
-  const towardX = light.x - cell.x;
-  const towardY = light.y - cell.y;
+  const towardX = x - cell.x;
+  const towardY = y - cell.y;
   const distance = vectorLength(towardX, towardY);
-  const brightness = clamp01(1 - distance / light.range);
+  const strength = clamp01(1 - distance / range);
   const lengths = vectorLength(outwardX, outwardY) * distance;
-  if (lengths < MIN_LIGHT_LENGTH) return UNSURE_LIGHT * brightness;
-  return brightness * (1 + (outwardX * towardX + outwardY * towardY) / lengths) / 2;
+  if (lengths < MIN_LIGHT_LENGTH) return UNSURE_LIGHT * strength;
+  return strength * (1 + (outwardX * towardX + outwardY * towardY) / lengths) / 2;
 }
 
 // the signal a cell takes on, given the sum of its fibre inputs and its sense

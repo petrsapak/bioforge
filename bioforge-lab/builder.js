@@ -21,13 +21,14 @@ const wrapTurns = turns => (turns % 6 + 6) % 6;
 // ---------- The edited design ----------
 // The one place an edited design is built from a design ({ cells, fibres, vessels }). Its cells, fibres and vessels
 // are copies, so the source design stays as it was. biomassLimit: RULES.budget, or Infinity while building without a
-// limit.
-function createEditedDesign(design, biomassLimit = RULES.budget) {
+// limit. kit: the chosen level's material kit, which takes the budget's place (unless the limit is Infinity).
+function createEditedDesign(design, biomassLimit = RULES.budget, kit = null) {
   return {
     cells: new Map(design.cells.map(cell => [keyOfCell(cell), { ...cell }])),
     fibres: (design.fibres || []).map(copyLink),
     vessels: (design.vessels || []).map(copyLink),
     biomassLimit,
+    kit,
   };
 }
 
@@ -71,21 +72,36 @@ function bodyCost(edited) {
   return designCost(bodyDesign(edited));
 }
 
-// the body's cost if these cells were added on free hexes; the design itself is left as it was
-function costWithAdded(edited, cells) {
+// what measure(body) gives if these cells were added on free hexes; the design itself is left as it was
+function measureWithAdded(edited, cells, measure) {
   for (const cell of cells) edited.cells.set(keyOfCell(cell), cell);
-  const cost = bodyCost(edited);
+  const result = measure(bodyDesign(edited));
   for (const cell of cells) edited.cells.delete(keyOfCell(cell));
-  return cost;
+  return result;
+}
+
+// the body's cost if these cells were added on free hexes
+function costWithAdded(edited, cells) {
+  return measureWithAdded(edited, cells, designCost);
+}
+
+// whether the edited design is held to a material kit rather than a biomass budget
+const usesKit = edited => !!edited.kit && edited.biomassLimit !== Infinity;
+
+// what the body would lack of the kit with these cells added ('' = they fit, or there is no kit)
+function kitShortfallWithAdded(edited, cells) {
+  return usesKit(edited) ? measureWithAdded(edited, cells, body => kitShortfall(body, edited.kit)) : '';
 }
 
 // ---------- Cells ----------
 // A cell can go on a free grid hex that no Bud part needs. Off the body it is only planned; joining the body must
-// fit the biomass limit.
+// fit the biomass limit, or the kit.
 function canPlaceCell(edited, q, r, typeName) {
   const key = hexKey(q, r);
   if (!isInGrid(q, r) || edited.cells.has(key) || reservedHexes(edited).has(key)) return false;
-  return costWithAdded(edited, [createDesignCell(q, r, typeName)]) <= edited.biomassLimit;
+  const added = [createDesignCell(q, r, typeName)];
+  if (usesKit(edited)) return !kitShortfallWithAdded(edited, added);
+  return costWithAdded(edited, added) <= edited.biomassLimit;
 }
 
 function placeCell(edited, q, r, typeName) {
@@ -431,7 +447,10 @@ function stampPlacement(edited, stamp, q, r) {
   if (!cells.length) problem = 'Every hex there is already taken.';
   else if (cells.some(cell => !isInGrid(cell.q, cell.r))) problem = 'Part of it is off the grid.';
   else if (cells.some(cell => reserved.has(keyOfCell(cell)))) problem = "It covers hexes kept free for a Bud's part.";
-  else {
+  else if (usesKit(edited)) {
+    const shortfall = kitShortfallWithAdded(edited, cells);
+    if (shortfall) problem = shortfall + '.';
+  } else {
     const costNow = bodyCost(edited);
     const costAfter = costWithAdded(edited, cells);
     if (costAfter > edited.biomassLimit) {

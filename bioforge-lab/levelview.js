@@ -67,9 +67,9 @@ function toggleLevelsSheet(app) {
   showLevelTiles(app);
 }
 
-// the last level in the list that is open, the one a player is most likely working on
+// the last level in the list that is earned, the one a player is most likely working on
 function latestOpenLevel(app) {
-  const openLevels = LEVELS.filter((level, i) => isLevelOpen(app.levelResults, i));
+  const openLevels = LEVELS.filter((level, i) => isLevelEarned(app.levelResults, i));
   return openLevels[openLevels.length - 1];
 }
 
@@ -113,11 +113,13 @@ function chapterHeading(chapter) {
   return heading;
 }
 
-// Makes the level the one the builder works toward (null: free build). Its limits become the builder's.
+// Makes the level the one the builder works toward (null: free build). Its limits, budget or kit, become the
+// builder's.
 function chooseLevel(app, level) {
   app.level = level || null;
   app.isHintShown = false;
   if (app.edited.biomassLimit !== Infinity) app.edited.biomassLimit = chosenLimits(app).budget;
+  app.edited.kit = chosenLimits(app).kit || null;
   showLevelButton(app);
   refreshPanel(app);
 }
@@ -150,7 +152,8 @@ function showLevelCard(app) {
   byId('level-card-title').innerHTML = `${level.name}<span class="level-stars">${starsHtml(best)}</span>`;
   byId('level-card-brief').textContent = level.brief;
   const rule = (name, value) => `<span>${name}</span><b>${value}</b>`;
-  byId('level-card-rules').innerHTML = rule('Biomass', limits.budget) + rule('Time limit', level.timeLimit + ' s') +
+  const materials = limits.kit ? rule('Kit', kitText(limits.kit)) : rule('Biomass', limits.budget);
+  byId('level-card-rules').innerHTML = materials + rule('Time limit', level.timeLimit + ' s') +
     rule('★ Finish by', level.par.seconds + ' s') + rule('★ Use at most', level.par.biomass + ' biomass') +
     rule('Best', best ? `${best.seconds.toFixed(1)} s, ${formatBiomass(best.biomass)} biomass` : '–');
   byId('level-card-hint').textContent = app.isHintShown ? level.hint : '';
@@ -348,10 +351,17 @@ function stillnessRule(run) {
   return '';
 }
 
+// a material kit in words: 20 protein · 3 sugar · 1 fat
+function kitText(kit) {
+  return MATERIALS.filter(material => kit[material.id])
+    .map(material => `${kit[material.id]} ${material.name.toLowerCase()}`).join(' · ');
+}
+
 // the goal in a few words, with how far along it is
 function goalProgress(run) {
   const goal = run.level.goal;
   if (goal.kind === 'stayNear') return `Near the light ${run.goalTime.toFixed(1)} / ${goal.seconds} s`;
   if (goal.kind === 'restIn') return `At rest in the ring ${run.goalTime.toFixed(1)} / ${goal.seconds} s`;
+  if (goal.kind === 'eat') return `Eaten ${run.player.foodEaten} / ${goal.count}`;
   return 'Reach the ring';
 }

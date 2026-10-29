@@ -76,8 +76,9 @@ function showLimits(app) {
     : `${formatBiomass(used)} / ${limits.budget}`;
   const biomassTitle = `Biomass used: ${formatBiomass(used)} of ${limits.budget}` +
     (isUnlimited ? ' (unlimited: the Sandbox takes any size)' : '');
-  byId('budget').innerHTML = '<div class="limits">' +
-    limitHtml('body', app.layer, 'Biomass', biomassTitle, biomassText, !isUnlimited && used >= limits.budget) +
+  const materialsHtml = usesKit(app.edited) ? kitLimitsHtml(app, bodyDesign(app.edited))
+    : limitHtml('body', app.layer, 'Biomass', biomassTitle, biomassText, !isUnlimited && used >= limits.budget);
+  byId('budget').innerHTML = '<div class="limits">' + materialsHtml +
     limitHtml('body', app.layer, 'Cells', `Cells: ${cellCount} of ${limits.maxCells}`,
       `${cellCount} / ${limits.maxCells}`, cellCount >= limits.maxCells) +
     limitHtml('nerve', app.layer, 'Neurons', `Neurons: ${nerve.neurons} of ${limits.maxNeurons}`,
@@ -87,6 +88,29 @@ function showLimits(app) {
     limitHtml('vessel', app.layer, 'Vessels', `Vessels: ${vesselCount} of ${limits.maxVesselUnits} units`,
       `${vesselCount} / ${limits.maxVesselUnits}`, vesselCount >= limits.maxVesselUnits) +
     '</div>' + (problem ? `<div class="limits-problem">⚠ ${problem}</div>` : '');
+}
+
+// A level's kit in the Body view: each material cells are built from, used against the kit, then the reserves the
+// rest becomes. Reserves turn orange when the body has no room for all of them.
+function kitLimitsHtml(app, body) {
+  const kit = app.edited.kit;
+  const used = designMaterials(body);
+  const buildingMaterials = MATERIALS.filter(material =>
+    Object.values(CELLS).some(cellType => cellType.recipe[material.id]));
+  const materialSpans = buildingMaterials.map(material => {
+    const name = material.name;
+    const has = kit[material.id] || 0;
+    return limitHtml('body', app.layer, name, `${name} used: ${formatBiomass(used[material.id])} of the kit's ${has}`,
+      `${formatBiomass(used[material.id])} / ${has}`, used[material.id] >= has);
+  });
+  const reserves = kitReserves(body, kit);
+  const room = reserveRoom(body.cells.map(cell => CELLS[cell.typeName]));
+  const lost = Math.max(0, reserves.sugar - room.sugar) + Math.max(0, reserves.fat - room.fat);
+  const reservesTitle = `Left over for the run: ${formatBiomass(reserves.sugar)} sugar spread over the body ` +
+    `(room for ${formatBiomass(room.sugar)}), ${formatBiomass(reserves.fat)} fat in Fat cells ` +
+    `(room for ${formatBiomass(room.fat)})` + (lost ? `. ${formatBiomass(lost)} has no room and is lost.` : '');
+  const reservesText = `${formatBiomass(reserves.sugar)} sugar · ${formatBiomass(reserves.fat)} fat`;
+  return materialSpans.join('') + limitHtml('body', app.layer, 'Reserves', reservesTitle, reservesText, lost > 0);
 }
 
 // one limit: its name and value, hidden outside its view; the full wording is its tooltip

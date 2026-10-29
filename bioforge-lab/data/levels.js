@@ -2,11 +2,14 @@
 // The levels and the creatures that live in them (pure data). levels.js builds and runs them. Field meanings:
 //   id, chapter, name; brief: what to do; hint: a nudge toward how
 //   arena: { width, height } in px; systems: the switchable systems that run (chapters 1 and 2: nerve only, so
-//     every cell works at full power and nothing starves; chapter 3 adds fluid and vascular)
+//     every cell works at full power and nothing starves; chapter 3 adds fluid and vascular; chapter 4 metabolism
+//     and food)
 //   seepFactor: share of the usual seeping between cells and unpumped vessel flow (cold water: less); a Heart's
 //     pumping is not slowed
 //   limits: design limits ({ budget, maxCells, maxNeurons, maxFibreUnits, maxVesselUnits }); any left out come from
-//   RULES
+//   RULES. kit: { protein, sugar, fat } (data/materials.js) instead of a budget: the body's recipes must fit it, and
+//   what is left is the creature's starting sugar and fat, in place of stores two thirds full
+//   food: the food supply (createFoodSupply in food.js), where the food system runs
 //   start: the player's spawn { x, y } in px and heading in rad (0 faces up)
 //   light: null, or { range } plus where it is: { x, y } fixed, { path, speed } going round a loop of points (px)
 //     at speed px/s, or { carriedBy } the index of the level creature it sits on. It shines all the time, unless
@@ -16,6 +19,7 @@
 //     behaviour 'wired': it moves only by its own wiring; 'hunt': the AI steers it at the player
 //   goal: { kind: 'reach', x, y, radius } swim the creature's centre into the ring;
 //     { kind: 'stayNear', radius, seconds } stay that close to the light for that long in all;
+//     { kind: 'eat', count } eat that many food specks;
 //     { kind: 'restIn', x, y, radius, speed, seconds } stay in the ring, slower than speed (px/s), that long without
 //     a break
 //   stillWhileLit: { speed, grace }: lost when the player swims faster than speed (px/s) while the light has been
@@ -26,10 +30,14 @@
 const ARENA = { width: 1400, height: 800 };               // px
 const CHAPTER_1_SYSTEMS = ['nerve'];
 const CIRCULATION_SYSTEMS = ['nerve', 'fluid', 'vascular'];
-const CHAPTER_NAMES = { 1: 'Reflexes', 2: 'Memory and logic', 3: 'Circulation' };
+const FEEDING_SYSTEMS = ['nerve', 'fluid', 'vascular', 'metabolism', 'food'];
+const CHAPTER_NAMES = { 1: 'Reflexes', 2: 'Memory and logic', 3: 'Circulation', 4: 'Feeding' };
 const WATCHER_LIGHT = { x: 700, y: 60, range: 2000 };     // px: above the top ring, bright all over the arena
 const TOP_RING = { kind: 'reach', x: 700, y: 200, radius: 70 };   // px
 const START_BOTTOM = { x: 700, y: 680, heading: 0 };      // px, rad: bottom middle, facing up
+// Grazing's food: a trail of specks (px) winding from the bottom left to the top right, about 90 px apart
+const FOOD_TRAIL = [[200, 600], [220, 510], [270, 430], [340, 370], [430, 340], [520, 350], [600, 400], [670, 460],
+  [750, 500], [840, 500], [920, 460], [990, 400], [1050, 330], [1100, 250], [1130, 170]];
 const DRIFTING_LIGHT = {                                  // round a loop of points (px) at 18 px/s
   path: [[700, 420], [1050, 250], [1100, 550], [350, 600], [300, 250]], speed: 18, range: 450,
 };
@@ -44,7 +52,7 @@ const LEVELS = [
     id: 'first-stroke', chapter: 1, name: 'First stroke',
     brief: 'Swim into the ring ahead.',
     hint: 'A Pacemaker in the Nucleus, wired to two Siphons at the back, pulses them both: the Jet does this.',
-    limits: { budget: 30 },
+    limits: { budget: 40 },
     goal: { kind: 'reach', x: 700, y: 220, radius: 70 },
     timeLimit: 40, par: { seconds: 12, biomass: 12 },
   }),
@@ -53,7 +61,7 @@ const LEVELS = [
     brief: 'Reach the light.',
     hint: 'Two Light eyes at the front, each wired across to the Siphon on the far side: the eye nearer the light ' +
       'drives the far Siphon harder, which turns you toward it.',
-    limits: { budget: 30 },
+    limits: { budget: 40 },
     light: { x: 1100, y: 260, range: 650 },
     goal: { kind: 'reach', x: 1100, y: 260, radius: 60 },
     timeLimit: 45, par: { seconds: 25, biomass: 20 },
@@ -62,7 +70,7 @@ const LEVELS = [
     id: 'moth', chapter: 1, name: 'Moth',
     brief: 'The light drifts round the arena. Keep close to it: 15 s within the dashed ring in all.',
     hint: 'A creature that turns toward the light follows it as it moves. It has to keep up.',
-    limits: { budget: 30 },
+    limits: { budget: 40 },
     light: DRIFTING_LIGHT,
     goal: { kind: 'stayNear', radius: 100, seconds: 15 },
     timeLimit: 60, par: { seconds: 30, biomass: 20 },
@@ -73,7 +81,7 @@ const LEVELS = [
     hint: 'Wire each Light eye to the Siphon on its own side: the eye nearer the light drives that side harder, ' +
       'which turns you away from it. Eyes alone slow down once the light is behind them; a Pacemaker on the ' +
       'Siphons too keeps you going.',
-    limits: { budget: 30 },
+    limits: { budget: 40 },
     start: { x: 700, y: 420, heading: 0 },
     light: { x: 620, y: 320, range: 800 },
     goal: { kind: 'reach', x: 1180, y: 170, radius: 80 },
@@ -85,7 +93,7 @@ const LEVELS = [
       'round it, in all.',
     hint: 'Follow the light it carries. It only flees straight ahead, so it ends up against a wall, where you can ' +
       'catch up. A slow follower loses it; one that never slows down overshoots.',
-    limits: { budget: 40 },
+    limits: { budget: 50 },
     light: { carriedBy: 0, range: 700 },
     creatures: [{ design: 'darter', x: 1050, y: 250, heading: 0, behaviour: 'wired' }],
     goal: { kind: 'stayNear', radius: 80, seconds: 8 },
@@ -98,7 +106,7 @@ const LEVELS = [
     hint: 'An Inhibitor is on while its input is off. Wire both Light eyes into an Inhibitor in the Nucleus, and ' +
       'the Nucleus to both Siphons: you swim in the dark and stop in the light. One eye alone sits on one side ' +
       'and turns you in circles.',
-    limits: { budget: 30 },
+    limits: { budget: 40 },
     light: { ...WATCHER_LIGHT, blink: { on: 2, off: 3 } },
     stillWhileLit: { speed: 10, grace: 0.75 },
     goal: TOP_RING,
@@ -109,7 +117,7 @@ const LEVELS = [
     brief: 'Hold still until the light flashes, then swim to the ring. It flashes only once.',
     hint: 'A Latch flips on at a pulse and stays on. Wire both Light eyes into a Latch in the Nucleus, and the ' +
       'Nucleus to both Siphons.',
-    limits: { budget: 30 },
+    limits: { budget: 40 },
     light: { ...WATCHER_LIGHT, flash: { at: 4, length: 0.5 } },
     stillUntilLit: { speed: 10 },
     goal: TOP_RING,
@@ -122,7 +130,7 @@ const LEVELS = [
     hint: 'The Freeze build stops too late. Give one Light eye a Delay neuron: its late copy of a flash comes back ' +
       'just before the next flash, and the Inhibitor stops you in time. Try a delay between 2.5 and 3 s; the ' +
       'longer, the more you swim.',
-    limits: { budget: 30 },
+    limits: { budget: 40 },
     light: { ...WATCHER_LIGHT, blink: { on: 1.5, off: 2.5 } },
     stillWhileLit: { speed: 10, grace: 0.25 },
     goal: TOP_RING,
@@ -134,7 +142,7 @@ const LEVELS = [
     hint: 'The nearer the light, the brighter your eyes. A Synapse is on once its inputs add up to its threshold: ' +
       'wire both Light eyes into a Synapse, the Synapse into an Inhibitor in another cell, and that cell to both ' +
       'Siphons. Raise the threshold until you stop in the ring. Keep the body even, or it turns.',
-    limits: { budget: 30 },
+    limits: { budget: 40 },
     light: { x: 700, y: 60, range: 900 },
     goal: { kind: 'restIn', x: 700, y: 200, radius: 70, speed: 10, seconds: 2 },
     timeLimit: 40, par: { seconds: 18, biomass: 20 },
@@ -147,7 +155,7 @@ const LEVELS = [
       'the surface dumps waste. A Seeker with a Fat on each side and a Gill at the back lasts. Keep the body even, ' +
       'or it turns.',
     systems: CIRCULATION_SYSTEMS,
-    limits: { budget: 30 },
+    limits: { budget: 45 },
     light: DRIFTING_LIGHT,
     goal: { kind: 'stayNear', radius: 100, seconds: 150 },
     timeLimit: 240, par: { seconds: 180, biomass: 20 },
@@ -159,7 +167,7 @@ const LEVELS = [
     hint: 'A Pore on the surface dumps waste into the water. Put one at the back, touching both Siphons, so their ' +
       'waste seeps into it. A Fat and an Air sac on the sides carry the fuel.',
     systems: CIRCULATION_SYSTEMS,
-    limits: { budget: 30 },
+    limits: { budget: 45 },
     light: { ...DRIFTING_LIGHT, speed: 24 },
     goal: { kind: 'stayNear', radius: 100, seconds: 120 },
     timeLimit: 240, par: { seconds: 190, biomass: 20 },
@@ -174,7 +182,7 @@ const LEVELS = [
       'stores through the Heart to the Siphons, and their waste flows on to the Pore.',
     systems: CIRCULATION_SYSTEMS,
     seepFactor: 0.05,
-    limits: { budget: 30 },
+    limits: { budget: 45 },
     light: { ...DRIFTING_LIGHT, speed: 24 },
     goal: { kind: 'stayNear', radius: 100, seconds: 120 },
     timeLimit: 240, par: { seconds: 190, biomass: 25 },
@@ -189,10 +197,51 @@ const LEVELS = [
       'it turns.',
     systems: CIRCULATION_SYSTEMS,
     seepFactor: 0.05,
-    limits: { budget: 30 },
+    limits: { budget: 50 },
     light: DRIFTING_LIGHT,
     goal: { kind: 'stayNear', radius: 100, seconds: 200 },
     timeLimit: 300, par: { seconds: 280, biomass: 28 },
+  }),
+  createLevel({
+    id: 'packed-lunch', chapter: 4, name: 'Packed lunch',
+    brief: 'Long haul\'s chase, but you build from a kit of materials instead of a biomass budget, and what you ' +
+      'don\'t use is all the fuel you get: there is no food. Keep close to the light for 150 s in all.',
+    hint: 'Cells are built from Protein, and a Fat cell takes one Fat as well. Leftover Sugar spreads over the ' +
+      'body, but leftover Fat goes only into Fat cells, which turn it back into sugar as they run low. Long haul\'s ' +
+      'Seeker with one Fat, a Gill and a Pore carries enough.',
+    systems: FEEDING_SYSTEMS,
+    limits: { kit: { protein: 32, sugar: 4, fat: 7 } },
+    food: { maxCount: 0 },
+    light: DRIFTING_LIGHT,
+    goal: { kind: 'stayNear', radius: 100, seconds: 150 },
+    timeLimit: 240, par: { seconds: 200, biomass: 20 },
+  }),
+  createLevel({
+    id: 'grazing', chapter: 4, name: 'Grazing',
+    brief: 'A trail of food specks winds across the dark water. Eat 13 of them.',
+    hint: 'Two Noses at the front, each wired across to the Siphon on the far side, follow the smell from speck ' +
+      'to speck, as crossed Light eyes follow the light. Any cell touching a speck eats it while a Mouth has room, ' +
+      'and a Mouth only makes room by passing what it ate on: put a Fat beside it.',
+    systems: FEEDING_SYSTEMS,
+    limits: { kit: { protein: 30, sugar: 3, fat: 2 } },
+    start: { x: 200, y: 700, heading: 0 },
+    food: { maxCount: 0, specks: FOOD_TRAIL },
+    goal: { kind: 'eat', count: 13 },
+    timeLimit: 100, par: { seconds: 75, biomass: 18 },
+  }),
+  createLevel({
+    id: 'bloom', chapter: 4, name: 'Bloom',
+    brief: 'Food grows near the drifting light for the first 80 s, then stops. Your kit holds almost no sugar, so ' +
+      'eat while it lasts and keep close to the light for 180 s in all.',
+    hint: 'Everything so far: crossed Light eyes to follow the light, a Mouth with a Fat beside it to eat and store ' +
+      'the bloom, a Gill beside each Siphon for O₂ and a Pore at the back for waste. Keep the body even, or it ' +
+      'turns.',
+    systems: FEEDING_SYSTEMS,
+    limits: { kit: { protein: 38, sugar: 2, fat: 3 } },
+    food: { maxCount: 8, interval: 2, nearLight: 120, until: 80 },
+    light: DRIFTING_LIGHT,
+    goal: { kind: 'stayNear', radius: 100, seconds: 180 },
+    timeLimit: 260, par: { seconds: 250, biomass: 24 },
   }),
 ];
 

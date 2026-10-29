@@ -1,12 +1,15 @@
 'use strict';
 // Cell types (pure data). Field meanings:
-//   category, name, cost (biomass), health, color, description: what the builder shows
+//   category, name, health, color, description: what the builder shows
+//   cost: biomass, all of it Protein; or recipe: the materials it is built from ({ protein, fat }, data/materials.js),
+//     and its cost is their sum
 //   mass; stiffness (angle springs); bondStrength (bond springs, the weaker cell of a pair counts);
 //   swimPower (free swimming force); damageFactor (share of damage taken: 0.5 = half)
 //   senses: what the cell feels, as a nerve signal its fibres carry: 'enemy' (an enemy cell is near, on or off) or
-//     'light' (graded: how far the light lies on the cell's side of the body, fading with distance)
+//     'light' (graded: how far the light lies on the cell's side of the body, fading with distance) or 'food' (the
+//     same for the nearest food speck)
 //   fuelBurn: O2 + sugar burned per second at full work (each unit burned becomes one unit of waste)
-//   oxygenCapacity, sugarCapacity: how much the cell holds
+//   oxygenCapacity, sugarCapacity: how much the cell holds; fatCapacity: how much fat it stores (metabolism.js)
 // Behaviours: what the cell does in each system. The systems read these, never the type's name.
 //   isNucleus: the creature dies with it
 //   work (fluid): how hard it works, which sets its fuel use: 'graded' (with its signal), 'onSignal' (fully while
@@ -27,6 +30,7 @@ const PIPE_CAPACITY = 0.3;
 
 function cellType(definition) {
   const pipeOrStore = definition.fuelBurn ? 1 : PIPE_CAPACITY;
+  const recipe = definition.recipe || { protein: definition.cost };
   return {
     mass: 1,
     stiffness: 1,
@@ -36,7 +40,10 @@ function cellType(definition) {
     fuelBurn: 0,
     oxygenCapacity: pipeOrStore,
     sugarCapacity: pipeOrStore,
+    fatCapacity: 0,
     ...definition,
+    recipe,
+    cost: Object.values(recipe).reduce((sum, amount) => sum + amount, 0),
   };
 }
 
@@ -76,6 +83,11 @@ const CELLS = {
     description: 'Signals how far the light lies on its side of the body: strongest when the light is straight out ' +
       'from it, weakest when it is across the body, and fainter the farther the light is, until nothing past its ' +
       'reach. In the Sandbox the mouse is the light.',
+  }),
+  nose: cellType({
+    category: 'Sense', name: 'Nose', cost: 3, health: 20, senses: 'food', color: '#c98ad8',
+    description: 'Smells the nearest food speck: signals how far it lies on its side of the body, like a Light eye ' +
+      `sees the light, and stronger the closer it is, up to ${NOSE_RANGE} px away.`,
   }),
   muscle: cellType({
     category: 'Action', name: 'Muscle', cost: 3, health: 30, mass: 1.2, stiffness: 0.05, fuelBurn: 0.1,
@@ -151,10 +163,11 @@ const CELLS = {
     description: 'Reservoir. Holds 10x the O₂ of a working cell.',
   }),
   fat: cellType({
-    category: 'Fluid', name: 'Fat', cost: 2, health: 30, mass: 1.3, sugarCapacity: 10, color: '#f0e0a0',
-    storesSugar: true,
+    category: 'Fluid', name: 'Fat', recipe: { protein: 1, fat: 1 }, health: 30, mass: 1.3, sugarCapacity: 10,
+    fatCapacity: FAT_CELL_CAPACITY, color: '#f0e0a0', storesSugar: true,
     description: 'Reservoir. Holds 10x the sugar of a working cell. Plain cells only pass sugar along, so this ' +
-      'is where food ends up.',
+      `is where food ends up. Where metabolism runs, it also stores up to ${FAT_CELL_CAPACITY} fat: sugar it has ` +
+      `no room for becomes fat, and when its sugar runs low each fat turns back into ${FAT_SUGAR_YIELD} sugar.`,
   }),
   pore: cellType({
     category: 'Fluid', name: 'Pore', cost: 2, health: 20, color: '#7a6a48', dumpsWaste: true,

@@ -83,6 +83,19 @@ const TIPS = {
       spaceLabel: 'Space held',
     },
   },
+  nose: {
+    howToUse: 'Put two on the front, left and right, and lay a fibre from each across to a Siphon on the other side ' +
+      '(Nerve view), as with Light eyes: the creature then swims from speck to speck. It smells only the nearest ' +
+      'speck, so where food is far apart it stops; a Mouth with a Fat beside it eats what it reaches.',
+    example: {
+      cells: [
+        [0, 0, 'nucleus'], [0, -1, 'nose'], [1, -1, 'nose'], [-1, 0, 'mouth'], [1, 0, 'fat'],
+        [-1, 1, 'siphon'], [0, 1, 'siphon'],
+      ],
+      fibres: [[0, -1, 0, 1], [1, -1, -1, 1]],
+      spaceLabel: 'Space held',
+    },
+  },
   muscle: {
     howToUse: 'Needs a nerve signal and O₂ and sugar from the body. Muscles on one side of a limb bend it to ' +
       'that side. To swim, line a long tail with muscles on both sides and make the sides take turns (a ' +
@@ -241,7 +254,8 @@ const TIPS = {
   },
   fat: {
     howToUse: 'Put it in the body near the cells that burn fuel. It is your main sugar store for long fights; ' +
-      'what the Mouth eats collects here.',
+      'what the Mouth eats collects here, so put one beside the Mouth. In a level with a kit, leftover Fat goes ' +
+      'only into Fat cells.',
     example: {
       cells: [
         [0, 0, 'nucleus'], [0, 1, 'fat'], [-1, 1, 'muscle'], [-1, 2, 'muscle'], [0, 2, 'muscle'], [1, 1, 'pacemaker'],

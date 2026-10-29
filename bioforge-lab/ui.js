@@ -150,7 +150,7 @@ function showProblem(app, problem) {
 
 // Replaces the whole design. A design over the budget still loads, and the panel says why it can't be used as is.
 function loadDesign(app, design, label, savedName) {
-  app.edited = createEditedDesign(design, app.edited.biomassLimit);
+  app.edited = createEditedDesign(design, app.edited.biomassLimit, app.edited.kit);
   app.lastLoadedName = savedName;
   app.stamp = null;
   app.selection.clear();

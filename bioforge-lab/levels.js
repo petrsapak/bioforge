@@ -7,11 +7,17 @@ const LEVEL_STEP = 1 / 40;                                // game s per step of 
 
 // Levels open in order: the first one always, any other once the level before it is won. results: the best
 // result per level id, which only wins have.
-function isLevelOpen(results, levelIndex) {
+function isLevelEarned(results, levelIndex) {
   return levelIndex === 0 || !!results[LEVELS[levelIndex - 1].id];
 }
 
-// the design limits a level sets, filled in from RULES where it sets none
+// whether a level can be shown and played: earned, or every level while RULES.allLevelsOpen is on (for testing)
+function isLevelOpen(results, levelIndex) {
+  return RULES.allLevelsOpen || isLevelEarned(results, levelIndex);
+}
+
+// the design limits a level sets, filled in from RULES where it sets none; kit: its material kit, or null for a
+// biomass budget
 function levelLimits(level) {
   return {
     budget: RULES.budget,
@@ -19,21 +25,26 @@ function levelLimits(level) {
     maxNeurons: RULES.maxNeurons,
     maxFibreUnits: RULES.maxFibreUnits,
     maxVesselUnits: RULES.maxVesselUnits,
+    kit: null,
     ...level.limits,
   };
 }
 
 // A level in play: its world, the player's creature, the level's other creatures, the clock and the outcome
-// ('won', 'lost' or null while it runs). goalTime counts the seconds a stayNear goal has been met.
+// ('won', 'lost' or null while it runs). goalTime counts the seconds a stayNear goal has been met. With a material
+// kit, the player starts with the kit's leftovers as its sugar and fat, instead of stores two thirds full.
 function startLevel(level, design) {
-  const world = newWorld(level.arena.width, level.arena.height,
-    { systems: level.systems, seed: LEVEL_SEED, seepFactor: level.seepFactor });
+  const world = newWorld(level.arena.width, level.arena.height, { systems: level.systems, seed: LEVEL_SEED,
+    seepFactor: level.seepFactor, foodSupply: createFoodSupply(level.food) });
   const player = spawn(world, design, level.start.x, level.start.y, level.start.heading, 0);
   player.autonomous = true;
+  const kit = levelLimits(level).kit;
+  if (kit) stockReserves(player, kitReserves(design, kit));
   const creatures = level.creatures.map(entry => spawnLevelCreature(world, entry));
   const run = { level, world, player, creatures, time: 0, goalTime: 0, outcome: null, reason: '',
     playerSpeed: 0 };
   placeLevelLight(run);
+  if (world.systems.has('food')) stockFood(world);
   return run;
 }
 
@@ -121,6 +132,7 @@ const LEVEL_GOALS = {
     if (light && distanceToPlayer(run, light.x, light.y) < goal.radius) run.goalTime += dt;
     return run.goalTime >= goal.seconds;
   },
+  eat: (run, goal) => run.player.foodEaten >= goal.count,
   restIn: (run, goal, dt) => {
     const isResting = distanceToPlayer(run, goal.x, goal.y) < goal.radius && run.playerSpeed < goal.speed;
     run.goalTime = isResting ? run.goalTime + dt : 0;

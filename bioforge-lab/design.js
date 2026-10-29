@@ -69,7 +69,12 @@ function hexesReachableFromNucleus(isOpen) {
 // level's
 function buildCheck(design, limits = RULES) {
   if (design.cells.length > limits.maxCells) return `Too many cells: ${design.cells.length} / ${limits.maxCells}`;
-  if (designCost(design) > limits.budget) return `Over budget by ${designCost(design) - limits.budget}`;
+  if (limits.kit) {
+    const shortfall = kitShortfall(design, limits.kit);
+    if (shortfall) return shortfall;
+  } else if (designCost(design) > limits.budget) {
+    return `Over budget by ${designCost(design) - limits.budget}`;
+  }
   const neuronCount = design.cells.filter(cell => cell.neuron).length;
   if (neuronCount > limits.maxNeurons) return `Too many neurons: ${neuronCount} / ${limits.maxNeurons}`;
   const units = fibreUnits(design);
@@ -79,6 +84,45 @@ function buildCheck(design, limits = RULES) {
     return `Too many vessel units: ${vesselUnitCount} / ${limits.maxVesselUnits}`;
   }
   return '';
+}
+
+// ---------- Material kits ----------
+// A level with a kit ({ protein, sugar, fat }, data/levels.js) has no biomass budget: the body's recipes
+// (data/cells.js) must fit the kit, and what is left becomes the creature's starting reserves (metabolism.js).
+
+// the materials the design's cells are built from, by material id
+function designMaterials(design) {
+  const used = Object.fromEntries(MATERIALS.map(material => [material.id, 0]));
+  for (const cell of design.cells) {
+    const recipe = CELLS[cell.typeName].recipe;
+    for (const id of Object.keys(recipe)) used[id] += recipe[id];
+  }
+  return used;
+}
+
+// what the design leaves of the kit, by material id
+function kitLeftover(design, kit) {
+  const used = designMaterials(design);
+  return Object.fromEntries(MATERIALS.map(material => [material.id, (kit[material.id] || 0) - used[material.id]]));
+}
+
+// the first material the design needs more of than the kit has, in words ('' = it fits)
+function kitShortfall(design, kit) {
+  const leftover = kitLeftover(design, kit);
+  const short = MATERIALS.find(material => leftover[material.id] < 0);
+  if (!short) return '';
+  return `Not enough ${short.name.toLowerCase()}: it needs ${(kit[short.id] || 0) - leftover[short.id]}, ` +
+    `the kit has ${kit[short.id] || 0}`;
+}
+
+// the kit's leftovers that become reserves at the start of a run: { sugar, fat }
+function kitReserves(design, kit) {
+  const leftover = kitLeftover(design, kit);
+  const reserves = { sugar: 0, fat: 0 };
+  for (const material of MATERIALS) {
+    if (material.reserve) reserves[material.reserve] += leftover[material.id];
+  }
+  return reserves;
 }
 
 // Design checks: signals, Bud parts, weapons, and whether the body has O2, sugar and a waste exit for its working
