@@ -7,6 +7,13 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.4 (2026-10-30)
+- Nerve fibres and blood vessels are drawn in smooth curves through the cells they pass, instead of zig-zagging
+  from middle to middle. A fibre starts beside its neuron and its arrow now points into the cell it ends in, so
+  you can tell at a glance where each one goes.
+- Siphons no longer puff water across the builder's grid, where the puff covered the cell behind them. The
+  preview window still shows them squirting.
+
 ## 0.7.3 (2026-10-30)
 - Symmetry now covers wiring too. With an axis on, a neuron put into a cell goes into its mirror cell as well, and
   so do its setting and a Receptor's hormone; a fibre or vessel laid, rerouted or taken out is copied onto the

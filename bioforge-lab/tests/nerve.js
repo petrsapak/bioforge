@@ -4,7 +4,8 @@ const { load } = require('./load');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['newWorld', 'spawn', 'step', 'createNeuron', 'createDesignCell', 'createRouteArea',
   'routeFibre', 'fibreUnits', 'upgradeToNerveLayer', 'hexKey', 'TEMPLATES', 'NERVE_SUBSTEPS', 'NEURONS', 'NEURON_TIPS',
-  'exampleCells', 'linksFromList', 'newTestTank', 'fibreRoute', 'layOutFibreLanes', 'placePartFibres']);
+  'exampleCells', 'linksFromList', 'newTestTank', 'fibreRoute', 'layOutFibreLanes', 'placePartFibres',
+  'smoothLinkLine', 'LINK_END_GAP']);
 
 const STEP = 1 / 40;
 const cellAt = (creature, q, r) => creature.cells.find(cell => cell.q === q && cell.r === r);
@@ -145,6 +146,23 @@ check('Inhibitor is NOT (of the sum)', truthTable(sim.createNeuron('inhibitor'))
     Math.abs(first.points[0][1] - second.points[1][1]) > 1, `${first.points[0][1]} ${second.points[1][1]}`);
   check('the colours run out gracefully',
     sim.layOutFibreLanes(Array.from({ length: 10 }, () => there), 3).every(entry => entry.colorIndex < 3));
+}
+
+{ // the drawn line: straight across each border, curved inside the cells between, its ends short of the end cells'
+  // middles (user, 2026-10-30: the nerves and vessels "don't fit together")
+  const bend = [[0, 0], [20, 0], [30, 17]];
+  const line = sim.smoothLinkLine(bend);
+  const distanceFrom = ([x, y], [otherX, otherY]) => Math.hypot(x - otherX, y - otherY);
+  const isOnLine = target => line.some(point => distanceFrom(point, target) < 1e-9);
+  check("it starts and ends the end gap short of the end cells' middles",
+    Math.abs(distanceFrom(line[0], bend[0]) - sim.LINK_END_GAP) < 1e-9 &&
+    Math.abs(distanceFrom(line[line.length - 1], bend[2]) - sim.LINK_END_GAP) < 1e-9);
+  check("it crosses each border halfway between two cells' middles", isOnLine([10, 0]) && isOnLine([25, 8.5]));
+  check('and bends inside the cell between instead of turning at its middle',
+    line.every(point => distanceFrom(point, bend[1]) > 2));
+  const neighbours = sim.smoothLinkLine([[0, 0], [4, 0]]);
+  check('on a short side its ends keep a line between them',
+    neighbours.length === 2 && neighbours[1][0] > neighbours[0][0]);
 }
 
 { // a fibre is cut when a cell it runs through dies, and only then

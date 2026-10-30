@@ -240,8 +240,9 @@ function cellCursor(app) {
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${half} ${half}, crosshair`;
 }
 
-// Each cell is drawn as a still copy of its live test tank cell, at its grid slot. Planned cells (not joined to the
-// body) are washed out, with a dashed outline.
+// Each cell is drawn as a still copy of its live test tank cell, at its grid slot, without what it puts out into the
+// water (a Siphon's puff would cover the cell behind it; the preview window shows it). Planned cells (not joined to
+// the body) are washed out, with a dashed outline.
 function drawDesignCells(app) {
   const context = app.context;
   const liveCells = new Map(app.tank.cells.map(cell => [keyOfCell(cell), cell]));
@@ -250,7 +251,7 @@ function drawDesignCells(app) {
   for (const [key, designCell] of app.edited.cells) {
     const [x, y] = hexToPixel(designCell.q, designCell.r);
     const source = liveCells.get(key) || makeDisplayCell(designCell.typeName, 0, 0);
-    drawCell(context, { ...source, x, y, radius: CELL_RADIUS, creature: atRest }, app.fluidView);
+    drawCell(context, { ...source, x, y, radius: CELL_RADIUS, creature: atRest, isOnGrid: true }, app.fluidView);
     if (joined.has(key)) continue;
     traceHex(context, x, y, HEX_FILL_SIZE);
     context.fillStyle = 'rgba(19,34,40,0.6)';
@@ -355,8 +356,7 @@ function drawVesselRemovalTarget(app) {
   context.strokeStyle = FIBRE_REMOVE_COLOR;
   context.lineWidth = VESSEL_HIGHLIGHT_WIDTH;
   context.lineCap = 'round';
-  context.beginPath();
-  routed.route.hexes.map(keyToPixel).forEach(([x, y]) => context.lineTo(x, y));
+  traceLine(context, smoothLinkLine(routed.route.hexes.map(keyToPixel)));
   context.stroke();
 }
 
@@ -391,8 +391,7 @@ function drawVesselDrag(app) {
   if (isThere) {
     context.strokeStyle = FIBRE_REMOVE_COLOR;
     context.lineWidth = VESSEL_HIGHLIGHT_WIDTH;
-    context.beginPath();
-    points.forEach(([x, y]) => context.lineTo(x, y));
+    traceLine(context, smoothLinkLine(points));
     context.stroke();
   } else {
     drawVessel(context, points, 'pumped', { alpha: 0.9, width: VESSEL_HIGHLIGHT_WIDTH });

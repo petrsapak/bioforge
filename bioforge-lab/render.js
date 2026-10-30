@@ -158,10 +158,13 @@ function drawSparks(context, world) {
 }
 
 // ---------- Blood vessels ----------
-// A vessel as a thin line through its points (its cells' centres, or its lane beside them, as fibres have), with a
-// small dot on each end cell, where blood goes in and out. state: 'pumped' (a light core, like a fibre carrying a
-// signal), 'idle' (fainter) or 'shut' (grey, dashed). style: { color, alpha, width (px) }.
-function drawVessel(context, points, state, { color = VESSEL_COLORS[0], alpha = 1, width = VESSEL_WIDTH } = {}) {
+// A vessel as a thin line along its points (its cells' centres, or its lane beside them, as fibres have), curved
+// through the cells between its ends (see smoothLinkLine), with a small dot at each end, where blood goes in and out.
+// state: 'pumped' (a light core, like a fibre carrying a signal), 'idle' (fainter) or 'shut' (grey, dashed). style:
+// { color, alpha, width (px), gap (px from an end cell's centre to the line's end) }.
+function drawVessel(context, points, state, style = {}) {
+  const { color = VESSEL_COLORS[0], alpha = 1, width = VESSEL_WIDTH, gap = LINK_END_GAP } = style;
+  const line = smoothLinkLine(points, gap);
   const isShut = state === 'shut';
   context.globalAlpha = state === 'idle' ? alpha * VESSEL_IDLE_ALPHA : alpha;
   context.strokeStyle = isShut ? VESSEL_SHUT_COLOR : color;
@@ -170,8 +173,7 @@ function drawVessel(context, points, state, { color = VESSEL_COLORS[0], alpha = 
   context.lineCap = 'round';
   context.lineJoin = 'round';
   if (isShut) context.setLineDash([width * 2, width * 1.5]);
-  context.beginPath();
-  for (const [x, y] of points) context.lineTo(x, y);
+  traceLine(context, line);
   context.stroke();
   context.setLineDash([]);
   if (state === 'pumped') {
@@ -179,7 +181,7 @@ function drawVessel(context, points, state, { color = VESSEL_COLORS[0], alpha = 
     context.lineWidth = width * 0.4;
     context.stroke();
   }
-  for (const [x, y] of [points[0], points[points.length - 1]]) fillCircle(context, x, y, width * 0.9 + 0.4);
+  for (const [x, y] of [line[0], line[line.length - 1]]) fillCircle(context, x, y, width * 0.9 + 0.4);
   context.globalAlpha = 1;
 }
 
@@ -207,17 +209,20 @@ function layOutWorldLinks(world) {
 }
 
 // ---------- Nerve fibres ----------
-// A fibre as a thin line through its points ([x, y]: its cells' centres, or its lane beside them), with a dot where
-// it starts and an arrowhead on its last step. It brightens with the signal it carries (value), and shows a white
-// core while the signal is on. style: { color, alpha, width (px) }.
-function drawFibre(context, points, value, { color = FIBRE_COLOR, alpha = 1, width = FIBRE_WIDTH } = {}) {
+// A fibre as a thin line along its points ([x, y]: its cells' centres, or its lane beside them), curved through the
+// cells between its ends (see smoothLinkLine), with a dot where it starts and an arrowhead where it ends. It brightens
+// with the signal it carries (value), and shows a white core while the signal is on. style: { color, alpha, width
+// (px), gap (px from an end cell's centre to the line's end) }.
+function drawFibre(context, points, value, style = {}) {
+  const { color = FIBRE_COLOR, alpha = 1, width = FIBRE_WIDTH, gap = LINK_END_GAP } = style;
+  const line = smoothLinkLine(points, gap);
   context.globalAlpha = alpha * (0.6 + 0.4 * clamp01(value));
   context.strokeStyle = color;
   context.fillStyle = color;
   context.lineWidth = width;
   context.lineCap = 'round';
   context.lineJoin = 'round';
-  traceFibreLine(context, points);
+  traceLine(context, line);
   context.stroke();
   if (value > SIGNAL_ON) {
     context.strokeStyle = FIBRE_ACTIVE_COLOR;
@@ -226,29 +231,28 @@ function drawFibre(context, points, value, { color = FIBRE_COLOR, alpha = 1, wid
     context.strokeStyle = color;
     context.lineWidth = width;
   }
-  fillCircle(context, points[0][0], points[0][1], width * 0.8 + 0.5);
-  drawFibreArrow(context, points[points.length - 2], points[points.length - 1], width);
+  fillCircle(context, line[0][0], line[0][1], width * 0.8 + 0.5);
+  drawFibreArrow(context, line[line.length - 2], line[line.length - 1], width);
   context.globalAlpha = 1;
 }
 
-function traceFibreLine(context, points) {
+// a path through the points ([x, y]), ready to stroke
+function traceLine(context, points) {
   context.beginPath();
   context.moveTo(points[0][0], points[0][1]);
   for (let i = 1; i < points.length; i++) context.lineTo(points[i][0], points[i][1]);
 }
 
-// a filled arrowhead in the middle of the fibre's last side, pointing toward its end, sized to the line
+// a filled arrowhead with its tip on the fibre's end (to), pointing the way the line runs into it, sized to the line
 function drawFibreArrow(context, [fromX, fromY], [toX, toY], width) {
   const length = vectorLength(toX - fromX, toY - fromY) || 1;
   const directionX = (toX - fromX) / length;
   const directionY = (toY - fromY) / length;
   const size = FIBRE_ARROW_SIZE * Math.max(1, width / FIBRE_WIDTH * 0.7);
-  const tipX = (fromX + toX) / 2 + directionX * size;
-  const tipY = (fromY + toY) / 2 + directionY * size;
   context.beginPath();
-  context.moveTo(tipX - directionX * size * 2 - directionY * size, tipY - directionY * size * 2 + directionX * size);
-  context.lineTo(tipX, tipY);
-  context.lineTo(tipX - directionX * size * 2 + directionY * size, tipY - directionY * size * 2 - directionX * size);
+  context.moveTo(toX - directionX * size * 2 - directionY * size, toY - directionY * size * 2 + directionX * size);
+  context.lineTo(toX, toY);
+  context.lineTo(toX - directionX * size * 2 + directionY * size, toY - directionY * size * 2 - directionX * size);
   context.closePath();
   context.fill();
 }

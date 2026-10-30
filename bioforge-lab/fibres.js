@@ -11,6 +11,9 @@ const FIBRE_LANE_GAP = 2.2;                               // px between fibres s
 const FIBRE_LANE_SPREAD = 6.5;                            // px: the outermost lane's furthest distance from a centre
 const FIBRE_MITER_LIMIT = 2;                              // times the lane offset a corner may stick out
 const FIBRE_LANE_ORDER = [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6];   // lanes tried, from the centre outward
+const LINK_END_GAP = 0.45 * CELL_RADIUS;                  // px from a drawn fibre's or vessel's end to its cell's middle
+const LINK_CORNER_STEPS = 6;                              // straight pieces a rounded bend inside a cell is drawn with
+const LINK_MAX_GAP_SHARE = 0.4;                           // of its first or last side, the most an end gap may take
 
 // The cells a fibre may run through: their hex keys, in the order given, so routes come out the same on every run.
 function createRouteArea(cells) {
@@ -194,6 +197,47 @@ function offsetPolyline(path, offset) {
     const stretch = Math.min(FIBRE_MITER_LIMIT, 2 / sumLength);
     return [stop.x + sumX / sumLength * offset * stretch, stop.y + sumY / sumLength * offset * stretch];
   });
+}
+
+// The line a fibre or vessel is drawn along, from its points ([x, y]: its cells' centres, or its lane beside them).
+// It runs straight across the border between two cells and bends in a curve inside each cell it passes through,
+// instead of turning a sharp corner at the cell's centre. Its ends stop `gap` px short of the end cells' centres, so
+// they show beside the neuron or the cell's symbol instead of under it. Returns [x, y] points.
+function smoothLinkLine(points, gap = LINK_END_GAP) {
+  if (points.length < 2) return points.slice();
+  const halfway = (first, second) => [(first[0] + second[0]) / 2, (first[1] + second[1]) / 2];
+  const line = [pointToward(points[0], points[1], gap)];
+  for (let i = 1; i < points.length - 1; i++) {
+    const enter = halfway(points[i - 1], points[i]);
+    const leave = halfway(points[i], points[i + 1]);
+    for (let step = 0; step <= LINK_CORNER_STEPS; step++) {
+      line.push(quadraticPoint(enter, points[i], leave, step / LINK_CORNER_STEPS));
+    }
+  }
+  line.push(pointToward(points[points.length - 1], points[points.length - 2], gap));
+  return line;
+}
+
+// the point `distance` px from `from` toward `to`, but never more than a share of the way, so a short side keeps a line
+function pointToward(from, to, distance) {
+  const deltaX = to[0] - from[0];
+  const deltaY = to[1] - from[1];
+  const length = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+  if (length === 0) return [from[0], from[1]];
+  const share = Math.min(distance / length, LINK_MAX_GAP_SHARE);
+  return [from[0] + deltaX * share, from[1] + deltaY * share];
+}
+
+// the point at `fraction` (0 to 1) along the curve from `start` to `end` pulled toward `control`
+function quadraticPoint(start, control, end, fraction) {
+  const rest = 1 - fraction;
+  const startWeight = rest * rest;
+  const controlWeight = 2 * rest * fraction;
+  const endWeight = fraction * fraction;
+  return [
+    start[0] * startWeight + control[0] * controlWeight + end[0] * endWeight,
+    start[1] * startWeight + control[1] * controlWeight + end[1] * endWeight,
+  ];
 }
 
 // ---------- Fibres in the world ----------

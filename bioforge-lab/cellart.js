@@ -321,14 +321,15 @@ const CELL_SYMBOLS = {
       strokeIn(context, palette.ink, 0.1);
     }
   },
-  // a nozzle at the back (it faces the creature's heading), and a puff of water while it squirts
+  // a nozzle at the back (it faces the creature's heading), and a puff of water while it squirts, but not on the
+  // builder's grid, where the puff would lie over the cell behind
   siphon(context, cell, palette) {
     context.beginPath();
     context.ellipse(0, 0.35, 0.3, 0.38, 0, 0, TAU);
     fillIn(context, palette.ink);
     tracePolyline(context, [[-0.25, -0.45], [0, -0.2], [0.25, -0.45]]);
     strokeIn(context, palette.ink, 0.1);
-    if (cell.signal <= 0.2 || cell.efficiency <= 0.2) return;
+    if (cell.isOnGrid || cell.signal <= 0.2 || cell.efficiency <= 0.2) return;
     const puffRadius = 0.5 * (0.7 + Math.random() * 0.5);
     traceCircle(context, 0, SIPHON_PUFF_DISTANCE, puffRadius);
     fillIn(context, `rgba(160,220,255,${clamp01(cell.signal * cell.efficiency) * 0.7})`);

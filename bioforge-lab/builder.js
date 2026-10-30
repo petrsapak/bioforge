@@ -563,13 +563,15 @@ function nearestRoutedLink(routed, x, y, reach) {
 }
 
 // The link whose drawn line passes nearest the grid point (x, y), within reach; the one drawn last when tied.
-// drawn: [{ link, points ([x, y] grid px) }]. null if none is in reach.
+// drawn: [{ link, points ([x, y] grid px) }], measured along the curved line they are drawn with (smoothLinkLine).
+// null if none is in reach.
 function nearestLink(drawn, x, y, reach) {
   let nearest = null;
   let nearestDistance = reach;
   for (const { link, points } of drawn) {
-    for (let i = 1; i < points.length; i++) {
-      const distance = distanceToSegment(x, y, points[i - 1], points[i]);
+    const line = smoothLinkLine(points);
+    for (let i = 1; i < line.length; i++) {
+      const distance = distanceToSegment(x, y, line[i - 1], line[i]);
       if (distance <= nearestDistance) {
         nearest = link;
         nearestDistance = distance;

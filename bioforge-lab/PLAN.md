@@ -241,8 +241,8 @@ core.js         constants, hex and math helpers, world (newWorld, newTestTank, r
                 factories, spawn, death and splitting, the system registry, step() and the cell-death hooks (pure);
                 systems: clock 30, cleanup 110, particles 120
 fibres.js       nerve fibre routing from cell centre to cell centre, along drawn routes or the shortest way (vessels
-                use it too), units, side-by-side lanes and colours for drawing, adding fibres to a creature and
-                cutting broken ones (pure)
+                use it too), units, side-by-side lanes and colours for drawing, the curved line fibres and
+                vessels are drawn along, adding fibres to a creature and cutting broken ones (pure)
 physics.js      input, steering, springs, drag, collisions, integration (anchored creatures stay put) (pure);
                 systems: input 10, physics 20
 nerve.js        signals along fibres, senses, the neuron rules (pure); system: nerve 40 (switchable)
