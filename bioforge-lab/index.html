@@ -216,6 +216,7 @@
     </div>
     <div id="dialog-title"></div>
     <div id="dialog-text"></div>
+    <input id="dialog-input" type="text" maxlength="40" spellcheck="false">
     <div id="dialog-buttons">
       <button class="menu-button" id="dialog-cancel">Cancel <kbd>Esc</kbd></button>
       <button class="menu-button primary" id="dialog-confirm"></button>
@@ -235,6 +236,7 @@
       <button class="menu-button" id="menu-save-file" title="Keep the creature in the builder as a file, to back it up or share it">Save creature to a file</button>
       <button class="menu-button" id="menu-load-file" title="Load a creature file into the builder and My creatures">Load creature from a file</button>
       <button class="menu-button" id="menu-settings">Settings</button>
+      <button class="menu-button" id="menu-profile" title="Each player keeps their own creatures, level results and saved run">Profile</button>
       <button class="menu-button" id="menu-main">Main menu</button>
       <button class="menu-button" id="menu-quit">Quit</button>
     </div>
@@ -245,6 +247,13 @@
       <div class="menu-setting" id="setting-fullscreen-row"><span>Fullscreen</span><button class="small" id="setting-fullscreen">Off</button></div>
       <button class="menu-button" id="setting-keys">Keys and mouse</button>
       <button class="menu-button" id="menu-back">Back</button>
+    </div>
+    <div id="menu-profiles-view">
+      <div class="keys-title">Profiles</div>
+      <div class="menu-hint">Each player keeps their own creatures, level results and saved run. Settings are shared.</div>
+      <div id="profile-list"></div>
+      <button class="menu-button" id="profile-new">New profile</button>
+      <button class="menu-button" id="profile-back">Back</button>
     </div>
     <div class="keys-version" id="menu-version"></div>
   </div>

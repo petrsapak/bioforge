@@ -13,6 +13,7 @@ function createProgressState() {
     savedKey: '',                                         // what was saved last, to skip saving it again
     lastSaveTime: 0,                                      // real s (performance.now) of the last check or save
     pendingRun: null,                                     // a run saved last time, until Continue resumes or drops it
+    isSwitchingProfile: false,                            // the page is reloading into another profile: no more saves
   };
 }
 
@@ -56,6 +57,7 @@ function saveDesignIfChanged(app) {
 
 // Saves everything now: the design, the level, and the running level or Sandbox (or the run kept from last time).
 function saveProgress(app) {
+  if (app.progress.isSwitchingProfile) return;            // the page reloads into another profile: keep this one's
   app.progress.savedKey = '';                             // the builder saves again on its next check
   writeStorage('continue', createResumeState(builderDesignEntry(app), app.level ? app.level.id : null,
     currentRunToSave(app)));

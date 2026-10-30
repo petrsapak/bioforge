@@ -7,6 +7,14 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.1 (2026-10-30)
+- Profiles: each player keeps their own creatures, level results, saved run and quick save; the settings are
+  shared. Profile on the main menu lists them: click one to play as them, add a new one, rename or delete one
+  (it asks first). Switching starts the game again at the main menu. What you had before is in a profile called
+  Player.
+- Renaming a saved creature or template asks in the game's own box instead of the browser's.
+- Esc in the builder lets go of the clicked cell (its card closes) before it opens the menu.
+
 ## 0.7.0 (2026-10-30)
 - Milestone 7, the chemical layer: moods. Glands release hormones that spread through the body, seeping from cell to
   cell and riding in the blood, and change how every cell they reach behaves.

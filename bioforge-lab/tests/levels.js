@@ -313,7 +313,7 @@ runFrames(1150);                       // the Jet needs about 17.3 game s, at 16
 check('the Jet swims into the ring: the result box shows a win with 1 star',
   byId('level-result').style.display === 'block' && byId('result-title').textContent === 'Level done' &&
   (byId('result-stars').innerHTML.match(/class="lit"/g) || []).length === 1, byId('result-text').textContent);
-const kept = JSON.parse(storage.items['bioforge-lab-level-results'] || '{}');
+const kept = JSON.parse(storage.items['bioforge-lab-profile-1-level-results'] || '{}');
 check('the win is kept as the best result', kept['first-stroke'] && kept['first-stroke'].stars === 1,
   JSON.stringify(kept));
 byId('result-next').onclick();

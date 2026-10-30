@@ -15,18 +15,30 @@ const escapeHtml = text => String(text).replace(/[&<>"]/g, character => HTML_ESC
 // getItem and setItem), or the browser's localStorage.
 const savedStore = () => window.desktopSaves || localStorage;
 
-// a value saved with writeStorage, or fallback if there is none (or storage is blocked)
+// A value saved with writeStorage, or fallback if there is none (or storage is blocked). The current profile's own
+// values (PROFILE_KEYS in savegame.js: creatures, level results, Continue, quick save) are kept apart per profile.
 function readStorage(name, fallback) {
+  return readSharedStorage(storageName(readSharedStorage('profiles', null), name), fallback);
+}
+
+// keeps a value under name, read back with readStorage
+function writeStorage(name, value) {
+  writeSharedStorage(storageName(readSharedStorage('profiles', null), name), value);
+}
+
+// a value under exactly this name, for every profile, or fallback if there is none (null counts as none: the desktop
+// save file can't remove a value, so a removed one is kept as null)
+function readSharedStorage(name, fallback) {
   try {
     const saved = savedStore().getItem(STORAGE_PREFIX + name);
-    return saved === null ? fallback : JSON.parse(saved);
+    const value = saved === null ? null : JSON.parse(saved);
+    return value === null ? fallback : value;
   } catch (error) {
     return fallback;
   }
 }
 
-// keeps a value under name, read back with readStorage
-function writeStorage(name, value) {
+function writeSharedStorage(name, value) {
   try {
     savedStore().setItem(STORAGE_PREFIX + name, JSON.stringify(value));
   } catch (error) {

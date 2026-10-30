@@ -16,7 +16,7 @@ const pressKeyIn = fire => (key, fields = {}) => {
 };
 const clockOf = byId => parseFloat(byId('hud-enemies').textContent);
 const cellCount = byId => +/Cells: (\d+)/.exec(byId('budget').innerHTML)[1];
-const savedState = storage => JSON.parse(storage.items['bioforge-lab-continue'] || 'null');
+const savedState = storage => JSON.parse(storage.items['bioforge-lab-profile-1-continue'] || 'null');
 
 async function main() {
   // ---------- The main menu on a first start ----------
@@ -29,7 +29,7 @@ async function main() {
   check('with nothing saved yet there is no Continue, and no Quit outside the desktop build',
     !isShown(byId, 'menu-continue') && !isShown(byId, 'menu-quit') && isShown(byId, 'menu-levels') &&
     isShown(byId, 'menu-free-build'));
-  check('the old save was upgraded and carries its version', storage.items['bioforge-lab-save-version'] === '1');
+  check('the old save was upgraded and carries its version', storage.items['bioforge-lab-save-version'] === '2');
   pressKey('2');
   runFrames(1);
   check('the builder\'s keys wait while a menu is open', !byId('layer-nerve').classList.contains('selected'));
@@ -57,6 +57,14 @@ async function main() {
   first.fire('window', 'mouseup', { clientX: GRID_MIDDLE_X, clientY: GRID_MIDDLE_Y, target: byId('game') });
   pressKey('Escape');
   check('with cells selected, Esc lets go of them and opens no menu', byId('menu-sheet').style.display === 'none');
+  first.fire('game', 'mousedown', { clientX: GRID_MIDDLE_X, clientY: GRID_MIDDLE_Y, button: 0, target: byId('game') });
+  first.fire('window', 'mouseup', { clientX: GRID_MIDDLE_X, clientY: GRID_MIDDLE_Y, target: byId('game') });
+  pressKey('2');
+  const cardShown = byId('card').style.display !== 'none';
+  pressKey('Escape');
+  check('with a cell clicked, Esc lets go of it (its card closes) and opens no menu',
+    cardShown && byId('card').style.display === 'none' && byId('menu-sheet').style.display === 'none');
+  pressKey('1');
   pressKey('Escape');
   check('holding nothing, Esc opens the menu', byId('menu-sheet').style.display === 'flex' &&
     byId('menu-title').textContent === 'Menu');
@@ -84,7 +92,7 @@ async function main() {
   pressKey('F8');
   check('F8 with nothing quick saved says so', byId('message').textContent.includes('Nothing quick saved'));
   pressKey('s', { ctrlKey: true });
-  const quickSaved = JSON.parse(storage.items['bioforge-lab-quicksave'] || 'null');
+  const quickSaved = JSON.parse(storage.items['bioforge-lab-profile-1-quicksave'] || 'null');
   check('Ctrl+S quick saves the creature', !!quickSaved && quickSaved.cells.length === starterCells);
   byId('clear-design').onclick({});
   check('Delete all asks first, in the game\'s own red box', byId('dialog-sheet').style.display === 'flex' &&
@@ -182,9 +190,61 @@ async function main() {
   await new Promise(resolve => setImmediate(resolve));
   check('a creature file goes into My creatures and the builder',
     third.byId('my-creatures').children.length === 1 && third.byId('message').innerHTML.includes('Shared eel'));
+  // renaming it asks in the game's own box, with the old name in a field: Enter there renames, Esc keeps it
+  const renameButton = () => third.byId('my-creatures').children[0].children[2];
+  const nameField = third.byId('dialog-input');
+  renameButton().onclick({ stopPropagation() {} });
+  check('renaming asks in the game\'s own box, the old name ready to edit',
+    third.byId('dialog-sheet').style.display === 'flex' && nameField.style.display === '' &&
+    nameField.value === 'Shared eel');
+  nameField.value = 'Long eel';
+  third.fire('dialog-input', 'keydown', { key: 'Enter' });
+  check('Enter in the name field renames it', third.byId('dialog-sheet').style.display === 'none' &&
+    third.readGlobal('JSON.parse(localStorage.getItem("bioforge-lab-profile-1-library"))')[0].name === 'Long eel');
+  renameButton().onclick({ stopPropagation() {} });
+  nameField.value = 'Short eel';
+  third.fire('dialog-input', 'keydown', { key: 'Escape' });
+  check('Esc in the name field keeps the name', third.byId('dialog-sheet').style.display === 'none' &&
+    third.readGlobal('JSON.parse(localStorage.getItem("bioforge-lab-profile-1-library"))')[0].name === 'Long eel');
+  byId('clear-design').onclick({});
+  check('the plain question box has no name field', byId('dialog-input').style.display === 'none');
+  pressKey('Escape');
   chooseFile('notes.json', '{"shopping":["milk"]}');
   await new Promise(resolve => setImmediate(resolve));
   check('another file is refused, saying why', third.byId('message').innerHTML.includes("isn't a Bioforge Lab"));
+
+  // ---------- Profiles ----------
+  const before = startApp(['clear'], { ...third.storage.items }, { atMainMenu: true });
+  const profilesIn = app => JSON.parse(app.storage.items['bioforge-lab-profiles']);
+  check('the main menu shows the profile playing', isShown(before.byId, 'menu-profile') &&
+    before.byId('menu-profile').textContent === 'Profile: Player');
+  before.byId('menu-profile').onclick({});
+  check('Profile lists the profiles, with no Delete for the only one',
+    before.byId('menu-profiles-view').style.display === '' &&
+    before.byId('profile-list').children.length === 1 && before.byId('profile-list').children[0].children.length === 2);
+  before.byId('profile-new').onclick({});
+  before.byId('dialog-input').value = 'Ada';
+  before.byId('dialog-confirm').onclick();
+  check('New profile asks for a name, keeps it as the current profile and starts the game again',
+    profilesIn(before).list.length === 2 && profilesIn(before).current === 2 &&
+    before.readGlobal('Object.keys(localStorage.items)').every(key => !key.startsWith('bioforge-lab-profile-2-')));
+  const ada = startApp(['clear'], { ...before.storage.items }, { atMainMenu: true });
+  check('the new profile starts afresh: nothing to continue, no creatures, the settings kept',
+    ada.byId('menu-profile').textContent === 'Profile: Ada' && !isShown(ada.byId, 'menu-continue') &&
+    ada.byId('my-creatures').children.length === 0 && ada.byId('setting-music').textContent === 'Off');
+  ada.byId('menu-profile').onclick({});
+  ada.byId('profile-list').children[0].children[0].onclick();
+  const back = startApp(['clear'], { ...ada.storage.items }, { atMainMenu: true });
+  check('switching back brings the first profile\'s creatures and run back',
+    back.byId('menu-profile').textContent === 'Profile: Player' && isShown(back.byId, 'menu-continue') &&
+    back.byId('my-creatures').children.length === 1);
+  back.byId('menu-profile').onclick({});
+  back.byId('profile-list').children[1].children[2].onclick();
+  check('deleting a profile asks first, in red', back.byId('dialog-box').classList.contains('dangerous'));
+  back.byId('dialog-confirm').onclick();
+  check('deleting another profile keeps playing this one, and its saves are gone', profilesIn(back).list.length === 1 &&
+    profilesIn(back).current === 1 && back.byId('profile-list').children.length === 1 &&
+    [undefined, 'null'].includes(back.storage.items['bioforge-lab-profile-2-library']));
 
   done();
 }

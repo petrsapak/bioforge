@@ -6,7 +6,8 @@ const { check, done } = require('./check');
 const { X: sim } = load({}, ['LEVELS', 'TEMPLATES', 'CELLS', 'GAME_VERSION', 'SAVE_VERSION', 'startLevel',
   'stepLevel', 'newWorld', 'spawn', 'step', 'takeSnapshot', 'restoreSnapshot', 'indexDataObjects', 'savedRun',
   'restoredRun', 'runDataIndex', 'createResumeState', 'readResumeState', 'creatureFileText', 'creatureFileName',
-  'readCreatureFile', 'upgradeStoredSave']);
+  'readCreatureFile', 'upgradeStoredSave', 'createProfiles', 'storageName', 'addProfile', 'renameProfile',
+  'switchProfile', 'removeProfile', 'currentProfile']);
 
 const STEP_SECONDS = 1 / 40;
 const STEPS_BEFORE_SAVE = 160;                            // 4 game s
@@ -126,7 +127,9 @@ for (const level of sim.LEVELS) {
     stored[name] = value;
   };
   check('a save without a version is upgraded from version 0', sim.upgradeStoredSave(read, write) === 0);
-  const [upgraded] = stored.library;
+  const [upgraded] = stored['profile-1-library'];
+  check('the upgrade moves the save into the first profile, named Player',
+    stored.library === null && stored.profiles.current === 1 && stored.profiles.list[0].name === 'Player');
   check('the upgrade stores the library in the current format',
     upgraded.isCreature && upgraded.cells[1].typeName === 'tissue' && upgraded.cells[1].neuron.kind === 'pacemaker' &&
     Array.isArray(upgraded.fibres));
@@ -136,6 +139,23 @@ for (const level of sim.LEVELS) {
   sim.upgradeStoredSave(read, write);
   check('a save from a newer game is left as it is',
     stored.library === 'from the future' && stored['save-version'] === sim.SAVE_VERSION + 1);
+}
+
+// ---------- Profiles ----------
+{
+  const first = sim.createProfiles();
+  check('a profile\'s own values get its own storage name; settings stay shared',
+    sim.storageName(first, 'library') === 'profile-1-library' && sim.storageName(first, 'music-off') === 'music-off' &&
+    sim.storageName(null, 'library') === 'library');
+  const two = sim.addProfile(first, 'Ada');
+  check('a new profile gets the next id and becomes current', two.current === 2 &&
+    sim.currentProfile(two).name === 'Ada' && sim.storageName(two, 'continue') === 'profile-2-continue');
+  check('renaming and switching keep the rest', sim.renameProfile(two, 1, 'Bo').list[0].name === 'Bo' &&
+    sim.switchProfile(two, 1).current === 1 && sim.switchProfile(two, 9).current === 2);
+  const removed = sim.removeProfile(two, 2);
+  check('deleting the current profile makes the first one current; ids are never reused',
+    removed.list.length === 1 && removed.current === 1 && sim.addProfile(removed, 'Cy').current === 3);
+  check('the last profile can\'t be deleted', sim.removeProfile(first, 1) === first);
 }
 
 done();

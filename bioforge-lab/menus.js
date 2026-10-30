@@ -6,7 +6,7 @@
 // the buttons each menu shows, top to bottom; each is #menu-<name> in index.html. The Esc menu's set depends on the
 // mode it opened over.
 const MENU_BUTTONS = {
-  main: ['continue', 'levels', 'free-build', 'settings', 'quit'],
+  main: ['continue', 'levels', 'free-build', 'settings', 'profile', 'quit'],
   build: ['resume', 'save-file', 'load-file', 'settings', 'main', 'quit'],
   level: ['resume', 'retry', 'builder', 'settings', 'main', 'quit'],
   sandbox: ['resume', 'builder', 'settings', 'main', 'quit'],
@@ -17,7 +17,7 @@ const ALL_MENU_BUTTONS = [...new Set(Object.values(MENU_BUTTONS).flat())];
 function createMenuState() {
   return {
     open: null,                                           // 'main' or 'pause' (the Esc menu); null: no menu
-    view: 'buttons',                                      // or 'settings'
+    view: 'buttons',                                      // or 'settings' or 'profiles'
     pausedBefore: false,                                  // whether the run was paused before the Esc menu paused it
   };
 }
@@ -48,6 +48,7 @@ function setUpMenus(app) {
       chooseCreatureFile();
     },
     settings: () => showMenuView(app, 'settings'),
+    profile: () => showMenuView(app, 'profiles'),
     main: () => enterTitle(app, () => {
       app.menu.open = 'main';
       showMenuView(app, 'buttons');
@@ -56,6 +57,7 @@ function setUpMenus(app) {
   };
   for (const name of ALL_MENU_BUTTONS) onSandboxButton('menu-' + name, actions[name]);
   setUpSettings(app);
+  setUpProfiles(app);
   byId('menu-version').textContent = 'Version ' + GAME_VERSION;
   openMainMenu(app);
 }
@@ -123,9 +125,12 @@ function showMenuView(app, view) {
     byId('menu-' + name).style.display = shown.includes(name) && isMenuButtonUsable(app, name) ? '' : 'none';
   }
   byId('menu-continue').textContent = continueLabel(app);
+  byId('menu-profile').textContent = `Profile: ${currentProfile(readProfiles()).name}`;
   byId('menu-title').textContent = isMain ? 'Bioforge' : app.mode === 'build' ? 'Menu' : 'Paused';
   byId('menu-buttons').style.display = view === 'buttons' ? '' : 'none';
   byId('menu-settings-view').style.display = view === 'settings' ? '' : 'none';
+  byId('menu-profiles-view').style.display = view === 'profiles' ? '' : 'none';
+  if (view === 'profiles') showProfiles(app);
   byId('menu-sheet').style.display = 'flex';
   showTitleLayout(app);
   showSettings(app);
@@ -152,8 +157,94 @@ function handleMenuKey(app, key) {
   showSettings(app);
   if (key !== 'escape') return;
   if (byId('keys-sheet').style.display === 'flex') toggleKeysSheet();
-  else if (app.menu.view === 'settings') showMenuView(app, 'buttons');
+  else if (app.menu.view !== 'buttons') showMenuView(app, 'buttons');
   else if (app.menu.open === 'pause' && !isDimmingToAction(app)) closeMenu(app);
+}
+
+// ---------- Profiles ----------
+// the saved profile list (a save from before profiles has been upgraded to one at start)
+const readProfiles = () => readSharedStorage('profiles', null) || createProfiles();
+
+function setUpProfiles(app) {
+  onSandboxButton('profile-new', () => askForName(
+    { title: 'New profile', text: 'A name for the new player. The game starts again in their profile.',
+      confirmLabel: 'Add' }, '', name => {
+      if (cleanName(name)) changeProfiles(app, addProfile(readProfiles(), cleanName(name)));
+    }));
+  onSandboxButton('profile-back', () => showMenuView(app, 'buttons'));
+}
+
+// a row per profile: its name (the current one marked; a click on another plays it), rename and delete
+function showProfiles(app) {
+  const profiles = readProfiles();
+  const list = byId('profile-list');
+  list.innerHTML = '';
+  for (const profile of profiles.list) {
+    const row = document.createElement('div');
+    row.className = 'profile-row';
+    const isCurrent = profile.id === profiles.current;
+    const name = profileButton('menu-button' + (isCurrent ? ' current' : ''), profile.name,
+      isCurrent ? 'Playing now' : 'Play as ' + profile.name,
+      () => !isCurrent && changeProfiles(app, switchProfile(readProfiles(), profile.id)));
+    row.appendChild(name);
+    row.appendChild(profileButton('small', '✎', 'Rename', () => renameProfileAsked(app, profile)));
+    if (profiles.list.length > 1) {
+      row.appendChild(profileButton('small', '✕', 'Delete', () => deleteProfileAsked(app, profile)));
+    }
+    list.appendChild(row);
+  }
+}
+
+function profileButton(className, text, title, onClick) {
+  const button = document.createElement('button');
+  button.className = className;
+  button.textContent = text;
+  button.title = title;
+  button.onclick = onClick;
+  return button;
+}
+
+function renameProfileAsked(app, profile) {
+  askForName({ title: 'Rename profile', text: `A new name for ${profile.name}.`, confirmLabel: 'Rename' },
+    profile.name, name => {
+      if (!cleanName(name)) return;
+      writeSharedStorage('profiles', renameProfile(readProfiles(), profile.id, cleanName(name)));
+      showMenuView(app, 'profiles');
+    });
+}
+
+// asks first; the profile's creatures, results and saved run go with it
+function deleteProfileAsked(app, profile) {
+  askToConfirm({
+    title: 'Delete this profile?',
+    text: `${profile.name}'s creatures, level results and saved run go for good.`,
+    confirmLabel: 'Delete',
+    isDangerous: true,
+  }, () => {
+    for (const name of PROFILE_KEYS) writeSharedStorage(profileKey(profile.id, name), null);
+    const profiles = readProfiles();
+    const remaining = removeProfile(profiles, profile.id);
+    if (remaining.current === profiles.current) {
+      writeSharedStorage('profiles', remaining);
+      showMenuView(app, 'profiles');
+      return;
+    }
+    changeProfiles(app, remaining, false);
+  });
+}
+
+// Keeps the new profile list and starts the game again in its current profile, after saving where this one is
+// (unless it was just deleted: shouldSave false).
+function changeProfiles(app, profiles, shouldSave = true) {
+  if (shouldSave) saveProgress(app);
+  writeSharedStorage('profiles', profiles);
+  app.progress.isSwitchingProfile = true;
+  restartGame();
+}
+
+// the page loads again, at the main menu (in the tests' fake browser there is no reload)
+function restartGame() {
+  if (typeof location !== 'undefined' && location.reload) location.reload();
 }
 
 // ---------- Settings ----------

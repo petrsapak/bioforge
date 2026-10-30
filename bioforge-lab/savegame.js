@@ -1,8 +1,11 @@
 'use strict';
-// What the game keeps beyond its settings: the save's version and the steps that upgrade older saves, the state
-// Continue picks up (the builder's design, the chosen level, a running level or Sandbox), and creature files (pure).
+// What the game keeps beyond its settings: the save's version and the steps that upgrade older saves, the players'
+// profiles, the state Continue picks up (the builder's design, the chosen level, a running level or Sandbox), and
+// creature files (pure).
 
-const SAVE_VERSION = 1;                                   // the save's format; a new one adds a step to SAVE_UPGRADES
+const SAVE_VERSION = 2;                                   // the save's format; a new one adds a step to SAVE_UPGRADES
+const PROFILE_KEYS = ['continue', 'level-results', 'library', 'quicksave'];   // kept per profile; the rest is shared
+const FIRST_PROFILE_NAME = 'Player';                      // the profile an older save moves into
 const CREATURE_FILE_KIND = 'bioforge-lab-creature';       // marks a JSON file as a creature saved by this game
 const CREATURE_FILE_VERSION = 1;                          // the creature file's format
 const CREATURE_FILE_EXTENSION = '.bioforge.json';
@@ -16,6 +19,16 @@ const SAVE_UPGRADES = [
     const library = read('library', null);
     if (Array.isArray(library)) write('library', library.map(migrateLibraryEntry));
   },
+  // 1 → 2 (2026-10-30): the save became profiles; what there was moves into the first one
+  (read, write) => {
+    for (const name of PROFILE_KEYS) {
+      const value = read(name, null);
+      if (value === null) continue;
+      write(profileKey(1, name), value);
+      write(name, null);
+    }
+    write('profiles', createProfiles());
+  },
 ];
 
 // Brings the stored save up to SAVE_VERSION; a save from a newer game is left as it is. Returns the version found.
@@ -25,6 +38,45 @@ function upgradeStoredSave(read, write) {
   for (let i = version; i < SAVE_VERSION; i++) SAVE_UPGRADES[i](read, write);
   write('save-version', SAVE_VERSION);
   return version;
+}
+
+// ---------- Profiles ----------
+// The one place the profile list is built: one profile, the first player's. list: [{ id, name }] in the order they
+// were added; current: the id of the profile playing; nextId: the id the next new profile gets (ids are never reused,
+// so a deleted profile's saves can't come back under a new one).
+function createProfiles() {
+  return { list: [{ id: 1, name: FIRST_PROFILE_NAME }], current: 1, nextId: 2 };
+}
+
+// the storage name a profile's value is kept under
+const profileKey = (id, name) => `profile-${id}-${name}`;
+
+// the storage name a value is kept under: the current profile's own for PROFILE_KEYS, the shared one otherwise
+function storageName(profiles, name) {
+  return profiles && PROFILE_KEYS.includes(name) ? profileKey(profiles.current, name) : name;
+}
+
+const currentProfile = profiles => profiles.list.find(profile => profile.id === profiles.current);
+
+// the profiles with a new one added and made current
+function addProfile(profiles, name) {
+  const id = profiles.nextId;
+  return { list: [...profiles.list, { id, name }], current: id, nextId: id + 1 };
+}
+
+function renameProfile(profiles, id, name) {
+  return { ...profiles, list: profiles.list.map(profile => (profile.id === id ? { ...profile, name } : profile)) };
+}
+
+function switchProfile(profiles, id) {
+  return profiles.list.some(profile => profile.id === id) ? { ...profiles, current: id } : profiles;
+}
+
+// The profiles without this one; the last one can't go. Deleting the current profile makes the first one current.
+function removeProfile(profiles, id) {
+  if (profiles.list.length <= 1) return profiles;
+  const list = profiles.list.filter(profile => profile.id !== id);
+  return { ...profiles, list, current: profiles.current === id ? list[0].id : profiles.current };
 }
 
 // ---------- Continue ----------

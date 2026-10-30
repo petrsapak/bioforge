@@ -89,7 +89,7 @@ function createApp(canvas) {
 }
 
 function boot() {
-  upgradeStoredSave(readStorage, writeStorage);           // before anything reads the save
+  upgradeStoredSave(readSharedStorage, writeSharedStorage);   // before anything reads the save
   const app = createApp(byId('game'));
   fitCanvasToWindow(app);
   addEventListener('resize', () => {
@@ -222,11 +222,15 @@ function useLibraryEntry(app, entry) {
   refreshPanel(app);
 }
 
+// asks for a new name in the game's own box; an empty name keeps the old one
 function renameLibraryEntry(app, entry) {
-  const name = prompt(entry.isCreature ? 'Creature name' : 'Template name', entry.name);
-  if (!name || !cleanName(name)) return;
-  entry.name = cleanName(name);
-  saveAndShowLibrary(app);
+  const kind = entry.isCreature ? 'creature' : 'template';
+  askForName({ title: `Rename this ${kind}`, text: `A new name for "${entry.name}".`, confirmLabel: 'Rename' },
+    entry.name, name => {
+      if (!cleanName(name)) return;
+      entry.name = cleanName(name);
+      saveAndShowLibrary(app);
+    });
 }
 
 function removeLibraryEntry(app, entry) {
@@ -437,11 +441,12 @@ function closeOpenSheet() {
   return openSheets.length > 0;
 }
 
-// Drops what the mouse holds: a drag, a stamp or the selection. False if it held nothing.
+// Drops what the mouse holds: a drag, a stamp, the selection or the clicked cell. False if it held nothing.
 function letGoOfWhatIsInHand(app) {
   const isHolding = app.partDrag || app.aimDragKey || app.fibreDrag || app.vesselDrag || app.stamp ||
-    app.selection.size > 0;
+    app.selection.size > 0 || app.focusKey;   // the clicked cell too (user, 2026-10-30: "d - yes")
   if (!isHolding) return false;
+  app.focusKey = null;
   app.partDrag = null;
   app.aimDragKey = null;
   app.fibreDrag = null;

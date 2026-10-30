@@ -501,7 +501,13 @@ button.small.run:hover { background: #4a8044; }
   color: #b9c3cd;
 }
 #menu-title { margin-bottom: 16px; color: #e8c547; font-size: 22px; font-weight: 600; text-align: center; }
-#menu-buttons, #menu-settings-view { display: flex; flex-direction: column; gap: 6px; }
+#menu-buttons, #menu-settings-view, #menu-profiles-view { display: flex; flex-direction: column; gap: 6px; }
+.menu-hint { color: #8a98a3; font-size: 12px; line-height: 1.4; margin-bottom: 4px; }
+#profile-list { display: flex; flex-direction: column; gap: 4px; }
+.profile-row { display: flex; gap: 4px; }
+.profile-row .menu-button { flex: 1; text-align: left; }
+.profile-row .menu-button.current { border-color: #e8c547; color: #f2e39b; }
+.profile-row button.small { flex: 0 0 34px; }
 .menu-button {
   padding: 9px 12px; background: #1c2a31; color: #dfe4ea; border: 1px solid #2c3f48; border-radius: 6px;
   cursor: pointer; font: inherit; font-size: 15px;
@@ -534,6 +540,11 @@ button.small.run:hover { background: #4a8044; }
 #dialog-title { color: #dfe4ea; font-size: 19px; font-weight: 600; }
 #dialog-box.dangerous #dialog-title { color: #ff9a9e; }
 #dialog-text { margin: 8px 0 20px; font-size: 13px; line-height: 1.5; }
+#dialog-input {
+  width: 100%; box-sizing: border-box; margin: -8px 0 20px; padding: 8px 10px; border-radius: 6px;
+  border: 1px solid #3a4a55; background: #0f171d; color: #dfe4ea; font: 14px system-ui, sans-serif;
+}
+#dialog-input:focus { outline: none; border-color: #e8c547; }
 #dialog-buttons { display: flex; gap: 8px; }
 #dialog-buttons .menu-button { flex: 1; }
 #dialog-buttons kbd { margin-left: 4px; color: #6f7f8a; font: 10px system-ui, sans-serif; }
@@ -559,7 +570,7 @@ button.small.run:hover { background: #4a8044; }
   text-align: left; text-shadow: 0 0 18px #f2d36b66, 0 0 42px #f2d36b33;
 }
 #menu-sheet.leaving #menu-box { opacity: 0; transform: translateX(-16px); }
-body.title-shown > :not(#game):not(#menu-sheet):not(#screen-fade):not(#keys-sheet):not(audio):not(script) {
+body.title-shown > :not(#game):not(#menu-sheet):not(#screen-fade):not(#keys-sheet):not(#dialog-sheet):not(audio):not(script) {
   visibility: hidden;
 }
 #screen-fade { position: absolute; inset: 0; display: none; z-index: 50; background: #000; pointer-events: none; }
