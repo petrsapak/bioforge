@@ -70,6 +70,7 @@ function makeFloating(windowElement, handle, name) {
     windowElement.style.left = Math.max(0, Math.min(innerWidth - WINDOW_MIN_VISIBLE_WIDTH, left)) + 'px';
     windowElement.style.top = Math.max(0, Math.min(innerHeight - WINDOW_MIN_VISIBLE_HEIGHT, top)) + 'px';
     windowElement.style.right = 'auto';
+    windowElement.style.bottom = 'auto';                  // the HUD's vitals start anchored to the bottom
   });
   const save = () => saveWindow(windowElement, storageName);
   addEventListener('mouseup', () => {
@@ -86,6 +87,7 @@ function restoreWindow(windowElement, saved) {
     left: saved.left + 'px',
     top: saved.top + 'px',
     right: 'auto',
+    bottom: 'auto',
     width: saved.width + 'px',
     height: saved.height ? saved.height + 'px' : '',
   });

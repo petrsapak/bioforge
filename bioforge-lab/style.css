@@ -386,7 +386,7 @@ button.small.primary:hover { background: #3d6b38; }
 #hud-enemies { color: #ff8a7a; }
 #hud-vitals {
   position: absolute; left: 14px; bottom: 14px; width: 270px; padding: 10px 12px 8px; background: #0e181dd9;
-  border: 1px solid #2c4650; border-radius: 10px; box-shadow: 0 4px 18px #0009;
+  border: 1px solid #2c4650; border-radius: 10px; box-shadow: 0 4px 18px #0009; pointer-events: auto; cursor: move;
 }
 .hud-bar {
   display: grid; grid-template-columns: 58px 1fr 40px; align-items: center; gap: 8px; margin: 5px 0; font-size: 11px;

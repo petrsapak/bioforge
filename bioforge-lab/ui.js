@@ -132,11 +132,12 @@ function fitCanvasToWindow(app) {
   app.canvas.height = innerHeight;
 }
 
-// makes the preview, library and traces windows foldable
+// makes the preview, library and traces windows foldable, and the Sandbox HUD's vitals movable
 function setUpWindows(app) {
   app.isPreviewCollapsed = makeCollapsible(byId('preview'), byId('preview-bar'), byId('preview-toggle'), 'preview');
   makeCollapsible(byId('library'), byId('library-bar'), byId('library-toggle'), 'library');
   app.isTracesCollapsed = makeCollapsible(byId('traces'), byId('traces-bar'), byId('traces-toggle'), 'traces');
+  makeFloating(byId('hud-vitals'), byId('hud-vitals'), 'hud-vitals');
   showTracesWindow(app);
 }
 

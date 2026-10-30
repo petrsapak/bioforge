@@ -5,7 +5,8 @@ const { startApp, SCREEN_HEIGHT } = require('./dom');
 const { check, done } = require('./check');
 
 const ENEMY_DESIGNS = ['wiggler', 'squirter', 'nettler', 'puffer', 'starter', 'eel', 'jelly', 'manta', 'crab'];
-const { byId, fire, runFrames, templateButton } = startApp();
+const storedItems = {};
+const { byId, fire, runFrames, templateButton } = startApp(storedItems);
 
 const enemyCount = () => +/Enemies (\d+)/.exec(byId('hud-enemies').textContent)[1];
 const playerAlive = () => byId('hud-dead').style.display === 'none';
@@ -116,4 +117,14 @@ check('C turns the chemical lens on: its legend shows, and the run goes on drawi
 pressKey('c');
 check('C again turns it off', byId('lens-legend').style.display === 'none' &&
   !byId('chemical-lens').classList.contains('selected'));
+// ---------- The vitals panel moves ----------
+const vitals = byId('hud-vitals');
+Object.assign(vitals, { offsetLeft: 14, offsetTop: 500, offsetWidth: 270 });  // the fake DOM has no layout
+fire('hud-vitals', 'mousedown', { clientX: 100, clientY: 600, target: vitals });
+fire('window', 'mousemove', { clientX: 400, clientY: 300 });
+fire('window', 'mouseup', {});
+const savedPlace = Object.keys(storedItems).find(key => key.endsWith('window-hud-vitals'));
+check('the vitals panel is dragged by its body, no longer held to the bottom, and its place is remembered',
+  vitals.style.left === '314px' && vitals.style.top === '200px' && vitals.style.bottom === 'auto' && !!savedPlace,
+  `${vitals.style.left} ${vitals.style.top} ${savedPlace}`);
 done();

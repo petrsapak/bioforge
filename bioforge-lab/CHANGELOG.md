@@ -7,6 +7,9 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.6 (2026-10-30)
+- The box with the signals and the vitals in a run can be dragged anywhere on the screen, and stays where you put it.
+
 ## 0.7.5 (2026-10-30)
 - The Templates window is redesigned. It has three tabs, My creatures, My parts and Examples, and shows every
   creature and part as a card with its picture, its name, how many cells it has and its biomass. A creature that
