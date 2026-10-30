@@ -7,6 +7,13 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.3 (2026-10-30)
+- Symmetry now covers wiring too. With an axis on, a neuron put into a cell goes into its mirror cell as well, and
+  so do its setting and a Receptor's hormone; a fibre or vessel laid, rerouted or taken out is copied onto the
+  mirror cells. While you drag, faint copies show where they will go. A fibre between two mirrored cells gets no
+  copy running back the other way, as the two would signal each other in a loop. Command keys aren't copied, so
+  the left and right sides can still be steered apart.
+
 ## 0.7.2 (2026-10-30)
 - Hormones leak into the water. Every cell gives off a scent of the hormones it holds, and takes in what the
   water around it holds more of than it does, so moods are catching: swim through another creature's Calm and

@@ -604,8 +604,8 @@ function handleNerveMouseDown(app, event, q, r) {
   if (event.button === 2) {
     const target = nerveRemovalTarget(app.edited, screenToGrid(app, event.clientX, event.clientY));
     if (!target) return;
-    if (target.fibre) removeFibre(app.edited, target.fibre);
-    else removeNeuron(app.edited, target.neuronKey);
+    if (target.fibre) removeFibreMirrored(app.edited, target.fibre, app.mirrorAxes);
+    else removeNeuronMirrored(app.edited, target.neuronKey, app.mirrorAxes);
     playSound(app, 'remove');
     rebuildTank(app);
     return;
@@ -626,12 +626,13 @@ function finishFibreDrag(app, hex) {
   const toKey = hexKey(...hex);
   const cell = app.edited.cells.get(fromKey);
   if (toKey === fromKey && !cell.neuron) {
-    placeNeuron(app.edited, fromKey, app.selectedNeuron);
+    placeNeuronMirrored(app.edited, fromKey, app.selectedNeuron, app.mirrorAxes);
     playSound(app, 'place');
   } else {
     const pathKeys = extendFibrePath(app.edited, app.fibreDrag.pathKeys, toKey);
     const isDrawn = pathKeys.length > 1 && pathKeys[pathKeys.length - 1] === toKey;
-    const result = toggleFibre(app.edited, fromKey, toKey, isDrawn ? pathKeys.slice(1, -1) : null);
+    const viaKeys = isDrawn ? pathKeys.slice(1, -1) : null;
+    const result = toggleFibreMirrored(app.edited, fromKey, toKey, viaKeys, app.mirrorAxes);
     if (result) playSound(app, result === 'removed' ? 'remove' : 'wire');
   }
   rebuildTank(app);
@@ -644,7 +645,7 @@ function handleVesselMouseDown(app, event, q, r) {
   if (event.button === 2) {
     const vessel = vesselRemovalTarget(app.edited, screenToGrid(app, event.clientX, event.clientY));
     if (!vessel) return;
-    removeVessel(app.edited, vessel);
+    removeVesselMirrored(app.edited, vessel, app.mirrorAxes);
     playSound(app, 'remove');
     rebuildTank(app);
     return;
@@ -657,7 +658,7 @@ function handleVesselMouseDown(app, event, q, r) {
 
 // letting go on another cell lays a vessel to it, or removes the one already there
 function finishVesselDrag(app, hex) {
-  const result = toggleVessel(app.edited, app.vesselDrag.fromKey, hexKey(...hex));
+  const result = toggleVesselMirrored(app.edited, app.vesselDrag.fromKey, hexKey(...hex), app.mirrorAxes);
   if (!result) return;
   playSound(app, result === 'laid' ? 'vessel' : 'remove');
   rebuildTank(app);

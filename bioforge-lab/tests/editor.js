@@ -117,3 +117,37 @@ check('the side column (Creature card, How to) keeps a fixed width',
   }
   check('every cell and neuron tooltip demo starts and runs', failed.length === 0, failed.join('; '));
 }
+
+{ // symmetry in the Nerves and Vessels views (user, 2026-10-30: "I want the nerve fibres, functions and vessels to
+  // follow symetry as well"). The Starter's Gill (-1, 0) mirrors its Tissue (1, 0) across the front-to-back axis,
+  // and its two Cilia (-1, 1) and (0, 1) mirror each other.
+  const dragFrom = ([fromQ, fromR], [toQ, toR]) => {
+    moveMouseTo(fromQ, fromR);
+    fire('game', 'mousedown', { ...screenPointOf(fromQ, fromR), button: 0, target: canvas });
+    moveMouseTo(toQ, toR);
+    runFrames(1);                                         // draws the drag and its mirrored copies
+    fire('window', 'mouseup', { ...screenPointOf(toQ, toR), target: canvas });
+    runFrames(1);
+  };
+  const frontAxis = byId('mirror-dial').children[readGlobal('FRONT_TO_BACK_AXIS')];
+  frontAxis.onclick();
+  pressKey('2');
+  runFrames(1);
+  const fibresBefore = fibreUnitsShown();
+  dragFrom([1, 0], [0, 1]);
+  check('with the front-to-back axis on, a fibre is laid on its mirror image too',
+    fibreUnitsShown() === fibresBefore + 2, String(fibreUnitsShown()));
+  dragFrom([1, 0], [0, 1]);
+  check('and dragging it again removes both', fibreUnitsShown() === fibresBefore, String(fibreUnitsShown()));
+  pressKey('3');
+  runFrames(1);
+  dragFrom([1, 0], [0, 1]);
+  const oneVessel = vesselUnitsShown();
+  dragFrom([1, 0], [0, 1]);
+  frontAxis.onclick();
+  dragFrom([1, 0], [0, 1]);
+  check('a vessel is laid on its mirror image too, and with the axis off only the one dragged',
+    oneVessel === 2 * vesselUnitsShown() && oneVessel > 0, `${oneVessel} then ${vesselUnitsShown()}`);
+  dragFrom([1, 0], [0, 1]);
+  pressKey('1');
+}

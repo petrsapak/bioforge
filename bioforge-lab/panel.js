@@ -34,12 +34,16 @@ function wirePanelButtons(app) {
     };
   };
   onClick('reset-bud-aim', () => resetBudAim(app.edited, app.focusKey));
-  onClick('neuron-setting-down', () => changeNeuronSetting(app.edited, app.focusKey, -1));
-  onClick('neuron-setting-up', () => changeNeuronSetting(app.edited, app.focusKey, 1));
+  // each change is copied onto the mirrored cells too, across the axes on when the button is clicked
+  onClick('neuron-setting-down', () => changeNeuronSettingMirrored(app.edited, app.focusKey, -1, app.mirrorAxes));
+  onClick('neuron-setting-up', () => changeNeuronSettingMirrored(app.edited, app.focusKey, 1, app.mirrorAxes));
   for (const hormone of HORMONES) {
-    onClick('sense-' + hormone.id, () => setSensedHormone(app.edited, app.focusKey, hormone.id));
+    onClick('sense-' + hormone.id,
+      () => setSensedHormoneMirrored(app.edited, app.focusKey, hormone.id, app.mirrorAxes));
   }
-  app.cardFibres.forEach((fibre, i) => onClick('remove-fibre-' + i, () => removeFibre(app.edited, fibre)));
+  app.cardFibres.forEach((fibre, i) => {
+    onClick('remove-fibre-' + i, () => removeFibreMirrored(app.edited, fibre, app.mirrorAxes));
+  });
   const guideButton = byId('card-guide');
   if (guideButton) guideButton.onclick = () => openGuideFromBuilder(app);
   const info = byId('info');

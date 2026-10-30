@@ -57,7 +57,8 @@ function clearDesign(app) {
 }
 
 // The Symmetry button opens a dial of the six axes through the Nucleus; each one clicked turns on or off. Cells
-// placed or removed in the Body view are mirrored across every axis that is on (builder.js).
+// placed or removed in the Body view are mirrored across every axis that is on, and so are neurons, their settings,
+// fibres and vessels in the Nerves and Vessels views (builder.js).
 function setUpMirrorMenu(app) {
   const dial = byId('mirror-dial');
   for (let axisTurns = 0; axisTurns < MIRROR_AXIS_COUNT; axisTurns++) {

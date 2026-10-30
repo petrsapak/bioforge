@@ -33,6 +33,7 @@ const VESSEL_BODY_VIEW_WIDTH = 0.8;                       // grid px
 const VESSEL_BODY_VIEW_ALPHA = 0.35;
 const VESSEL_HIGHLIGHT_WIDTH = 2.2;                       // grid px: a vessel being laid
 const MIRROR_AXIS_COLOR = 'rgba(126,200,240,0.55)';
+const MIRROR_GHOST_ALPHA = 0.45;                          // the copies the axes will make of a fibre or vessel
 const SAME_TYPE_COLOR = '#7fe8ff';                        // Shift: the outline on every cell of the chosen type
 const SAME_TYPE_SHADE = 'rgba(11,20,24,0.55)';            // Shift: laid over the other cells
 const SAME_TYPE_COUNT_Y = 112;                             // px from the top: the Shift count, under the limits
@@ -383,6 +384,10 @@ function drawVesselDrag(app) {
   }
   const isThere = app.edited.vessels.some(vessel => isVesselBetween(vessel, fromKey, toKey));
   const points = route.hexes.map(keyToPixel);
+  if (!isThere) {
+    drawMirroredDrags(app, route.hexes, (mirrored, alpha) =>
+      drawVessel(context, mirrored, 'pumped', { alpha, width: VESSEL_HIGHLIGHT_WIDTH }));
+  }
   if (isThere) {
     context.strokeStyle = FIBRE_REMOVE_COLOR;
     context.lineWidth = VESSEL_HIGHLIGHT_WIDTH;
@@ -431,6 +436,19 @@ function drawNeuronGhost(app) {
   const [x, y] = hexToPixel(...app.hoverHex);
   const ghost = { x, y, neuron: { kind: app.selectedNeuron }, signal: 0, boundKey: null };
   drawNeuronBadge(app.context, ghost, CELL_RADIUS * 0.9, NEURON_GHOST_ALPHA);
+  for (const twinKey of mirrorTwinKeys(app.edited, hexKey(...app.hoverHex), app.mirrorAxes)) {
+    if (app.edited.cells.get(twinKey).neuron) continue;
+    const [twinX, twinY] = keyToPixel(twinKey);
+    drawNeuronBadge(app.context, { ...ghost, x: twinX, y: twinY }, CELL_RADIUS * 0.9, NEURON_GHOST_ALPHA * 0.6);
+  }
+  app.context.globalAlpha = 1;
+}
+
+// faint copies of a fibre or vessel being drawn (pathKeys) where the axes on will copy it: drawPath(points, alpha)
+function drawMirroredDrags(app, pathKeys, drawPath) {
+  for (const path of mirrorKeyPaths(app.edited, pathKeys, app.mirrorAxes)) {
+    if (path.every(key => app.edited.cells.has(key))) drawPath(path.map(keyToPixel), MIRROR_GHOST_ALPHA);
+  }
   app.context.globalAlpha = 1;
 }
 
@@ -448,6 +466,10 @@ function drawFibreDrag(app) {
   const points = pathKeys.map(keyToPixel);
   const endKey = pathKeys[pathKeys.length - 1];
   const isOnEnd = pathKeys.length > 1 && !!app.hoverHex && hexKey(...app.hoverHex) === endKey;
+  if (points.length > 1) {
+    drawMirroredDrags(app, pathKeys, (mirrored, alpha) =>
+      drawFibre(context, mirrored, 1, { color: FIBRE_ACTIVE_COLOR, width: FIBRE_HIGHLIGHT_WIDTH, alpha }));
+  }
   if (!isOnEnd) {
     if (points.length > 1) drawFibre(context, points, 1, { color: FIBRE_ACTIVE_COLOR, width: FIBRE_HIGHLIGHT_WIDTH });
     const [lastX, lastY] = points[points.length - 1];

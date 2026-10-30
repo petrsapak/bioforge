@@ -10,7 +10,9 @@ const { X: sim } = load({}, ['createEditedDesign', 'canPlaceCell', 'placeCell', 
   'removeNeuron', 'changeNeuronSetting', 'toggleFibre', 'bodyDesign', 'nerveUsage', 'fibresAt', 'removeFibre',
   'nerveRemovalTarget', 'hexToPixel', 'mirrorImages', 'mirroredPlacement', 'placeMirrored', 'removeMirrored',
   'hexesAlongStroke', 'MIRROR_AXIS_COUNT', 'FRONT_TO_BACK_AXIS', 'extendFibrePath', 'laidOutBodyFibres',
-  'planFibreToggle', 'fibreUnits', 'laidOutBodyLinks', 'toggleVessel']);
+  'planFibreToggle', 'fibreUnits', 'laidOutBodyLinks', 'toggleVessel', 'mirrorKeyMaps', 'placeNeuronMirrored',
+  'changeNeuronSettingMirrored', 'removeNeuronMirrored', 'toggleFibreMirrored', 'removeFibreMirrored',
+  'setSensedHormoneMirrored', 'toggleVesselMirrored', 'removeVesselMirrored']);
 
 const cellsOf = list => list.map(([q, r, typeName]) => sim.createDesignCell(q, r, typeName));
 const editedFrom = (cells, biomassLimit) => sim.createEditedDesign({ cells, fibres: [] }, biomassLimit);
@@ -291,6 +293,63 @@ const editedFrom = (cells, biomassLimit) => sim.createEditedDesign({ cells, fibr
     !sim.mirroredPlacement(tight, 1, 0, 'muscle', [front]).length &&
     sim.placeMirrored(tight, 1, 0, 'tissue', [front]) === 2);
   check('with no axes, a click places one cell', sim.placeMirrored(edited, 0, 1, 'tissue', []) === 1);
+}
+
+{ // symmetry in the Nerves and Vessels views: neurons, settings, fibres and vessels copied onto the mirrored cells
+  const key = sim.hexKey;
+  const front = [sim.FRONT_TO_BACK_AXIS];
+  const edited = editedFrom(cellsOf([[0, 0, 'nucleus'], [1, 0, 'muscle'], [-1, 0, 'muscle'], [2, 0, 'tissue'],
+    [-2, 0, 'tissue'], [0, 1, 'receptor'], [-1, 1, 'receptor']]), Infinity);
+  check('crossing axes make every combination of their mirrors once',
+    sim.mirrorKeyMaps(edited, [0, 3]).length === 3 && sim.mirrorKeyMaps(edited, [0, 2, 4]).length === 5 &&
+    sim.mirrorKeyMaps(edited, [0, 1, 2, 3, 4, 5]).length === 11 && sim.mirrorKeyMaps(edited, []).length === 0);
+  sim.placeNeuronMirrored(edited, key(2, 0), 'pacemaker', front);
+  check('a neuron put in goes into the mirrored cell too',
+    edited.cells.get(key(-2, 0)).neuron.kind === 'pacemaker' &&
+    edited.cells.get(key(-2, 0)).neuron !== edited.cells.get(key(2, 0)).neuron);
+  sim.changeNeuronSettingMirrored(edited, key(2, 0), 3, front);
+  check('its setting is copied onto the mirrored neuron',
+    edited.cells.get(key(-2, 0)).neuron.setting === edited.cells.get(key(2, 0)).neuron.setting);
+  sim.placeNeuron(edited, key(1, 0), 'inhibitor');
+  sim.placeNeuronMirrored(edited, key(-1, 0), 'synapse', front);
+  check('a mirrored cell that has a neuron keeps it', edited.cells.get(key(1, 0)).neuron.kind === 'inhibitor');
+  sim.removeNeuronMirrored(edited, key(-1, 0), front);
+  check('taking a neuron out takes the mirrored ones of its kind only',
+    !edited.cells.get(key(-1, 0)).neuron && edited.cells.get(key(1, 0)).neuron.kind === 'inhibitor');
+  sim.removeNeuron(edited, key(1, 0));
+
+  const ends = () => edited.fibres.map(fibre => `${fibre.from.q},${fibre.from.r}>${fibre.to.q},${fibre.to.r}`)
+    .sort().join(' ');
+  check('a fibre laid is laid on its mirror image too',
+    sim.toggleFibreMirrored(edited, key(2, 0), key(1, 0), null, front) === 'laid' && ends() === '-2,0>-1,0 2,0>1,0');
+  check('removing it removes its image',
+    sim.toggleFibreMirrored(edited, key(2, 0), key(1, 0), null, front) === 'removed' && ends() === '');
+  sim.toggleFibreMirrored(edited, key(2, 0), key(-1, 0), [key(1, 0), key(0, 0)], front);
+  const image = edited.fibres.find(fibre => fibre.from.q === -2);
+  check('a drawn fibre\'s image runs through the mirrored cells',
+    image && image.to.q === 1 && JSON.stringify(image.via) === '[{"q":-1,"r":0},{"q":0,"r":0}]',
+    JSON.stringify(edited.fibres));
+  sim.removeFibreMirrored(edited, edited.fibres[0], front);
+  check('a fibre taken out by a right-click takes its image with it', edited.fibres.length === 0);
+  sim.toggleFibreMirrored(edited, key(1, 0), key(-1, 0), null, front);
+  check('a fibre between two mirrored cells gets no copy back the other way (that would be a loop)',
+    ends() === '1,0>-1,0');
+  sim.toggleFibre(edited, key(1, 0), key(-1, 0));
+  sim.toggleFibreMirrored(edited, key(2, 0), key(1, 0), null, []);
+  check('with no axes, one fibre is laid', edited.fibres.length === 1);
+
+  sim.setSensedHormoneMirrored(edited, key(0, 1), 'fed', front);
+  check('a Receptor\'s hormone is copied onto the mirrored Receptor',
+    edited.cells.get(key(-1, 1)).sensedHormone === 'fed');
+
+  check('a vessel laid is laid on its mirror image too',
+    sim.toggleVesselMirrored(edited, key(0, 0), key(1, 0), front) === 'laid' && edited.vessels.length === 2);
+  sim.toggleVesselMirrored(edited, key(1, 0), key(-1, 0), front);
+  check('a vessel between two mirrored cells is its own image', edited.vessels.length === 3);
+  sim.removeVesselMirrored(edited, edited.vessels[0], front);
+  check('a vessel taken out takes its image with it', edited.vessels.length === 1);
+  sim.toggleVesselMirrored(edited, key(-1, 0), key(1, 0), front);
+  check('and dragged again either way round, it is removed', edited.vessels.length === 0);
 }
 
 { // painting: a stroke passes over every hex between two mouse points, each once

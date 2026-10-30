@@ -204,6 +204,188 @@ function removeMirrored(edited, q, r, axes) {
   return twins.length;
 }
 
+// ---------- Symmetry in the Nerves and Vessels views ----------
+// A mirror map is a list of axes whose reflections are applied in order. With the axes on, a neuron, its setting, a
+// fibre or a vessel is copied onto the cells that mirror its own.
+
+// (q, r) moved by a mirror map
+function applyMirrorMap(map, q, r, centre) {
+  return map.reduce(([imageQ, imageR], axisTurns) => mirrorHex(imageQ, imageR, axisTurns, centre), [q, r]);
+}
+
+// Where a map sends the centre's two neighbours along q and r: since every map turns hexes around the centre, two
+// maps that send these alike move every hex alike.
+function mirrorMapSignature(map, [centreQ, centreR]) {
+  const centre = [centreQ, centreR];
+  const along = [[centreQ + 1, centreR], [centreQ, centreR + 1]];
+  return along.map(([q, r]) => applyMirrorMap(map, q, r, centre).join()).join(';');
+}
+
+// Every map the axes and their combinations make except the one that leaves hexes where they are, each once, as
+// functions from a hex key to its image's key
+function mirrorKeyMaps(edited, axes) {
+  const centre = mirrorCentre(edited);
+  const maps = [[]];
+  const seen = new Set([mirrorMapSignature([], centre)]);
+  for (let i = 0; i < maps.length; i++) {
+    for (const axisTurns of axes) {
+      const map = [...maps[i], axisTurns];
+      const signature = mirrorMapSignature(map, centre);
+      if (seen.has(signature)) continue;
+      seen.add(signature);
+      maps.push(map);
+    }
+  }
+  return maps.slice(1).map(map => key => {
+    const { q, r } = parseHexKey(key);
+    return hexKey(...applyMirrorMap(map, q, r, centre));
+  });
+}
+
+// the keys of the cells on the mirror images of the hex at key, without key itself, each once
+function mirrorTwinKeys(edited, key, axes) {
+  const { q, r } = parseHexKey(key);
+  return mirrorImages(edited, q, r, axes).slice(1).map(image => hexKey(...image))
+    .filter(twinKey => edited.cells.has(twinKey));
+}
+
+// The paths (lists of hex keys) that mirror this one, each once, without the path itself: what a fibre or vessel
+// being drawn will be copied onto
+function mirrorKeyPaths(edited, pathKeys, axes) {
+  const seen = new Set([pathKeys.join('|')]);
+  const paths = [];
+  for (const mapKey of mirrorKeyMaps(edited, axes)) {
+    const path = pathKeys.map(mapKey);
+    if (seen.has(path.join('|'))) continue;
+    seen.add(path.join('|'));
+    paths.push(path);
+  }
+  return paths;
+}
+
+// A link's end keys as one string; the ends of a vessel in either order, as it runs both ways
+function linkEndsKey(link, isDirected) {
+  const ends = [fibreStartKey(link), fibreEndKey(link)];
+  return (isDirected ? ends : ends.sort()).join('>');
+}
+
+// The fibres or vessels that mirror this one, between cells that are there, each once. One that would join the
+// same two cells as the link itself is left out: a fibre between two mirrored cells would get one back the other
+// way, and two fibres signalling each other make a loop. A via cell without a cell on its image drops the image's
+// via, so it takes the shortest route.
+function mirroredLinks(edited, link, axes, isDirected) {
+  const cellKeys = new Set(edited.cells.keys());
+  const ownEnds = linkEndsKey(link, false);
+  const seen = new Set();
+  const images = [];
+  for (const mapKey of mirrorKeyMaps(edited, axes)) {
+    const image = moveLink(link, point => parseHexKey(mapKey(hexKey(point.q, point.r))));
+    const endsKey = linkEndsKey(image, isDirected);
+    const isOwnCells = linkEndsKey(image, false) === ownEnds;
+    if (isOwnCells || seen.has(endsKey) || fibreStartKey(image) === fibreEndKey(image)) continue;
+    if (!isLinkWithin(image, cellKeys)) continue;
+    seen.add(endsKey);
+    images.push(keepViaWithin(image, cellKeys));
+  }
+  return images;
+}
+
+// the index of the fibre or vessel already between these ends (a vessel either way round), or -1
+function linkIndexBetween(links, link, isDirected) {
+  return links.findIndex(other => linkEndsKey(other, isDirected) === linkEndsKey(link, isDirected));
+}
+
+// puts the neuron into the cell at key and into the mirrored cells that have none
+function placeNeuronMirrored(edited, key, kind, axes) {
+  placeNeuron(edited, key, kind);
+  for (const twinKey of mirrorTwinKeys(edited, key, axes)) {
+    if (!edited.cells.get(twinKey).neuron) placeNeuron(edited, twinKey, kind);
+  }
+}
+
+// the mirrored cells whose neuron is of the same kind as the one at key
+function neuronTwinKeys(edited, key, axes) {
+  const neuron = edited.cells.get(key) && edited.cells.get(key).neuron;
+  if (!neuron) return [];
+  return mirrorTwinKeys(edited, key, axes).filter(twinKey => {
+    const twin = edited.cells.get(twinKey).neuron;
+    return twin && twin.kind === neuron.kind;
+  });
+}
+
+// takes the neuron out of the cell at key and the same kind out of the mirrored cells
+function removeNeuronMirrored(edited, key, axes) {
+  for (const twinKey of neuronTwinKeys(edited, key, axes)) removeNeuron(edited, twinKey);
+  removeNeuron(edited, key);
+}
+
+// moves the neuron's setting at key, and gives the mirrored neurons of the same kind the same setting
+function changeNeuronSettingMirrored(edited, key, steps, axes) {
+  changeNeuronSetting(edited, key, steps);
+  const setting = edited.cells.get(key).neuron.setting;
+  for (const twinKey of neuronTwinKeys(edited, key, axes)) edited.cells.get(twinKey).neuron.setting = setting;
+}
+
+// sets which hormone the Receptor at key senses, and the mirrored Receptors with it
+function setSensedHormoneMirrored(edited, key, hormoneId, axes) {
+  setSensedHormone(edited, key, hormoneId);
+  for (const twinKey of mirrorTwinKeys(edited, key, axes)) setSensedHormone(edited, twinKey, hormoneId);
+}
+
+// Lays, reroutes or removes a fibre as toggleFibre does, and does the same to its mirror images: a laid or rerouted
+// fibre is laid on each image (replacing one already there), a removed one takes its images out. Returns
+// toggleFibre's result.
+function toggleFibreMirrored(edited, fromKey, toKey, viaKeys, axes) {
+  const result = toggleFibre(edited, fromKey, toKey, viaKeys);
+  if (!result) return result;
+  const fibre = { from: parseHexKey(fromKey), to: parseHexKey(toKey) };
+  if (viaKeys) fibre.via = viaKeys.map(parseHexKey);
+  for (const image of mirroredLinks(edited, fibre, axes, true)) {
+    const index = linkIndexBetween(edited.fibres, image, true);
+    if (result === 'removed') {
+      if (index >= 0) edited.fibres.splice(index, 1);
+    } else if (index >= 0) {
+      edited.fibres[index] = image;
+    } else {
+      edited.fibres.push(image);
+    }
+  }
+  return result;
+}
+
+// removes this fibre (an entry of edited.fibres) and the fibres on its mirror images
+function removeFibreMirrored(edited, fibre, axes) {
+  const images = mirroredLinks(edited, fibre, axes, true);
+  removeFibre(edited, fibre);
+  for (const image of images) {
+    const index = linkIndexBetween(edited.fibres, image, true);
+    if (index >= 0) edited.fibres.splice(index, 1);
+  }
+}
+
+// Lays or removes a vessel as toggleVessel does, and the same on its mirror images. Returns toggleVessel's result.
+function toggleVesselMirrored(edited, fromKey, toKey, axes) {
+  const result = toggleVessel(edited, fromKey, toKey);
+  if (!result) return result;
+  const vessel = { from: parseHexKey(fromKey), to: parseHexKey(toKey) };
+  for (const image of mirroredLinks(edited, vessel, axes, false)) {
+    const index = linkIndexBetween(edited.vessels, image, false);
+    if (result === 'removed' && index >= 0) edited.vessels.splice(index, 1);
+    if (result === 'laid' && index < 0) edited.vessels.push(image);
+  }
+  return result;
+}
+
+// removes this vessel (an entry of edited.vessels) and the vessels on its mirror images
+function removeVesselMirrored(edited, vessel, axes) {
+  const images = mirroredLinks(edited, vessel, axes, false);
+  removeVessel(edited, vessel);
+  for (const image of images) {
+    const index = linkIndexBetween(edited.vessels, image, false);
+    if (index >= 0) edited.vessels.splice(index, 1);
+  }
+}
+
 // the hexes a stroke from one grid point to another passes over, in order, each once (a fast drag skips hexes
 // between two mouse moves otherwise)
 function hexesAlongStroke([fromX, fromY], [toX, toY]) {
