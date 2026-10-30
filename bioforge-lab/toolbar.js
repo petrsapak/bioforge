@@ -1,6 +1,8 @@
 'use strict';
-// The builder's toolbar down the left edge (Clear, Save creature, Unlimited biomass, Symmetry, Levels and the Sandbox
-// button), the keys sheet (H), the fluid views (Shift+1–6) and the Body, Nerves and Vessels tabs at the top (browser only).
+// The Body, Nerves and Vessels tabs at the top with their tools (Unlimited biomass, Symmetry, Delete all), the
+// built-in designs, the keys sheet (H) and the fluid views (Shift+1–6) (browser only).
+
+const MIRROR_MENU_WIDTH = 200;                            // px, as #mirror-menu in style.css
 
 function setUpToolbar(app) {
   setUpLayerSwitch(app);
@@ -23,25 +25,34 @@ function showFluidView(app, view) {
   if (app.mode === 'build') refreshPanel(app);
 }
 
-// the built-in designs, Clear, Save creature and Unlimited biomass
+// the built-in designs, Delete all and Unlimited biomass
 function setUpDesignButtons(app) {
   document.querySelectorAll('[data-template]').forEach(button => {
-    button.onclick = () => {
-      const name = button.dataset.template;
-      const design = name === 'clear' ? { cells: [createDesignCell(0, 0, 'nucleus')], fibres: [] } : TEMPLATES[name];
-      loadDesign(app, design, button.textContent, '');
-    };
+    button.onclick = () => loadDesign(app, TEMPLATES[button.dataset.template], button.textContent, '');
   });
-  byId('save-creature').onclick = event => {
-    app.selection = new Set(app.edited.cells.keys());
-    openSaveMenu(app, event.clientX, event.clientY);
-  };
+  byId('clear-design').onclick = () => clearDesign(app);
   byId('unlimited-biomass').onclick = () => {
     const isUnlimited = app.edited.biomassLimit !== Infinity;
     app.edited.biomassLimit = isUnlimited ? Infinity : chosenLimits(app).budget;
     writeStorage('unlimited-biomass', isUnlimited);
     refreshPanel(app);
   };
+}
+
+// Delete all: starts over with just the Nucleus, after asking if there is anything else to lose
+function clearDesign(app) {
+  const startOver = () => loadDesign(app, { cells: [createDesignCell(0, 0, 'nucleus')], fibres: [] }, 'Delete all', '');
+  if (app.edited.cells.size <= 1) {
+    startOver();
+    return;
+  }
+  askToConfirm({
+    title: 'Delete all?',
+    text: 'Every cell but the Nucleus goes, with its nerves and vessels. F5 quick saves the creature first, if you ' +
+      'might want it back.',
+    confirmLabel: 'Delete all',
+    isDangerous: true,
+  }, startOver);
 }
 
 // The Symmetry button opens a dial of the six axes through the Nucleus; each one clicked turns on or off. Cells
@@ -60,6 +71,8 @@ function setUpMirrorMenu(app) {
   byId('mirror-axes').onclick = () => {
     const menu = byId('mirror-menu');
     menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    const button = byId('mirror-axes').getBoundingClientRect?.();       // the dial opens just under the button
+    if (button) menu.style.left = Math.max(10, button.left + button.width / 2 - MIRROR_MENU_WIDTH / 2) + 'px';
   };
   byId('mirror-none').onclick = () => setMirrorAxes(app, []);
   addEventListener('mousedown', event => {
@@ -82,7 +95,7 @@ function setMirrorAxes(app, axes) {
   showMirrorAxes(app);
 }
 
-// lights the axes that are on in the dial, and the toolbar button while any is
+// lights the axes that are on in the dial, and the Symmetry button while any is
 function showMirrorAxes(app) {
   for (const line of byId('mirror-dial').children) {
     line.classList.toggle('selected', app.mirrorAxes.includes(+line.dataset.axis));

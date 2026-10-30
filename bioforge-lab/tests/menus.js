@@ -57,8 +57,6 @@ async function main() {
   first.fire('window', 'mouseup', { clientX: GRID_MIDDLE_X, clientY: GRID_MIDDLE_Y, target: byId('game') });
   pressKey('Escape');
   check('with cells selected, Esc lets go of them and opens no menu', byId('menu-sheet').style.display === 'none');
-  first.fire('game', 'contextmenu', { clientX: GRID_MIDDLE_X, clientY: GRID_MIDDLE_Y, preventDefault() {} });
-  check('the selection is gone (a right-click opens no save menu)', byId('save-menu').style.display !== 'block');
   pressKey('Escape');
   check('holding nothing, Esc opens the menu', byId('menu-sheet').style.display === 'flex' &&
     byId('menu-title').textContent === 'Menu');
@@ -72,6 +70,41 @@ async function main() {
   runFrames(2 * FRAMES_PER_SECOND);
   check('the builder\'s design is saved within a second or two',
     savedState(storage) && savedState(storage).design.cells.length > 3 && savedState(storage).run === null);
+
+  // ---------- Saving the creature: the Nucleus' right-click, quick save and load, Delete all ----------
+  const starterCells = cellCount(byId);
+  first.fire('game', 'contextmenu', { clientX: GRID_MIDDLE_X, clientY: GRID_MIDDLE_Y, preventDefault() {} });
+  check('a right-click on the Nucleus offers to save the whole creature', byId('save-menu').style.display === 'block' &&
+    byId('save-menu-title').textContent.startsWith(`${starterCells} selected`) &&
+    byId('save-menu-save').textContent === 'Save creature');
+  pressKey('Escape');
+  pressKey('Escape');
+  check('Esc closes the save menu, then lets go of the cells', byId('save-menu').style.display === 'none' &&
+    byId('menu-sheet').style.display === 'none');
+  pressKey('F8');
+  check('F8 with nothing quick saved says so', byId('message').textContent.includes('Nothing quick saved'));
+  pressKey('s', { ctrlKey: true });
+  const quickSaved = JSON.parse(storage.items['bioforge-lab-quicksave'] || 'null');
+  check('Ctrl+S quick saves the creature', !!quickSaved && quickSaved.cells.length === starterCells);
+  byId('clear-design').onclick({});
+  check('Delete all asks first, in the game\'s own red box', byId('dialog-sheet').style.display === 'flex' &&
+    byId('dialog-box').classList.contains('dangerous') && cellCount(byId) === starterCells);
+  pressKey('Escape');
+  check('Esc cancels it: the box closes, the cells stay and no menu opens',
+    byId('dialog-sheet').style.display === 'none' && byId('menu-sheet').style.display === 'none' &&
+    cellCount(byId) === starterCells);
+  byId('clear-design').onclick({});
+  pressKey('Enter');
+  check('Enter confirms: just the Nucleus is left', byId('dialog-sheet').style.display === 'none' &&
+    cellCount(byId) === 1);
+  pressKey('F8');
+  check('F8 brings the quick saved creature back', cellCount(byId) === starterCells);
+  byId('clear-design').onclick({});
+  byId('dialog-confirm').onclick();
+  pressKey('F5');
+  pressKey('F8');
+  check('F5 quick saves too', cellCount(byId) === 1);
+  first.templateButton('starter').onclick();
 
   // ---------- The Esc menu over a level run ----------
   byId('show-levels').onclick();

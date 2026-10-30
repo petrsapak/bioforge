@@ -105,6 +105,7 @@ function boot() {
   setUpToolbar(app);
   setUpCoach(app);
   setUpSaveMenu(app);
+  setUpDialog();
   setUpSandboxBar(app);
   setUpMusic(app);
   setUpSounds(app);
@@ -229,10 +230,17 @@ function renameLibraryEntry(app, entry) {
 }
 
 function removeLibraryEntry(app, entry) {
-  if (!confirm(`Delete ${entry.isCreature ? 'creature' : 'template'} "${entry.name}"?`)) return;
-  app.library = app.library.filter(other => other !== entry);
-  if (app.stamp && app.stamp.template === entry) app.stamp = null;
-  saveAndShowLibrary(app);
+  const kind = entry.isCreature ? 'creature' : 'template';
+  askToConfirm({
+    title: `Delete this ${kind}?`,
+    text: `"${entry.name}" leaves ${entry.isCreature ? 'My creatures' : 'My templates'} for good.`,
+    confirmLabel: 'Delete',
+    isDangerous: true,
+  }, () => {
+    app.library = app.library.filter(other => other !== entry);
+    if (app.stamp && app.stamp.template === entry) app.stamp = null;
+    saveAndShowLibrary(app);
+  });
 }
 
 function saveAndShowLibrary(app) {
@@ -241,7 +249,7 @@ function saveAndShowLibrary(app) {
   refreshPanel(app);
 }
 
-// ---------- The save menu (right-click on the selection, or Save creature) ----------
+// ---------- The save menu (right-click on the selection, or on the Nucleus for the whole creature) ----------
 function setUpSaveMenu(app) {
   byId('save-menu-save').onclick = () => {
     saveSelection(app, byId('save-menu-name').value);
@@ -339,12 +347,18 @@ function listenToKeyboard(app) {
     const key = event.key.toLowerCase();
     app.keysHeld.add(key);
     if (key === ' ') event.preventDefault();
+    if (isDialogOpen()) {
+      event.preventDefault();
+      handleDialogKey(key);
+      return;
+    }
     if (key === 'm' && !event.repeat) toggleMusic(app);
     if (key === 'n' && !event.repeat) toggleSounds(app);
     if (isMenuOpen(app)) {
       handleMenuKey(app, key);
       return;
     }
+    if (handleQuickSaveKey(app, event)) return;
     if (key === 't' && !event.repeat && app.mode !== 'build') toggleProbes(app);
     const digit = digitOf(event);
     const commandKey = commandKeyOf(event);
@@ -377,6 +391,18 @@ function commandKeyOf(event) {
   if (event.ctrlKey || event.altKey || event.metaKey) return null;
   const key = digitOf(event) || (event.key || '').toLowerCase();
   return /^[a-z0-9]$/.test(key) ? key : null;
+}
+
+// F5 or Ctrl+S quick saves the creature and F8 loads it back (progress.js); true if the key was one of them
+function handleQuickSaveKey(app, event) {
+  const key = event.key.toLowerCase();
+  const isSave = key === 'f5' || (key === 's' && (event.ctrlKey || event.metaKey));
+  if (!isSave && key !== 'f8') return false;
+  event.preventDefault();                                 // not the browser's reload or Save page
+  if (event.repeat) return true;
+  if (isSave) quickSave(app);
+  else quickLoad(app);
+  return true;
 }
 
 // in the builder, 1–3 open the Body, Nerves and Vessels tabs, and any other free key binds the clicked Command
@@ -463,8 +489,10 @@ function listenToMouse(app) {
   }, { passive: false });
   canvas.addEventListener('contextmenu', event => {
     event.preventDefault();
-    const isOnSelection = app.selection.has(hexKey(...hexUnderMouse(app, event)));
-    if (app.mode === 'build' && !app.stamp && isOnSelection) openSaveMenu(app, event.clientX, event.clientY);
+    if (app.mode !== 'build' || app.stamp) return;
+    const key = hexKey(...hexUnderMouse(app, event));
+    if (app.layer === 'body' && isNucleusHex(app, key)) app.selection = new Set(app.edited.cells.keys());
+    if (app.selection.has(key)) openSaveMenu(app, event.clientX, event.clientY);
   });
   addEventListener('mouseup', event => dropWhatIsInHand(app, event));
   addEventListener('mousemove', event => trackTooltipTarget(app, event));
@@ -519,7 +547,7 @@ function handleBuilderMouseDown(app, event) {
     if (app.edited.cells.has(key) && !app.selection.delete(key)) app.selection.add(key);
     return;
   }
-  if (isRight && app.selection.has(key)) return;          // the save menu opens on the selection instead
+  if (isRight && (app.selection.has(key) || isNucleusHex(app, key))) return;   // the save menu opens instead
   if (isLeft && app.edited.cells.has(key)) {
     app.focusKey = key;
     refreshPanel(app);
@@ -630,6 +658,12 @@ function grabBudHandle(app, q, r) {
   else app.partDrag = handle;
   refreshPanel(app);
   return true;
+}
+
+// whether the hex holds the Nucleus, which can't be removed: a right-click on it saves the whole creature
+function isNucleusHex(app, key) {
+  const cell = app.edited.cells.get(key);
+  return !!cell && CELLS[cell.typeName].isNucleus;
 }
 
 function useStamp(app, isRight, q, r) {

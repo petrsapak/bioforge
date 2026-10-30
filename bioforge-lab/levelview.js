@@ -11,7 +11,7 @@ const DARK_LAMP_RADIUS = 9;                               // px in the arena: a 
 const LEVEL_KEYS_HELP = '<b>Space</b> and bound keys: Commands &nbsp;<b>P</b> pause &nbsp;<b>.</b> one step ' +
   '&nbsp;<b>,</b> speed<br><b>T</b> signals &nbsp;<b>R</b> retry &nbsp;<b>Esc</b> menu';
 
-// the toolbar button, the levels sheet, the level card's buttons, the level bar and the result box
+// the Levels button, the levels sheet, the level card's buttons, the level bar and the result box
 function setUpLevels(app) {
   app.levelResults = readStorage('level-results', {});
   byId('show-levels').onclick = () => toggleLevelsSheet(app);
@@ -124,7 +124,7 @@ function chooseLevel(app, level) {
   refreshPanel(app);
 }
 
-// the toolbar's Levels button lights up while a level is chosen, and its tooltip names it
+// the Levels button (bottom left) lights up while a level is chosen, and its tooltip names it
 function showLevelButton(app) {
   const level = app.level;
   byId('show-levels').classList.toggle('selected', !!level);

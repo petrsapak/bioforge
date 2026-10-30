@@ -1,5 +1,5 @@
 'use strict';
-// Background music: one ambient track that loops without a seam, and the toolbar button and M key that switch it on
+// Background music: one ambient track that loops without a seam, and the Settings switch and M key that turn it on
 // and off (browser only).
 
 const MUSIC_VOLUME = 0.2;                                 // share of full volume (0.4 until 2026-10-29: too loud)

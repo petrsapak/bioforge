@@ -1,6 +1,7 @@
 'use strict';
 // Keeps the game where the player left it: the builder's design, the chosen level and a running level or Sandbox,
-// saved as they change and picked up by Continue; and saving a creature to a file or loading one (browser only).
+// saved as they change and picked up by Continue; quick save (F5, Ctrl+S) and quick load (F8); and saving a creature
+// to a file or loading one (browser only).
 // The save's format is in savegame.js.
 
 const DESIGN_SAVE_INTERVAL = 1;                           // real s between checks whether the design has changed
@@ -133,4 +134,24 @@ function useCreatureFileText(app, text, fileName) {
   }
   if (app.mode === 'build') loadDesign(app, entry, entry.name, entry.name);
   showMessage(`Loaded "${entry.name}" into the builder and My creatures.`);
+}
+
+// ---------- Quick save (F5 or Ctrl+S) and quick load (F8) ----------
+// keeps the builder's design in the one quick slot, apart from My creatures and from what Continue picks up
+function quickSave(app) {
+  writeStorage('quicksave', builderDesignEntry(app));
+  showMessage('Quick saved. F8 loads it back.');
+  playSound(app, 'place');
+}
+
+// puts the quick saved design back in the builder, leaving a running level or Sandbox
+function quickLoad(app) {
+  const saved = readStorage('quicksave', null);
+  const design = saved && checkedDesign(saved);
+  if (!design) {
+    showMessage('Nothing quick saved yet: F5 or Ctrl+S saves the creature.');
+    return;
+  }
+  leaveForBuilder(app, () => loadDesign(app, design, 'Quick load', design.name));
+  showMessage('Quick loaded.');
 }

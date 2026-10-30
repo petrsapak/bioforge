@@ -1,5 +1,5 @@
 'use strict';
-// Sound effects: playing them (a few voices each, so quick repeats overlap), the toolbar button and N key that switch
+// Sound effects: playing them (a few voices each, so quick repeats overlap), the Settings switch and N key that turn
 // them off and on, and the creatures' sounds, heard by watching their world change from frame to frame (browser only).
 
 const SOUND_VOICES = 3;                                   // copies of each sound file that may play at once

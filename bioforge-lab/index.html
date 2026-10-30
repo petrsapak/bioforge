@@ -19,6 +19,13 @@
   <button class="layer-tab" id="layer-vessel" title="Vessels: blood vessels pumped by Hearts (3)">
     <svg viewBox="0 0 24 24"><path d="M5 18C9 18 9 6 13 6s4 6 6 6" fill="none" stroke="#e0485a" stroke-width="3.2" stroke-linecap="round"/><circle cx="5" cy="18" r="2.6" fill="#e0485a"/><circle cx="19" cy="12" r="2.6" fill="#e0485a"/></svg>
     <span>Vessels</span><kbd>3</kbd></button>
+  <span class="tabs-gap"></span>
+  <button class="tool" id="unlimited-biomass" title="Unlimited biomass (the Sandbox takes any size)">
+    <svg viewBox="0 0 24 24"><path d="M12 12c-2-2.8-3.6-4-5.4-4a4 4 0 000 8c1.8 0 3.4-1.2 5.4-4s3.6-4 5.4-4a4 4 0 010 8c-1.8 0-3.4-1.2-5.4-4z" fill="none" stroke="#e8c547" stroke-width="1.8"/></svg></button>
+  <button class="tool" id="mirror-axes" title="Symmetry: mirror what you add and remove across axes">
+    <svg viewBox="0 0 24 24"><path d="M12 2v20" stroke="#7ec8f0" stroke-width="1.6" stroke-dasharray="2.5 2"/><path d="M9.5 7L4 12l5.5 5z" fill="#b9c3cd"/><path d="M14.5 7L20 12l-5.5 5z" fill="none" stroke="#b9c3cd" stroke-width="1.5" stroke-linejoin="round"/></svg></button>
+  <button class="tool danger" id="clear-design" title="Delete all: start over with just the Nucleus (asks first)">
+    <svg viewBox="0 0 24 24"><path d="M5 7h14M10 4h4M7 7l1 13h8l1-13" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/></svg></button>
 </div>
 <div id="budget"></div>
 <div id="run-buttons">
@@ -30,16 +37,6 @@
     <span>Sandbox</span></button>
 </div>
 <div id="builder-left">
-<div id="toolbar">
-  <button class="tool" data-template="clear" title="Clear: start over with just the Nucleus">
-    <svg viewBox="0 0 24 24"><path d="M5 7h14M10 4h4M7 7l1 13h8l1-13" fill="none" stroke="#b9c3cd" stroke-width="1.8" stroke-linejoin="round"/></svg></button>
-  <button class="tool" id="save-creature" title="Save the creature to My creatures">
-    <svg viewBox="0 0 24 24"><path d="M12 4v10M7.5 9.5L12 14l4.5-4.5M5 16v4h14v-4" fill="none" stroke="#b9c3cd" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-  <button class="tool" id="unlimited-biomass" title="Unlimited biomass (the Sandbox takes any size)">
-    <svg viewBox="0 0 24 24"><path d="M12 12c-2-2.8-3.6-4-5.4-4a4 4 0 000 8c1.8 0 3.4-1.2 5.4-4s3.6-4 5.4-4a4 4 0 010 8c-1.8 0-3.4-1.2-5.4-4z" fill="none" stroke="#e8c547" stroke-width="1.8"/></svg></button>
-  <button class="tool" id="mirror-axes" title="Symmetry: mirror what you add and remove across axes">
-    <svg viewBox="0 0 24 24"><path d="M12 2v20" stroke="#7ec8f0" stroke-width="1.6" stroke-dasharray="2.5 2"/><path d="M9.5 7L4 12l5.5 5z" fill="#b9c3cd"/><path d="M14.5 7L20 12l-5.5 5z" fill="none" stroke="#b9c3cd" stroke-width="1.5" stroke-linejoin="round"/></svg></button>
-</div>
 <div id="side-column">
   <div id="panel">
     <div id="message"></div>
@@ -61,6 +58,9 @@
       <span><b>Shift</b></span><span>show every cell of the chosen type</span>
       <span class="mouse middle"></span><span>drag: pan · wheel: zoom</span>
       <span><b>Ctrl</b>+<span class="mouse left"></span></span><span>select cells, then right-click them: save as a part</span>
+      <span><span class="mouse right"></span> Nucleus</span><span>save the whole creature to My creatures</span>
+      <span><b>F5</b> <b>Ctrl</b>+<b>S</b></span><span>quick save the creature</span>
+      <span><b>F8</b></span><span>quick load it back</span>
       <span><b>Q</b><b>E</b></span><span>turn a part</span>
       <span><b>Space</b></span><span>fire Commands and Eyespots (test)</span>
       <span><b>1</b><b>2</b><b>3</b></span><span>Body, Nerves, Vessels</span>
@@ -189,7 +189,7 @@
     <div id="my-creatures"></div>
     <div class="library-heading">My templates</div>
     <div id="my-parts"></div>
-    <div class="help">Ctrl+click cells to select, right-click a selected cell to save. Click a part to stamp it: Q/E rotate, click to place, right-click or Esc to stop. Drag a part onto a Bud to make the Bud grow it. Edit → Save creature saves the whole creature to My creatures; click one to load it (replaces the design). Saving under the same name overwrites.</div>
+    <div class="help">Ctrl+click cells to select, right-click a selected cell to save. Click a part to stamp it: Q/E rotate, click to place, right-click or Esc to stop. Drag a part onto a Bud to make the Bud grow it. Right-click the Nucleus (or F5 / Ctrl+S for a quick save) to save the whole creature to My creatures; click one to load it (replaces the design). Saving under the same name overwrites.</div>
   </div>
 </div>
 <div id="mirror-menu">
@@ -209,6 +209,19 @@
   <div id="hud-keys"></div>
 </div>
 
+<div id="dialog-sheet">
+  <div id="dialog-box">
+    <div id="dialog-icon">
+      <svg viewBox="0 0 24 24"><path d="M5 7h14M10 4h4M7 7l1 13h8l1-13M10.5 10.5v6M13.5 10.5v6" fill="none" stroke="#ff8a8f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div id="dialog-title"></div>
+    <div id="dialog-text"></div>
+    <div id="dialog-buttons">
+      <button class="menu-button" id="dialog-cancel">Cancel <kbd>Esc</kbd></button>
+      <button class="menu-button primary" id="dialog-confirm"></button>
+    </div>
+  </div>
+</div>
 <div id="menu-sheet">
   <div id="menu-box">
     <div id="menu-title">Bioforge Lab</div>
@@ -275,6 +288,7 @@
 <script src="render.js"></script>
 <script src="builder.js"></script>
 <script src="windows.js"></script>
+<script src="dialog.js"></script>
 <script src="tipdemo.js"></script>
 <script src="hud.js"></script>
 <script src="dock.js"></script>

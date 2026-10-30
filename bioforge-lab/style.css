@@ -53,26 +53,21 @@ button.big:hover { background: #4a8044; }
 .limit.full b { color: #e8875a; }
 .limits-problem { margin-top: 2px; color: #e8875a; font-size: 12px; }
 
-/* ---------- Left side: the toolbar, and a column with the panel and the How to box ---------- */
-#builder-left {
-  position: absolute; top: 10px; left: 10px; display: flex; gap: 8px; align-items: flex-start;
-  max-height: calc(100vh - 20px); pointer-events: none;
-}
-#builder-left > * { pointer-events: auto; }
-#toolbar {
-  display: flex; flex-direction: column; align-items: center; gap: 4px; width: 56px; padding: 6px 0;
-  max-height: calc(100vh - 20px); background: #0e181dcc; border: 1px solid #23323a88; border-radius: 12px;
-  backdrop-filter: blur(3px);
-}
+/* Unlimited biomass, Symmetry and the red Delete all, at the right end of the tabs */
+.tabs-gap { width: 1px; margin: 4px 6px; background: #2a3b44; }
 .tool {
-  position: relative; width: 42px; height: 42px; padding: 0; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; background: #1c2a31; color: #b9c3cd; border: 1px solid #2c3f48;
-  border-radius: 10px; cursor: pointer; font: inherit;
+  width: 34px; height: 34px; padding: 0; display: flex; align-items: center; justify-content: center;
+  background: #1c2a31; border: 1px solid #2c3f48; border-radius: 9px; cursor: pointer;
 }
-.tool svg { width: 24px; height: 24px; }
+.tool + .tool { margin-left: 2px; }
+.tool svg { width: 20px; height: 20px; }
 .tool:hover { background: #26363e; border-color: #5d6b77; }
 .tool.selected { border-color: #e8c547; background: #2b2a1f; box-shadow: 0 0 10px #e8c54755; }
-.tool-gap { width: 30px; height: 1px; margin: 3px 0; background: #2a3b44; }
+.tool.danger { margin-left: 8px; background: #a8323a; border-color: #d9575f; }
+.tool.danger:hover { background: #c23a43; border-color: #f07a80; }
+
+/* ---------- Left side: the panel and the How to box ---------- */
+#builder-left { position: absolute; top: 10px; left: 10px; }
 #side-column {
   display: flex; flex-direction: column; gap: 8px; width: 264px; max-height: calc(100vh - 190px); overflow-y: auto;
 }
@@ -244,7 +239,7 @@ button.big:hover { background: #4a8044; }
 /* ---------- Save menu (right-click on a selection) ---------- */
 /* the Symmetry dial: six axis buttons turned around one centre */
 #mirror-menu {
-  display: none; position: absolute; top: 120px; left: 76px; z-index: 5; width: 200px; padding: 10px;
+  display: none; position: absolute; top: 60px; left: 50%; z-index: 5; width: 200px; padding: 10px;
   background: #0e181d; border: 1px solid #2c3f48; border-radius: 12px; color: #b9c3cd; font-size: 12px;
 }
 #mirror-menu .help { margin: 6px 0; }
@@ -517,6 +512,33 @@ button.small.run:hover { background: #4a8044; }
 .menu-setting kbd { color: #6f7f8a; font-size: 11px; }
 #menu-settings-view .menu-button { margin-top: 4px; }
 #creature-file-input { display: none; }
+
+/* ---------- The question box (dialog.js): Delete all, deleting a saved creature ---------- */
+#dialog-sheet {
+  position: absolute; inset: 0; display: none; align-items: center; justify-content: center; z-index: 40;
+  background: #000000a0; backdrop-filter: blur(2px); animation: dialog-fade .15s ease-out;
+}
+#dialog-box {
+  width: 340px; padding: 22px 24px 18px; background: linear-gradient(#13212a, #0d1519); border: 1px solid #2c4650;
+  border-radius: 14px; box-shadow: 0 18px 50px #000c, 0 0 0 1px #ffffff08 inset; color: #b9c3cd; text-align: center;
+  animation: dialog-pop .18s cubic-bezier(.2, 1.4, .4, 1);
+}
+#dialog-icon {
+  display: none; width: 52px; height: 52px; margin: 0 auto 12px; align-items: center; justify-content: center;
+  background: #a8323a33; border: 1px solid #d9575f88; border-radius: 50%; box-shadow: 0 0 18px #d9575f44;
+}
+#dialog-icon svg { width: 28px; height: 28px; }
+#dialog-box.dangerous #dialog-icon { display: flex; }
+#dialog-title { color: #dfe4ea; font-size: 19px; font-weight: 600; }
+#dialog-box.dangerous #dialog-title { color: #ff9a9e; }
+#dialog-text { margin: 8px 0 20px; font-size: 13px; line-height: 1.5; }
+#dialog-buttons { display: flex; gap: 8px; }
+#dialog-buttons .menu-button { flex: 1; }
+#dialog-buttons kbd { margin-left: 4px; color: #6f7f8a; font: 10px system-ui, sans-serif; }
+#dialog-box.dangerous #dialog-confirm { background: #a8323a; border-color: #d9575f; }
+#dialog-box.dangerous #dialog-confirm:hover { background: #c23a43; border-color: #f07a80; }
+@keyframes dialog-fade { from { opacity: 0; } }
+@keyframes dialog-pop { from { opacity: 0; transform: scale(.92) translateY(8px); } }
 
 /* ---------- The title screen: the main menu over the living scene, and the dimming between it and the lab ---------- */
 /* Megrim by Daniel Johnson, SIL Open Font License (fonts/OFL.txt): thin curving strokes, like membranes */

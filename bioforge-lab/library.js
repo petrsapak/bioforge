@@ -31,7 +31,7 @@ function showLibrary(library, actions) {
   const partsBox = byId('my-parts');
   creaturesBox.innerHTML = library.some(entry => entry.isCreature)
     ? ''
-    : '<div class="help">No creatures saved yet: Edit → Save creature.</div>';
+    : '<div class="help">No creatures saved yet: right-click the Nucleus to save one.</div>';
   partsBox.innerHTML = library.some(entry => !entry.isCreature) ? '' : '<div class="help">Nothing saved yet.</div>';
   return library.map(entry => {
     const row = makeLibraryRow(entry, actions);

@@ -7,6 +7,14 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.6.1 (2026-10-30)
+- The tool bar on the left is gone. Unlimited biomass and Symmetry sit beside the Body, Nerves and Vessels tabs, with
+  a red Delete all button that asks before it clears the creature, in the game's own box (Enter or Esc), as does
+  deleting a saved creature or template.
+- Right-click the Nucleus to save the whole creature to My creatures (the Save creature button is gone).
+- Quick save: F5 or Ctrl+S keeps the creature in a quick slot, and F8 loads it back, also from a running level or
+  the Sandbox.
+
 ## 0.6.0 (2026-10-30)
 - Milestone 6, menus and saves.
 - A title screen when the game starts: the main menu (Continue, Levels, Free build, Settings, and Quit in the desktop
