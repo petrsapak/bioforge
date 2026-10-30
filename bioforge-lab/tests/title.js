@@ -40,7 +40,7 @@ const stateText = scene => JSON.stringify(sim.takeSnapshot(scene.world, sim.runD
 check('the scene runs the same every time', stateText(once) === stateText(twice));
 
 // ---------- In the app ----------
-const { byId, runFrames } = startApp(['clear'], {}, { atMainMenu: true });
+const { byId, runFrames } = startApp({}, { atMainMenu: true });
 runFrames(5);
 check('the main menu sits on the title scene', byId('menu-sheet').classList.contains('title-screen'));
 check('the game comes up out of black', +byId('screen-fade').style.opacity > 0.5);

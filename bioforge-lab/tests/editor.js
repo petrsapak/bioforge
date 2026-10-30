@@ -9,7 +9,7 @@ const { check, done } = require('./check');
 // Bioforge Moba's library, in the old format, as it may sit in the browser's storage
 const OLD_LIBRARY = JSON.stringify([{ name: 'Old timer', full: true, cells: [{ q: 0, r: 0, t: 'nucleus' }] }]);
 const { byId, fire, runFrames, readGlobal, storage, templateButton } =
-  startApp(['starter'], { 'bioforge-templates': OLD_LIBRARY });
+  startApp({ 'bioforge-templates': OLD_LIBRARY });
 
 // where hex (q, r) is on screen: the grid's middle is the screen's middle, at the start zoom (see builderview.js)
 const GRID_MIDDLE_X = 1600 / 2;                           // px
@@ -232,14 +232,16 @@ fire('game', 'contextmenu', { ...screenPointOf(1, -1), target: canvas });
 check('right-clicking the selection opens the save menu', byId('save-menu').style.display === 'block');
 byId('save-menu-name').value = 'Front';
 byId('save-menu-save').onclick();
-const partRow = byId('my-parts').children[0];
-check('the selection is saved as a part', !!partRow && /Saved "Front"/.test(byId('message').textContent),
+const partRow = byId('library-cards').children[0];
+check('the selection is saved as a part, and My parts opens', !!partRow &&
+  byId('library-tab-parts').classList.contains('selected') && /Saved "Front"/.test(byId('message').textContent),
   byId('message').textContent);
 // each profile keeps its own library (0.7.1)
 check('the library is kept in storage', JSON.parse(storage.items['bioforge-lab-profile-1-library']).length === 2);
 
 partRow.onclick();
-check('clicking the part picks it up as a stamp', /Placing "Front"/.test(info()), info());
+check('clicking the part picks it up as a stamp, its card marked', /Placing "Front"/.test(info()) &&
+  partRow.classList.contains('selected'), info());
 const beforeStamp = cellCount();
 clickHex(3, -3);
 check('a click puts the stamp down (off the body, as planned cells)',
@@ -297,7 +299,7 @@ clickHex(0, 1);
 check('No symmetry places single cells again',
   cellCount() === 5 && !byId('mirror-axes').classList.contains('selected'));
 
-check("Bioforge Moba's old library carries over", byId('my-creatures').children.length === 1);
+check("Bioforge Moba's old library carries over", byId('library-tab-creatures').innerHTML.includes('>1<'));
 
 { // every tooltip demo starts and runs; hovering the Bud stopped every frame after it in 0.5.1, because its example
   // lists its neuron as an old cell type (user, 2026-10-29)

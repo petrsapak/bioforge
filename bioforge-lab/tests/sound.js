@@ -18,7 +18,7 @@ function recordSounds(app) {
   return () => app.readGlobal('globalThis.heard ?? []');
 }
 
-const first = startApp(['jet']);
+const first = startApp();
 const effects = first.readGlobal('SOUND_EFFECTS');
 const variants = Object.values(effects).flatMap(effect => effect.variants);
 const missing = variants.filter(variant => !fs.existsSync(path.join(__dirname, '..', variant.file)));
@@ -43,7 +43,7 @@ check('another creature\'s Siphons are heard too', otherStrokes >= 2, `${otherSt
 
 // a Spitter and a Snarer hunting the player: their spits, shots and catches are heard (the Sandbox's enemy list
 // doesn't offer them, but the fake select takes any design name; players meet them as their own builds)
-const hunted = startApp(['jet', 'spitter', 'snarer']);
+const hunted = startApp();
 const huntedHeard = recordSounds(hunted);
 hunted.runFrames(5);
 hunted.templateButton('jet').onclick();
@@ -82,7 +82,7 @@ const heardBefore = heard().length;
 first.runFrames(240);
 check('N switches the sounds off', heard().length === heardBefore);
 
-const second = startApp(['jet'], first.storage.items);
+const second = startApp(first.storage.items);
 check('switched off stays off on the next visit, and Settings says so',
   second.byId('setting-sounds').textContent === 'Off');
 second.byId('setting-sounds').onclick({});

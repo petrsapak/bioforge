@@ -78,7 +78,7 @@ check('the hormone glands and the Receptor show the hormone lens, a Muscle doesn
   !sim.showsHormones('muscle') && !sim.showsHormones('latch'));
 
 // ---------- In the app ----------
-const { byId, fire, runFrames } = startApp(['clear', 'starter'], {}, { atMainMenu: true });
+const { byId, fire, runFrames } = startApp({}, { atMainMenu: true });
 const pressKey = key => {
   fire('window', 'keydown', { key });
   fire('window', 'keyup', { key });
@@ -108,7 +108,7 @@ check('opened again, the guide is where it was left', byId('guide-title').textCo
 pressKey('Escape');
 
 { // G in the builder: the guide at the cell a click would place
-  const builder = startApp(['clear', 'starter']);
+  const builder = startApp();
   builder.runFrames(3);
   builder.fire('window', 'keydown', { key: 'g' });
   builder.runFrames(2);

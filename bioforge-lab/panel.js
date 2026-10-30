@@ -63,9 +63,7 @@ function showSelectedButtons(app) {
   byId('layer-body').classList.toggle('selected', app.layer === 'body');
   byId('layer-nerve').classList.toggle('selected', app.layer === 'nerve');
   byId('layer-vessel').classList.toggle('selected', app.layer === 'vessel');
-  for (const { entry, row } of app.libraryRows) {
-    row.classList.toggle('selected', !!app.stamp && app.stamp.template === entry);
-  }
+  showLibraryMarks(app);
   byId('unlimited-biomass').classList.toggle('selected', app.edited.biomassLimit === Infinity);
 }
 

@@ -1,7 +1,7 @@
 'use strict';
 // Keeps the game where the player left it: the builder's design, the chosen level and a running level or Sandbox,
-// saved as they change and picked up by Continue; quick save (F5, Ctrl+S) and quick load (F8); and saving a creature
-// to a file or loading one (browser only).
+// saved as they change and picked up by Continue; quick save (F5) and quick load (F8); and exporting a creature or
+// part to a file and importing one (browser only).
 // The save's format is in savegame.js.
 
 const DESIGN_SAVE_INTERVAL = 1;                           // real s between checks whether the design has changed
@@ -94,20 +94,18 @@ function resumePendingRun(app) {
 }
 
 // ---------- Creature files ----------
-// Saves the builder's creature as a file the player can keep or share (the browser's download, or the desktop
-// build's save dialog).
-function saveCreatureToFile(app) {
-  const entry = builderDesignEntry(app);
-  entry.name = entry.name || 'My creature';
+// Writes a library entry to a file the player can keep or share (the browser's download, or the desktop build's
+// save dialog): Export on a card in the Templates window.
+function exportLibraryEntry(entry) {
   const link = document.createElement('a');
   link.href = URL.createObjectURL(new Blob([creatureFileText(entry)], { type: 'application/json' }));
   link.download = creatureFileName(entry);
   link.click();
   URL.revokeObjectURL(link.href);
-  showMessage(`Saved "${entry.name}" as ${link.download}.`);
+  showMessage(`Exported "${entry.name}" as ${link.download}.`);
 }
 
-// asks for a creature file (the answer comes to loadCreatureFromFile)
+// asks for a creature file (the answer comes to loadCreatureFromFile): Import in the Templates window
 function chooseCreatureFile() {
   byId('creature-file-input').value = '';
   byId('creature-file-input').click();
@@ -130,16 +128,17 @@ function useCreatureFileText(app, text, fileName) {
   }
   entry.name = cleanName(entry.name) || fileName.replace(CREATURE_FILE_EXTENSION, '');
   storeTemplate(app.library, entry);
+  app.libraryTab = entry.isCreature ? 'creatures' : 'parts';
   saveAndShowLibrary(app);
   if (!entry.isCreature) {                                // no Nucleus: a part, to stamp or give to a Bud
-    showMessage(`Loaded "${entry.name}" into My templates.`);
+    showMessage(`Loaded "${entry.name}" into My parts.`);
     return;
   }
   if (app.mode === 'build') loadDesign(app, entry, entry.name, entry.name);
   showMessage(`Loaded "${entry.name}" into the builder and My creatures.`);
 }
 
-// ---------- Quick save (F5 or Ctrl+S) and quick load (F8) ----------
+// ---------- Quick save (F5) and quick load (F8) ----------
 // keeps the builder's design in the one quick slot, apart from My creatures and from what Continue picks up
 function quickSave(app) {
   writeStorage('quicksave', builderDesignEntry(app));
@@ -152,7 +151,7 @@ function quickLoad(app) {
   const saved = readStorage('quicksave', null);
   const design = saved && checkedDesign(saved);
   if (!design) {
-    showMessage('Nothing quick saved yet: F5 or Ctrl+S saves the creature.');
+    showMessage('Nothing quick saved yet: F5 quick saves the creature.');
     return;
   }
   leaveForBuilder(app, () => loadDesign(app, design, 'Quick load', design.name));

@@ -112,11 +112,11 @@ function createStorage(items) {
 }
 
 // Starts the whole app in the fake browser (game.js boots it, since the fake has a `window`).
-// templateNames: the built-in design buttons ([data-template]) to make; storedItems: what localStorage holds.
+// storedItems: what localStorage holds.
 // The game starts at the main menu, and Free build closes it (after the screen dims, LEAVE_TITLE_FRAMES) unless
 // options.atMainMenu keeps it open.
 // options.window: more fields of window, such as the desktop build's desktopWindow.
-function startApp(templateNames, storedItems = {}, options = {}) {
+function startApp(storedItems = {}, options = {}) {
   const storage = createStorage(storedItems);
   const listeners = createListeners();
   const context2d = createIgnoringContext();
@@ -125,16 +125,10 @@ function startApp(templateNames, storedItems = {}, options = {}) {
     if (!elements.has(id)) elements.set(id, createElement(id, listeners, context2d));
     return elements.get(id);
   };
-  const templateButtons = templateNames.map(name => {
-    const button = createElement('template-' + name, listeners, context2d);
-    button.dataset.template = name;
-    button.textContent = name[0].toUpperCase() + name.slice(1);
-    return button;
-  });
   const document = {
     getElementById: byId,
     createElement: () => createElement('unnamed', listeners, context2d),
-    querySelectorAll: selector => (selector === '[data-template]' ? templateButtons : []),
+    querySelectorAll: () => [],
   };
   const frameQueue = [];
   let now = Date.now();
@@ -157,7 +151,11 @@ function startApp(templateNames, storedItems = {}, options = {}) {
     }
   };
   const fire = (target, type, fields) => listeners.fire(target, type, fakeEvent(fields));
-  const templateButton = name => templateButtons[templateNames.indexOf(name)];
+  // the card of a built-in design in the Templates window's Examples tab (opening the tab)
+  const templateButton = name => {
+    byId('library-tab-examples').onclick();
+    return byId('library-cards').children.find(card => card.dataset.template === name);
+  };
   // a top-level name of the game's scripts (consts aren't properties of the global scope, so they are evaluated)
   const readGlobal = name => vm.runInContext(name, scope);
   if (!options.atMainMenu) {

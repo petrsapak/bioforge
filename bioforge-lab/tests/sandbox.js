@@ -4,9 +4,8 @@
 const { startApp, SCREEN_HEIGHT } = require('./dom');
 const { check, done } = require('./check');
 
-const TEMPLATE_NAMES = ['clear', 'eel', 'lancer'];
 const ENEMY_DESIGNS = ['wiggler', 'squirter', 'nettler', 'puffer', 'starter', 'eel', 'jelly', 'manta', 'crab'];
-const { byId, fire, runFrames, templateButton } = startApp(TEMPLATE_NAMES);
+const { byId, fire, runFrames, templateButton } = startApp();
 
 const enemyCount = () => +/Enemies (\d+)/.exec(byId('hud-enemies').textContent)[1];
 const playerAlive = () => byId('hud-dead').style.display === 'none';

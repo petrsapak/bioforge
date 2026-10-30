@@ -199,3 +199,48 @@ const SMALL_BUILD_VESSELS = {
   snarer: [[-1, 1, 2, 0], [-1, 1, 1, 2]],
 };
 for (const [name, vessels] of Object.entries(SMALL_BUILD_VESSELS)) TEMPLATES[name].vessels = linksFromList(vessels);
+
+// The Templates window's Examples tab, in groups: each example is a design above, with the name and the line shown
+// on its card
+const EXAMPLE_GROUPS = [
+  {
+    title: 'Small (fit the budget)',
+    examples: [
+      { template: 'jet', name: 'Jet',
+        about: 'The starting creature: a Pacemaker pulses two siphons, so it swims on its own' },
+      { template: 'paddler', name: 'Paddler',
+        about: 'Muscle swimmer: two muscle columns take turns, sweeping its front through the water' },
+      { template: 'seeker', name: 'Seeker',
+        about: 'Follows the mouse in the Sandbox: two Light eyes, each wired across to the far siphon' },
+      { template: 'lancer', name: 'Lancer',
+        about: 'Thorn bruiser: Space fires the siphons for a dash into its thorns' },
+      { template: 'stinger', name: 'Stinger', about: 'Nettle burst: its eyespot stings everything that comes close' },
+      { template: 'spitter', name: 'Spitter', about: 'Ranged: Space fires four acid spitters' },
+      { template: 'snarer', name: 'Snarer', about: 'Catcher: Space shoots two snares that pull foes onto its thorns' },
+    ],
+  },
+  {
+    title: 'Simple',
+    examples: [
+      { template: 'starter', name: 'Starter', about: 'Swims on cilia alone: no nerves to wire' },
+      { template: 'wiggler', name: 'Wiggler', about: 'A Pacemaker beats a tail of muscles and bloaters' },
+      { template: 'squirter', name: 'Squirter', about: 'Space fires three siphons; shell on both sides' },
+      { template: 'nettler', name: 'Nettler', about: 'An eyespot ringed with nettles' },
+      { template: 'puffer', name: 'Puffer', about: 'A ball of bloaters behind a crown of thorns' },
+    ],
+  },
+  {
+    title: 'Showcase (over the budget: try them in the Sandbox)',
+    examples: [
+      { template: 'eel', name: 'Eel',
+        about: 'Pacemakers curl the tail into an S; eyespots fire the head nettles; Space releases adrenaline' },
+      { template: 'jelly', name: 'Jelly',
+        about: 'A ring of bloaters pulses the bell; thorn tentacles trail behind; the eyespot cap stings' },
+      { template: 'manta', name: 'Manta',
+        about: 'Both wings flap: bloaters on top swell while muscles underneath contract; Space fires the jets and ' +
+          'adrenaline' },
+      { template: 'crab', name: 'Crab',
+        about: 'Space snaps both pincers shut and fires the back jets; shell carapace' },
+    ],
+  },
+];

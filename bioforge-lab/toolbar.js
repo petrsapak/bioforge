@@ -27,11 +27,8 @@ function showFluidView(app, view) {
   if (app.mode === 'build') refreshPanel(app);
 }
 
-// the built-in designs, Delete all and Unlimited biomass
+// Delete all and Unlimited biomass
 function setUpDesignButtons(app) {
-  document.querySelectorAll('[data-template]').forEach(button => {
-    button.onclick = () => loadDesign(app, TEMPLATES[button.dataset.template], button.textContent, '');
-  });
   byId('clear-design').onclick = () => clearDesign(app);
   byId('unlimited-biomass').onclick = () => {
     const isUnlimited = app.edited.biomassLimit !== Infinity;

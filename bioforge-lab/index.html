@@ -62,7 +62,8 @@
       <span class="mouse middle"></span><span>drag: pan · wheel: zoom</span>
       <span><b>Ctrl</b>+<span class="mouse left"></span></span><span>select cells, then right-click them: save as a part</span>
       <span><span class="mouse right"></span> Nucleus</span><span>save the whole creature to My creatures</span>
-      <span><b>F5</b> <b>Ctrl</b>+<b>S</b></span><span>quick save the creature</span>
+      <span><b>Ctrl</b>+<b>S</b></span><span>save the creature to My creatures, under a name</span>
+      <span><b>F5</b></span><span>quick save the creature</span>
       <span><b>F8</b></span><span>quick load it back</span>
       <span><b>Q</b><b>E</b></span><span>turn a part</span>
       <span><b>Space</b></span><span>fire Commands and Eyespots (test)</span>
@@ -165,36 +166,18 @@
 </div>
 <div id="library">
   <div id="library-bar" title="Drag to move · drag the bottom-right corner to resize"><span>Templates</span><button id="library-toggle" title="Hide / show">–</button></div>
+  <div id="library-tabs">
+    <button class="library-tab" id="library-tab-creatures">My creatures</button>
+    <button class="library-tab" id="library-tab-parts">My parts</button>
+    <button class="library-tab" id="library-tab-examples">Examples</button>
+  </div>
   <div id="library-body">
-    <div class="library-heading">Small (fit the budget)</div>
-    <div class="row">
-      <button class="small" data-template="jet" title="The starting creature: a Pacemaker pulses two siphons, so it swims on its own">Jet</button>
-      <button class="small" data-template="paddler" title="Muscle swimmer: two muscle columns take turns, sweeping its front through the water">Paddler</button>
-      <button class="small" data-template="seeker" title="Follows the mouse in the Sandbox: two Light eyes, each wired across to the far siphon">Seeker</button>
-      <button class="small" data-template="lancer" title="Thorn bruiser: Space fires the siphons for a dash into its thorns">Lancer</button>
-      <button class="small" data-template="stinger" title="Nettle burst: its eyespot stings everything that comes close">Stinger</button>
-      <button class="small" data-template="spitter" title="Ranged: Space fires four acid spitters">Spitter</button>
-      <button class="small" data-template="snarer" title="Catcher: Space shoots two snares that pull foes onto its thorns">Snarer</button>
+    <div id="library-actions">
+      <button class="small primary" id="library-save" title="Keep the creature in the builder in My creatures (Ctrl+S)">Save this creature</button>
+      <button class="small" id="library-import" title="Load a creature or part file someone shared, or one you exported">Import…</button>
     </div>
-    <div class="library-heading">Built-in</div>
-    <div class="row">
-      <button class="small" data-template="wiggler">Wiggler</button>
-      <button class="small" data-template="squirter">Squirter</button>
-      <button class="small" data-template="nettler">Nettler</button>
-      <button class="small" data-template="puffer">Puffer</button>
-    </div>
-    <div class="help">Showcase (over the budget; try them in the Sandbox):</div>
-    <div class="row">
-      <button class="small" data-template="eel" title="Pacemakers curl the tail into an S; eyespots fire the head nettles; Space releases adrenaline">Eel</button>
-      <button class="small" data-template="jelly" title="A ring of bloaters pulses the bell; thorn tentacles trail behind; the eyespot cap stings">Jelly</button>
-      <button class="small" data-template="manta" title="Both wings flap: bloaters on top swell while muscles underneath contract; Space fires the jets and adrenaline">Manta</button>
-      <button class="small" data-template="crab" title="Space snaps both pincers shut and fires the back jets; shell carapace">Crab</button>
-    </div>
-    <div class="library-heading">My creatures</div>
-    <div id="my-creatures"></div>
-    <div class="library-heading">My templates</div>
-    <div id="my-parts"></div>
-    <div class="help">Ctrl+click cells to select, right-click a selected cell to save. Click a part to stamp it: Q/E rotate, click to place, right-click or Esc to stop. Drag a part onto a Bud to make the Bud grow it. Right-click the Nucleus (or F5 / Ctrl+S for a quick save) to save the whole creature to My creatures; click one to load it (replaces the design). Saving under the same name overwrites.</div>
+    <div id="library-cards"></div>
+    <div class="help" id="library-help"></div>
   </div>
 </div>
 <div id="mirror-menu">
@@ -205,8 +188,8 @@
 </div>
 <div id="save-menu">
   <div id="save-menu-title"></div>
-  <input id="save-menu-name" maxlength="40" placeholder="Template name">
-  <div class="row"><button class="small" id="save-menu-save">Save template</button><button class="small" id="save-menu-clear">Clear selection</button></div>
+  <input id="save-menu-name" maxlength="40" placeholder="Name">
+  <div class="row"><button class="small" id="save-menu-save">Save part</button><button class="small" id="save-menu-clear">Clear selection</button></div>
 </div>
 <div id="hud">
   <div id="hud-top"><div class="hud-chip" id="hud-fps"></div><div class="hud-chip" id="hud-mode"></div><div class="hud-chip" id="hud-enemies"></div></div>
@@ -250,8 +233,7 @@
       <button class="menu-button" id="menu-free-build" title="The builder with the usual limits, and the Sandbox">Free build</button>
       <button class="menu-button" id="menu-retry">Retry</button>
       <button class="menu-button" id="menu-builder">Back to the builder</button>
-      <button class="menu-button" id="menu-save-file" title="Keep the creature in the builder as a file, to back it up or share it">Save creature to a file</button>
-      <button class="menu-button" id="menu-load-file" title="Load a creature file into the builder and My creatures">Load creature from a file</button>
+      <button class="menu-button" id="menu-save-creature" title="Keep the creature in the builder in My creatures, in the Templates window (Ctrl+S)">Save creature</button>
       <button class="menu-button" id="menu-guide" title="What every cell and neuron does, and how the game works">Field guide</button>
       <button class="menu-button" id="menu-settings">Settings</button>
       <button class="menu-button" id="menu-profile" title="Each player keeps their own creatures, level results and saved run">Profile</button>

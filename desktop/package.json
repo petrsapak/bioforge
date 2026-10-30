@@ -1,7 +1,7 @@
 {
   "name": "bioforge-lab-desktop",
   "productName": "Bioforge Lab",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "description": "Bioforge Lab as a desktop game: an Electron window around bioforge-lab/index.html.",
   "private": true,
   "main": "main.js",

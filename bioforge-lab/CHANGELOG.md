@@ -7,6 +7,17 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.5 (2026-10-30)
+- The Templates window is redesigned. It has three tabs, My creatures, My parts and Examples, and shows every
+  creature and part as a card with its picture, its name, how many cells it has and its biomass. A creature that
+  doesn't fit the chosen level is marked "Over the limits"; hover the mark to see why.
+- Saving a creature keeps it in the game. Save this creature (on My creatures, in the Esc menu, or Ctrl+S) asks
+  for a name and puts the creature in My creatures, with no file dialog. A name that another creature has asks
+  before replacing it.
+- Files are now only for sharing and backups: each of your cards has Export, and the window has Import….
+- F5 is the quick save; Ctrl+S now saves under a name instead.
+- The Starter (swims on cilia, no nerves) is among the examples.
+
 ## 0.7.4 (2026-10-30)
 - Nerve fibres and blood vessels are drawn in smooth curves through the cells they pass, instead of zig-zagging
   from middle to middle. A fibre starts beside its neuron and its arrow now points into the cell it ends in, so

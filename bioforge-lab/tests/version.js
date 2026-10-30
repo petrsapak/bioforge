@@ -9,7 +9,7 @@ const { check, done } = require('./check');
 
 const SEMANTIC_VERSION = /^\d+\.\d+\.\d+$/;
 
-const { byId, readGlobal, storage } = startApp(['seeker']);
+const { byId, readGlobal, storage } = startApp();
 const gameVersion = readGlobal('GAME_VERSION');
 check('the version is major.minor.patch', SEMANTIC_VERSION.test(gameVersion), gameVersion);
 

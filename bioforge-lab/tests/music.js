@@ -19,7 +19,7 @@ function fakeAudio(element) {
   return element;
 }
 
-const first = startApp([]);
+const first = startApp();
 const music = fakeAudio(first.byId('music'));
 first.runFrames(2);
 check('the music waits for the first click or key', music.playCount === 0);
@@ -36,7 +36,7 @@ check('M switches it off again, and a click doesn\'t restart it', music.paused);
 first.fire('window', 'pointerdown', {});
 check('a click while it is off leaves it off', music.paused);
 
-const second = startApp([], first.storage.items);
+const second = startApp(first.storage.items);
 const nextMusic = fakeAudio(second.byId('music'));
 second.fire('window', 'pointerdown', {});
 check('switched off stays off on the next visit, and Settings says so', nextMusic.playCount === 0 &&
@@ -44,7 +44,7 @@ check('switched off stays off on the next visit, and Settings says so', nextMusi
 
 // ---------- The seamless loop ----------
 // Two copies take turns: near the end of one, the other starts inside the track and the volumes cross.
-const third = startApp([]);
+const third = startApp();
 const copyA = fakeAudio(third.byId('music'));
 const copyB = fakeAudio(third.byId('music-b'));
 copyA.currentTime = 0;

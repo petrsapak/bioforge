@@ -6,7 +6,7 @@
 const { startApp } = require('./dom');
 const { check, done } = require('./check');
 
-const { byId, fire, runFrames, templateButton, readGlobal, storage } = startApp(['seeker']);
+const { byId, fire, runFrames, templateButton, readGlobal, storage } = startApp();
 const pressKey = key => fire('window', 'keydown', { key });
 // the app isn't a global, so catch the probes object (and count the resets) as resetProbes is called
 readGlobal('globalThis.probeResets = 0; const resetProbesBefore = resetProbes; ' +

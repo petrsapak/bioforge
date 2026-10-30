@@ -54,7 +54,8 @@ function createApp(canvas) {
     cardFibres: [],                                       // the clicked cell's fibres, listed in the card
     hoveredFibre: null,                                   // a fibre whose row in the card is under the mouse
     library: loadLibrary(),
-    libraryRows: [],
+    libraryCards: [],                                     // the Templates window's cards: { entry, element, badge }
+    libraryTab: 'creatures',                              // its open tab (library.js)
     dockButtons: new Map(),                               // cell types
     neuronButtons: new Map(),
     showDockLayer: () => {},
@@ -117,7 +118,7 @@ function boot() {
   setUpProgress(app);
   app.isProbesShown = readStorage('probes-shown', true);
   app.hudBars = makeHudBars(byId('hud-bars'));
-  showLibraryRows(app);
+  setUpLibrary(app);
   listenToKeyboard(app);
   listenToMouse(app);
   rebuildTank(app);
@@ -202,67 +203,6 @@ function showLayer(app, layer) {
   refreshPanel(app);
 }
 
-// ---------- The library ----------
-function showLibraryRows(app) {
-  app.libraryRows = showLibrary(app.library, {
-    use: entry => useLibraryEntry(app, entry),
-    rename: entry => renameLibraryEntry(app, entry),
-    remove: entry => removeLibraryEntry(app, entry),
-    startDrag: entry => {
-      app.libraryDrag = entry;
-    },
-  });
-}
-
-// A creature replaces the design. A part goes to the clicked Bud, or else is picked up as a stamp (clicking the stamp
-// in hand again puts it down).
-function useLibraryEntry(app, entry) {
-  if (entry.isCreature) {
-    loadDesign(app, entry, entry.name, entry.name);
-    return;
-  }
-  const focused = app.focusKey && app.edited.cells.get(app.focusKey);
-  if (focused && CELLS[focused.typeName].growsParts) {
-    showProblem(app, giveBudPart(app.edited, app.focusKey, entry));
-    return;
-  }
-  app.stamp = app.stamp && app.stamp.template === entry ? null : { template: entry, rotation: 0 };
-  refreshPanel(app);
-}
-
-// asks for a new name in the game's own box; an empty name keeps the old one
-function renameLibraryEntry(app, entry) {
-  const kind = entry.isCreature ? 'creature' : 'template';
-  askForName({ title: `Rename this ${kind}`, text: `A new name for "${entry.name}".`, confirmLabel: 'Rename' },
-    entry.name, name => {
-      if (!cleanName(name)) return;
-      entry.name = cleanName(name);
-      saveAndShowLibrary(app);
-    });
-}
-
-// asks, then deletes a library entry
-function removeLibraryEntry(app, entry) {
-  const kind = entry.isCreature ? 'creature' : 'template';
-  askToConfirm({
-    title: `Delete this ${kind}?`,
-    text: `"${entry.name}" leaves ${entry.isCreature ? 'My creatures' : 'My templates'} for good.`,
-    confirmLabel: 'Delete',
-    isDangerous: true,
-  }, () => {
-    app.library = app.library.filter(other => other !== entry);
-    if (app.stamp && app.stamp.template === entry) app.stamp = null;
-    saveAndShowLibrary(app);
-  });
-}
-
-// saves the library and shows it again
-function saveAndShowLibrary(app) {
-  saveLibrary(app.library);
-  showLibraryRows(app);
-  refreshPanel(app);
-}
-
 // ---------- The save menu (right-click on the selection, or on the Nucleus for the whole creature) ----------
 function setUpSaveMenu(app) {
   byId('save-menu-save').onclick = () => {
@@ -293,7 +233,7 @@ function openSaveMenu(app, x, y) {
   byId('save-menu-name').value = isCreature
     ? app.lastLoadedName || `Creature ${creatureCount + 1}`
     : `Part ${app.library.length + 1}`;
-  byId('save-menu-save').textContent = isCreature ? 'Save creature' : 'Save template';
+  byId('save-menu-save').textContent = isCreature ? 'Save creature' : 'Save part';
   Object.assign(byId('save-menu').style, {
     display: 'block',
     left: Math.min(x, innerWidth - SAVE_MENU_WIDTH) + 'px',
@@ -313,11 +253,12 @@ function saveSelection(app, name) {
   const entry = templateFromSelection(app.edited, app.selection, cleanName(name) || `Part ${app.library.length + 1}`);
   if (!entry) return;
   const replaced = storeTemplate(app.library, entry);
+  app.libraryTab = entry.isCreature ? 'creatures' : 'parts';
   if (replaced && app.stamp && app.stamp.template === replaced) app.stamp = null;
   app.selection.clear();
   saveAndShowLibrary(app);
   showMessage(`${replaced ? 'Overwrote' : 'Saved'} "${entry.name}" in ` +
-    `${entry.isCreature ? 'My creatures' : 'My templates'}.`);
+    `${entry.isCreature ? 'My creatures' : 'My parts'}.`);
 }
 
 // ---------- Modes ----------
@@ -378,7 +319,7 @@ function listenToKeyboard(app) {
       handleMenuKey(app, key);
       return;
     }
-    if (handleQuickSaveKey(app, event)) return;
+    if (handleSaveKey(app, event)) return;
     if (key === 't' && !event.repeat && app.mode !== 'build') toggleProbes(app);
     if (key === 'c' && !event.repeat && !event.ctrlKey && !event.metaKey) toggleChemicalLens(app);
     const digit = digitOf(event);
@@ -414,15 +355,21 @@ function commandKeyOf(event) {
   return /^[a-z0-9]$/.test(key) ? key : null;
 }
 
-// F5 or Ctrl+S quick saves the creature and F8 loads it back (progress.js); true if the key was one of them
-function handleQuickSaveKey(app, event) {
+// F5 quick saves the creature and F8 loads it back (progress.js); Ctrl+S in the builder saves it into My creatures
+// (library.js). True if the key was one of them.
+function handleSaveKey(app, event) {
   const key = event.key.toLowerCase();
-  const isSave = key === 'f5' || (key === 's' && (event.ctrlKey || event.metaKey));
-  if (!isSave && key !== 'f8') return false;
+  const isNamedSave = key === 's' && (event.ctrlKey || event.metaKey);
+  if (key !== 'f5' && key !== 'f8' && !isNamedSave) return false;
   event.preventDefault();                                 // not the browser's reload or Save page
   if (event.repeat) return true;
-  if (isSave) quickSave(app);
-  else quickLoad(app);
+  if (isNamedSave) {
+    if (app.mode === 'build') saveBuilderCreature(app);
+  } else if (key === 'f5') {
+    quickSave(app);
+  } else {
+    quickLoad(app);
+  }
   return true;
 }
 

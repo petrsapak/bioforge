@@ -17,10 +17,14 @@ const pressKeyIn = fire => (key, fields = {}) => {
 const clockOf = byId => parseFloat(byId('hud-enemies').textContent);
 const cellCount = byId => +/Cells: (\d+)/.exec(byId('budget').innerHTML)[1];
 const savedState = storage => JSON.parse(storage.items['bioforge-lab-profile-1-continue'] || 'null');
+// the number on the Templates window's My creatures tab
+const savedCreatureCount = byId => +/class="count">(\d+)</.exec(byId('library-tab-creatures').innerHTML)[1];
+// the card in the Templates window's open tab with the given name
+const cardNamed = (byId, name) => byId('library-cards').children.find(card => card.children[1].textContent === name);
 
 async function main() {
   // ---------- The main menu on a first start ----------
-  const first = startApp(['clear', 'starter'], {}, { atMainMenu: true });
+  const first = startApp({}, { atMainMenu: true });
   const { byId, runFrames, storage } = first;
   const pressKey = pressKeyIn(first.fire);
   runFrames(2);
@@ -68,8 +72,8 @@ async function main() {
   pressKey('Escape');
   check('holding nothing, Esc opens the menu', byId('menu-sheet').style.display === 'flex' &&
     byId('menu-title').textContent === 'Menu');
-  check('the builder\'s menu offers creature files, not Retry', isShown(byId, 'menu-save-file') &&
-    isShown(byId, 'menu-load-file') && !isShown(byId, 'menu-retry') && isShown(byId, 'menu-main'));
+  check('the builder\'s menu offers Save creature, not Retry', isShown(byId, 'menu-save-creature') &&
+    !isShown(byId, 'menu-retry') && isShown(byId, 'menu-main'));
   pressKey('Escape');
   check('Esc closes it again', byId('menu-sheet').style.display === 'none');
 
@@ -91,9 +95,9 @@ async function main() {
     byId('menu-sheet').style.display === 'none');
   pressKey('F8');
   check('F8 with nothing quick saved says so', byId('message').textContent.includes('Nothing quick saved'));
-  pressKey('s', { ctrlKey: true });
+  pressKey('F5');
   const quickSaved = JSON.parse(storage.items['bioforge-lab-profile-1-quicksave'] || 'null');
-  check('Ctrl+S quick saves the creature', !!quickSaved && quickSaved.cells.length === starterCells);
+  check('F5 quick saves the creature', !!quickSaved && quickSaved.cells.length === starterCells);
   byId('clear-design').onclick({});
   check('Delete all asks first, in the game\'s own red box', byId('dialog-sheet').style.display === 'flex' &&
     byId('dialog-box').classList.contains('dangerous') && cellCount(byId) === starterCells);
@@ -111,7 +115,37 @@ async function main() {
   byId('dialog-confirm').onclick();
   pressKey('F5');
   pressKey('F8');
-  check('F5 quick saves too', cellCount(byId) === 1);
+  check('F5 quick saves over the last quick save', cellCount(byId) === 1);
+  first.templateButton('starter').onclick();
+
+  // ---------- Saving into My creatures: Ctrl+S, the Esc menu and the Templates window ----------
+  const library = () => JSON.parse(storage.items['bioforge-lab-profile-1-library'] || '[]');
+  pressKey('s', { ctrlKey: true });
+  check('Ctrl+S asks for a name in the game\'s own box, with no file dialog',
+    byId('dialog-sheet').style.display === 'flex' && byId('dialog-input').value === 'Creature 1');
+  byId('dialog-input').value = 'Ada';
+  byId('dialog-confirm').onclick();
+  check('the creature goes into My creatures, which opens', library().length === 1 &&
+    library()[0].name === 'Ada' && library()[0].cells.length === starterCells &&
+    byId('library-tab-creatures').classList.contains('selected') && byId('library-cards').children.length === 1 &&
+    byId('library-tab-creatures').innerHTML.includes('>1<'));
+  pressKey('Escape');
+  byId('menu-save-creature').onclick({});
+  check('the Esc menu\'s Save creature asks too, with the name it was saved as',
+    byId('dialog-sheet').style.display === 'flex' && byId('dialog-input').value === 'Ada');
+  byId('dialog-confirm').onclick();
+  check('saving again under its own name just saves', byId('dialog-sheet').style.display === 'none' &&
+    library().length === 1);
+  first.templateButton('jet').onclick();
+  byId('library-tab-creatures').onclick();
+  byId('library-save').onclick();
+  byId('dialog-input').value = 'Ada';
+  byId('dialog-confirm').onclick();
+  check('another creature under a taken name asks before it overwrites, in red',
+    byId('dialog-sheet').style.display === 'flex' && byId('dialog-box').classList.contains('dangerous') &&
+    library()[0].cells.length === starterCells);
+  byId('dialog-confirm').onclick();
+  check('confirming overwrites it', library().length === 1 && library()[0].cells.length !== starterCells);
   first.templateButton('starter').onclick();
 
   // ---------- The Esc menu over a level run ----------
@@ -121,7 +155,7 @@ async function main() {
   check('the first level runs', byId('level-bar').style.display === 'flex' && clockOf(byId) > 1);
   pressKey('Escape');
   check('Esc in a run opens the menu, paused', byId('menu-title').textContent === 'Paused' &&
-    byId('level-pause').textContent === '▶' && isShown(byId, 'menu-retry') && !isShown(byId, 'menu-save-file'));
+    byId('level-pause').textContent === '▶' && isShown(byId, 'menu-retry') && !isShown(byId, 'menu-save-creature'));
   const pausedClock = clockOf(byId);
   runFrames(30);
   check('the run stands still behind the menu', clockOf(byId) === pausedClock);
@@ -138,7 +172,7 @@ async function main() {
 
   // ---------- Closing the game and opening it again ----------
   first.fire('window', 'pagehide', {});
-  const second = startApp(['clear', 'starter'], { ...storage.items }, { atMainMenu: true });
+  const second = startApp({ ...storage.items }, { atMainMenu: true });
   second.runFrames(2);
   check('opened again, the design is back in the builder', cellCount(second.byId) === cellCount(byId) &&
     cellCount(byId) > 3, `${cellCount(byId)} cells`);
@@ -154,7 +188,7 @@ async function main() {
   check('and it runs on', clockOf(second.byId) > resumedClock);
 
   // ---------- Free build forgets the run ----------
-  const third = startApp(['clear', 'starter'], { ...second.storage.items }, { atMainMenu: true });
+  const third = startApp({ ...second.storage.items }, { atMainMenu: true });
   check('a third start offers the run too', third.byId('menu-continue').textContent === 'Continue: First stroke');
   third.byId('menu-free-build').onclick({});
   third.runFrames(LEAVE_TITLE_FRAMES);
@@ -171,7 +205,7 @@ async function main() {
       isWindowFullscreen = !isWindowFullscreen;
     },
   };
-  const desktop = startApp(['clear'], {}, { atMainMenu: true, window: { desktopWindow } });
+  const desktop = startApp({}, { atMainMenu: true, window: { desktopWindow } });
   check('the desktop build\'s main menu has Quit', isShown(desktop.byId, 'menu-quit'));
   desktop.byId('menu-settings').onclick({});
   desktop.byId('setting-fullscreen').onclick({});
@@ -189,23 +223,23 @@ async function main() {
   chooseFile('eel.bioforge.json', eelFile);
   await new Promise(resolve => setImmediate(resolve));
   check('a creature file goes into My creatures and the builder',
-    third.byId('my-creatures').children.length === 1 && third.byId('message').innerHTML.includes('Shared eel'));
+    !!cardNamed(third.byId, 'Shared eel') && third.byId('message').innerHTML.includes('Shared eel'));
   // renaming it asks in the game's own box, with the old name in a field: Enter there renames, Esc keeps it
-  const renameButton = () => third.byId('my-creatures').children[0].children[2];
+  const renameButton = () => cardNamed(third.byId, 'Long eel') || cardNamed(third.byId, 'Shared eel');
   const nameField = third.byId('dialog-input');
-  renameButton().onclick({ stopPropagation() {} });
+  renameButton().children[4].children[0].onclick({ stopPropagation() {} });
   check('renaming asks in the game\'s own box, the old name ready to edit',
     third.byId('dialog-sheet').style.display === 'flex' && nameField.style.display === '' &&
     nameField.value === 'Shared eel');
   nameField.value = 'Long eel';
   third.fire('dialog-input', 'keydown', { key: 'Enter' });
   check('Enter in the name field renames it', third.byId('dialog-sheet').style.display === 'none' &&
-    third.readGlobal('JSON.parse(localStorage.getItem("bioforge-lab-profile-1-library"))')[0].name === 'Long eel');
-  renameButton().onclick({ stopPropagation() {} });
+    !!cardNamed(third.byId, 'Long eel'));
+  renameButton().children[4].children[0].onclick({ stopPropagation() {} });
   nameField.value = 'Short eel';
   third.fire('dialog-input', 'keydown', { key: 'Escape' });
   check('Esc in the name field keeps the name', third.byId('dialog-sheet').style.display === 'none' &&
-    third.readGlobal('JSON.parse(localStorage.getItem("bioforge-lab-profile-1-library"))')[0].name === 'Long eel');
+    !!cardNamed(third.byId, 'Long eel'));
   byId('clear-design').onclick({});
   check('the plain question box has no name field', byId('dialog-input').style.display === 'none');
   pressKey('Escape');
@@ -214,7 +248,7 @@ async function main() {
   check('another file is refused, saying why', third.byId('message').innerHTML.includes("isn't a Bioforge Lab"));
 
   // ---------- Profiles ----------
-  const before = startApp(['clear'], { ...third.storage.items }, { atMainMenu: true });
+  const before = startApp({ ...third.storage.items }, { atMainMenu: true });
   const profilesIn = app => JSON.parse(app.storage.items['bioforge-lab-profiles']);
   check('the main menu shows the profile playing', isShown(before.byId, 'menu-profile') &&
     before.byId('menu-profile').textContent === 'Profile: Player');
@@ -228,16 +262,16 @@ async function main() {
   check('New profile asks for a name, keeps it as the current profile and starts the game again',
     profilesIn(before).list.length === 2 && profilesIn(before).current === 2 &&
     before.readGlobal('Object.keys(localStorage.items)').every(key => !key.startsWith('bioforge-lab-profile-2-')));
-  const ada = startApp(['clear'], { ...before.storage.items }, { atMainMenu: true });
+  const ada = startApp({ ...before.storage.items }, { atMainMenu: true });
   check('the new profile starts afresh: nothing to continue, no creatures, the settings kept',
     ada.byId('menu-profile').textContent === 'Profile: Ada' && !isShown(ada.byId, 'menu-continue') &&
-    ada.byId('my-creatures').children.length === 0 && ada.byId('setting-music').textContent === 'Off');
+    savedCreatureCount(ada.byId) === 0 && ada.byId('setting-music').textContent === 'Off');
   ada.byId('menu-profile').onclick({});
   ada.byId('profile-list').children[0].children[0].onclick();
-  const back = startApp(['clear'], { ...ada.storage.items }, { atMainMenu: true });
+  const back = startApp({ ...ada.storage.items }, { atMainMenu: true });
   check('switching back brings the first profile\'s creatures and run back',
     back.byId('menu-profile').textContent === 'Profile: Player' && isShown(back.byId, 'menu-continue') &&
-    back.byId('my-creatures').children.length === 1);
+    savedCreatureCount(back.byId) > 0);
   back.byId('menu-profile').onclick({});
   back.byId('profile-list').children[1].children[2].onclick();
   check('deleting a profile asks first, in red', back.byId('dialog-box').classList.contains('dangerous'));

@@ -283,7 +283,7 @@ check('the Jet wins the first level, but over the par biomass and time: 1 star',
 
 // ---------- The app ----------
 // with every level open (RULES.allLevelsOpen, for testing), a later level can be chosen and brings its kit
-const allOpen = startApp([]);
+const allOpen = startApp();
 allOpen.readGlobal('RULES.allLevelsOpen = true');
 allOpen.runFrames(3);
 allOpen.byId('show-levels').onclick();
@@ -296,7 +296,7 @@ check('with every level open, any level can be chosen, and the builder takes its
   /\/ 38/.test(allOpen.byId('budget').innerHTML), allOpen.byId('budget').innerHTML.slice(0, 200));
 
 // the rest runs with levels opening in order, as a player will have them
-const { byId, fire, runFrames, readGlobal, storage } = startApp([]);
+const { byId, fire, runFrames, readGlobal, storage } = startApp();
 readGlobal('RULES.allLevelsOpen = false');
 runFrames(3);
 check('no level is chosen at first', !byId('show-levels').classList.contains('selected'));
