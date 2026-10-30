@@ -7,6 +7,32 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.2 (2026-10-30)
+- Hormones leak into the water. Every cell gives off a scent of the hormones it holds, and takes in what the
+  water around it holds more of than it does, so moods are catching: swim through another creature's Calm and
+  you calm down too.
+- The chemical lens: press C (or the new Hormones button by the layer tabs) to see the hormones. The bodies dim,
+  every cell glows with the hormones it holds, and the clouds in the water show. Works in the builder, in levels
+  and in the Sandbox.
+- Vessels are drawn thin, like nerve fibres, each in its own lane in its own shade of red, so several vessels and
+  fibres through one cell no longer hide each other. A pumped vessel has a light core; a shut one is grey dashes.
+- New cell: the Photophore. It glows while signalled, and other creatures' Light eyes see it and swim to it, as
+  prey swims to an anglerfish's lure. Your own Light eyes ignore it.
+- Two new levels. Anglerfish (chapter 5): lure a Seeker in the dark onto your glands. Lullaby (chapter 6): calm
+  a stinging urchin with a cloud of Calm before you go in.
+- The field guide: Field guide in every menu, G in the builder, or Guide on a clicked cell's card. Every cell and
+  neuron with its numbers, a live example, how to use it, what to watch out for and what it works well with;
+  pages on how the game works (signals, fuel, blood, materials, armour, light, moods, the water); a glossary.
+  It has no level solutions. It shows rather than tells: every entry in the list has its picture; a page shows
+  the cell big, its cost as coloured pips, its health and fuel as bars, a neuron's setting as a slider, the
+  example's wiring as pictures joined by moving fibres and vessels, and what it works with as picture tiles. Every
+  topic runs its own live tank, and pages about hormones show them glowing.
+- New scrollbars everywhere in the game: a thin teal bar with no arrows, in place of the system's grey one.
+- Fixed: on a slow computer (under 20 fps) a creature with Muscles could fly apart in the builder's test tank or a
+  tooltip's example. They now take short steps, as levels and the Sandbox always did.
+- A gland or a Photophore holding an Inhibitor with nothing wired in no longer shows "wire it" in the Needs card:
+  it is on by itself.
+
 ## 0.7.1 (2026-10-30)
 - Profiles: each player keeps their own creatures, level results, saved run and quick save; the settings are
   shared. Profile on the main menu lists them: click one to play as them, add a new one, rename or delete one

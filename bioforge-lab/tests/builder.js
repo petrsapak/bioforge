@@ -10,7 +10,7 @@ const { X: sim } = load({}, ['createEditedDesign', 'canPlaceCell', 'placeCell', 
   'removeNeuron', 'changeNeuronSetting', 'toggleFibre', 'bodyDesign', 'nerveUsage', 'fibresAt', 'removeFibre',
   'nerveRemovalTarget', 'hexToPixel', 'mirrorImages', 'mirroredPlacement', 'placeMirrored', 'removeMirrored',
   'hexesAlongStroke', 'MIRROR_AXIS_COUNT', 'FRONT_TO_BACK_AXIS', 'extendFibrePath', 'laidOutBodyFibres',
-  'planFibreToggle', 'fibreUnits']);
+  'planFibreToggle', 'fibreUnits', 'laidOutBodyLinks', 'toggleVessel']);
 
 const cellsOf = list => list.map(([q, r, typeName]) => sim.createDesignCell(q, r, typeName));
 const editedFrom = (cells, biomassLimit) => sim.createEditedDesign({ cells, fibres: [] }, biomassLimit);
@@ -189,6 +189,19 @@ const editedFrom = (cells, biomassLimit) => sim.createEditedDesign({ cells, fibr
   const [there, , back] = laidOut;
   const apart = Math.abs(there.points[1][1] - back.points[1][1]);
   check('two fibres along the same cells run apart, not on top of each other', apart > 1.5, apart.toFixed(2) + " px");
+}
+
+{ // vessels are drawn in lanes too, beside the fibres and each other
+  const edited = editedFrom(cellsOf([[0, 0, 'heart'], [1, 0, 'tissue'], [2, 0, 'muscle'], [3, 0, 'muscle']]));
+  sim.toggleFibre(edited, sim.hexKey(0, 0), sim.hexKey(3, 0));
+  sim.toggleVessel(edited, sim.hexKey(0, 0), sim.hexKey(2, 0));
+  sim.toggleVessel(edited, sim.hexKey(0, 0), sim.hexKey(3, 0));
+  const { fibres, vessels } = sim.laidOutBodyLinks(edited, 8);
+  const lanes = [...fibres, ...vessels].map(entry => entry.lane);
+  check('a fibre and two vessels through the same cells get three lanes', vessels.length === 2 &&
+    new Set(lanes).size === 3, lanes.join(' '));
+  check('the fibre is laid out first, so it keeps the centre line', fibres[0].lane === 0);
+  check('vessels sharing a cell get different shades', vessels[0].colorIndex !== vessels[1].colorIndex);
 }
 
 { // fibres travel with saved parts: saving a selection, stamping it, and growing it on a Bud

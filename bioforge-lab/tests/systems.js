@@ -2,7 +2,7 @@
 const { load } = require('./load');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['newWorld', 'newTestTank', 'spawn', 'step', 'RULES', 'TEMPLATES', 'blueprintFromList',
-  'FLUID_OXYGEN', 'FLUID_SUGAR', 'SIGNAL_ON']);
+  'FLUID_OXYGEN', 'FLUID_SUGAR', 'SIGNAL_ON', 'stepInPieces', 'createNeuron', 'linksFromList']);
 
 const totalOxygen = creature => creature.cells.reduce((sum, cell) => sum + cell.fluids[sim.FLUID_OXYGEN], 0);
 
@@ -59,5 +59,18 @@ check('deterministic: same design, same result', samePositions(runWiggler(), run
   sim.step(world, 1 / 40, { swimX: 0, swimY: 0, ability: true });
   check('normal world: Space does not fire an Eyespot',
     sameCreature.cells.find(cell => cell.typeName === 'eyespot').signal === 0);
+}
+
+{ // a slow frame (20 fps, 0.05 s) in the builder's tank: two Muscles beside each other contracting at once blew the
+  // body apart in one long step (NaN by 0.25 s, 2026-10-30); split into short steps it stays whole
+  const cells = sim.blueprintFromList([[0, 0, 'nucleus'], [1, 0, 'heart'], [2, 0, 'tissue'], [3, 0, 'muscle'],
+    [3, -1, 'muscle'], [-1, 0, 'fat'], [1, -1, 'gill']]);
+  cells[0].neuron = sim.createNeuron('pacemaker');
+  const design = { cells, fibres: sim.linksFromList([[0, 0, 3, 0], [0, 0, 3, -1]]) };
+  const world = sim.newTestTank(900, 600);
+  sim.spawn(world, design, 450, 300, 0, 0);
+  for (let i = 0; i < 200; i++) sim.stepInPieces(world, 0.05, { swimX: 0, swimY: 0, ability: false });
+  check('slow frames split into short steps keep a muscled body whole',
+    world.cells.every(cell => Number.isFinite(cell.x) && Math.abs(cell.x - 450) < 200));
 }
 done();

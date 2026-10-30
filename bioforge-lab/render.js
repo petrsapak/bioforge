@@ -13,9 +13,15 @@ const FIBRE_COLORS = ['#f2d36b', '#5fd4f4', '#ff9f5a', '#b79cff', '#7ee08a', '#f
 const FIBRE_WIDTH = 0.9;                                  // px
 const FIBRE_ARROW_SIZE = 2.2;                             // px
 const LIGHT_GLOW_RADIUS = 40;                             // px of the glow drawn around the light
-const VESSEL_COLOR = '#8f1d2c';                           // a vessel no Heart pumps
-const VESSEL_PUMPED_COLOR = '#e0485a';                    // a vessel a fed Heart pumps
+const LURE_GLOW_RADIUS = 22;                              // px of the glow drawn around a lit Photophore
+const LURE_COLOR = '159,240,224';                         // r,g,b of a Photophore's light
+const VESSEL_PUMPED_COLOR = '#e0485a';                    // a vessel being laid, and the pumped core's base
+const VESSEL_PUMPED_CORE_COLOR = '#ffd8dc';               // the core of a vessel a fed Heart pumps
 const VESSEL_SHUT_COLOR = '#6a5a62';                      // a vessel an unsignalled Valve shuts
+// vessels that share a cell get different shades of red from this list, as fibres get colours
+const VESSEL_COLORS = ['#e0485a', '#ff8a7a', '#c0304a', '#ff6f9a', '#d8645a', '#ff9fb4'];
+const VESSEL_WIDTH = 1.2;                                 // px, a little thicker than a fibre
+const VESSEL_IDLE_ALPHA = 0.55;                           // share of its strength a vessel no Heart pumps is drawn at
 
 // view 0 = normal, 1..5 = fill level of one fluid; viewBox = { minX, minY, maxX, maxY }: draw only cells inside it.
 // Vessels and fibres are left out, since they clutter the game and the builder's preview; the tip demos add them.
@@ -29,11 +35,24 @@ function drawWorld(context, world, view, viewBox, showRanges = true) {
   for (const cell of world.cells) {
     if (isVisible(cell)) drawCell(context, cell, view, showRanges);
   }
+  drawLureReaches(context, world, isVisible);
   drawSnareLines(context, world);
   drawGlobs(context, world);
   drawZaps(context, world);
   drawFood(context, world);
   drawSparks(context, world);
+}
+
+// the faint reach of every lit Photophore: as far as other creatures' Light eyes see it
+function drawLureReaches(context, world, isVisible) {
+  for (const cell of world.cells) {
+    if (!isGlowing(cell) || !isVisible(cell)) continue;
+    const reach = context.createRadialGradient(cell.x, cell.y, 0, cell.x, cell.y, PHOTOPHORE_RANGE);
+    reach.addColorStop(0, `rgba(${LURE_COLOR},0.08)`);
+    reach.addColorStop(1, `rgba(${LURE_COLOR},0)`);
+    context.fillStyle = reach;
+    fillCircle(context, cell.x, cell.y, PHOTOPHORE_RANGE);
+  }
 }
 
 // The bonds as soft see-through flesh. Bonds of one team and width go into one path and are stroked once, so where
@@ -139,21 +158,28 @@ function drawSparks(context, world) {
 }
 
 // ---------- Blood vessels ----------
-// A vessel as a thick line through the centres of its cells, with a dot on each end cell, where blood goes in and out.
-// state: 'pumped' (bright), 'idle' (dark) or 'shut' (grey, dashed); alpha and width: how strongly it is drawn.
-function drawVessel(context, points, state, alpha = 1, width = 3) {
-  context.globalAlpha = alpha;
-  context.strokeStyle = state === 'pumped' ? VESSEL_PUMPED_COLOR : state === 'shut' ? VESSEL_SHUT_COLOR : VESSEL_COLOR;
+// A vessel as a thin line through its points (its cells' centres, or its lane beside them, as fibres have), with a
+// small dot on each end cell, where blood goes in and out. state: 'pumped' (a light core, like a fibre carrying a
+// signal), 'idle' (fainter) or 'shut' (grey, dashed). style: { color, alpha, width (px) }.
+function drawVessel(context, points, state, { color = VESSEL_COLORS[0], alpha = 1, width = VESSEL_WIDTH } = {}) {
+  const isShut = state === 'shut';
+  context.globalAlpha = state === 'idle' ? alpha * VESSEL_IDLE_ALPHA : alpha;
+  context.strokeStyle = isShut ? VESSEL_SHUT_COLOR : color;
   context.fillStyle = context.strokeStyle;
   context.lineWidth = width;
   context.lineCap = 'round';
   context.lineJoin = 'round';
-  if (state === 'shut') context.setLineDash([width, width]);
+  if (isShut) context.setLineDash([width * 2, width * 1.5]);
   context.beginPath();
   for (const [x, y] of points) context.lineTo(x, y);
   context.stroke();
   context.setLineDash([]);
-  for (const [x, y] of [points[0], points[points.length - 1]]) fillCircle(context, x, y, width);
+  if (state === 'pumped') {
+    context.strokeStyle = VESSEL_PUMPED_CORE_COLOR;
+    context.lineWidth = width * 0.4;
+    context.stroke();
+  }
+  for (const [x, y] of [points[0], points[points.length - 1]]) fillCircle(context, x, y, width * 0.9 + 0.4);
   context.globalAlpha = 1;
 }
 
@@ -165,9 +191,19 @@ function vesselState(vessel) {
 
 // the world's vessels, through the moving centres of the cells they run through
 function drawWorldVessels(context, world) {
-  for (const vessel of world.vessels) {
-    drawVessel(context, vessel.path.map(cell => [cell.x, cell.y]), vesselState(vessel), 0.55, 2.2);
-  }
+  const lanes = layOutWorldLinks(world).vessels;
+  world.vessels.forEach((vessel, i) => {
+    const color = VESSEL_COLORS[lanes[i].colorIndex % VESSEL_COLORS.length];
+    drawVessel(context, lanes[i].points, vesselState(vessel), { color, alpha: 0.85 });
+  });
+}
+
+// The world's fibres and vessels in one set of lanes (see layOutFibreLanes), the fibres first, so that neither lies on
+// the other: { fibres, vessels }, one { points, lane, colorIndex } per world fibre and vessel, in their order.
+function layOutWorldLinks(world) {
+  const pathOf = link => link.path.map(cell => ({ node: cell, x: cell.x, y: cell.y }));
+  const lanes = layOutFibreLanes([...world.fibres.map(pathOf), ...world.vessels.map(pathOf)], FIBRE_COLORS.length);
+  return { fibres: lanes.slice(0, world.fibres.length), vessels: lanes.slice(world.fibres.length) };
 }
 
 // ---------- Nerve fibres ----------
@@ -219,8 +255,7 @@ function drawFibreArrow(context, [fromX, fromY], [toX, toY], width) {
 
 // the world's fibres side by side in their lanes, through the moving centres of the cells they run through
 function drawWorldFibres(context, world) {
-  const paths = world.fibres.map(fibre => fibre.path.map(cell => ({ node: cell, x: cell.x, y: cell.y })));
-  const lanes = layOutFibreLanes(paths, FIBRE_COLORS.length);
+  const lanes = layOutWorldLinks(world).fibres;
   world.fibres.forEach((fibre, i) => {
     drawFibre(context, lanes[i].points, fibre.value, { color: FIBRE_COLORS[lanes[i].colorIndex], alpha: 0.85 });
   });
@@ -238,6 +273,7 @@ function drawCell(context, cell, view, showRanges = true) {
   const creature = cell.creature;
   context.globalAlpha = 0.4 + 0.6 * clamp01(cell.health / cell.maxHealth);
   const outward = Math.atan2(cell.y - creature.centerY, cell.x - creature.centerX);   // away from the body centre
+  if (isGlowing(cell)) drawLureGlow(context, cell);
   drawCellArt(context, cell, radius, outward);
   if (showRanges && cell.type.senses === 'enemy') drawEyespotRange(context, cell);
   drawCellOverlays(context, cell, radius);
@@ -306,6 +342,18 @@ function drawLight(context, light, showReach = true) {
   context.arc(light.x, light.y, light.range, 0, Math.PI * 2);
   context.stroke();
   context.setLineDash([]);
+}
+
+// the bright glow round a lit Photophore
+function drawLureGlow(context, cell) {
+  const alpha = context.globalAlpha;
+  const glow = context.createRadialGradient(cell.x, cell.y, 0, cell.x, cell.y, LURE_GLOW_RADIUS);
+  glow.addColorStop(0, `rgba(${LURE_COLOR},0.55)`);
+  glow.addColorStop(1, `rgba(${LURE_COLOR},0)`);
+  context.globalAlpha = 1;
+  context.fillStyle = glow;
+  fillCircle(context, cell.x, cell.y, LURE_GLOW_RADIUS);
+  context.globalAlpha = alpha;
 }
 
 // a diamond centred on (x, y), halfWidth by halfHeight px

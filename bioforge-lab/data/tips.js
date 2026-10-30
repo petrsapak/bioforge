@@ -340,6 +340,15 @@ const TIPS = {
       spaceLabel: 'Space held',
     },
   },
+  photophore: {
+    howToUse: 'Wire it like any action: from a Command, a Pacemaker to blink, or an Eyespot to light up when ' +
+      'something is near. Prey and hunters with Light eyes swim to it, so put what should meet them (acid, a ' +
+      'Mouth, Thorns) right beside it.',
+    example: {
+      cells: [[0, 0, 'nucleus'], [0, -1, 'photophore'], [-1, 0, 'command'], [1, -1, 'acid'], [1, 0, 'fat']],
+      spaceLabel: 'Space held',
+    },
+  },
   receptor: {
     howToUse: 'Click it to choose its hormone, then lay fibres from it like from any sense. Its signal rises and ' +
       'falls slowly with the hormone, so a Synapse after it turns it into on and off: a mood becomes a switch.',

@@ -15,7 +15,7 @@ const SAVE_MENU_WIDTH = 230;                              // px kept free right 
 const SAVE_MENU_HEIGHT = 120;                             // px
 const LAYER_BY_KEY = { 1: 'body', 2: 'nerve', 3: 'vessel' };    // the builder's tab each number key opens
 // keys with a job of their own, which a Command can't be bound to: the tabs, Q/E, F, H, M, and P, R, T in runs
-const RESERVED_KEYS = new Set(['1', '2', '3', 'e', 'f', 'h', 'm', 'n', 'p', 'q', 'r', 't']);
+const RESERVED_KEYS = new Set(['1', '2', '3', 'c', 'e', 'f', 'g', 'h', 'm', 'n', 'p', 'q', 'r', 't']);
 
 // The one place the app state is built. Every browser file reads and changes the app through this object.
 function createApp(canvas) {
@@ -25,6 +25,7 @@ function createApp(canvas) {
     mode: 'build',                                        // or 'sandbox' or 'level'
     layer: 'body',                                        // the builder's view: 'body' or 'nerve'
     fluidView: 0,                                         // 0 = normal, otherwise 1 + the index of the fluid shown
+    isLensOn: false,                                      // the chemical lens (lens.js): hormones shown, bodies dimmed
     keysHeld: new Set(),                                  // lower-case key names
     commandKeysHeld: new Set(),                           // letter and number keys held, for bound Commands
     edited: createEditedDesign(TEMPLATES[START_DESIGN],
@@ -81,6 +82,7 @@ function createApp(canvas) {
     isTracesCollapsed: () => false,
     coach: createCoach(),                                 // the How to box
     menu: createMenuState(),                              // the main menu and the Esc menu (menus.js)
+    guide: createGuideState(),                            // the field guide sheet (guideview.js)
     title: createTitleView(),                             // the living scene behind the main menu (titleview.js)
     progress: createProgressState(),                      // saving where the player is, for Continue (progress.js)
     fps: 60,
@@ -106,6 +108,7 @@ function boot() {
   setUpCoach(app);
   setUpSaveMenu(app);
   setUpDialog();
+  setUpGuide(app);
   setUpSandboxBar(app);
   setUpMusic(app);
   setUpSounds(app);
@@ -356,6 +359,10 @@ function listenToKeyboard(app) {
       handleDialogKey(key);
       return;
     }
+    if (isGuideOpen(app)) {                               // over everything, menus too: only Esc, to close it
+      if (key === 'escape') closeGuide(app);
+      return;
+    }
     if (key === 'm' && !event.repeat) toggleMusic(app);
     if (key === 'n' && !event.repeat) toggleSounds(app);
     if (isMenuOpen(app)) {
@@ -364,6 +371,7 @@ function listenToKeyboard(app) {
     }
     if (handleQuickSaveKey(app, event)) return;
     if (key === 't' && !event.repeat && app.mode !== 'build') toggleProbes(app);
+    if (key === 'c' && !event.repeat && !event.ctrlKey && !event.metaKey) toggleChemicalLens(app);
     const digit = digitOf(event);
     const commandKey = commandKeyOf(event);
     if (digit && event.shiftKey) {
@@ -424,10 +432,11 @@ function bindFocusedCommand(app, commandKey) {
   rebuildTank(app);
 }
 
-// F fits the grid; H shows the keys; Esc closes a sheet or drops what is in hand, or else opens the menu; Q/E turn
-// the stamp, the dragged part or the clicked Bud's part
+// F fits the grid; G opens the field guide; H shows the keys; Esc closes a sheet or drops what is in hand, or else
+// opens the menu; Q/E turn the stamp, the dragged part or the clicked Bud's part
 function handleBuilderKey(app, key) {
   if (key === 'f') fitGridToScreen(app);
+  if (key === 'g') openGuideFromBuilder(app);
   if (key === 'h') toggleKeysSheet();
   if (key === 'escape' && !closeOpenSheet() && !letGoOfWhatIsInHand(app)) openPauseMenu(app);
   if (key === 'q' || key === 'e') turnWhatIsInHand(app, key === 'e' ? 1 : -1);
@@ -735,6 +744,7 @@ function runFrame(app, now) {
   updateCursor(app);
   keepProgress(app, now);
   updateScreenFade(app, dt);
+  if (isGuideOpen(app)) runDemo(dt);                      // the guide's example tank, over any mode or the title
   if (isTitleShown(app)) {                                // the title covers the game, which waits behind it
     runTitleFrame(app, dt);
     requestAnimationFrame(time => runFrame(app, time));
@@ -760,7 +770,7 @@ function runBuilderFrame(app, dt, now) {
   for (const creature of tank.creatures) {
     if (!creature.debris) creature.targetHeading = 0;
   }
-  step(tank, dt, { swimX: 0, swimY: 0, ability: app.keysHeld.has(' '), heldKeys: app.commandKeysHeld });
+  stepInPieces(tank, dt, { swimX: 0, swimY: 0, ability: app.keysHeld.has(' '), heldKeys: app.commandKeysHeld });
   const creature = tank.creatures.find(other => !other.debris);
   if (creature) {
     const shiftX = (tank.width / 2 - creature.centerX) * TANK_CENTER_PULL;
@@ -773,7 +783,7 @@ function runBuilderFrame(app, dt, now) {
   drawBuilder(app);
   drawPreview(app);
   updateTooltip(app, now);
-  runDemo(dt);
+  if (!isGuideOpen(app)) runDemo(dt);                     // the tooltip's; the guide's runs in runFrame
   runBuilderTraces(app);
   runCoach(app, dt);
 }

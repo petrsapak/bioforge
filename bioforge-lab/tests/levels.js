@@ -110,6 +110,24 @@ const feastBuild = (fed, starved) => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAn
 const tannedRingBuild = withTanner => ({ cells: [cell(0, 0, 'nucleus'),
   ...[[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]].map(([q, r]) => (withTanner && q === 0 && r === 1
     ? cell(q, r, 'tanner', { neuron: sim.createNeuron('inhibitor') }) : cell(q, r, 'tissue')))] });
+// Anglerfish: a lit cell (a Photophore, or Tissue) at the front, in a cup of four always-on protease glands
+const lit = () => ({ neuron: sim.createNeuron('inhibitor') });
+const cupBuild = lureTypeName => ({ cells: [cell(0, 0, 'nucleus'), cell(0, -1, lureTypeName, lit()),
+  cell(-1, -1, 'protease', lit()), cell(1, -2, 'protease', lit()), cell(-1, 0, 'protease', lit()),
+  cell(1, -1, 'protease', lit()), cell(1, 0, 'fat')] });
+// Lullaby: protease across the front, Light eyes behind, Calm glands (or Tissue) at the sides, and a Receptor for
+// Calm at the back; each Siphon holds a Synapse, so with isGated it swims only once a crossed eye and the Receptor
+// add up to 1, that is once the body is calm
+const lullabyBuild = (sideTypeName, isGated = true) => {
+  const sideExtra = () => (sideTypeName === 'calmgland' ? lit() : {});
+  const siphonExtra = isGated ? () => ({ neuron: { kind: 'synapse', setting: 1 } }) : () => ({});
+  return { cells: [cell(0, 0, 'nucleus'), cell(0, -1, 'lighteye'), cell(1, -1, 'lighteye'),
+    cell(-1, 1, 'siphon', siphonExtra()), cell(0, 1, 'siphon', siphonExtra()),
+    ...[[0, -2], [1, -2], [-1, -1], [2, -2]].map(([q, r]) => cell(q, r, 'protease', lit())),
+    ...[[-1, 0], [1, 0], [-2, 1], [1, 1]].map(([q, r]) => cell(q, r, sideTypeName, sideExtra())),
+    cell(2, -1, 'fat'), cell(-1, 2, 'receptor', { sensedHormone: 'calm' })],
+  fibres: [...CROSSED, fibre(-1, 2, -1, 1), fibre(-1, 2, 0, 1)] };
+};
 // Snap: the crossed Seeker with a Fat, and across the front this cell (a Resilin gland holds an Inhibitor), a Muscle
 // with a 0.5 Hz Pacemaker in it, and Tissue
 const snapBuild = leftTypeName => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(-1, 0, 'tissue'),
@@ -145,6 +163,7 @@ const SOLUTIONS = {
   bloom: bloomBuild('fat'),
   bulwark: ringBuild('shell'),
   clam: glandRowBuild(['acid', 'protease', 'acid']),
+  anglerfish: cupBuild('photophore'),
   quarry: quarryBuild('mineralizer'),
   siege: siegeBuild(),
   'fight-or-flight': sprinterBuild('adrenal'),
@@ -152,6 +171,7 @@ const SOLUTIONS = {
   'feast-and-famine': feastBuild(true, true),
   'tanned-hide': tannedRingBuild(true),
   snap: snapBuild('resilin'),
+  lullaby: lullabyBuild('calmgland'),
   moods: moodsBuild('receptor'),
 };
 // the wrong tool for each level: it must not win
@@ -174,6 +194,7 @@ const WRONG_TOOLS = {
   bloom: SOLUTIONS['packed-lunch'],
   bulwark: ringBuild('tissue'),
   clam: glandRowBuild(['acid', 'acid', 'acid']),
+  anglerfish: cupBuild('tissue'),
   quarry: quarryBuild('tissue'),
   siege: siegeBuild(['acid', 'acid', 'acid'], 'tissue'),
   'fight-or-flight': sprinterBuild('tissue'),
@@ -181,6 +202,7 @@ const WRONG_TOOLS = {
   'feast-and-famine': feastBuild(false, false),
   'tanned-hide': tannedRingBuild(false),
   snap: snapBuild('tissue'),
+  lullaby: lullabyBuild('tissue'),
   moods: moodsBuild('tissue'),
 };
 
@@ -198,6 +220,16 @@ for (const level of sim.LEVELS) {
 }
 
 const levelById = id => sim.LEVELS.find(level => level.id === id);
+{
+  const rushing = sim.runLevel(levelById('lullaby'), lullabyBuild('calmgland', false));
+  check('"Lullaby": Calm glands alone lose, swimming in before the urchin is calm', rushing.outcome === 'lost',
+    rushing.reason);
+  const plainRow = { cells: [cell(0, 0, 'nucleus'), cell(0, -1, 'photophore', lit()), cell(0, -2, 'protease', lit()),
+    cell(1, -2, 'protease', lit()), cell(-1, -1, 'protease', lit()), cell(1, -1, 'protease', lit()),
+    cell(1, 0, 'fat')] };
+  check('"Anglerfish": glands in front of the light, not round it, lose (the blind Seeker stops short)',
+    sim.runLevel(levelById('anglerfish'), plainRow).outcome === 'lost');
+}
 const dockRuns = [1, 2].map(threshold => sim.runLevel(levelById('dock'), eyesThroughSynapse(threshold)));
 check('"Dock": the Synapse\'s threshold matters: 1 stops short of the ring, 2 never stops',
   dockRuns.every(run => run.outcome === 'lost'), dockRuns.map(run => run.player.centerY.toFixed(0)).join());

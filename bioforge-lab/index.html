@@ -20,6 +20,8 @@
     <svg viewBox="0 0 24 24"><path d="M5 18C9 18 9 6 13 6s4 6 6 6" fill="none" stroke="#e0485a" stroke-width="3.2" stroke-linecap="round"/><circle cx="5" cy="18" r="2.6" fill="#e0485a"/><circle cx="19" cy="12" r="2.6" fill="#e0485a"/></svg>
     <span>Vessels</span><kbd>3</kbd></button>
   <span class="tabs-gap"></span>
+  <button class="tool" id="chemical-lens" title="Hormones: see the hormones in the cells and in the water (C)">
+    <svg viewBox="0 0 24 24"><circle cx="9" cy="10" r="5" fill="#e05ad0" fill-opacity=".75"/><circle cx="15" cy="10" r="5" fill="#5a9ee8" fill-opacity=".75"/><circle cx="12" cy="15" r="5" fill="#d08a40" fill-opacity=".75"/></svg></button>
   <button class="tool" id="unlimited-biomass" title="Unlimited biomass (the Sandbox takes any size)">
     <svg viewBox="0 0 24 24"><path d="M12 12c-2-2.8-3.6-4-5.4-4a4 4 0 000 8c1.8 0 3.4-1.2 5.4-4s3.6-4 5.4-4a4 4 0 010 8c-1.8 0-3.4-1.2-5.4-4z" fill="none" stroke="#e8c547" stroke-width="1.8"/></svg></button>
   <button class="tool" id="mirror-axes" title="Symmetry: mirror what you add and remove across axes">
@@ -28,6 +30,7 @@
     <svg viewBox="0 0 24 24"><path d="M5 7h14M10 4h4M7 7l1 13h8l1-13" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/></svg></button>
 </div>
 <div id="budget"></div>
+<div id="lens-legend"></div>
 <div id="run-buttons">
   <button class="run-button levels" id="show-levels" title="Levels: pick a challenge">
     <svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z" fill="#fff" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>
@@ -66,7 +69,9 @@
       <span><b>1</b><b>2</b><b>3</b></span><span>Body, Nerves, Vessels</span>
       <span><b>A</b>–<b>Z</b> <b>0</b>–<b>9</b></span><span>bind a clicked Command to a free key</span>
       <span><b>F</b></span><span>show the whole grid</span>
+      <span><b>G</b></span><span>the field guide, at the clicked cell or the one you place</span>
       <span><b>Shift</b>+<b>1</b>–<b>9</b></span><span>fluid views</span>
+      <span><b>C</b></span><span>hormones on / off (here, in levels and in the Sandbox)</span>
       <span><b>M</b></span><span>music on / off</span>
       <span><b>N</b></span><span>sounds on / off</span>
       <span><b>Esc</b></span><span>let go · holding nothing: the menu</span>
@@ -209,6 +214,18 @@
   <div id="hud-keys"></div>
 </div>
 
+<div id="guide-sheet">
+  <div id="guide-inner">
+    <div id="guide-nav">
+      <input id="guide-filter" type="text" placeholder="Find a cell, neuron or topic" spellcheck="false">
+      <div id="guide-list"></div>
+    </div>
+    <div id="guide-page">
+      <div id="guide-head"><span id="guide-title"></span><button id="guide-close" title="Close (Esc)">✕</button></div>
+      <div id="guide-body"></div>
+    </div>
+  </div>
+</div>
 <div id="dialog-sheet">
   <div id="dialog-box">
     <div id="dialog-icon">
@@ -235,6 +252,7 @@
       <button class="menu-button" id="menu-builder">Back to the builder</button>
       <button class="menu-button" id="menu-save-file" title="Keep the creature in the builder as a file, to back it up or share it">Save creature to a file</button>
       <button class="menu-button" id="menu-load-file" title="Load a creature file into the builder and My creatures">Load creature from a file</button>
+      <button class="menu-button" id="menu-guide" title="What every cell and neuron does, and how the game works">Field guide</button>
       <button class="menu-button" id="menu-settings">Settings</button>
       <button class="menu-button" id="menu-profile" title="Each player keeps their own creatures, level results and saved run">Profile</button>
       <button class="menu-button" id="menu-main">Main menu</button>
@@ -274,6 +292,7 @@
 <script src="fluid.js"></script>
 <script src="vascular.js"></script>
 <script src="chemical.js"></script>
+<script src="scent.js"></script>
 <script src="metabolism.js"></script>
 <script src="combat.js"></script>
 <script src="actuators.js"></script>
@@ -287,6 +306,7 @@
 <script src="design.js"></script>
 <script src="data/cells.js"></script>
 <script src="data/tips.js"></script>
+<script src="data/guide.js"></script>
 <script src="data/templates.js"></script>
 <script src="data/levels.js"></script>
 <script src="data/sounds.js"></script>
@@ -297,7 +317,9 @@
 <script src="titlescene.js"></script>
 <script src="cellart.js"></script>
 <script src="render.js"></script>
+<script src="lens.js"></script>
 <script src="builder.js"></script>
+<script src="fieldguide.js"></script>
 <script src="windows.js"></script>
 <script src="dialog.js"></script>
 <script src="tipdemo.js"></script>
@@ -309,6 +331,7 @@
 <script src="toolbar.js"></script>
 <script src="builderview.js"></script>
 <script src="tooltip.js"></script>
+<script src="guideview.js"></script>
 <script src="probes.js"></script>
 <script src="sandbox.js"></script>
 <script src="levelview.js"></script>

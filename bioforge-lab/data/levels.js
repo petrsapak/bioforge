@@ -3,7 +3,7 @@
 //   id, chapter, name; brief: what to do; hint: a nudge toward how
 //   arena: { width, height } in px; systems: the switchable systems that run (chapters 1 and 2: nerve only, so
 //     every cell works at full power and nothing starves; chapter 3 adds fluid and vascular; chapter 4 metabolism
-//     and food; chapter 5 secretions; chapter 6 chemical and treatments)
+//     and food; chapter 5 secretions; chapter 6 chemical, scent and treatments)
 //   seepFactor: share of the usual seeping between cells and unpumped vessel flow (cold water: less); a Heart's
 //     pumping is not slowed
 //   limits: design limits ({ budget, maxCells, maxNeurons, maxFibreUnits, maxVesselUnits }); any left out come from
@@ -36,7 +36,7 @@ const CHAPTER_1_SYSTEMS = ['nerve'];
 const CIRCULATION_SYSTEMS = ['nerve', 'fluid', 'vascular'];
 const FEEDING_SYSTEMS = ['nerve', 'fluid', 'vascular', 'metabolism', 'food'];
 const ARMOUR_SYSTEMS = [...FEEDING_SYSTEMS, 'secretions'];
-const MOODS_SYSTEMS = [...ARMOUR_SYSTEMS, 'chemical', 'treatments'];
+const MOODS_SYSTEMS = [...ARMOUR_SYSTEMS, 'chemical', 'scent', 'treatments'];
 const CHAPTER_NAMES = { 1: 'Reflexes', 2: 'Memory and logic', 3: 'Circulation', 4: 'Feeding', 5: 'Armour', 6: 'Moods' };
 const WATCHER_LIGHT = { x: 700, y: 60, range: 2000 };     // px: above the top ring, bright all over the arena
 const TOP_RING = { kind: 'reach', x: 700, y: 200, radius: 70 };   // px
@@ -285,6 +285,21 @@ const LEVELS = [
     timeLimit: 50, par: { seconds: 36, biomass: 28 },
   }),
   createLevel({
+    id: 'anglerfish', chapter: 5, name: 'Anglerfish',
+    brief: 'It is dark. A Seeker rests nearby: its Light eyes drive it to any light they see. Lure it in and ' +
+      'destroy its Nucleus. You don\'t have to swim at all.',
+    hint: 'A Photophore glows while signalled (an Inhibitor in it keeps it on). The Seeker swims to it head first, ' +
+      'and its eyes go first: once they are digested it is blind and stops. So wrap protease glands round the ' +
+      'light like a cup, on both sides and in front of each side, so its Nucleus is already touching them.',
+    systems: ARMOUR_SYSTEMS,
+    limits: { kit: { protein: 30, sugar: 4, fat: 2 } },
+    food: { maxCount: 0 },
+    start: { x: 450, y: 500, heading: 0 },
+    creatures: [{ design: 'seeker', x: 720, y: 300, heading: 2.2, behaviour: 'wired' }],
+    goal: { kind: 'kill', creature: 0 },
+    timeLimit: 55, par: { seconds: 45, biomass: 18 },
+  }),
+  createLevel({
     id: 'quarry', chapter: 5, name: 'Quarry',
     brief: 'Grazing\'s trail again, but the specks are mineral, and at 30 s the Puffer comes for you. Your kit has ' +
       'no mineral: eat it, armour yourself and keep your Nucleus alive for 80 s.',
@@ -383,6 +398,23 @@ const LEVELS = [
     timeLimit: 50, par: { seconds: 45, biomass: 24 },
   }),
   createLevel({
+    id: 'lullaby', chapter: 6, name: 'Lullaby',
+    brief: 'An urchin sits on the rock with the light on it. Its Nettles sting anything its Eyespot sees within ' +
+      '120 px, and they would digest your glands before you digest it. Calm it down, then destroy its Nucleus.',
+    hint: 'Hormones leak into the water (C shows them), and cells take in what is around them. Calm raises a ' +
+      'Synapse\'s threshold, and the urchin\'s Eyespot has one. Wait out of its reach while Calm glands fill the ' +
+      'water: a Receptor for Calm and a Light eye both into a Synapse in each Siphon swim only once you are calm. ' +
+      'Protease across the front.',
+    systems: MOODS_SYSTEMS,
+    limits: { kit: { protein: 45, sugar: 8, fat: 2 } },
+    food: { maxCount: 0 },
+    start: { x: 700, y: 430, heading: 0 },
+    light: { carriedBy: 0, range: 900 },
+    creatures: [{ design: 'urchin', x: 700, y: 250, heading: 0, behaviour: 'wired', anchored: true }],
+    goal: { kind: 'kill', creature: 0 },
+    timeLimit: 90, par: { seconds: 50, biomass: 44 },
+  }),
+  createLevel({
     id: 'moods', chapter: 6, name: 'Moods',
     brief: 'Hold still until the light flashes, then swim to the ring. Your nerves are short: 3 units of fibre in ' +
       'all, not enough to reach from an eye to the Siphons.',
@@ -410,6 +442,20 @@ const LEVEL_CREATURES = {
       createDesignCell(0, 1, 'siphon'),
     ],
     fibres: [{ from: { q: 0, r: -1 }, to: { q: -1, r: 1 } }, { from: { q: 0, r: -1 }, to: { q: 0, r: 1 } }],
+  },
+  // an urchin: its Eyespot (on the far side, away from the light's approach) holds a Synapse wired to four Nettles,
+  // so Calm in the water, which raises the threshold, puts it to sleep
+  urchin: {
+    cells: [
+      createDesignCell(0, 0, 'nucleus'),
+      createDesignCell(0, -1, 'eyespot', { neuron: { kind: 'synapse', setting: 0.9 } }),
+      createDesignCell(1, -1, 'nettle'),
+      createDesignCell(1, 0, 'nettle'),
+      createDesignCell(0, 1, 'gill'),
+      createDesignCell(-1, 1, 'nettle'),
+      createDesignCell(-1, 0, 'nettle'),
+    ],
+    fibres: [[1, -1], [1, 0], [-1, 1], [-1, 0]].map(([q, r]) => ({ from: { q: 0, r: -1 }, to: { q, r } })),
   },
   clam: designFromArt([
     '  S S S',

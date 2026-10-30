@@ -37,6 +37,12 @@ const pacedCells = sim.blueprintFromList([[0, 0, 'nucleus'], [1, 0, 'muscle'], [
 pacedCells[2].neuron = sim.createNeuron('pacemaker');
 const paced = { cells: pacedCells, fibres: [{ from: { q: 0, r: 1 }, to: { q: 1, r: 0 } }] };
 check('a Pacemaker neuron is a signal source', !/signal/.test(warningText(paced)), warningText(paced));
+const heldOnCells = sim.blueprintFromList([[0, 0, 'nucleus'], [1, 0, 'photophore'], [0, 1, 'calmgland']]);
+heldOnCells[1].neuron = sim.createNeuron('inhibitor');
+heldOnCells[2].neuron = sim.createNeuron('inhibitor');
+const heldOn = { cells: heldOnCells, fibres: [] };
+check('a cell holding an Inhibitor with nothing wired in is on, so it needs no fibre',
+  !/signal/.test(warningText(heldOn)), warningText(heldOn));
 const unfed = warningText(designOf([[0, 0, 'nucleus'], [1, 0, 'cilia'], [0, 1, 'thorn']]));
 check('fuel burner without gill, food or pore',
   /No Gill/.test(unfed) && /No Mouth or Fat/.test(unfed) && /No Pore/.test(unfed), unfed);

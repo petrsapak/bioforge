@@ -485,6 +485,14 @@ const CELL_SYMBOLS = {
     tracePolyline(context, [[0.12, -0.42], [-0.12, -0.24]]);
     strokeIn(context, color, THIN_SYMBOL_WIDTH);
   },
+  // an anglerfish's lure: a bulb on a curved stalk, lit while the cell glows
+  photophore(context, cell, palette) {
+    tracePolyline(context, [[-0.45, 0.6], [-0.4, 0.15], [-0.2, -0.15], [0.05, -0.25]]);
+    strokeIn(context, palette.ink, SYMBOL_WIDTH);
+    traceCircle(context, 0.2, -0.28, 0.24);
+    fillIn(context, isGlowing(cell) ? '#fff' : translucent('#ffffff', 0.2));
+    strokeIn(context, palette.ink, THIN_SYMBOL_WIDTH);
+  },
   // a Y-shaped receptor holding a drop of the hormone it senses, which fills as the hormone rises
   receptor(context, cell, palette) {
     const hormone = FLUIDS[fluidIndex(cell.sensedHormone || DEFAULT_SENSED_HORMONE)];

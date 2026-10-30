@@ -311,14 +311,25 @@ function routedBodyFibres(edited) {
 // The body's fibres for drawing, side by side where they share cells (see layOutFibreLanes): [{ fibre, route,
 // points (grid px), lane, colorIndex }]. paletteSize: how many fibre colours there are to share out.
 function laidOutBodyFibres(edited, paletteSize = 1) {
-  const routed = routedBodyFibres(edited);
-  const paths = routed.map(({ route }) => route.hexes.map(key => {
+  return laidOutBodyLinks(edited, paletteSize).fibres;
+}
+
+// The body's fibres and vessels for drawing, all in one set of lanes, so that a vessel never lies on a fibre or on
+// another vessel: { fibres, vessels }, each [{ fibre or link, route, points (grid px), lane, colorIndex }]. The
+// fibres take their lanes first, so a vessel doesn't move them.
+function laidOutBodyLinks(edited, paletteSize = 1) {
+  const fibres = routedBodyFibres(edited);
+  const vessels = routedBodyVessels(edited);
+  const pathOf = ({ route }) => route.hexes.map(key => {
     const { q, r } = parseHexKey(key);
     const [x, y] = hexToPixel(q, r);
     return { node: key, x, y };
-  }));
-  const lanes = layOutFibreLanes(paths, paletteSize);
-  return routed.map((entry, i) => ({ ...entry, ...lanes[i] }));
+  });
+  const lanes = layOutFibreLanes([...fibres, ...vessels].map(pathOf), paletteSize);
+  return {
+    fibres: fibres.map((entry, i) => ({ ...entry, ...lanes[i] })),
+    vessels: vessels.map((entry, i) => ({ ...entry, ...lanes[fibres.length + i] })),
+  };
 }
 
 // links (fibres or vessels) with their routes through these cells; links without a route are left out

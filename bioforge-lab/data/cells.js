@@ -25,6 +25,7 @@
 //   eatsFood: takes in food specks; bites: bites cells it touches; spiked: damages enemy cells it hits
 //   beats: pushes the creature forward, always (Cilia); jets: pushes the creature forward while signalled (Siphon)
 //   resize: 'contract' or 'swell' with its signal; trigger: what a signal fires: 'nettle', 'snare' or 'spit'
+//   glows (nerve.js): gives off light while signalled, which other creatures' Light eyes see (Photophore)
 //   growsParts: grows a saved part (Bud); rebuildsCells: regrows lost cells from repair fluid (Mender)
 //   secretes (secretions.js): what it puts on touching enemy cells while signalled: 'acid' or 'protease';
 //   mineralizes: while signalled, spends its stored mineral to harden its creature's cells near it
@@ -141,6 +142,12 @@ const CELLS = {
     isWeapon: true,
     description: 'Damages enemy cells it hits. Faster hits hurt more. Needs no fuel. Built with mineral, so acid ' +
       'eats it.',
+  }),
+  photophore: cellType({
+    category: 'Action', name: 'Photophore', cost: 3, health: 20, fuelBurn: 0.1, color: '#9ff0e0',
+    work: 'onSignal', glows: true, needsSignal: true,
+    description: `Glows while signalled: a light reaching ${PHOTOPHORE_RANGE} px, which other creatures' Light eyes ` +
+      'see and follow, as the anglerfish lures its prey. Your own Light eyes ignore it. A Pacemaker makes it blink.',
   }),
   bud: cellType({
     category: 'Action', name: 'Bud', cost: 4, health: 30, fuelBurn: 0.4, color: '#c8e07a',

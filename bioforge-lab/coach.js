@@ -323,7 +323,7 @@ function drawLayVesselScene(context, time) {
     strokeLine(context, ...start, ...pointer);
     context.setLineDash([]);
   }
-  if (isLaid) drawVessel(context, [start, middle, end], 'pumped', 1, 2.4);
+  if (isLaid) drawVessel(context, [start, middle, end], 'pumped', { width: 2 });
   drawCursor(context, pointer, pressAt(time, 0.6, 1.75));
 }
 
@@ -337,7 +337,7 @@ function drawRemoveVesselScene(context, time) {
   const pointer = time < 1.4 ? movePoint(time, 0.1, 0.7, COACH_REST_POINT, onVessel)
     : movePoint(time, 1.6, 2.2, onVessel, COACH_REST_POINT);
   if (time < 1.15) {
-    drawVessel(context, [start, end], 'pumped', 1, 2.4);
+    drawVessel(context, [start, end], 'pumped', { width: 2 });
     if (time > 0.6) {
       context.strokeStyle = RIGHT_CLICK_COLOR;
       context.lineWidth = 3;

@@ -5,10 +5,11 @@
 //   name, symbol, color, description: what the editor shows
 //   setting: a number the player can change, { name, unit, start, step, min, max }, or null
 //   ignoresInputs: the neuron makes its own signal and doesn't read its fibres
+//   onWithoutInput: with nothing wired into it, it is on (so it is a signal source of its own)
 // A design cell holds its neuron as { kind, setting }.
 
 function neuronType(definition) {
-  return { setting: null, ignoresInputs: false, ...definition };
+  return { setting: null, ignoresInputs: false, onWithoutInput: false, ...definition };
 }
 
 const NEURONS = {
@@ -33,7 +34,7 @@ const NEURONS = {
       'other, or to keep going for a moment after a sense goes quiet.',
   }),
   inhibitor: neuronType({
-    name: 'Inhibitor', symbol: '¬', color: '#9a86e0',
+    name: 'Inhibitor', symbol: '¬', color: '#9a86e0', onWithoutInput: true,
     description: 'NOT: on while its input is off, off while its input is on.',
   }),
   synapse: neuronType({

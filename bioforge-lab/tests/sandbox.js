@@ -106,4 +106,13 @@ runFrames(5);
 byId('start-sandbox').onclick();
 runFrames(30);
 check('the sandbox starts again with a new design', byId('sandbox-bar').style.display === 'flex' && playerAlive());
+
+// ---------- The chemical lens ----------
+pressKey('c');
+runFrames(20);
+check('C turns the chemical lens on: its legend shows, and the run goes on drawing it',
+  byId('lens-legend').style.display === 'flex' && byId('chemical-lens').classList.contains('selected') && playerAlive());
+pressKey('c');
+check('C again turns it off', byId('lens-legend').style.display === 'none' &&
+  !byId('chemical-lens').classList.contains('selected'));
 done();

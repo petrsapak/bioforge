@@ -120,6 +120,28 @@ function makeHexButton() {
   return { button, context, width: DOCK_HEX_WIDTH - 4, height: DOCK_HEX_HEIGHT - 4 };
 }
 
+// the zoom at which a cell or neuron icon fills a square of size px, as the dock's icons fill their hexagons
+function iconZoom(size) {
+  return DOCK_ICON_ZOOM * size / (DOCK_HEX_WIDTH - 4);
+}
+
+// a cell type alone, centred on the context's origin, zoom times its size in the creature (the dock, the guide)
+function drawCellIcon(context, typeName, zoom) {
+  context.save();
+  context.scale(zoom, zoom);
+  drawCell(context, makeDisplayCell(typeName, 0, 0, { centerX: 0, centerY: 10, heading: 0 }), 0);
+  context.restore();
+}
+
+// a neuron's badge on a plain cell, centred on the context's origin, as big as a cell icon at the same zoom
+function drawNeuronIcon(context, kind, zoom) {
+  const cell = { ...makeDisplayCell('tissue', 0, 0), neuron: { kind } };
+  context.save();
+  context.scale(zoom, zoom);
+  drawNeuronBadge(context, cell, DOCK_NEURON_CELL_RADIUS);
+  context.restore();
+}
+
 // a cell type's button: the cell alone, in the middle of the hexagon
 function makeDockButton(typeName) {
   const { button, context, width, height } = makeHexButton();
@@ -127,8 +149,7 @@ function makeDockButton(typeName) {
   if (!context) return button;
   context.save();
   context.translate(width / 2, height / 2);
-  context.scale(DOCK_ICON_ZOOM, DOCK_ICON_ZOOM);
-  drawCell(context, makeDisplayCell(typeName, 0, 0, { centerX: 0, centerY: 10, heading: 0 }), 0);
+  drawCellIcon(context, typeName, DOCK_ICON_ZOOM);
   context.restore();
   return button;
 }
@@ -138,11 +159,9 @@ function makeNeuronButton(kind) {
   const { button, context, width, height } = makeHexButton();
   button.dataset.neuron = kind;
   if (!context) return button;
-  const cell = { ...makeDisplayCell('tissue', 0, 0), neuron: { kind } };
   context.save();
   context.translate(width / 2, height / 2);
-  context.scale(DOCK_ICON_ZOOM, DOCK_ICON_ZOOM);
-  drawNeuronBadge(context, cell, DOCK_NEURON_CELL_RADIUS);
+  drawNeuronIcon(context, kind, DOCK_ICON_ZOOM);
   context.restore();
   return button;
 }

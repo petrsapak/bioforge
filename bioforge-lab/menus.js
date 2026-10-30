@@ -6,10 +6,10 @@
 // the buttons each menu shows, top to bottom; each is #menu-<name> in index.html. The Esc menu's set depends on the
 // mode it opened over.
 const MENU_BUTTONS = {
-  main: ['continue', 'levels', 'free-build', 'settings', 'profile', 'quit'],
-  build: ['resume', 'save-file', 'load-file', 'settings', 'main', 'quit'],
-  level: ['resume', 'retry', 'builder', 'settings', 'main', 'quit'],
-  sandbox: ['resume', 'builder', 'settings', 'main', 'quit'],
+  main: ['continue', 'levels', 'free-build', 'guide', 'settings', 'profile', 'quit'],
+  build: ['resume', 'save-file', 'load-file', 'guide', 'settings', 'main', 'quit'],
+  level: ['resume', 'retry', 'builder', 'guide', 'settings', 'main', 'quit'],
+  sandbox: ['resume', 'builder', 'guide', 'settings', 'main', 'quit'],
 };
 const ALL_MENU_BUTTONS = [...new Set(Object.values(MENU_BUTTONS).flat())];
 
@@ -47,6 +47,7 @@ function setUpMenus(app) {
       closeMenu(app);
       chooseCreatureFile();
     },
+    guide: () => openGuide(app),
     settings: () => showMenuView(app, 'settings'),
     profile: () => showMenuView(app, 'profiles'),
     main: () => enterTitle(app, () => {

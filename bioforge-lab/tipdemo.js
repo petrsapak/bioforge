@@ -1,6 +1,6 @@
 'use strict';
-// Live mini tank inside the cell and neuron tooltips, running the example build from TIPS or NEURON_TIPS, with the
-// signal lanes under a neuron's example (browser only).
+// Live mini tank inside the cell and neuron tooltips and the field guide, running the example build from TIPS or
+// NEURON_TIPS, with the signal lanes under a neuron's example (browser only).
 
 const DEMO_WIDTH = 288;                                   // px
 const DEMO_HEIGHT = 190;                                  // px
@@ -11,42 +11,24 @@ const DUMMY_GAP = 30;                                     // px from the creatur
 const DUMMY_TOUCHING_GAP = 34;                            // px: its nearest cell just within a gland's reach
 let tooltipDemo = null;
 
-// starts the example for a cell type, drawn into canvas, with the cells of that type ringed
-function startDemo(typeName, canvas) {
-  startExample(TIPS[typeName].example, cell => cell.typeName === typeName, canvas, null);
+// starts the example for a cell type, drawn into canvas, with the cells of that type ringed; options.showsLens
+// draws the hormone lens over it
+function startDemo(typeName, canvas, options = {}) {
+  startExample(TIPS[typeName].example, cell => cell.typeName === typeName, canvas, null, options);
 }
 
 // starts the example for a neuron kind, drawn into canvas, with its cells ringed and the example's traces drawn
 // into tracesCanvas
-function startNeuronDemo(kind, canvas, tracesCanvas) {
+function startNeuronDemo(kind, canvas, tracesCanvas, options = {}) {
   const isShown = cell => !!cell.neuron && cell.neuron.kind === kind;
-  startExample(NEURON_TIPS[kind].example, isShown, canvas, tracesCanvas);
-}
-
-// an example's design cells: [q, r, typeName, neuronKind, setting], neuronKind and setting optional
-function exampleCells(example) {
-  return example.cells.map(([q, r, typeName, neuronKind, setting]) => {
-    if (!neuronKind) return createDesignCell(q, r, typeName);
-    const neuron = createNeuron(neuronKind);
-    if (setting !== undefined) neuron.setting = setting;
-    return createDesignCell(q, r, typeName, { neuron });
-  });
+  startExample(NEURON_TIPS[kind].example, isShown, canvas, tracesCanvas, options);
 }
 
 // Spawns the example in a fresh test tank. isShown picks the cells the tooltip is about; tracesCanvas (or null)
-// gets a lane per cell in example.traces.
-function startExample(example, isShown, canvas, tracesCanvas) {
-  const cells = exampleCells(example);
+// gets a lane per cell in example.traces. options: { showsLens }, kept when the example restarts.
+function startExample(example, isShown, canvas, tracesCanvas, options = {}) {
+  const design = exampleDesign(example);
   const world = newTestTank(DEMO_WIDTH, DEMO_HEIGHT);
-  // examples are in the format from before the nerve layer, unless they list their own fibres as
-  // [fromQ, fromR, toQ, toR]; vessels are listed the same way
-  const fibres = example.fibres && linksFromList(example.fibres);
-  const design = upgradeToNerveLayer(fibres ? { cells, fibres } : { cells });
-  design.vessels = linksFromList(example.vessels || []);
-  // after the upgrade: an old example lists its neurons as cell types (command, pacemaker) that CELLS no longer has
-  if (example.budPart) {
-    for (const cell of design.cells) if (CELLS[cell.typeName].growsParts) cell.budPart = example.budPart;
-  }
   const creature = spawn(world, design, DEMO_WIDTH / 2, DEMO_HEIGHT / 2 + 10, 0, 0);
   for (const cell of creature.cells) {
     if (example.startsHurt && example.startsHurt.includes(cell.typeName)) cell.health = cell.maxHealth * 0.1;
@@ -68,7 +50,7 @@ function startExample(example, isShown, canvas, tracesCanvas) {
   probes.creature = creature;
   const tracedCells = (example.traces || []).map(([q, r]) => creature.cellsByHex.get(hexKey(q, r)));
   probes.lanes = tracedCells.filter(Boolean).map((cell, i) => createDemoLane(cell, i + 1));
-  tooltipDemo = { example, isShown, world, creature, time: 0, canvas, tracesCanvas, probes };
+  tooltipDemo = { example, isShown, world, creature, time: 0, canvas, tracesCanvas, probes, options };
 }
 
 // A signal lane for the example. Every neuron in the examples sits in Tissue, so its lane is named and coloured by
@@ -93,12 +75,12 @@ function runDemo(dt) {
   const { example, world, creature } = tooltipDemo;
   tooltipDemo.time += dt;
   if (tooltipDemo.time > DEMO_RESET_TIME) {
-    const { isShown, canvas, tracesCanvas } = tooltipDemo;
-    startExample(example, isShown, canvas, tracesCanvas);
+    const { isShown, canvas, tracesCanvas, options } = tooltipDemo;
+    startExample(example, isShown, canvas, tracesCanvas, options);
     return;
   }
   const spaceHeld = !!example.spaceLabel && tooltipDemo.time % 2 > 1;   // Space is held every other second
-  step(world, dt, { swimX: 0, swimY: example.swims ? -1 : 0, ability: spaceHeld });
+  stepInPieces(world, dt, { swimX: 0, swimY: example.swims ? -1 : 0, ability: spaceHeld });
   if (creature.alive) {                                   // keep the creature in the middle of the tank
     for (const cell of world.cells) {
       cell.x += (DEMO_WIDTH / 2 - creature.centerX) * DEMO_CENTER_PULL;
@@ -114,12 +96,13 @@ function runDemo(dt) {
 
 // draws the example tank: the world, a ring on the cells the tooltip is about, the lane tags and the labels
 function drawDemo(spaceHeld) {
-  const { example, isShown, world, creature, tracesCanvas, probes } = tooltipDemo;
+  const { example, isShown, world, creature, options } = tooltipDemo;
   const context = tooltipDemo.canvas.getContext('2d');
   drawWater(context, world, DEMO_WIDTH, DEMO_HEIGHT);
   drawWorld(context, world, example.fluidView || 0);
   drawWorldVessels(context, world);
   if (!example.fluidView) drawWorldFibres(context, world);
+  if (options.showsLens) drawChemicalLens(context, world);
   // the cell type or neuron being explained gets a pulsing dashed ring
   context.strokeStyle = '#fff';
   context.lineWidth = 1.5;

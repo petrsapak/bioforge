@@ -9,7 +9,7 @@ const GOAL_COLOR = '127,224,160';                         // r,g,b of the goal r
 const GOAL_PULSE_RATE = 2;                                // rad/s of the goal ring's breathing
 const DARK_LAMP_RADIUS = 9;                               // px in the arena: a light that is off
 const LEVEL_KEYS_HELP = '<b>Space</b> and bound keys: Commands &nbsp;<b>P</b> pause &nbsp;<b>.</b> one step ' +
-  '&nbsp;<b>,</b> speed<br><b>T</b> signals &nbsp;<b>R</b> retry &nbsp;<b>Esc</b> menu';
+  '&nbsp;<b>,</b> speed<br><b>T</b> signals &nbsp;<b>C</b> hormones &nbsp;<b>R</b> retry &nbsp;<b>Esc</b> menu';
 
 // the Levels button, the levels sheet, the level card's buttons, the level bar and the result box
 function setUpLevels(app) {
@@ -301,6 +301,7 @@ function drawLevelMode(app) {
   drawDarkLamp(context, run);
   drawLight(context, world.light);
   drawWorld(context, world, app.fluidView);
+  if (app.isLensOn) drawChemicalLens(context, world);
   context.restore();
   context.strokeStyle = '#2c4650';
   context.lineWidth = 2;

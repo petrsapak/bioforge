@@ -10,6 +10,7 @@ const GANGLION_RATE = 2;                                  // share of the gap to
 const MIN_LIGHT_LENGTH = 0.001;                           // px²; nearer than this a Light eye can't tell a direction
 const UNSURE_LIGHT = 0.5;                                 // signal of a Light eye that can't tell where the light is
 const NOSE_RANGE = 300;                                   // px a Nose smells food from
+const PHOTOPHORE_RANGE = 400;                             // px a lit Photophore reaches, like a light
 
 // What each neuron kind makes of its input sum. The cell's previous signal and neuronMemory are its state.
 const NEURON_RULES = {
@@ -98,11 +99,21 @@ function enemyNear(world, cell) {
   return false;
 }
 
-// what a Light eye sees of the world's light (see directionalSense)
+// What a Light eye sees (see directionalSense): the brightest of the world's light and every lit Photophore of
+// another creature. Its own creature's Photophores don't count, or a creature with a lure would chase itself.
 function lightSeen(world, cell) {
   const light = world.light;
-  if (!light) return 0;
-  return directionalSense(cell, light.x, light.y, light.range);
+  let seen = light ? directionalSense(cell, light.x, light.y, light.range) : 0;
+  for (const other of world.cells) {
+    if (other.creature === cell.creature || !isGlowing(other)) continue;
+    seen = Math.max(seen, directionalSense(cell, other.x, other.y, PHOTOPHORE_RANGE));
+  }
+  return seen;
+}
+
+// whether a cell gives off light now: a cell type that glows (Photophore), alive, signalled and not starving
+function isGlowing(cell) {
+  return !!cell.type.glows && !cell.dead && cell.signal > SIGNAL_ON && !cell.starving;
 }
 
 // what a Nose smells of the nearest food speck within its range (see directionalSense)

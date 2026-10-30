@@ -20,8 +20,10 @@ const NEED_ROWS = [
 // The checks read the cell types' behaviour fields (data/cells.js), never their names.
 const typeOfCell = cell => CELLS[cell.typeName];
 const needsSignal = cell => !!typeOfCell(cell).needsSignal;
-// makes a signal of its own: a sense organ, or a neuron that ignores its inputs (Pacemaker, Command)
-const makesSignals = cell => !!typeOfCell(cell).senses || (!!cell.neuron && NEURONS[cell.neuron.kind].ignoresInputs);
+// makes a signal of its own: a sense organ, a neuron that ignores its inputs (Pacemaker, Command), or one that is
+// on with nothing wired into it (Inhibitor)
+const makesSignals = cell => !!typeOfCell(cell).senses ||
+  (!!cell.neuron && (NEURONS[cell.neuron.kind].ignoresInputs || NEURONS[cell.neuron.kind].onWithoutInput));
 // makes a signal without a key (a Bud part has no key of its own)
 const firesByItself = cell => makesSignals(cell) && !(cell.neuron && cell.neuron.kind === 'command');
 

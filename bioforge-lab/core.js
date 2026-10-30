@@ -15,6 +15,7 @@ const HEX_FORWARD_NEIGHBOURS = [[1, 0], [0, 1], [-1, 1]];
 const MIN_DISTANCE = 1e-6;                                // px, stands in for zero lengths to avoid dividing by zero
 
 const HIT_FLASH_TIME = 0.12;                              // s a hit cell flashes white
+const MAX_STEP_TIME = 1 / 40;                             // game s; longer steps make the springs unstable (NaN)
 
 // ---------- Math and hex helpers ----------
 const hexKey = (q, r) => q + ',' + r;
@@ -449,6 +450,12 @@ function step(world, dt, input) {
   for (const system of SYSTEMS) {
     if (isSystemOn(world, system)) system.update(world, dt, input);
   }
+}
+
+// moves the world on by dt in equal steps of at most MAX_STEP_TIME, for callers with a real frame's time
+function stepInPieces(world, dt, input) {
+  const stepCount = Math.ceil(dt / MAX_STEP_TIME - 1e-6);
+  for (let i = 0; i < stepCount; i++) step(world, dt / stepCount, input);
 }
 
 function runCellDeathHooks(world, cell) {

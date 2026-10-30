@@ -1,8 +1,9 @@
 'use strict';
 // Chemical system: the hormones in each cell set its mood. Adrenaline lowers Synapse thresholds and speeds up
 // Pacemakers; Calm raises thresholds, slows Pacemakers and lowers fuel burn; Fed makes Fat cells store sugar sooner,
-// faster and without loss; Starved makes them give it back sooner and faster, and lowers fuel burn. Glands make the hormones (fluid.js), and they seep and
-// ride in the blood like the other fluids. Pure: no DOM.
+// faster and without loss; Starved makes them give it back sooner and faster, and lowers fuel burn. Glands make the
+// hormones (fluid.js); they seep, ride in the blood like the other fluids, and leak into the water (scent.js). Pure:
+// no DOM.
 
 const ADRENALINE_THRESHOLD_DROP = 0.4;                    // share of a Synapse's threshold taken off at full adrenaline
 const CALM_THRESHOLD_RAISE = 0.6;                         // share added to a Synapse's threshold at full calm

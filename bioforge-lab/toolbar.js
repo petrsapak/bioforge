@@ -1,6 +1,6 @@
 'use strict';
-// The Body, Nerves and Vessels tabs at the top with their tools (Unlimited biomass, Symmetry, Delete all), the
-// built-in designs, the keys sheet (H) and the fluid views (Shift+1–9) (browser only).
+// The Body, Nerves and Vessels tabs at the top with their tools (Hormones, Unlimited biomass, Symmetry, Delete
+// all), the built-in designs, the keys sheet (H) and the fluid views (Shift+1–9) (browser only).
 
 const MIRROR_MENU_WIDTH = 200;                            // px, as #mirror-menu in style.css
 
@@ -9,6 +9,7 @@ function setUpToolbar(app) {
   setUpDesignButtons(app);
   setUpMirrorMenu(app);
   setUpKeysSheet();
+  setUpChemicalLens(app);
 }
 
 // the tabs at the top centre; the keys 1, 2 and 3 are in ui.js

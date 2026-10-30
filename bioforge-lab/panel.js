@@ -40,6 +40,8 @@ function wirePanelButtons(app) {
     onClick('sense-' + hormone.id, () => setSensedHormone(app.edited, app.focusKey, hormone.id));
   }
   app.cardFibres.forEach((fibre, i) => onClick('remove-fibre-' + i, () => removeFibre(app.edited, fibre)));
+  const guideButton = byId('card-guide');
+  if (guideButton) guideButton.onclick = () => openGuideFromBuilder(app);
   const info = byId('info');
   info.onmouseover = event => {
     const row = event.target.closest && event.target.closest('.fibre-row');
@@ -165,7 +167,8 @@ function describeStamp(stamp) {
 // Command its key; its fibres.
 function describeFocusedCell(app, cell) {
   const cellType = CELLS[cell.typeName];
-  const heading = `<b>${cellType.name}</b> <span class="dim">clicked · Esc</span>`;
+  const heading = `<b>${cellType.name}</b> <span class="dim">clicked · Esc</span>` +
+    '<button class="small card-guide" id="card-guide" title="Read about it in the field guide (G)">Guide</button>';
   const fibres = describeCellFibres(app, app.focusKey);
   if (cellType.growsParts) return heading + describeBud(cell, cellType) + fibres;
   const receptor = cellType.senses === 'hormone' ? describeReceptor(cell) : '';

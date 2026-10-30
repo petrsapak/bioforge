@@ -28,6 +28,10 @@ const FIBRE_BODY_VIEW_WIDTH = 0.7;                        // grid px
 const FIBRE_HIGHLIGHT_WIDTH = 1.9;                        // grid px: the fibre under the mouse, or one being laid
 const FIBRE_BODY_VIEW_ALPHA = 0.3;
 const FIBRE_DIMMED_ALPHA = 0.22;                          // the other fibres while one is highlighted
+const VESSEL_VIEW_WIDTH = 1.3;                            // grid px
+const VESSEL_BODY_VIEW_WIDTH = 0.8;                       // grid px
+const VESSEL_BODY_VIEW_ALPHA = 0.35;
+const VESSEL_HIGHLIGHT_WIDTH = 2.2;                       // grid px: a vessel being laid
 const MIRROR_AXIS_COLOR = 'rgba(126,200,240,0.55)';
 const SAME_TYPE_COLOR = '#7fe8ff';                        // Shift: the outline on every cell of the chosen type
 const SAME_TYPE_SHADE = 'rgba(11,20,24,0.55)';            // Shift: laid over the other cells
@@ -89,8 +93,10 @@ function drawBuilder(app) {
   drawGridHexes(app, origin);
   drawMirrorAxes(app);
   drawDesignCells(app);
-  drawVesselLayer(app);
-  drawNerveLayer(app);
+  if (app.isLensOn) drawBuilderLens(app);
+  const links = laidOutBodyLinks(app.edited, FIBRE_COLORS.length);
+  drawVesselLayer(app, links.vessels);
+  drawNerveLayer(app, links.fibres);
   drawBudParts(app);
   drawSelection(app);
   drawSameTypeCells(app);
@@ -260,8 +266,9 @@ function drawDesignCells(app) {
 // Fibres side by side in their lanes, in different colours where they share a cell (see laidOutBodyFibres), brighter
 // while they carry a signal in the test tank. In the Nerve view the cells fade and the neurons and fibres stand out,
 // and the highlighted fibre is drawn whole and bold over the others, which dim; in the Body view the fibres stay
-// faint. The fibres go over the neuron badges, so that every cell they pass through shows.
-function drawNerveLayer(app) {
+// faint. The fibres go over the neuron badges, so that every cell they pass through shows. laidOut: the body's fibres
+// in their lanes (laidOutBodyLinks).
+function drawNerveLayer(app, laidOut) {
   const context = app.context;
   const isNerveView = app.layer === 'nerve';
   if (isNerveView) shadeCells(app, NERVE_VIEW_SHADE);
@@ -271,7 +278,6 @@ function drawNerveLayer(app) {
   const valueOf = fibre => liveValues.get(fibreStartKey(fibre) + '>' + fibreEndKey(fibre)) || 0;
   const highlighted = isNerveView ? highlightedFibre(app) : null;
   const width = isNerveView ? FIBRE_NERVE_VIEW_WIDTH : FIBRE_BODY_VIEW_WIDTH;
-  const laidOut = laidOutBodyFibres(app.edited, FIBRE_COLORS.length);
   for (const { fibre, points, colorIndex } of laidOut) {
     if (fibre === highlighted) continue;
     const alpha = !isNerveView ? FIBRE_BODY_VIEW_ALPHA : highlighted ? FIBRE_DIMMED_ALPHA : 1;
@@ -315,17 +321,21 @@ function shadeCells(app, shade) {
   }
 }
 
-// Vessels from cell centre to cell centre, lit while a Heart pumps them in the test tank (grey and dashed while a Valve
-// shuts them). In the Vessels view the cells fade a little and the vessels stand out; in the other views they stay
-// faint.
-function drawVesselLayer(app) {
+// Vessels from cell centre to cell centre, thin and in their own lanes beside the fibres (laidOut: the body's vessels
+// from laidOutBodyLinks), in shades of red where they share a cell. A light core shows while a Heart pumps them in the
+// test tank, grey dashes while a Valve shuts them. In the Vessels view the cells fade a little and the vessels stand
+// out; in the other views they stay faint.
+function drawVesselLayer(app, laidOut) {
   const isVesselView = app.layer === 'vessel';
   if (isVesselView) shadeCells(app, VESSEL_VIEW_SHADE);
   const liveStates = new Map(app.tank.vessels.map(vessel =>
     [vesselKey(keyOfCell(vessel.first), keyOfCell(vessel.second)), vesselState(vessel)]));
-  for (const { link, route } of routedBodyVessels(app.edited)) {
+  const style = isVesselView
+    ? { alpha: 0.95, width: VESSEL_VIEW_WIDTH }
+    : { alpha: VESSEL_BODY_VIEW_ALPHA, width: VESSEL_BODY_VIEW_WIDTH };
+  for (const { link, points, colorIndex } of laidOut) {
     const state = liveStates.get(vesselKey(fibreStartKey(link), fibreEndKey(link))) || 'idle';
-    drawVessel(app.context, route.hexes.map(keyToPixel), state, isVesselView ? 0.95 : 0.3, isVesselView ? 3.4 : 2);
+    drawVessel(app.context, points, state, { ...style, color: VESSEL_COLORS[colorIndex % VESSEL_COLORS.length] });
   }
 }
 
@@ -342,7 +352,7 @@ function drawVesselRemovalTarget(app) {
   if (!routed) return;
   const context = app.context;
   context.strokeStyle = FIBRE_REMOVE_COLOR;
-  context.lineWidth = 4.4;
+  context.lineWidth = VESSEL_HIGHLIGHT_WIDTH;
   context.lineCap = 'round';
   context.beginPath();
   routed.route.hexes.map(keyToPixel).forEach(([x, y]) => context.lineTo(x, y));
@@ -375,12 +385,12 @@ function drawVesselDrag(app) {
   const points = route.hexes.map(keyToPixel);
   if (isThere) {
     context.strokeStyle = FIBRE_REMOVE_COLOR;
-    context.lineWidth = 4.4;
+    context.lineWidth = VESSEL_HIGHLIGHT_WIDTH;
     context.beginPath();
     points.forEach(([x, y]) => context.lineTo(x, y));
     context.stroke();
   } else {
-    drawVessel(context, points, 'pumped', 0.9, 3.4);
+    drawVessel(context, points, 'pumped', { alpha: 0.9, width: VESSEL_HIGHLIGHT_WIDTH });
   }
   const [endX, endY] = keyToPixel(toKey);
   context.font = 'bold 7px system-ui';
