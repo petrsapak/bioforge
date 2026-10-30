@@ -33,6 +33,7 @@ function applyInputs(world, dt, input) {
   }
 }
 
+// no swimming and no ability
 function holdStill(creature) {
   creature.swimX = 0;
   creature.swimY = 0;
@@ -57,6 +58,7 @@ function applyCarStyleInput(creature, input, dt) {
   creature.swimY = -cosine(creature.targetHeading) * input.forward;
 }
 
+// the player's swim direction, ability and held keys, and the heading to turn to
 function applyDirectionInput(creature, input) {
   creature.swimX = input.swimX;
   creature.swimY = input.swimY;
@@ -229,6 +231,7 @@ function applyAngleSpringForces(world) {
   }
 }
 
+// slows every cell in proportion to its speed
 function applyWaterDrag(world) {
   for (const cell of world.cells) {
     cell.forceX -= WATER_DRAG * cell.velocityX;
@@ -265,6 +268,7 @@ function resolveCollisions(world) {
   }
 }
 
+// the box around a creature's cells, for quick overlap checks
 function measureBounds(creature) {
   let minX = Infinity;
   let minY = Infinity;
@@ -286,6 +290,7 @@ const cellOutsideBounds = (cell, bounds) =>
   cell.x + cell.radius < bounds.minX || cell.x - cell.radius > bounds.maxX ||
   cell.y + cell.radius < bounds.minY || cell.y - cell.radius > bounds.maxY;
 
+// pushes apart touching cells of two creatures; enemies that touch hit each other (thorns, bites…)
 function collideCreatures(world, firstCreature, secondCreature) {
   const otherBounds = secondCreature.bounds;
   if (!boundsOverlap(firstCreature.bounds, otherBounds)) return;
@@ -331,6 +336,7 @@ function integrate(world, dt) {
   }
 }
 
+// keeps a cell inside the walls, bouncing it back
 function bounceOffWalls(world, cell) {
   if (cell.x < cell.radius) {
     cell.x = cell.radius;

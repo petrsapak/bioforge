@@ -157,6 +157,7 @@ function flowAlongLink(link, seepFactor, dt) {
   }
 }
 
+// burns fuel every step, and lets fluids seep between cells every FLOW_INTERVAL
 function updateFluids(world, dt) {
   updateMetabolism(world, dt);
   world.flowTimer += dt;

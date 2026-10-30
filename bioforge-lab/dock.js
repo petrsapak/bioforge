@@ -79,6 +79,7 @@ function readOpenCategories(bodySections) {
   return open;
 }
 
+// adds a button to a dock section
 function addToSection(section, button) {
   section.hexes.appendChild(button);
   section.buttons.push(button);

@@ -7,6 +7,7 @@
 //   stores), 'fat' (into Fat cells), 'mineral' (into Mineralizers), or null (kept for nothing
 //   yet: growth, milestone 7)
 
+// a material: the definition over the defaults
 function material(definition) {
   return { reserve: null, ...definition };
 }

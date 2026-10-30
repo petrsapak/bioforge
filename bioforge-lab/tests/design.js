@@ -1,3 +1,4 @@
+'use strict';
 // design.js (builder checks, sim only): hex lookup, reach from the nucleus, the limits, and the design warnings
 const { load } = require('./load');
 const { check, done } = require('./check');
@@ -66,8 +67,8 @@ check('planned cells reported with their keys',
   check('the Jet has every need met', needStates(jet) ===
     'signal ok, oxygen ok, sugar ok, waste ok, blood ok, weapon ok', needStates(jet));
   const supply = sim.sugarSupply(jet);
-  check('the Jet\'s sugar lasts a while even with every cell working', supply.burn > 0 && supply.stock / supply.burn > 5,
-    JSON.stringify(supply));
+  check('the Jet\'s sugar lasts a while even with every cell working',
+    supply.burn > 0 && supply.stock / supply.burn > 5, JSON.stringify(supply));
 }
 
 { // the nerve limits in RULES

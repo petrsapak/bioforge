@@ -5,10 +5,10 @@
 
 const BUILDER_PANEL_WIDTH = 350;                          // px of the windows on each side, kept clear by F
 const FIT_MIN_WIDTH = 300;                                // px the grid fits into at least, on a narrow screen
-const ZOOM_MIN = 0.2;
-const ZOOM_MAX = 5;
-const ZOOM_START = 1.9;
-const ZOOM_PER_WHEEL_UNIT = 0.0015;
+const ZOOM_MIN = 0.2;                                     // screen px per grid px
+const ZOOM_MAX = 5;                                       // screen px per grid px
+const ZOOM_START = 1.9;                                   // screen px per grid px
+const ZOOM_PER_WHEEL_UNIT = 0.0015;                       // zoom is scaled by e^-(this × wheel delta)
 const HEX_FILL_SIZE = HEX_SPACING_X / Math.sqrt(3) - 0.6; // grid px from a hex's centre to its corners, drawn
 const HEX_OUTLINE_SIZE = HEX_SPACING_X / Math.sqrt(3) - 1.2;
 const BUILDER_BACKGROUND = '#0b1418';
@@ -26,11 +26,11 @@ const FIBRE_REMOVE_COLOR = '#ff7a6a';                     // a drag that would r
 const FIBRE_NERVE_VIEW_WIDTH = 1;                         // grid px
 const FIBRE_BODY_VIEW_WIDTH = 0.7;                        // grid px
 const FIBRE_HIGHLIGHT_WIDTH = 1.9;                        // grid px: the fibre under the mouse, or one being laid
-const FIBRE_BODY_VIEW_ALPHA = 0.3;
+const FIBRE_BODY_VIEW_ALPHA = 0.3;                        // opacity of fibres in the Body view
 const FIBRE_DIMMED_ALPHA = 0.22;                          // the other fibres while one is highlighted
 const VESSEL_VIEW_WIDTH = 1.3;                            // grid px
 const VESSEL_BODY_VIEW_WIDTH = 0.8;                       // grid px
-const VESSEL_BODY_VIEW_ALPHA = 0.35;
+const VESSEL_BODY_VIEW_ALPHA = 0.35;                      // opacity of vessels in the Body view
 const VESSEL_HIGHLIGHT_WIDTH = 2.2;                       // grid px: a vessel being laid
 const MIRROR_AXIS_COLOR = 'rgba(126,200,240,0.55)';
 const MIRROR_GHOST_ALPHA = 0.45;                          // the copies the axes will make of a fibre or vessel
@@ -118,6 +118,7 @@ function drawBuilder(app) {
   if (isShowingSameType(app)) drawSameTypeCount(app);
 }
 
+// a pointy-top hexagon of this size around (x, y), as a path
 function traceHex(context, x, y, size) {
   context.beginPath();
   for (let i = 0; i < 6; i++) {
@@ -127,6 +128,7 @@ function traceHex(context, x, y, size) {
   context.closePath();
 }
 
+// the grid px of a hex key's centre
 function keyToPixel(key) {
   const { q, r } = parseHexKey(key);
   return hexToPixel(q, r);
@@ -514,6 +516,7 @@ function drawBudParts(app) {
   context.globalAlpha = 1;
 }
 
+// a dot on a cell of a Bud's part, with its outline when the Bud is clicked
 function drawBudPartDot(context, partCell, isFocused) {
   const [x, y] = hexToPixel(partCell.q, partCell.r);
   context.globalAlpha = isFocused ? 0.55 : 0.25;
@@ -545,6 +548,7 @@ function arrowToPoint(bud, point) {
   };
 }
 
+// a Bud's aim arrow, brighter when the Bud is clicked
 function drawAimArrow(context, arrow, isFocused) {
   const { directionX, directionY, startX, startY, tipX, tipY } = arrow;
   context.globalAlpha = isFocused ? 0.95 : 0.5;

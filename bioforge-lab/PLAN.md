@@ -328,9 +328,10 @@ progress.js     Continue: saving the design, the level and a running level or Sa
                 them up again; saving a creature to a file and loading one
 menus.js        the main menu, the Esc menu (pausing a run) and their Settings view
 ui.js           the app state, the controls, mouse and keyboard input, the frame loop
+game.js         the entry point: starts the app in a browser, not when the tests load the scripts
 tests/*.js      headless checks: node tests/all.js (autonomy, builder, chemical, design, determinism, editor, golden,
-                levels, menus, metabolism, music, nerve, probes, sandbox, savegame, secretions, showcase, sound, systems, title,
-                vascular, weapons); helpers: load.js,
+                guide, levels, line-endings, menus, metabolism, music, nerve, probes, sandbox, savegame, scent,
+                secretions, showcase, sound, style, systems, title, vascular, version, weapons); helpers: load.js,
                 dom.js (fake browser), check.js
 ```
 

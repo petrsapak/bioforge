@@ -8,7 +8,7 @@
 
 const VESSEL_IDLE_CONDUCTANCE = 0.4;                      // flow per unit of fill difference with no Heart beating
 const VESSEL_PUMP_CONDUCTANCE = 4;                        // extra flow per fed Heart on the vessel
-const VESSEL_MAX_CONDUCTANCE = 8;
+const VESSEL_MAX_CONDUCTANCE = 8;                         // flow per unit of fill difference, however many Hearts beat
 const VESSEL_SUBSTEPS = 4;                                // pipes hold little, so blood moves in small steps
 // indexes into cell.fluids of the fluids that travel in blood: all of them, hormones too (until 2026-10-30
 // hormones only seeped, and stayed out of vessels)

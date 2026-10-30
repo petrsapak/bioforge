@@ -7,8 +7,8 @@ const { check, done } = require('./check');
 const { X: sim } = load({}, ['TITLE_SCENE', 'createTitleScene', 'stepTitleScene', 'titleSubjects', 'takeSnapshot',
   'runDataIndex']);
 
-const STEP_SECONDS = 1 / 40;
-const SCENE_SECONDS = 90;
+const STEP_SECONDS = 1 / 40;                              // game s per step
+const SCENE_SECONDS = 90;                                 // game s the scene is watched
 
 // ---------- The scene ----------
 const title = sim.createTitleScene();

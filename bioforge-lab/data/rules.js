@@ -7,7 +7,7 @@ const RULES = {
   maxNeurons: 12,                                     // neurons on the nerve layer (they cost no biomass)
   maxFibreUnits: 40,                                  // steps of nerve fibre from cell centre to cell centre
   maxVesselUnits: 30,                                 // steps of blood vessel from cell centre to cell centre
-  allLevelsOpen: true,                                // TESTING ONLY (user, 2026-10-29): every level is open; remove later
+  allLevelsOpen: true,                                // TESTING ONLY (user, 2026-10-29): all levels open; remove later
   // systems stepped each tick: nerve = signals;
   // fluid = O2, sugar, waste and hormones burn and seep (off: cells work at full power);
   // vascular = vessels carry blood, pumped by Hearts;

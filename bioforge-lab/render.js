@@ -81,18 +81,21 @@ function drawBonds(context, world, isVisible) {
   }
 }
 
+// fills a circle
 function fillCircle(context, x, y, radius) {
   context.beginPath();
   context.arc(x, y, radius, 0, TAU);
   context.fill();
 }
 
+// strokes a circle
 function strokeCircle(context, x, y, radius) {
   context.beginPath();
   context.arc(x, y, radius, 0, TAU);
   context.stroke();
 }
 
+// strokes a straight line
 function strokeLine(context, fromX, fromY, toX, toY) {
   context.beginPath();
   context.moveTo(fromX, fromY);
@@ -115,6 +118,7 @@ function drawSnareLines(context, world) {
   }
 }
 
+// the Spitters' globs in flight
 function drawGlobs(context, world) {
   context.fillStyle = CELLS.spitter.color;
   for (const glob of world.globs) fillCircle(context, glob.x, glob.y, 3.5);
@@ -148,6 +152,7 @@ function drawFood(context, world) {
   }
 }
 
+// the sparks, fading out as their lifetime runs down
 function drawSparks(context, world) {
   for (const spark of world.sparks) {
     context.globalAlpha = Math.min(1, spark.lifetime * 3);
@@ -371,6 +376,7 @@ function fillDiamond(context, x, y, halfWidth, halfHeight) {
   context.fill();
 }
 
+// what is drawn over a cell: its neuron badge, signal glow and so on
 function drawCellOverlays(context, cell, radius) {
   if (cell.neuron) drawNeuronBadge(context, cell, radius);
   if (cell.signal > 0.03) {                               // nerve signal glow

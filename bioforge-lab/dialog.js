@@ -31,6 +31,7 @@ function askForName(question, name, onName) {
   input.select?.();
 }
 
+// hides the game's dialog box and forgets its confirm action
 function closeDialog() {
   byId('dialog-sheet').style.display = 'none';
   byId('dialog-confirm').onclick = null;
@@ -44,6 +45,7 @@ function handleDialogKey(key) {
   else if (key === 'escape') closeDialog();
 }
 
+// wires the dialog box's buttons and its name field's Enter and Esc
 function setUpDialog() {
   byId('dialog-cancel').onclick = closeDialog;
   // the window's key handler leaves typing in a field alone, so the name field takes Enter and Esc itself

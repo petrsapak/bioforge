@@ -20,6 +20,7 @@ function createFoodSupply(overrides = {}) {
     mineralSpecks: [], ...overrides };
 }
 
+// spawns and drifts the food, and lets every creature eat what it touches
 function updateFood(world, dt) {
   spawnFood(world, dt);
   driftFood(world, dt);
@@ -67,6 +68,7 @@ function addFoodSpeck(world) {
   });
 }
 
+// moves every speck along a slow, wavy current
 function driftFood(world, dt) {
   for (const speck of world.food) {
     speck.x += sine(world.time * 0.7 + speck.y * 0.01) * FOOD_DRIFT_SPEED * dt;

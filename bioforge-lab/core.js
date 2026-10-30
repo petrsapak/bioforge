@@ -41,7 +41,7 @@ function rotateHex(q, r, steps) {
 // ---------- World ----------
 const TEST_TANK_FEED_RATE = 0.15;                         // sugar per second the test tank's water gives a Mouth
 const TEST_TANK_MINERAL_RATE = 1;                         // mineral per second it gives a Mineralizer
-const DEFAULT_SEED = 1;
+const DEFAULT_SEED = 1;                                   // random seed of a world made without one
 const LIGHT_RANGE = 450;                                  // px a light reaches; Light eyes beyond it see nothing
 
 // a light that Light eyes see (nerve.js): where it is, and how far it reaches (px)
@@ -268,6 +268,7 @@ function addBond(world, first, second) {
   world.bonds.push({ first, second, stiffness, onSurface: false });
 }
 
+// an open fluid link between two touching cells of a creature
 function addFluidLink(world, first, second) {
   world.fluidLinks.push({ first, second, open: true, conductance: FLOW_CONDUCTANCE });
 }
@@ -351,6 +352,7 @@ function removeCreature(world, creature) {
   world.creatures = world.creatures.filter(other => other !== creature);
 }
 
+// a burst of sparks flying out from (x, y), from the seeded random generator
 function spawnSparks(world, x, y, color, count) {
   for (let i = 0; i < count; i++) {
     const angle = randomFraction(world) * TAU;
@@ -436,11 +438,13 @@ function splitIntoPieces(world, creature) {
 // A system may also give onCellDeath(world, cell), called for every cell that dies while the system is on.
 const SYSTEMS = [];
 
+// adds a system to step(), kept in order of its order number
 function registerSystem(system) {
   SYSTEMS.push(system);
   SYSTEMS.sort((first, second) => first.order - second.order);
 }
 
+// whether this system runs in this world (systems that can't be switched always run)
 function isSystemOn(world, system) {
   return !system.switchable || world.systems.has(system.name);
 }
@@ -458,16 +462,19 @@ function stepInPieces(world, dt, input) {
   for (let i = 0; i < stepCount; i++) step(world, dt / stepCount, input);
 }
 
+// tells every system that is on that a cell died
 function runCellDeathHooks(world, cell) {
   for (const system of SYSTEMS) {
     if (system.onCellDeath && isSystemOn(world, system)) system.onCellDeath(world, cell);
   }
 }
 
+// moves the world's clock on
 function advanceClock(world, dt) {
   world.time += dt;
 }
 
+// moves the sparks on, slows them down and drops the ones that have faded
 function updateParticles(world, dt) {
   for (const spark of world.sparks) {
     spark.x += spark.velocityX * dt;

@@ -47,6 +47,7 @@ function keepProgress(app, now) {
   else if (app.mode === 'level') saveProgress(app);
 }
 
+// saves the builder's design, level and run, but only when one of them has changed
 function saveDesignIfChanged(app) {
   const design = builderDesignEntry(app);
   const key = JSON.stringify([design, app.level && app.level.id, !!app.progress.pendingRun]);

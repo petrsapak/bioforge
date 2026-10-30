@@ -5,7 +5,7 @@
 // library most engines started from, so results stay within about one unit in the last place of the exact value.
 
 const HALF_PI = Math.PI / 2;
-const TWO_OVER_PI = 2 / Math.PI;
+const TWO_OVER_PI = 2 / Math.PI;                          // quadrants per radian
 const HALF_PI_HIGH = 1.57079632673412561417e+00;          // the first 33 bits of π/2: quadrant * this is exact
 const HALF_PI_LOW = 6.07710050650619224932e-11;           // π/2 - HALF_PI_HIGH
 const PI_LOW = 1.2246467991473531772e-16;                 // π - Math.PI
@@ -35,6 +35,7 @@ const ARC_TANGENT_TERMS = [
 const ARC_TANGENT_HUGE = 7.3786976294838206464e19;        // 2^66: above this the arc tangent is π/2
 const ARC_TANGENT_TINY = 1 / 536870912;                  // 2^-29: below this the arc tangent is the input itself
 
+// sine for an angle between -pi/4 and pi/4 (a polynomial)
 function sineNearZero(angle) {
   const squared = angle * angle;
   const tail = SINE_TERMS[1] + squared * (SINE_TERMS[2] + squared * (SINE_TERMS[3] + squared *
@@ -42,6 +43,7 @@ function sineNearZero(angle) {
   return angle + squared * angle * (SINE_TERMS[0] + squared * tail);
 }
 
+// cosine for an angle between -pi/4 and pi/4 (a polynomial)
 function cosineNearZero(angle) {
   const squared = angle * angle;
   const tail = squared * (COSINE_TERMS[0] + squared * (COSINE_TERMS[1] + squared * (COSINE_TERMS[2] + squared *

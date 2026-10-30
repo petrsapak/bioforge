@@ -1,10 +1,11 @@
+'use strict';
 // node tests/all.js: runs every test file in this folder, and prints each file's result, its failures and a summary.
 const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
 const HELPER_FILES = new Set(['all.js', 'load.js', 'dom.js', 'check.js']);
-const LINES_SHOWN_ON_CRASH = 8;
+const LINES_SHOWN_ON_CRASH = 8;                           // last output lines of a test file that crashed
 
 let failedFiles = 0;
 for (const file of fs.readdirSync(__dirname).filter(name => name.endsWith('.js') && !HELPER_FILES.has(name))) {

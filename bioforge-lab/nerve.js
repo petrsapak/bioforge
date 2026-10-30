@@ -89,6 +89,7 @@ function commandOutput(world, cell) {
   return (playerBound ? keyHeld : creature.abilityHeld || keyHeld) ? 1 : 0;
 }
 
+// whether a cell of another team is within EYESPOT_RANGE of this cell
 function enemyNear(world, cell) {
   for (const other of world.creatures) {
     if (other.team === cell.creature.team || other.debris) continue;

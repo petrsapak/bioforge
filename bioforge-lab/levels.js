@@ -2,7 +2,7 @@
 // Levels: builds a level's world from its data (data/levels.js), steps it, moves its light, checks its goal, and
 // scores a win. Pure: no DOM, so a level can be run headless to prove it can be beaten.
 
-const LEVEL_SEED = 1;
+const LEVEL_SEED = 1;                                     // random seed of every level run
 const LEVEL_STEP = 1 / 40;                                // game s per step of a headless run
 
 // Levels open in order: the first one always, any other once the level before it is won. results: the best

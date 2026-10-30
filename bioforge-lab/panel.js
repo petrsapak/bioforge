@@ -56,6 +56,7 @@ function wirePanelButtons(app) {
   };
 }
 
+// marks the chosen cell type, neuron and view as selected
 function showSelectedButtons(app) {
   for (const [typeName, button] of app.dockButtons) button.classList.toggle('selected', typeName === app.selectedType);
   for (const [kind, button] of app.neuronButtons) button.classList.toggle('selected', kind === app.selectedNeuron);
@@ -147,6 +148,7 @@ function showCard(app) {
   byId('card').style.display = html ? '' : 'none';
 }
 
+// whether the clicked cell has something to set up in its card
 function hasCardSettings(app, cell) {
   const cellType = CELLS[cell.typeName];
   return app.layer === 'nerve' || !!cell.neuron || !!cellType.growsParts || cellType.senses === 'hormone';
@@ -158,6 +160,7 @@ function firstSentence(text) {
   return end < 0 ? text : text.slice(0, end + 1);
 }
 
+// the card for the template being stamped: its name, size, cost and keys
 function describeStamp(stamp) {
   const template = stamp.template;
   return `<b>Placing "${escapeHtml(template.name)}"</b>` +
@@ -236,6 +239,7 @@ function describeReceptor(cell) {
     `<div class="hormone-choice">${buttons}</div>`;
 }
 
+// the Bud's part in its card: what it grows, how long it takes and where it is aimed
 function describeBud(bud, cellType) {
   const part = bud.budPart;
   if (!part) return '<div class="line">Grows nothing yet: drag a part from the library onto it.</div>';

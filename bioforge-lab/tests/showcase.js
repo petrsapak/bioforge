@@ -1,3 +1,4 @@
+'use strict';
 // Built-in designs (full app, fake DOM): the small builds fit the budget; the showcase builds load, run in the
 // builder's test tank, and say why they are over the budget.
 const { startApp } = require('./dom');

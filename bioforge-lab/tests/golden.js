@@ -1,3 +1,4 @@
+'use strict';
 // Golden tests: run fixed scenarios and compare a fingerprint of the exact simulation state with the recorded one.
 // A refactor must leave every fingerprint unchanged. After a deliberate behaviour change, record new fingerprints with
 //   node tests/golden.js --update
@@ -8,13 +9,13 @@ const { load } = require('./load');
 const { check, done } = require('./check');
 
 const GOLDEN_FILE = path.join(__dirname, 'golden.json');
-const STEP_SECONDS = 1 / 40;
-const SCENARIO_SECONDS = 10;
+const STEP_SECONDS = 1 / 40;                              // game s per step
+const SCENARIO_SECONDS = 10;                              // game s per scenario
 const PLAYER_DESIGNS = [
   'wiggler', 'squirter', 'nettler', 'puffer', 'lancer', 'stinger', 'spitter', 'snarer', 'eel', 'crab',
 ];
 const OPPONENT_DESIGN = 'nettler';
-const SEED = 7;
+const SEED = 7;                                           // random seed
 
 const { X: sim } = load({}, ['newWorld', 'spawn', 'step', 'TEMPLATES']);
 

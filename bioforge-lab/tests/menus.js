@@ -7,7 +7,7 @@ const { check, done } = require('./check');
 
 const FRAMES_PER_SECOND = 63;                             // the fake browser's frames are 16 ms
 const GRID_MIDDLE_X = 1600 / 2;                           // where the builder's grid middle is on screen (px)
-const GRID_MIDDLE_Y = 900 / 2;
+const GRID_MIDDLE_Y = 900 / 2;                            // px
 
 const isShown = (byId, id) => byId(id).style.display !== 'none';
 const pressKeyIn = fire => (key, fields = {}) => {

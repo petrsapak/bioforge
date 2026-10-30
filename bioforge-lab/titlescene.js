@@ -27,6 +27,7 @@ function stepTitleScene(title, dt) {
   clearOldDebris(title);
 }
 
+// moves the title scene's light along its loop
 function placeTitleLight(title) {
   const light = title.scene.light;
   const [x, y] = pointAlongLoop(light.path, title.time * light.speed);

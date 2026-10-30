@@ -1,3 +1,4 @@
+'use strict';
 // Determinism (sim only): the deterministic math matches Math closely, the seeded random generator repeats, the seed
 // decides the run, and the pure sim files keep away from engine-dependent math, Math.random, the DOM and type names.
 const fs = require('fs');
@@ -6,12 +7,14 @@ const { load, ROOT } = require('./load');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['sine', 'cosine', 'arcTangent2', 'nextRandom', 'newWorld', 'spawn', 'step', 'TEMPLATES']);
 
-const SIM_FILES = ['math.js', 'core.js', 'fibres.js', 'physics.js', 'nerve.js', 'fluid.js', 'actuators.js',
-  'combat.js', 'growth.js',
-  'food.js', 'ai.js', 'design.js', 'builder.js', 'data/rules.js', 'data/fluids.js', 'data/cells.js',
-  'data/templates.js', 'data/tips.js', 'data/neurons.js', 'data/levels.js', 'levels.js', 'snapshot.js',
-  'savegame.js', 'titlescene.js', 'data/title.js'];
-const SAMPLE_COUNT = 20000;
+// every pure file (CLAUDE.md); tests/style.js checks that this list and CLAUDE.md's agree
+const SIM_FILES = ['math.js', 'core.js', 'fibres.js', 'physics.js', 'nerve.js', 'fluid.js', 'vascular.js',
+  'chemical.js', 'scent.js', 'metabolism.js', 'actuators.js', 'secretions.js', 'treatments.js', 'combat.js',
+  'growth.js', 'food.js', 'ai.js', 'design.js', 'builder.js', 'fieldguide.js', 'levels.js', 'snapshot.js',
+  'savegame.js', 'titlescene.js', 'data/version.js', 'data/rules.js', 'data/materials.js', 'data/fluids.js',
+  'data/cells.js', 'data/neurons.js', 'data/templates.js', 'data/tips.js', 'data/guide.js', 'data/levels.js',
+  'data/sounds.js', 'data/title.js'];
+const SAMPLE_COUNT = 20000;                               // angles compared with Math
 
 // distance between two numbers relative to their size (absolute near zero)
 const relativeError = (value, expected) => Math.abs(value - expected) / Math.max(1, Math.abs(expected));

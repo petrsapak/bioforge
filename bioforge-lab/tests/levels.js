@@ -100,8 +100,8 @@ const calmSeekerBuild = backTypeName => ({ cells: [cell(0, 0, 'nucleus'), ...eye
 // Feast and famine: Bloom's body with a Nose at the front middle into a Fed gland beside the Fat, and a Receptor for
 // Fed holding an Inhibitor into a Starved gland; Tissue where a gland is left out, so the body keeps its balance
 const feastBuild = (fed, starved) => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(-1, 0, 'fat'),
-  cell(1, 0, 'mouth'), cell(-1, 2, 'pore'), cell(-2, 1, 'gill'), cell(1, 1, 'gill'), cell(1, -2, fed ? 'nose' : 'tissue'),
-  cell(-1, -1, starved ? 'starvedgland' : 'tissue'),
+  cell(1, 0, 'mouth'), cell(-1, 2, 'pore'), cell(-2, 1, 'gill'), cell(1, 1, 'gill'),
+  cell(1, -2, fed ? 'nose' : 'tissue'), cell(-1, -1, starved ? 'starvedgland' : 'tissue'),
   cell(2, -1, starved ? 'receptor' : 'tissue',
     starved ? { neuron: sim.createNeuron('inhibitor'), sensedHormone: 'fed' } : {}),
   cell(-2, 0, fed ? 'fedgland' : 'tissue'), cell(2, 0, 'tissue')],

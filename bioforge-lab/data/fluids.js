@@ -9,6 +9,7 @@
 
 const HORMONE_FLOW_RATE = 4;                              // hormones seep this many times faster than O2 and sugar
 
+// a fluid: the definition over the defaults
 function fluidChannel(definition) {
   return {
     layer: 'vascular',

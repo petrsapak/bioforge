@@ -166,6 +166,7 @@ function handleMenuKey(app, key) {
 // the saved profile list (a save from before profiles has been upgraded to one at start)
 const readProfiles = () => readSharedStorage('profiles', null) || createProfiles();
 
+// wires the Profiles view's buttons: new, rename, switch and delete
 function setUpProfiles(app) {
   onSandboxButton('profile-new', () => askForName(
     { title: 'New profile', text: 'A name for the new player. The game starts again in their profile.',
@@ -196,6 +197,7 @@ function showProfiles(app) {
   }
 }
 
+// a button for the profiles list
 function profileButton(className, text, title, onClick) {
   const button = document.createElement('button');
   button.className = className;
@@ -205,6 +207,7 @@ function profileButton(className, text, title, onClick) {
   return button;
 }
 
+// asks for a new name for this profile, then renames it
 function renameProfileAsked(app, profile) {
   askForName({ title: 'Rename profile', text: `A new name for ${profile.name}.`, confirmLabel: 'Rename' },
     profile.name, name => {
@@ -277,11 +280,13 @@ function showSettings(app) {
 // screen.
 const canGoFullscreen = () => !!window.desktopWindow || !!(document.documentElement || {}).requestFullscreen;
 
+// whether the game is fullscreen (the desktop window, or the browser page)
 function isFullscreen() {
   if (window.desktopWindow) return window.desktopWindow.isFullscreen();
   return !!document.fullscreenElement;
 }
 
+// switches fullscreen on or off, in the desktop window or the browser
 function toggleFullscreen(app) {
   if (window.desktopWindow) {
     window.desktopWindow.toggleFullscreen();

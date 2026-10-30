@@ -54,6 +54,7 @@ function onSandboxButton(id, action) {
 
 const sandboxDesign = (app, designName) => designName === OWN_DESIGN ? bodyDesign(app.edited) : TEMPLATES[designName];
 
+// opens the Sandbox with a new world and the player's creature
 function startSandbox(app) {
   playSound(app, 'start');
   const world = newWorld(app.canvas.width, app.canvas.height);
@@ -98,11 +99,13 @@ function spawnSandboxPlayer(app) {
   resetProbes(app.probes, app.player);
 }
 
+// switches the enemies between hunting and idle
 function toggleEnemiesIdle(app) {
   app.world.enemiesIdle = !app.world.enemiesIdle;
   byId('sandbox-enemy-mode').textContent = `Enemies: ${app.world.enemiesIdle ? 'idle' : 'hunt'}`;
 }
 
+// removes every creature that isn't the player's
 function removeEnemies(app) {
   for (const creature of app.world.creatures.filter(other => other.team !== 0)) removeCreature(app.world, creature);
 }
@@ -187,6 +190,7 @@ function runTimeControlled(app, dt, stepWorld) {
   for (let i = 0; i < stepCount; i++) stepWorld(gameTime / stepCount);
 }
 
+// draws one Sandbox frame: water, light, world, lens and probes
 function drawSandbox(app) {
   drawWater(app.context, app.world, app.canvas.width, app.canvas.height);
   drawLight(app.context, app.world.light);

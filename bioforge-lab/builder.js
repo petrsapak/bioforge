@@ -54,6 +54,7 @@ const isVesselBetween = (vessel, firstKey, secondKey) =>
   (fibreStartKey(vessel) === firstKey && fibreEndKey(vessel) === secondKey) ||
   (fibreStartKey(vessel) === secondKey && fibreEndKey(vessel) === firstKey);
 
+// the hex keys of the cells joined to the Nucleus
 function joinedKeys(edited) {
   return hexesReachableFromNucleus(key => edited.cells.has(key));
 }
@@ -64,6 +65,7 @@ function bodyCells(edited) {
   return [...edited.cells.values()].filter(cell => joined.has(keyOfCell(cell)));
 }
 
+// the hex keys of the planned cells: placed, but not joined to the Nucleus
 function plannedKeys(edited) {
   const joined = joinedKeys(edited);
   return [...edited.cells.keys()].filter(key => !joined.has(key));
@@ -79,6 +81,7 @@ function bodyDesign(edited) {
   };
 }
 
+// the biomass cost of the cells that are spawned
 function bodyCost(edited) {
   return designCost(bodyDesign(edited));
 }
@@ -115,6 +118,7 @@ function canPlaceCell(edited, q, r, typeName) {
   return costWithAdded(edited, added) <= edited.biomassLimit;
 }
 
+// puts a new cell of this type on (q, r), replacing what was there
 function placeCell(edited, q, r, typeName) {
   edited.cells.set(hexKey(q, r), createDesignCell(q, r, typeName));
 }
@@ -137,8 +141,8 @@ function removeCell(edited, q, r) {
 // ---------- Symmetry ----------
 // A mirror axis runs through the Nucleus at a multiple of 30° (its number of turns, 0–5, clockwise on screen from
 // the horizontal; 3 is the front-to-back line). Only those angles map every hex onto a hex.
-const MIRROR_AXIS_COUNT = 6;
-const FRONT_TO_BACK_AXIS = 3;
+const MIRROR_AXIS_COUNT = 6;                              // axes, 30° apart
+const FRONT_TO_BACK_AXIS = 3;                             // turns of 30°
 
 // the hex of the design's Nucleus, which the mirror axes run through
 function mirrorCentre(edited) {
@@ -746,6 +750,7 @@ function aimBudPart(edited, budKey, pointX, pointY) {
   bud.partAim = arcTangent2(offsetX, -offsetY);
 }
 
+// lets the Bud's part launch in its default direction again
 function resetBudAim(edited, budKey) {
   delete edited.cells.get(budKey).partAim;
 }

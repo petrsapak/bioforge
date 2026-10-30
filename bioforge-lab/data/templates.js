@@ -16,6 +16,7 @@ const ART_CELL_CODES = {
   h: 'heart', v: 'valve', a: 'airsac', f: 'fat', o: 'pore', r: 'mender', d: 'adrenal', H: 'snare', P: 'spitter',
 };
 
+// a design from hex art: rows of letters (ART_CELL_CODES), placed around the N
 function designFromArt(rows) {
   const placed = [];
   let nucleusColumn = 0;

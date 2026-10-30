@@ -90,6 +90,7 @@ function createApp(canvas) {
   };
 }
 
+// starts the game in the page: upgrades the save, builds the app and starts the frame loop
 function boot() {
   upgradeStoredSave(readSharedStorage, writeSharedStorage);   // before anything reads the save
   const app = createApp(byId('game'));
@@ -124,11 +125,13 @@ function boot() {
   requestAnimationFrame(time => runFrame(app, time));
 }
 
+// makes the canvas fill the window
 function fitCanvasToWindow(app) {
   app.canvas.width = innerWidth;
   app.canvas.height = innerHeight;
 }
 
+// makes the preview, library and traces windows foldable
 function setUpWindows(app) {
   app.isPreviewCollapsed = makeCollapsible(byId('preview'), byId('preview-bar'), byId('preview-toggle'), 'preview');
   makeCollapsible(byId('library'), byId('library-bar'), byId('library-toggle'), 'library');
@@ -172,12 +175,14 @@ function loadDesign(app, design, label, savedName) {
   if (problem) showMessage(`${label}: ${problem}. Try it in the Sandbox, or trim it to fit.`);
 }
 
+// chooses the cell type to place, putting away a held stamp
 function pickCellType(app, typeName) {
   app.selectedType = typeName;
   app.stamp = null;
   refreshPanel(app);
 }
 
+// chooses the neuron to place
 function pickNeuron(app, kind) {
   app.selectedNeuron = kind;
   refreshPanel(app);
@@ -236,6 +241,7 @@ function renameLibraryEntry(app, entry) {
     });
 }
 
+// asks, then deletes a library entry
 function removeLibraryEntry(app, entry) {
   const kind = entry.isCreature ? 'creature' : 'template';
   askToConfirm({
@@ -250,6 +256,7 @@ function removeLibraryEntry(app, entry) {
   });
 }
 
+// saves the library and shows it again
 function saveAndShowLibrary(app) {
   saveLibrary(app.library);
   showLibraryRows(app);
@@ -296,6 +303,7 @@ function openSaveMenu(app, x, y) {
   byId('save-menu-name').select?.();
 }
 
+// hides the save menu
 function closeSaveMenu() {
   byId('save-menu').style.display = 'none';
 }
@@ -331,6 +339,7 @@ function showModeWindows(app) {
   byId('level-result').style.display = 'none';
 }
 
+// goes back to the builder from a level or the Sandbox
 function enterBuilder(app) {
   app.mode = 'build';
   app.world = null;
@@ -466,6 +475,7 @@ function letGoOfWhatIsInHand(app) {
   return true;
 }
 
+// turns the held stamp or part, or else the clicked Bud's part, by this many sixth turns
 function turnWhatIsInHand(app, steps) {
   if (app.stamp) {
     app.stamp.rotation += steps;
@@ -485,6 +495,7 @@ function hexUnderMouse(app, event) {
   return pixelToHex(...screenToGrid(app, event.clientX, event.clientY));
 }
 
+// listens to the mouse on the canvas
 function listenToMouse(app) {
   const canvas = app.canvas;
   canvas.addEventListener('mousemove', event => {
@@ -513,6 +524,7 @@ function listenToMouse(app) {
   addEventListener('mousedown', () => hideTooltip(app));
 }
 
+// follows the mouse: panning, dragging, painting and the hovered hex
 function trackMouse(app, event) {
   const pan = app.panDrag;
   if (pan) {
@@ -681,6 +693,7 @@ function isNucleusHex(app, key) {
   return !!cell && CELLS[cell.typeName].isNucleus;
 }
 
+// places the held stamp at (q, r); a right click puts it away
 function useStamp(app, isRight, q, r) {
   if (isRight) {
     app.stamp = null;

@@ -113,6 +113,7 @@ function cellsReachableFrom(bud, placedCells) {
   return order;
 }
 
+// a Bud's growth state: what it will grow, in order, and how far it has got
 function newBudGrowth(designCells, bud) {
   return { plan: planBudPart(designCells, bud), progress: 0, grownCount: 0, done: false };
 }

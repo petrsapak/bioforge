@@ -1,3 +1,4 @@
+'use strict';
 // Loads the game's scripts, in index.html order, into one Node vm context, like the browser's shared global scope.
 //   load(globals, names) runs every script with the extra globals (such as a fake DOM, see tests/dom.js) and returns
 //   the context. names: top-level consts and functions to hand back as context.X (a top-level const is not a
@@ -14,6 +15,7 @@ function scripts() {
   return [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map(match => match[1]);
 }
 
+// runs the game's scripts in a new vm context with these globals; the named ones are copied to its X
 function load(globals = {}, names = []) {
   const context = vm.createContext({ Math, console, ...globals });
   // Every global lookup in a vm context goes through a slow interceptor. A script-scope binding makes Math run at

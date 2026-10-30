@@ -37,13 +37,13 @@ const keysOf = cells => cells.map(cell => hexKey(cell.q, cell.r));
 function pixelToHex(x, y) {
   const r = y / HEX_SPACING_Y;
   const q = x / HEX_SPACING_X - r / 2;
-  const s = -q - r;
+  const cubeS = -q - r;                                 // the third cube coordinate
   let roundedQ = Math.round(q);
   let roundedR = Math.round(r);
-  const roundedS = Math.round(s);
+  const roundedS = Math.round(cubeS);
   const errorQ = Math.abs(roundedQ - q);
   const errorR = Math.abs(roundedR - r);
-  const errorS = Math.abs(roundedS - s);
+  const errorS = Math.abs(roundedS - cubeS);
   if (errorQ > errorR && errorQ > errorS) roundedQ = -roundedR - roundedS;
   else if (errorR > errorS) roundedR = -roundedQ - roundedS;
   return [roundedQ, roundedR];
@@ -343,6 +343,7 @@ function migrateDesignCell(savedCell) {
   return cell;
 }
 
+// a saved Bud part in the current format
 function migrateBudPart(savedPart) {
   const part = { name: savedPart.name, cells: savedPart.cells.map(migrateDesignCell) };
   if (savedPart.fibres) part.fibres = savedPart.fibres;
@@ -383,6 +384,7 @@ function upgradeToNerveLayer(design) {
   return { ...design, cells: design.cells.map(upgradeOldCell), fibres: wireByOldTouchRule(design.cells) };
 }
 
+// a cell from before the nerve layer: an old nerve cell becomes tissue with the matching neuron
 function upgradeOldCell(cell) {
   const upgraded = { ...cell };
   if (cell.budPart) upgraded.budPart = upgradeToNerveLayer(cell.budPart);

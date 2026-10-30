@@ -73,6 +73,7 @@ function latestOpenLevel(app) {
   return openLevels[openLevels.length - 1];
 }
 
+// hides the levels sheet
 function closeLevelsSheet() {
   byId('levels-sheet').style.display = 'none';
 }
@@ -335,6 +336,7 @@ function drawDarkLamp(context, run) {
   context.stroke();
 }
 
+// a pulsing, dashed goal ring in this colour ("r,g,b")
 function drawGoalRing(context, x, y, radius, rgb, pulse) {
   context.fillStyle = `rgba(${rgb},${0.06 + 0.06 * pulse})`;
   fillCircle(context, x, y, radius);

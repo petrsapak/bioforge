@@ -6,12 +6,12 @@ const { load } = require('./load');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['newWorld', 'spawn', 'step', 'createDesignCell', 'createNeuron', 'damageCell',
   'NEURON_RULES', 'FLUID_SUGAR', 'FLUID_ADRENALINE', 'FLUID_CALM', 'FLUID_FED', 'FLUID_STARVED', 'CELLS',
-  'TREAT_TIME', 'TANNED_DAMAGE_FACTOR', 'stingShare', 'BOND_STIFFNESS', 'createEditedDesign', 'setSensedHormone', 'bodyDesign',
-  'hexKey', 'TIPS', 'newTestTank', 'exampleCells', 'linksFromList']);
+  'TREAT_TIME', 'TANNED_DAMAGE_FACTOR', 'stingShare', 'BOND_STIFFNESS', 'createEditedDesign', 'setSensedHormone',
+  'bodyDesign', 'hexKey', 'TIPS', 'newTestTank', 'exampleCells', 'linksFromList']);
 
 const cell = (q, r, typeName, extras = {}) => sim.createDesignCell(q, r, typeName, extras);
 const noInput = { swimX: 0, swimY: 0, ability: false, heldKeys: new Set() };
-const STEP = 1 / 40;
+const STEP = 1 / 40;                                      // game s per step
 const cellAt = (creature, q, r) => creature.cells.find(each => each.q === q && each.r === r);
 
 // a creature of these design cells alone in the water, held by nobody
@@ -236,8 +236,9 @@ function strikeOnDummy(seconds) {
   runFor(world, STEP);
   return healthBefore - Math.max(0, target.health);
 }
+// a full strike kills the Tissue
 check('the snap strikes an enemy cell touching the muscle, harder for a full charge',
-  strikeOnDummy(1) >= sim.CELLS.tissue.health && strikeOnDummy(0.3) < strikeOnDummy(1),   // a full strike kills the Tissue
+  strikeOnDummy(1) >= sim.CELLS.tissue.health && strikeOnDummy(0.3) < strikeOnDummy(1),
   `${strikeOnDummy(0.3).toFixed(1)} / ${strikeOnDummy(1).toFixed(1)}`);
 check('a tanned cell blunts thorns like Shell', sim.stingShare({ type: sim.CELLS.tissue, tanned: true }) < 1 &&
   sim.stingShare({ type: sim.CELLS.tissue, tanned: false, mineralized: false }) === 1);

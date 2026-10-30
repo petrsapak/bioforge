@@ -4,7 +4,7 @@
 // builder's Nerve view the Traces window traces the test tank's creature (browser only).
 
 const PROBE_SECONDS = 6;                                  // game s of trace shown across a lane
-const PROBE_MAX_LANES = 8;
+const PROBE_MAX_LANES = 8;                                // lanes; more probed cells are left out
 const PROBE_LANE_HEIGHT = 17;                             // px (canvas units) per lane
 const TRACES_LANE_HEIGHT = 24;                            // px per lane in the builder's Traces window
 const PROBE_LABEL_WIDTH = 78;                             // px (canvas units) left of the traces for the lane names

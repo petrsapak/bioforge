@@ -6,7 +6,7 @@
 // storage, so Lab reads that list once to carry it over, and never writes to it (Moba still uses it).
 const OLD_LIBRARY_STORAGE_KEY = 'bioforge-templates';
 const THUMBNAIL_SIZE = 80;                                // px
-const THUMBNAIL_MAX_SCALE = 3;
+const THUMBNAIL_MAX_SCALE = 3;                            // thumbnail px per grid px, so tiny parts aren't blown up
 
 // the saved library, carried over from the old list the first time
 function loadLibrary() {
@@ -20,6 +20,7 @@ function loadLibrary() {
   }
 }
 
+// writes the library to storage
 function saveLibrary(library) {
   writeStorage('library', library);
 }
@@ -40,6 +41,7 @@ function showLibrary(library, actions) {
   });
 }
 
+// one library row: a thumbnail, the name, and Rename and Delete buttons
 function makeLibraryRow(entry, actions) {
   const row = document.createElement('div');
   const thumbnail = document.createElement('canvas');
@@ -64,6 +66,7 @@ function makeLibraryRow(entry, actions) {
   return row;
 }
 
+// a small button in a library row; its click doesn't reach the row
 function makeRowButton(text, title, onClick) {
   const button = document.createElement('button');
   button.className = 'small';

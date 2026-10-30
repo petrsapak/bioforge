@@ -6,6 +6,7 @@ const TOOLTIP_DELAY = 200;                                // ms the mouse must r
 const TOOLTIP_MOUSE_OFFSET = 24;                          // px from the mouse, or from the dock button
 const TOOLTIP_EDGE_MARGIN = 8;                            // px kept free at the window's edges
 
+// the tooltip's state: what it is over and since when
 function createTooltipState() {
   return { target: null, typeName: null, neuronKind: null, anchor: null, since: 0, mouseX: 0, mouseY: 0 };
 }
@@ -41,6 +42,7 @@ function trackTooltipTarget(app, event) {
   hideTooltip(app);
 }
 
+// hides the tooltip and stops its example tank
 function hideTooltip(app) {
   app.tooltip.since = performance.now();
   byId('tooltip').style.display = 'none';
@@ -81,6 +83,7 @@ function tooltipPlace(tooltip, width, height) {
   return { left, top: tooltip.mouseY - height / 2 };
 }
 
+// a cell type's tooltip: name, cost, health, needs and fuel
 function tooltipHtml(typeName, cellType) {
   const facts = [`${cellType.health} HP`];
   if (cellType.needsSignal) facts.push('needs a nerve signal');

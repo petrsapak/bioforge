@@ -9,7 +9,7 @@ const { X: sim } = load({}, ['newWorld', 'spawn', 'step', 'createDesignCell', 'c
 
 const cell = (q, r, typeName, extras = {}) => sim.createDesignCell(q, r, typeName, extras);
 const noInput = { swimX: 0, swimY: 0, ability: false, heldKeys: new Set() };
-const STEP = 1 / 40;
+const STEP = 1 / 40;                                      // game s per step
 const cellAt = (creature, q, r) => creature.cells.find(each => each.q === q && each.r === r);
 const fillOf = (target, fluid) => target.fluids[fluid] / target.fluidCapacity[fluid];
 
@@ -25,6 +25,7 @@ function tank(designs, systems) {
   return { world, creatures };
 }
 
+// steps the world for this many game s, calling beforeStep before each step
 function runFor(world, seconds, beforeStep = () => {}) {
   for (let i = 0; i < Math.round(seconds / STEP); i++) {
     beforeStep();

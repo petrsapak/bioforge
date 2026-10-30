@@ -64,10 +64,12 @@ function addProfile(profiles, name) {
   return { list: [...profiles.list, { id, name }], current: id, nextId: id + 1 };
 }
 
+// the profiles with this one renamed
 function renameProfile(profiles, id, name) {
   return { ...profiles, list: profiles.list.map(profile => (profile.id === id ? { ...profile, name } : profile)) };
 }
 
+// the profiles with this one current; an unknown id changes nothing
 function switchProfile(profiles, id) {
   return profiles.list.some(profile => profile.id === id) ? { ...profiles, current: id } : profiles;
 }

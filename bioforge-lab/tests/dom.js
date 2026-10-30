@@ -1,11 +1,12 @@
+'use strict';
 // A fake browser for headless UI tests: elements made on demand by id, event listeners, a 2D context that ignores
 // every drawing call, and a requestAnimationFrame queue that runFrames() steps at 16 ms per frame.
 const vm = require('vm');
 const { load } = require('./load');
 
-const FRAME_MS = 16;
+const FRAME_MS = 16;                                      // ms per fake animation frame
 const SCREEN_WIDTH = 1600;                                // px
-const SCREEN_HEIGHT = 900;
+const SCREEN_HEIGHT = 900;                                // px
 const LEAVE_TITLE_FRAMES = 40;                            // frames for the title to dim to black (0.5 s) and close
 
 // A 2D canvas context that accepts every call and property and draws nothing. A call returns the context itself, so
@@ -23,6 +24,7 @@ function createIgnoringContext() {
   return context;
 }
 
+// a fake element.classList over a Set
 function createClassList() {
   const names = new Set();
   return {
@@ -54,6 +56,7 @@ function createListeners() {
   };
 }
 
+// a fake element with a style, children, listeners and the shared 2D context
 function createElement(id, listeners, context) {
   let html = '';
   return {

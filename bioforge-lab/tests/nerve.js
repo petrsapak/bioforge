@@ -1,3 +1,4 @@
+'use strict';
 // The nerve layer (sim only): neuron truth tables, one nerve step of delay per fibre, fibre routing and units, fibres
 // cut with their cells, old designs converted to neurons and fibres, and the neuron tooltips' examples.
 const { load } = require('./load');
@@ -7,7 +8,7 @@ const { X: sim } = load({}, ['newWorld', 'spawn', 'step', 'createNeuron', 'creat
   'exampleCells', 'linksFromList', 'newTestTank', 'fibreRoute', 'layOutFibreLanes', 'placePartFibres',
   'smoothLinkLine', 'LINK_END_GAP']);
 
-const STEP = 1 / 40;
+const STEP = 1 / 40;                                      // game s per step
 const cellAt = (creature, q, r) => creature.cells.find(cell => cell.q === q && cell.r === r);
 const fibre = (fromQ, fromR, toQ, toR) => ({ from: { q: fromQ, r: fromR }, to: { q: toQ, r: toR } });
 

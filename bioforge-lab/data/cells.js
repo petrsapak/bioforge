@@ -33,9 +33,10 @@
 // Builder hints (design.js): needsSignal: does nothing without a nerve signal; isWeapon: can hurt other creatures;
 //   storesSugar: a sugar reservoir (Fat); storesMineral: a mineral store
 // Cells that burn no fuel are pipes: they pass O2 and sugar on to their neighbours but hold only a little.
-const PIPE_CAPACITY = 0.3;
+const PIPE_CAPACITY = 0.3;                                // share of a full cell's O2 and sugar a pipe holds
 const DEFAULT_SENSED_HORMONE = 'adrenaline';            // what a new Receptor senses
 
+// a cell type: the definition over the defaults
 function cellType(definition) {
   const pipeOrStore = definition.fuelBurn ? 1 : PIPE_CAPACITY;
   const recipe = definition.recipe || { protein: definition.cost };

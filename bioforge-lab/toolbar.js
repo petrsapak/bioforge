@@ -4,6 +4,7 @@
 
 const MIRROR_MENU_WIDTH = 200;                            // px, as #mirror-menu in style.css
 
+// wires the toolbar: view tabs, design buttons, symmetry, keys sheet and lens
 function setUpToolbar(app) {
   setUpLayerSwitch(app);
   setUpDesignButtons(app);
@@ -85,6 +86,7 @@ function setUpMirrorMenu(app) {
   showMirrorAxes(app);
 }
 
+// turns one symmetry axis on or off
 function toggleMirrorAxis(app, axisTurns) {
   const isOn = app.mirrorAxes.includes(axisTurns);
   setMirrorAxes(app, isOn ? app.mirrorAxes.filter(other => other !== axisTurns) : [...app.mirrorAxes, axisTurns]);
@@ -111,6 +113,7 @@ function setUpKeysSheet() {
   byId('game-version').textContent = 'Bioforge Lab ' + GAME_VERSION;
 }
 
+// shows or hides the keys sheet
 function toggleKeysSheet() {
   const sheet = byId('keys-sheet');
   sheet.style.display = sheet.style.display === 'flex' ? 'none' : 'flex';

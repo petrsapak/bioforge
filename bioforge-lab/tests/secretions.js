@@ -10,7 +10,7 @@ const { X: sim } = load({}, ['newWorld', 'newTestTank', 'spawn', 'step', 'create
 
 const cell = (q, r, typeName) => sim.createDesignCell(q, r, typeName);
 const noInput = { swimX: 0, swimY: 0, ability: false };
-const STEP = 1 / 40;
+const STEP = 1 / 40;                                      // game s per step
 
 // a gland creature facing a dummy of dummyType cells just touching its front, both held in place
 function glandArena(glandType, dummyType, systems = ['secretions']) {

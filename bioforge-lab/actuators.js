@@ -2,9 +2,9 @@
 // Actuators: cells that act on a nerve signal (muscles, bloaters, nettles, snares, spitters), plus cooldown timers and
 // the rotting of debris. Pure: no DOM.
 
-const MUSCLE_MIN_SIZE = 0.25;
+const MUSCLE_MIN_SIZE = 0.25;                             // share of full size a muscle never shrinks below
 const MUSCLE_CONTRACTION = 0.7;                           // size lost at full signal and power
-const BLOATER_MAX_SIZE = 2;
+const BLOATER_MAX_SIZE = 2;                               // times full size a bloater never swells past
 const BLOATER_SWELL = 0.8;                                // size gained at full signal and power
 const SIZE_SNAP_RATE = 16;                                // per second, toward the active size
 const SIZE_RELAX_RATE = 4;                                // per second, back to rest

@@ -1,3 +1,4 @@
+'use strict';
 // Sandbox (full app, fake DOM): enter with a showcase build, swap the player, spawn and remove enemies by clicking,
 // idle and hunting enemies, no win or lose, Esc back to the builder, and a second run with another design.
 const { startApp, SCREEN_HEIGHT } = require('./dom');
@@ -111,7 +112,8 @@ check('the sandbox starts again with a new design', byId('sandbox-bar').style.di
 pressKey('c');
 runFrames(20);
 check('C turns the chemical lens on: its legend shows, and the run goes on drawing it',
-  byId('lens-legend').style.display === 'flex' && byId('chemical-lens').classList.contains('selected') && playerAlive());
+  byId('lens-legend').style.display === 'flex' && byId('chemical-lens').classList.contains('selected') &&
+  playerAlive());
 pressKey('c');
 check('C again turns it off', byId('lens-legend').style.display === 'none' &&
   !byId('chemical-lens').classList.contains('selected'));

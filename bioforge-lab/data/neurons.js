@@ -8,6 +8,7 @@
 //   onWithoutInput: with nothing wired into it, it is on (so it is a signal source of its own)
 // A design cell holds its neuron as { kind, setting }.
 
+// a neuron type: the definition over the defaults
 function neuronType(definition) {
   return { setting: null, ignoresInputs: false, onWithoutInput: false, ...definition };
 }

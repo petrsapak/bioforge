@@ -1,3 +1,4 @@
+'use strict';
 // System switches (data/rules.js): every switchable system can be turned off and the sim still runs; off means off.
 const { load } = require('./load');
 const { check, done } = require('./check');

@@ -3,6 +3,7 @@
 
 const AI_ABILITY_RANGE = 170;                             // px between centres within which the AI fires
 
+// steers an AI creature at the nearest enemy, and holds its ability while one is in range
 function steerTowardNearestEnemy(world, creature) {
   let target = null;
   let targetDistance = Infinity;

@@ -80,6 +80,7 @@ function tanCell(world, cell) {
 // a cell's bond strength, a tanned cell's raised
 const bondStrengthOf = cell => cell.type.bondStrength * (cell.tanned ? TANNED_STIFFNESS : 1);
 
+// marks a cell as treated by a Resilin gland
 function makeResilient(world, cell) {
   cell.resilient = true;
 }

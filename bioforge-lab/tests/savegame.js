@@ -9,9 +9,9 @@ const { X: sim } = load({}, ['LEVELS', 'TEMPLATES', 'CELLS', 'GAME_VERSION', 'SA
   'readCreatureFile', 'upgradeStoredSave', 'createProfiles', 'storageName', 'addProfile', 'renameProfile',
   'switchProfile', 'removeProfile', 'currentProfile']);
 
-const STEP_SECONDS = 1 / 40;
+const STEP_SECONDS = 1 / 40;                              // game s per step
 const STEPS_BEFORE_SAVE = 160;                            // 4 game s
-const STEPS_AFTER_SAVE = 160;
+const STEPS_AFTER_SAVE = 160;                             // 4 game s
 const SPACE_PERIOD = 40;                                  // steps: Space is held every other second
 
 // the input of step i: Space held every other second, so that Commands fire
@@ -51,7 +51,8 @@ for (const level of sim.LEVELS) {
   const cell = restored.world.cells[0];
   check('a restored cell points at the game\'s own cell type and at its creature',
     cell.type === sim.CELLS[cell.typeName] && restored.world.creatures.includes(cell.creature));
-  check('the restored player is the creature in the restored world', restored.world.creatures.includes(restored.player));
+  check('the restored player is the creature in the restored world',
+    restored.world.creatures.includes(restored.player));
 }
 
 // ---------- The encoding ----------

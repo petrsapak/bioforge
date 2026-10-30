@@ -38,6 +38,7 @@ function readSharedStorage(name, fallback) {
   }
 }
 
+// writes a value under a key that every profile shares
 function writeSharedStorage(name, value) {
   try {
     savedStore().setItem(STORAGE_PREFIX + name, JSON.stringify(value));
@@ -78,6 +79,7 @@ function makeFloating(windowElement, handle, name) {
   return save;
 }
 
+// puts a window back where it was saved
 function restoreWindow(windowElement, saved) {
   if (!saved) return;
   Object.assign(windowElement.style, {
@@ -90,6 +92,7 @@ function restoreWindow(windowElement, saved) {
   windowElement.classList.toggle('collapsed', !!saved.collapsed);
 }
 
+// saves where a window is and its size
 function saveWindow(windowElement, storageName) {
   if (!windowElement.offsetWidth) return;                 // hidden: keep what was saved
   writeStorage(storageName, {

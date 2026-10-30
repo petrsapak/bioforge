@@ -1,3 +1,4 @@
+'use strict';
 // Snare and Spitter: an eyespot build facing a dummy, sim only. The builds are written by touch, as before the nerve
 // layer, and converted to fibres (upgradeToNerveLayer).
 const { load } = require('./load');

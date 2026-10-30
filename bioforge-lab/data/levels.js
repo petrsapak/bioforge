@@ -53,6 +53,7 @@ const CLAM_LIGHT = { carriedBy: 0, range: 900 };          // px
 // the Puffer hunting from the bottom right corner, arriving at a given game s
 const pufferArriving = at => ({ design: 'puffer', x: 1250, y: 700, heading: 0, behaviour: 'hunt', at });
 
+// a level: the definition over the defaults
 function createLevel(definition) {
   return { arena: ARENA, systems: CHAPTER_1_SYSTEMS, seepFactor: 1, limits: {}, start: START_BOTTOM, light: null,
     creatures: [], hint: '', ...definition };

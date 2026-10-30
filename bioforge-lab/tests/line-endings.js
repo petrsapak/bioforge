@@ -1,3 +1,4 @@
+'use strict';
 // Line endings: every text file of the project uses CRLF in the working tree (user, 2026-10-28; .gitattributes keeps
 // LF inside the repository). Editors and tools that write LF are caught here.
 //   node tests/line-endings.js         checks

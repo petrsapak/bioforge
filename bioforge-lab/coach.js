@@ -47,6 +47,7 @@ const COACH_STEPS = {
   ],
 };
 
+// the How to box's state, folded or not as the player left it
 function createCoach() {
   return { layer: null, tiles: [], time: 0, isCollapsed: readStorage('coach-collapsed', false) };
 }
@@ -156,6 +157,7 @@ function drawSceneCell(context, typeName, x, y, { scale = 1, neuronKind = null, 
   if (neuronKind) drawSceneNeuron(context, neuronKind, x, y, 1, signal);
 }
 
+// a neuron badge in a coach scene, at this scale (nothing at 0)
 function drawSceneNeuron(context, kind, x, y, scale, signal = 0) {
   if (scale <= 0) return;
   drawNeuronBadge(context, { x, y, neuron: { kind }, signal, boundKey: null }, CELL_RADIUS * 0.9 * scale);

@@ -15,8 +15,8 @@ const GUIDE_CHIP_ICON_SIZE = 18;                          // px: an icon on a "r
 const GUIDE_ICON_SHARPNESS = 2;                           // icons are drawn this many times bigger, for sharp screens
 // a cell drawn this much bigger than in the dock fills its box as a neuron badge does; a spiked cell (the Thorn)
 // less, so its spike stays in the box
-const GUIDE_CELL_ICON_FILL = 1.5;
-const GUIDE_SPIKED_ICON_FILL = 1.1;
+const GUIDE_CELL_ICON_FILL = 1.5;                         // times the dock size
+const GUIDE_SPIKED_ICON_FILL = 1.1;                       // times the dock size
 const GUIDE_STATS_SHOWN = ['Built from', 'Health', 'Burns'];   // facts drawn as pips and bars, not table rows
 
 // the drawn icons as image URLs, by name and size, drawn once each
@@ -29,6 +29,7 @@ function createGuideState() {
 
 const isGuideOpen = app => app.guide.isOpen;
 
+// wires the field guide sheet: its links, the filter, closing it
 function setUpGuide(app) {
   const sheet = byId('guide-sheet');
   // links anywhere in the sheet carry the entry they open in data-guide
@@ -60,6 +61,7 @@ function openGuide(app, entryId = app.guide.entryId) {
   showGuideEntry(app, findGuideEntry(entryId) ? entryId : GUIDE_START_ENTRY);
 }
 
+// hides the field guide and stops its example tank
 function closeGuide(app) {
   if (!app.guide.isOpen) return;
   app.guide.isOpen = false;
@@ -136,6 +138,7 @@ function guidePageHtml(entry) {
   return glossaryHtml();
 }
 
+// a cell type's page in the field guide
 function cellPageHtml(typeName) {
   const type = CELLS[typeName];
   const notes = GUIDE_CELLS[typeName];
@@ -150,6 +153,7 @@ function cellPageHtml(typeName) {
     chapterHtml(notes.chapter);
 }
 
+// a neuron's page in the field guide
 function neuronPageHtml(kind) {
   const type = NEURONS[kind];
   const notes = GUIDE_NEURONS[kind];
@@ -238,10 +242,12 @@ function statHtml(label, picture, text) {
     `<span class="guide-stat-text">${escapeHtml(String(text))}</span></div>`;
 }
 
+// a bar filled to this share (0 to 1), in the colour of its kind
 function barHtml(share, kind) {
   return `<span class="guide-bar ${kind}"><i style="width:${(share * 100).toFixed(1)}%"></i></span>`;
 }
 
+// a table of [label, value] facts; nothing if there are none
 function factsHtml(facts) {
   if (!facts.length) return '';
   const rows = facts.map(([label, value]) => `<tr><th>${escapeHtml(label)}</th><td>${escapeHtml(value)}</td></tr>`);
@@ -259,6 +265,7 @@ function wiringHtml(example) {
   return `<div class="guide-heading">Wiring in the example</div><div class="guide-wires">${rows.join('')}</div>`;
 }
 
+// one end of a wiring row: the cell or neuron's picture and name, linking to its page
 function wireEndHtml(name) {
   const entry = relatedGuideEntry(name);
   const attribute = entry ? ` data-guide="${entry.id}"` : '';
@@ -266,10 +273,12 @@ function wireEndHtml(name) {
     `<span>${escapeHtml(guideName(name))}</span></button>`;
 }
 
+// a heading with a paragraph under it
 function guideParagraph(heading, text) {
   return `<div class="guide-heading">${heading}</div><p>${escapeHtml(text)}</p>`;
 }
 
+// a Watch out box
 function watchHtml(text) {
   return `<div class="guide-watch"><b>Watch out</b>${escapeHtml(text)}</div>`;
 }

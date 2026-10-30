@@ -9,7 +9,7 @@ const { X: sim } = load({}, ['newWorld', 'spawn', 'step', 'createDesignCell', 'v
   'templateFromSelection', 'stampPlacement', 'migrateLibraryEntry', 'designWarnings', 'TEMPLATES', 'hexKey',
   'linksFromList']);
 
-const STEP = 1 / 40;
+const STEP = 1 / 40;                                      // game s per step
 const NO_INPUT = { swimX: 0, swimY: 0, ability: false, heldKeys: new Set() };
 const cellAt = (creature, q, r) => creature.cells.find(cell => cell.q === q && cell.r === r);
 

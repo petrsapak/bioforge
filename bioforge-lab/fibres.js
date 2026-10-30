@@ -11,7 +11,7 @@ const FIBRE_LANE_GAP = 2.2;                               // px between fibres s
 const FIBRE_LANE_SPREAD = 6.5;                            // px: the outermost lane's furthest distance from a centre
 const FIBRE_MITER_LIMIT = 2;                              // times the lane offset a corner may stick out
 const FIBRE_LANE_ORDER = [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6];   // lanes tried, from the centre outward
-const LINK_END_GAP = 0.45 * CELL_RADIUS;                  // px from a drawn fibre's or vessel's end to its cell's middle
+const LINK_END_GAP = 0.45 * CELL_RADIUS;                  // px from a drawn link's end to its cell's middle
 const LINK_CORNER_STEPS = 6;                              // straight pieces a rounded bend inside a cell is drawn with
 const LINK_MAX_GAP_SHARE = 0.4;                           // of its first or last side, the most an end gap may take
 

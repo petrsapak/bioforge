@@ -1,10 +1,10 @@
 'use strict';
 // Combat: damage, thorn and mouth hits on contact, aiming, snare lines and spitter globs. Pure: no DOM.
 
-const THORN_DAMAGE = 5;
+const THORN_DAMAGE = 5;                                   // health per hit
 const THORN_SPEED_DAMAGE = 0.06;                          // extra damage per px/s of impact speed
 const THORN_COOLDOWN = 0.3;                               // s
-const BITE_DAMAGE = 3;
+const BITE_DAMAGE = 3;                                    // health per bite
 const BITE_SUGAR = 0.5;                                   // sugar a mouth gets per bite
 const BITE_COOLDOWN = 0.4;                                // s
 const NETTLE_RANGE = 45;                                  // px
@@ -14,14 +14,14 @@ const NETTLE_ZAP_TIME = 0.15;                             // s a sting's spark l
 const SNARE_LENGTH = 200;                                 // px the line reaches
 const SNARE_SPEED = 700;                                  // px/s the line flies
 const SNARE_PULL_STIFFNESS = 60;                          // pull per px of stretch
-const SNARE_MAX_PULL = 1500;
+const SNARE_MAX_PULL = 1500;                              // the most pull, however far the line stretches
 const SNARE_RECOIL_SHARE = 0.3;                           // share of the pull the snare itself feels
 const SNARE_REEL_SPEED = 150;                             // px/s the line shortens while holding
 const SNARE_MIN_LENGTH = 3 * CELL_RADIUS;                 // px
 const SNARE_HOLD_TIME = 2.5;                              // s
 const SNARE_COOLDOWN = 1.5;                               // s pause after letting go
-const SNARE_HIT_DAMAGE = 2;
-const SPIT_DAMAGE = 6;
+const SNARE_HIT_DAMAGE = 2;                               // health when the line hits
+const SPIT_DAMAGE = 6;                                    // health per glob at full power
 const SPIT_SPEED = 450;                                   // px/s
 const SPIT_RANGE = 280;                                   // px
 const SPIT_COOLDOWN = 0.7;                                // s between globs
@@ -57,6 +57,7 @@ function applyThornHit(world, thorn, target, impactSpeed) {
   spawnSparks(world, (thorn.x + target.x) / 2, (thorn.y + target.y) / 2, '#ffffff', 4);
 }
 
+// a Mouth bites a touching enemy cell: damage, and sugar for the Mouth, then a cooldown
 function applyBite(world, mouth, target) {
   if (!mouth.type.bites || mouth.cooldown > 0 || mouth.dead) return;
   if (mouth.creature.debris && !mouth.creature.launchedPart) return;
@@ -106,6 +107,7 @@ function fireNettle(world, nettle, power) {
   if (hitSomething) nettle.cooldown = NETTLE_COOLDOWN;
 }
 
+// shoots a Snare's line at the nearest enemy in reach
 function launchSnare(world, snare) {
   const [directionX, directionY] = aimAtNearestEnemy(world, snare, SNARE_LENGTH);
   snare.snareLine = {
@@ -135,6 +137,7 @@ function updateSnareLine(world, snare, dt) {
   snare.cooldown = SNARE_COOLDOWN;
 }
 
+// moves a flying snare line on, and catches the first enemy cell it touches
 function flySnareLine(world, snare, line, dt) {
   line.x += line.velocityX * dt;
   line.y += line.velocityY * dt;
@@ -155,6 +158,7 @@ function flySnareLine(world, snare, line, dt) {
   snare.cooldown = SNARE_COOLDOWN / 2;
 }
 
+// shoots a glob of this power from a Spitter at the nearest enemy in range
 function spitGlob(world, spitter, power) {
   const [directionX, directionY] = aimAtNearestEnemy(world, spitter, SPIT_RANGE);
   world.globs.push({
@@ -181,6 +185,7 @@ function updateGlobs(world, dt) {
   });
 }
 
+// whether the glob touches an enemy cell; the first one it touches takes the damage
 function globHitSomething(world, glob) {
   for (const other of world.creatures) {
     const bounds = other.bounds;

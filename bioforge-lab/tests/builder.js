@@ -1,3 +1,4 @@
+'use strict';
 // builder.js and the saved format (sim only): placing and removing cells (mirrored too), painting strokes, planned
 // cells, Command keys, Bud parts and their aim, fibres drawn along a route, stamping, saving a selection, the
 // library, and carrying old saves over to the current format.

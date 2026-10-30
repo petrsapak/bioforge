@@ -19,7 +19,7 @@ const HEART_BEAT_RATE = 8;                                // radians per real se
 const ORGANELLE_SPECKS = [[0.55, 0.4, 0.05], [-0.6, 0.3, 0.05], [0.35, 0.62, 0.05]];
 // the Mineralizer's crystal and the crust of a hardened cell, in cell radii
 const CRYSTAL_OUTLINE = [[0, -0.6], [0.4, -0.2], [0.4, 0.25], [0, 0.6], [-0.4, 0.25], [-0.4, -0.2]];
-const CRUST_RADIUS = 0.86;
+const CRUST_RADIUS = 0.86;                                // cell radii
 // the Resilin gland's spring, in cell radii
 const RESILIN_COIL = [[0, -0.6], [0.35, -0.45], [-0.35, -0.25], [0.35, -0.05], [-0.35, 0.15], [0.35, 0.35],
   [-0.35, 0.5], [0, 0.6]];
@@ -71,18 +71,21 @@ function traceCircle(context, x, y, radius) {
   context.arc(x, y, radius, 0, TAU);
 }
 
+// a line through the points, as a path
 function tracePolyline(context, points) {
   context.beginPath();
   context.moveTo(points[0][0], points[0][1]);
   for (let i = 1; i < points.length; i++) context.lineTo(points[i][0], points[i][1]);
 }
 
+// strokes the current path in this colour and width
 function strokeIn(context, color, width) {
   context.strokeStyle = color;
   context.lineWidth = width;
   context.stroke();
 }
 
+// fills the current path in this colour
 function fillIn(context, color) {
   context.fillStyle = color;
   context.fill();
@@ -103,6 +106,7 @@ function traceDrop(context, size) {
   context.quadraticCurveTo(-size * 0.95, size * 0.15, 0, -size * 1.1);
 }
 
+// a heart shape around the origin, as a path
 function traceHeart(context, size) {
   context.beginPath();
   context.moveTo(0, size * 0.9);

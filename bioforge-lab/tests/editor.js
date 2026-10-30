@@ -1,3 +1,4 @@
+'use strict';
 // The builder (full app, fake DOM), driven by the mouse and keys: placing and removing cells, the dock's tabs, the
 // tooltip, the Needs card and its fluid views, binding a Command, the Traces window, fibres and vessels, saving a
 // selection and stamping it, giving a Bud a part by dragging, painting, symmetry, the tooltip demos, and carrying old
@@ -11,9 +12,10 @@ const { byId, fire, runFrames, readGlobal, storage, templateButton } =
   startApp(['starter'], { 'bioforge-templates': OLD_LIBRARY });
 
 // where hex (q, r) is on screen: the grid's middle is the screen's middle, at the start zoom (see builderview.js)
-const GRID_MIDDLE_X = 1600 / 2;
-const GRID_MIDDLE_Y = 900 / 2;
-const START_ZOOM = 1.9;
+const GRID_MIDDLE_X = 1600 / 2;                           // px
+const GRID_MIDDLE_Y = 900 / 2;                            // px
+const START_ZOOM = 1.9;                                   // screen px per grid px (ZOOM_START)
+// the screen px of hex (q, r)'s centre at the start zoom
 function screenPointOf(q, r) {
   const [x, y] = readGlobal('hexToPixel')(q, r);
   return { clientX: GRID_MIDDLE_X + x * START_ZOOM, clientY: GRID_MIDDLE_Y + y * START_ZOOM };
@@ -292,7 +294,8 @@ clickHex(0, -1);
 check('with the front-to-back axis on, a click places the cell and its mirror image', cellCount() === 4);
 byId('mirror-none').onclick();
 clickHex(0, 1);
-check('No symmetry places single cells again', cellCount() === 5 && !byId('mirror-axes').classList.contains('selected'));
+check('No symmetry places single cells again',
+  cellCount() === 5 && !byId('mirror-axes').classList.contains('selected'));
 
 check("Bioforge Moba's old library carries over", byId('my-creatures').children.length === 1);
 
