@@ -43,10 +43,6 @@ function setUpLevels(app) {
   onSandboxButton('level-exit', () => enterBuilder(app));
   onSandboxButton('result-retry', () => retryLevel(app));
   onSandboxButton('result-builder', () => enterBuilder(app));
-  onSandboxButton('result-next', () => {
-    chooseLevel(app, LEVELS[LEVELS.indexOf(app.level) + 1]);
-    enterBuilder(app);
-  });
   showLevelButton(app);
 }
 
@@ -142,7 +138,7 @@ function starsHtml(result) {
 }
 
 // The card down the sheet's right side: the shown level, what it asks, its limits, what earns the stars, the best
-// result and the hint, with Run level at the bottom.
+// result and the hint, with Run level at the bottom: shut, saying why, while the design doesn't fit the level.
 function showLevelCard(app) {
   const level = app.sheetLevel;
   if (!level) return;
@@ -160,6 +156,9 @@ function showLevelCard(app) {
   byId('level-card-hint').textContent = app.isHintShown ? level.hint : '';
   byId('level-card-hint').style.display = app.isHintShown ? 'block' : 'none';
   byId('level-hint').textContent = app.isHintShown ? 'Hide hint' : 'Hint';
+  const problem = buildCheck(bodyDesign(app.edited), limits);
+  byId('level-run').disabled = !!problem;
+  byId('level-run-note').textContent = problem ? `Your design doesn't fit: ${problem}. Build for it to trim it.` : '';
 }
 
 // ---------- Running a level ----------
@@ -228,7 +227,6 @@ function stepLevelMode(app, dt) {
 function showLevelResult(app, run) {
   const isWon = run.outcome === 'won';
   playSound(app, isWon ? 'win' : 'lose');
-  const isLast = LEVELS.indexOf(run.level) === LEVELS.length - 1;
   byId('result-title').textContent = isWon ? 'Level done' : 'Not this time';
   if (isWon) {
     const score = levelScore(run, app.levelDesign);
@@ -240,7 +238,6 @@ function showLevelResult(app, run) {
     byId('result-stars').innerHTML = '';
     byId('result-text').textContent = run.reason;
   }
-  byId('result-next').style.display = isWon && !isLast ? 'inline-block' : 'none';
   byId('level-result').style.display = 'block';
 }
 

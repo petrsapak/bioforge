@@ -203,13 +203,15 @@ const pressAt = (time, start, end, button = 'left') => (time >= start && time < 
 // ---------- Scenes: each draws one moment of its loop, centred on 0, 0 in grid px ----------
 const COACH_REST_POINT = [30, 3];                         // where the pointer starts and returns to
 const COACH_SHADE_ALPHA = 0.6;                            // the Nerve view's shade, lighter for the small pictures
+const COACH_EXAMPLE_CELL = 'muscle';                      // cell type shown while none is chosen
+const COACH_EXAMPLE_NEURON = 'pacemaker';                 // neuron shown while none is chosen
 
 // the Nucleus with a free hex beside it; the pointer clicks the free hex and the chosen cell type pops in
 function drawAddCellScene(context, time, app) {
   const slot = [COACH_STEP_X / 2, 0];
   drawSceneCell(context, 'nucleus', -COACH_STEP_X / 2, 0);
   drawEmptyHex(context, ...slot);
-  drawSceneCell(context, app.selectedType, ...slot, { scale: popScale(time, 1.2) });
+  drawSceneCell(context, app.selectedType || COACH_EXAMPLE_CELL, ...slot, { scale: popScale(time, 1.2) });
   const pointer = time < 1.6 ? movePoint(time, 0.2, 1.0, COACH_REST_POINT, slot)
     : movePoint(time, 2.0, 2.8, slot, COACH_REST_POINT);
   drawCursor(context, pointer, pressAt(time, 1.05, 1.3));
@@ -249,7 +251,7 @@ function drawSwitchToNervesScene(context, time) {
 // a small dock of three neurons; the pointer clicks the chosen one, which lights up
 function drawPickNeuronScene(context, time, app) {
   const kinds = Object.keys(NEURONS);
-  const chosen = app.selectedNeuron;
+  const chosen = app.selectedNeuron || COACH_EXAMPLE_NEURON;
   const others = kinds.filter(kind => kind !== chosen);
   const row = [others[0], chosen, others[1]];
   const isPicked = time > 1.15;
@@ -273,7 +275,7 @@ function drawPlaceNeuronScene(context, time, app) {
   const target = [-COACH_STEP_X / 2, 0];
   drawSceneCell(context, 'tissue', ...target, { shaded: true });
   drawSceneCell(context, 'muscle', COACH_STEP_X / 2, 0, { shaded: true });
-  drawSceneNeuron(context, app.selectedNeuron, ...target, popScale(time, 1.2));
+  drawSceneNeuron(context, app.selectedNeuron || COACH_EXAMPLE_NEURON, ...target, popScale(time, 1.2));
   const pointer = time < 1.6 ? movePoint(time, 0.2, 1.0, COACH_REST_POINT, target)
     : movePoint(time, 2.0, 2.8, target, COACH_REST_POINT);
   drawCursor(context, pointer, pressAt(time, 1.05, 1.3));

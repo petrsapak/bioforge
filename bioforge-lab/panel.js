@@ -178,7 +178,8 @@ function describeFocusedCell(app, cell) {
   if (cellType.growsParts) return heading + describeBud(cell, cellType) + fibres;
   const receptor = cellType.senses === 'hormone' ? describeReceptor(cell) : '';
   if (!cell.neuron) {
-    const offer = app.layer === 'nerve' ? ` Click it again: ${NEURONS[app.selectedNeuron].name} in.` : '';
+    const offer = app.layer === 'nerve' && app.selectedNeuron ?
+      ` Click it again: ${NEURONS[app.selectedNeuron].name} in.` : '';
     return heading + receptor + `<div class="line dim">No neuron.${offer}</div>` + fibres;
   }
   return heading + receptor + describeNeuron(cell) + fibres;

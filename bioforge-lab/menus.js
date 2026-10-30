@@ -169,6 +169,7 @@ function setUpProfiles(app) {
       confirmLabel: 'Add' }, '', name => {
       if (cleanName(name)) changeProfiles(app, addProfile(readProfiles(), cleanName(name)));
     }));
+  onSandboxButton('profile-reset-levels', () => resetLevelProgressAsked(app));
   onSandboxButton('profile-back', () => showMenuView(app, 'buttons'));
 }
 
@@ -230,6 +231,23 @@ function deleteProfileAsked(app, profile) {
       return;
     }
     changeProfiles(app, remaining, false);
+  });
+}
+
+// asks first, then forgets the current profile's level results: the stars go and the levels lock again from the
+// second one; its creatures stay. A chosen level that is locked now is left.
+function resetLevelProgressAsked(app) {
+  askToConfirm({
+    title: 'Reset level progress?',
+    text: `${currentProfile(readProfiles()).name}'s stars and best results go for good, and the levels lock ` +
+      'again from level 2. Creatures stay.',
+    confirmLabel: 'Reset',
+    isDangerous: true,
+  }, () => {
+    app.levelResults = {};
+    writeStorage('level-results', app.levelResults);
+    if (app.level && !isLevelOpen(app.levelResults, LEVELS.indexOf(app.level))) chooseLevel(app, null);
+    showMessage('Level progress reset.');
   });
 }
 

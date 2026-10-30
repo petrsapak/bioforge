@@ -5,8 +5,6 @@
 // the sandbox in sandbox.js; the signal traces (runs, and the builder's Traces window) are in probes.js.
 
 const START_DESIGN = 'jet';
-const START_CELL_TYPE = 'muscle';
-const START_NEURON = 'pacemaker';
 const MAX_FRAME_TIME = 0.05;                              // s; a slower frame (below 20 fps) slows the game down
 const FPS_SMOOTHING = 0.05;                               // share of the newest frame in the shown fps
 const TANK_MARGIN = 160;                                  // px of water around the test tank's creature
@@ -31,8 +29,8 @@ function createApp(canvas) {
     edited: createEditedDesign(TEMPLATES[START_DESIGN],
       readStorage('unlimited-biomass', false) ? Infinity : RULES.budget),
     lastLoadedName: '',                                   // the saved creature last loaded, offered when saving again
-    selectedType: START_CELL_TYPE,                        // the cell type a click places (Body view)
-    selectedNeuron: START_NEURON,                         // the neuron a click places (Nerve view)
+    selectedType: null,                                   // the cell type a click places (Body view); none at first
+    selectedNeuron: null,                                 // the neuron a click places (Nerve view); none at first
     focusKey: null,                                       // the clicked cell, shown and set up in the panel
     selection: new Set(),                                 // Ctrl+clicked hexes
     stamp: null,                                          // a saved part being placed: { template, rotation }
@@ -177,16 +175,16 @@ function loadDesign(app, design, label, savedName) {
   if (problem) showMessage(`${label}: ${problem}. Try it in the Sandbox, or trim it to fit.`);
 }
 
-// chooses the cell type to place, putting away a held stamp
+// chooses the cell type to place, putting away a held stamp; the chosen one again puts it down
 function pickCellType(app, typeName) {
-  app.selectedType = typeName;
+  app.selectedType = app.selectedType === typeName && !app.stamp ? null : typeName;
   app.stamp = null;
   refreshPanel(app);
 }
 
-// chooses the neuron to place
+// chooses the neuron to place; the chosen one again puts it down
 function pickNeuron(app, kind) {
-  app.selectedNeuron = kind;
+  app.selectedNeuron = app.selectedNeuron === kind ? null : kind;
   refreshPanel(app);
 }
 
@@ -407,11 +405,15 @@ function closeOpenSheet() {
   return openSheets.length > 0;
 }
 
-// Drops what the mouse holds: a drag, a stamp, the selection or the clicked cell. False if it held nothing.
+// Drops what the mouse holds: a drag, a stamp, the selection, the clicked cell or the chosen cell type and neuron.
+// False if it held nothing.
 function letGoOfWhatIsInHand(app) {
   const isHolding = app.partDrag || app.aimDragKey || app.fibreDrag || app.vesselDrag || app.stamp ||
-    app.selection.size > 0 || app.focusKey;   // the clicked cell too (user, 2026-10-30: "d - yes")
+    app.selection.size > 0 || app.focusKey ||   // the clicked cell too (user, 2026-10-30: "d - yes")
+    app.selectedType || app.selectedNeuron;
   if (!isHolding) return false;
+  app.selectedType = null;
+  app.selectedNeuron = null;
   app.focusKey = null;
   app.partDrag = null;
   app.aimDragKey = null;
@@ -527,6 +529,7 @@ function handleBuilderMouseDown(app, event) {
     refreshPanel(app);
     return;
   }
+  if (isLeft && !app.selectedType) return;                // nothing chosen: a click on the water does nothing
   app.paintDrag = { isErasing: isRight, lastPoint: screenToGrid(app, event.clientX, event.clientY) };
   if (isRight) {
     if (removeMirrored(app.edited, q, r, app.mirrorAxes)) playSound(app, 'remove');
@@ -586,6 +589,7 @@ function finishFibreDrag(app, hex) {
   const toKey = hexKey(...hex);
   const cell = app.edited.cells.get(fromKey);
   if (toKey === fromKey && !cell.neuron) {
+    if (!app.selectedNeuron) return;
     placeNeuronMirrored(app.edited, fromKey, app.selectedNeuron, app.mirrorAxes);
     playSound(app, 'place');
   } else {

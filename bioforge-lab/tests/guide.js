@@ -112,7 +112,13 @@ pressKey('Escape');
   builder.runFrames(3);
   builder.fire('window', 'keydown', { key: 'g' });
   builder.runFrames(2);
-  const typeName = builder.readGlobal('START_CELL_TYPE');
+  check('with nothing chosen, G opens the guide where it starts', builder.byId('guide-sheet').style.display === 'flex');
+  builder.fire('window', 'keydown', { key: 'Escape' });
+  const typeName = 'muscle';
+  const dockButtons = builder.byId('palette').children.flatMap(section => section.children[0].children);
+  dockButtons.find(button => button.dataset.type === typeName).onclick();
+  builder.fire('window', 'keydown', { key: 'g' });
+  builder.runFrames(2);
   check('G in the builder opens the guide at the cell type in hand',
     builder.byId('guide-sheet').style.display === 'flex' &&
     builder.byId('guide-title').textContent === sim.CELLS[typeName].name);

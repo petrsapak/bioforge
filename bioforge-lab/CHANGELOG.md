@@ -7,6 +7,13 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.7 (2026-10-30)
+- Nothing is chosen in the dock when the builder opens. Pick a cell or a neuron first; Esc, or a click on the chosen
+  one, puts it down again.
+- Run level can't be pressed while your design doesn't fit the level, and the card says why.
+- The result box after a level has Retry and Builder. Next level is gone: it did the same as Builder.
+- Main menu > Profile has Reset level progress, which forgets your stars and locks the levels again (it asks first).
+
 ## 0.7.6 (2026-10-30)
 - The box with the signals and the vitals in a run can be dragged anywhere on the screen, and stays where you put it.
 

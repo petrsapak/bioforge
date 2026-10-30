@@ -296,7 +296,7 @@ check('with every level open, any level can be chosen, and the builder takes its
   /\/ 38/.test(allOpen.byId('budget').innerHTML), allOpen.byId('budget').innerHTML.slice(0, 200));
 
 // the rest runs with levels opening in order, as a player will have them
-const { byId, fire, runFrames, readGlobal, storage } = startApp();
+const { byId, fire, runFrames, readGlobal, storage, templateButton } = startApp();
 readGlobal('RULES.allLevelsOpen = false');
 runFrames(3);
 check('no level is chosen at first', !byId('show-levels').classList.contains('selected'));
@@ -348,16 +348,39 @@ check('the Jet swims into the ring: the result box shows a win with 1 star',
 const kept = JSON.parse(storage.items['bioforge-lab-profile-1-level-results'] || '{}');
 check('the win is kept as the best result', kept['first-stroke'] && kept['first-stroke'].stars === 1,
   JSON.stringify(kept));
-byId('result-next').onclick();
+check('the result box offers Retry and Builder only (Next level was the same as Builder; user, 2026-10-30)',
+  !byId('result-next').onclick && byId('result-retry').onclick && byId('result-builder').onclick);
+byId('result-builder').onclick();
 byId('show-levels').onclick();
 const rowsAfterWin = byId('levels-list').children.filter(child => child.className.startsWith('level-tile'));
 check('the win opens level 2, and only level 2', !rowsAfterWin[1].className.includes('locked') &&
   rowsAfterWin[2].className.includes('locked'));
-check('Next level goes back to the builder with level 2 chosen, and the sheet shows it',
+rowsAfterWin[1].onclick();
+byId('level-build').onclick();
+check('Builder goes back to the builder, and level 2 can be chosen from the sheet',
   byId('hud').style.display === 'none' && byId('level-card-title').innerHTML.includes('Lighthouse') &&
   byId('level-result').style.display === 'none' && byId('budget').innerHTML.includes('of 40'));
 byId('level-leave').onclick();
 check('leaving the level brings back the free-build limits', byId('budget').innerHTML.includes('of 50') &&
   !byId('show-levels').classList.contains('selected') && byId('level-leave').style.display === 'none');
 byId('show-levels').onclick();
+check('Run level is open while the design fits', !byId('level-run').disabled &&
+  byId('level-run-note').textContent === '');
+byId('levels-close').onclick();
+templateButton('eel').onclick();
+byId('show-levels').onclick();
+check('Run level is shut while the design does not fit the level, and says why', byId('level-run').disabled === true &&
+  /doesn't fit: (Over budget|Too many)/.test(byId('level-run-note').textContent), byId('level-run-note').textContent);
+byId('levels-close').onclick();
+
+// Reset level progress (main menu > Profile): asks first, then the stars go and the levels lock again
+byId('profile-reset-levels').onclick();
+check('Reset level progress asks first, in red', byId('dialog-sheet').style.display === 'flex' &&
+  byId('dialog-box').classList.contains('dangerous'));
+byId('dialog-confirm').onclick();
+byId('show-levels').onclick();
+const rowsAfterReset = byId('levels-list').children.filter(child => child.className.startsWith('level-tile'));
+check('after it, no level has a result and level 2 is locked again',
+  JSON.stringify(JSON.parse(storage.items['bioforge-lab-profile-1-level-results'])) === '{}' &&
+  rowsAfterReset[1].className.includes('locked') && !rowsAfterReset[0].className.includes('locked'));
 done();

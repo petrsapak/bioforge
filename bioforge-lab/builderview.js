@@ -162,7 +162,7 @@ function drawGridHexes(app, origin) {
 // red if the cells don't fit there. Over a cell, nothing is tinted.
 function hoverTints(app) {
   const tints = new Map();
-  if (!app.hoverHex || app.edited.cells.has(hexKey(...app.hoverHex))) return tints;
+  if (!app.selectedType || !app.hoverHex || app.edited.cells.has(hexKey(...app.hoverHex))) return tints;
   const hexes = mirroredPlacement(app.edited, ...app.hoverHex, app.selectedType, app.mirrorAxes);
   if (!hexes.length) tints.set(hexKey(...app.hoverHex), BLOCKED_TINT);
   for (const hex of hexes) tints.set(hexKey(...hex), PLACEABLE_TINT);
@@ -189,7 +189,8 @@ function drawMirrorAxes(app) {
 }
 
 // Shift held in the Body view shows where the chosen cell type is used
-const isShowingSameType = app => app.keysHeld.has('shift') && app.layer === 'body' && !app.stamp;
+const isShowingSameType = app => app.keysHeld.has('shift') && app.layer === 'body' && !app.stamp &&
+  !!app.selectedType;
 
 // Shift: the other cells shaded, and every cell of the chosen type outlined
 function drawSameTypeCells(app) {
@@ -232,6 +233,7 @@ function updateCursor(app) {
 // a CSS cursor of a small hex, its hot spot in the middle
 function cellCursor(app) {
   const isErasing = app.paintDrag && app.paintDrag.isErasing;
+  if (!isErasing && !app.selectedType) return '';         // nothing chosen: the browser's own cursor
   const fill = isErasing ? '#e05a4a' : CELLS[app.selectedType].color;
   const mark = isErasing ? '<path d="M11 16h10" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>' : '';
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${CURSOR_SIZE}" height="${CURSOR_SIZE}">` +
@@ -431,7 +433,7 @@ function drawRemovalTarget(app) {
 
 // Nerve view: the chosen neuron, faint, in the empty cell under the mouse, showing what a click would do
 function drawNeuronGhost(app) {
-  if (app.layer !== 'nerve' || app.fibreDrag || !app.hoverHex) return;
+  if (app.layer !== 'nerve' || !app.selectedNeuron || app.fibreDrag || !app.hoverHex) return;
   const cell = app.edited.cells.get(hexKey(...app.hoverHex));
   if (!cell || cell.neuron) return;
   const [x, y] = hexToPixel(...app.hoverHex);

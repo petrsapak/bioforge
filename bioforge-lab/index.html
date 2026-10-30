@@ -118,6 +118,7 @@
           <button class="small" id="level-hint">Hint</button>
         </div>
         <button class="big" id="level-run" title="Run your design in this level">▶ Run level</button>
+        <div id="level-run-note"></div>
       </div>
     </div>
   </div>
@@ -134,7 +135,6 @@
   <div id="result-stars" class="level-stars"></div>
   <div id="result-text"></div>
   <div class="row">
-    <button class="small run" id="result-next">Next level</button>
     <button class="small" id="result-retry">Retry</button>
     <button class="small" id="result-builder">Builder</button>
   </div>
@@ -253,6 +253,7 @@
       <div class="menu-hint">Each player keeps their own creatures, level results and saved run. Settings are shared.</div>
       <div id="profile-list"></div>
       <button class="menu-button" id="profile-new">New profile</button>
+      <button class="menu-button danger" id="profile-reset-levels" title="Forget this profile's stars and best results; the levels lock again">Reset level progress</button>
       <button class="menu-button" id="profile-back">Back</button>
     </div>
     <div class="keys-version" id="menu-version"></div>

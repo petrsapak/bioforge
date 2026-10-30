@@ -58,11 +58,26 @@ runFrames(5);
 templateButton('starter').onclick();
 runFrames(2);
 const startCount = cellCount();
+clickHex(2, 0);
+check('nothing is chosen at first: a click beside the body places nothing',
+  cellCount() === startCount && !dockButtons().some(button => button.classList.contains('selected')));
 dockButton('tissue').onclick();
 clickHex(2, 0);
 check('a click on a free hex next to the body places the chosen cell', cellCount() === startCount + 1);
 clickHex(2, 0, { button: 2 });
 check('a right click removes it', cellCount() === startCount);
+pressKey('Escape');
+clickHex(2, 0);
+check('Esc puts the chosen cell down: a click places nothing, and the menu stays shut',
+  cellCount() === startCount && !dockButton('tissue').classList.contains('selected') &&
+  byId('menu-sheet').style.display !== 'flex');
+dockButton('tissue').onclick();
+dockButton('tissue').onclick();
+check('a click on the chosen cell puts it down too', !dockButton('tissue').classList.contains('selected'));
+pressKey('Escape');
+check('Esc with nothing in hand opens the menu', byId('menu-sheet').style.display === 'flex');
+pressKey('Escape');
+dockButton('tissue').onclick();
 check('the limits line shows the Body view\'s limits only', /Cells: /.test(byId('budget').innerHTML) &&
   /title="Fibre: [^"]*" hidden/.test(byId('budget').innerHTML), byId('budget').innerHTML);
 check('the Needs card has a row per need and says how long the sugar lasts',

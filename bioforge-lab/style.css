@@ -674,6 +674,9 @@ button.small.primary:hover { background: #3d6b38; }
 #level-card-buttons { margin-top: auto; padding-top: 16px; }
 #level-card-buttons .row button.small { padding: 6px; }
 #level-run { font-size: 16px; padding: 12px; }
+#level-run:disabled { opacity: 0.4; cursor: not-allowed; }
+#level-run-note { margin-top: 6px; color: #e0796a; font-size: 12px; }
+#level-run-note:empty { display: none; }
 #level-card-hint {
   display: none; margin: 6px 0 2px; padding: 6px 8px; background: #1a2a22; border-left: 2px solid #7fe0a0;
   border-radius: 4px; color: #b9d8c3;
@@ -726,6 +729,8 @@ button.small.run:hover { background: #4a8044; }
 .menu-button:hover { background: #253740; border-color: #3e5864; }
 .menu-button.primary { background: #3d6b38; border-color: #4a8044; color: #fff; font-weight: 600; }
 .menu-button.primary:hover { background: #4a8044; }
+.menu-button.danger { border-color: #a8323a; color: #f0a0a4; }
+.menu-button.danger:hover { background: #a8323a; color: #fff; }
 .menu-setting { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 2px 0; }
 .menu-setting button.small { flex: 0 0 64px; }
 .menu-setting kbd { color: #6f7f8a; font-size: 11px; }

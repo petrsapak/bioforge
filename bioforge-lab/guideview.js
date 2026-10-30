@@ -69,12 +69,14 @@ function closeGuide(app) {
   stopDemo();
 }
 
-// G in the builder: the guide at the clicked cell, else at what a click would place (a cell type or a neuron)
+// G in the builder: the guide at the clicked cell, else at what a click would place (a cell type or a neuron), else
+// where it was left
 function openGuideFromBuilder(app) {
   const focused = app.focusKey && app.edited.cells.get(app.focusKey);
   if (focused) openGuide(app, `cell:${focused.typeName}`);
-  else if (app.layer === 'nerve') openGuide(app, `neuron:${app.selectedNeuron}`);
-  else openGuide(app, `cell:${app.selectedType}`);
+  else if (app.layer === 'nerve' && app.selectedNeuron) openGuide(app, `neuron:${app.selectedNeuron}`);
+  else if (app.layer !== 'nerve' && app.selectedType) openGuide(app, `cell:${app.selectedType}`);
+  else openGuide(app);
 }
 
 // the list down the left: every section's entries that match the filter, each with its picture, the shown one marked
