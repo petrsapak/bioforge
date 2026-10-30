@@ -13,6 +13,7 @@ const RULES = {
   // vascular = vessels carry blood, pumped by Hearts;
   // metabolism = Fat cells store spare sugar as fat and turn it back;
   // food = food specks in the water; regrow = Menders and lost-cell regrowth;
-  // secretions = acid, protease and Mineralizer glands
-  systems: ['nerve', 'fluid', 'vascular', 'metabolism', 'food', 'regrow', 'secretions'],
+  // secretions = acid, protease and Mineralizer glands; chemical = hormones set moods (thresholds, clocks, burn,
+  // stores); treatments = Tanner and Resilin glands
+  systems: ['nerve', 'fluid', 'vascular', 'metabolism', 'food', 'regrow', 'secretions', 'chemical', 'treatments'],
 };

@@ -3,7 +3,7 @@
 //   id, chapter, name; brief: what to do; hint: a nudge toward how
 //   arena: { width, height } in px; systems: the switchable systems that run (chapters 1 and 2: nerve only, so
 //     every cell works at full power and nothing starves; chapter 3 adds fluid and vascular; chapter 4 metabolism
-//     and food; chapter 5 secretions)
+//     and food; chapter 5 secretions; chapter 6 chemical and treatments)
 //   seepFactor: share of the usual seeping between cells and unpumped vessel flow (cold water: less); a Heart's
 //     pumping is not slowed
 //   limits: design limits ({ budget, maxCells, maxNeurons, maxFibreUnits, maxVesselUnits }); any left out come from
@@ -36,7 +36,8 @@ const CHAPTER_1_SYSTEMS = ['nerve'];
 const CIRCULATION_SYSTEMS = ['nerve', 'fluid', 'vascular'];
 const FEEDING_SYSTEMS = ['nerve', 'fluid', 'vascular', 'metabolism', 'food'];
 const ARMOUR_SYSTEMS = [...FEEDING_SYSTEMS, 'secretions'];
-const CHAPTER_NAMES = { 1: 'Reflexes', 2: 'Memory and logic', 3: 'Circulation', 4: 'Feeding', 5: 'Armour' };
+const MOODS_SYSTEMS = [...ARMOUR_SYSTEMS, 'chemical', 'treatments'];
+const CHAPTER_NAMES = { 1: 'Reflexes', 2: 'Memory and logic', 3: 'Circulation', 4: 'Feeding', 5: 'Armour', 6: 'Moods' };
 const WATCHER_LIGHT = { x: 700, y: 60, range: 2000 };     // px: above the top ring, bright all over the arena
 const TOP_RING = { kind: 'reach', x: 700, y: 200, radius: 70 };   // px
 const START_BOTTOM = { x: 700, y: 680, heading: 0 };      // px, rad: bottom middle, facing up
@@ -312,6 +313,89 @@ const LEVELS = [
     creatures: [ANCHORED_CLAM, pufferArriving(50)],
     goal: { kind: 'survive', seconds: 120 },
     timeLimit: 130, par: { seconds: 130, biomass: 34 },
+  }),
+  createLevel({
+    id: 'fight-or-flight', chapter: 6, name: 'Fight or flight',
+    brief: 'The ring is right across the water and the clock is short: two Siphons alone are too slow. Reach it ' +
+      'in 26 s.',
+    hint: 'Adrenaline makes working cells up to 80% stronger. Put an Adrenal behind the Siphons, touching both, and ' +
+      'fire it with them, so it reaches both evenly. Fat beside the Siphons keeps them fed.',
+    systems: MOODS_SYSTEMS,
+    limits: { kit: { protein: 30, sugar: 16, fat: 2 } },
+    food: { maxCount: 0 },
+    start: { x: 100, y: 400, heading: Math.PI / 2 },
+    goal: { kind: 'reach', x: 1300, y: 400, radius: 70 },
+    timeLimit: 26, par: { seconds: 24, biomass: 20 },
+  }),
+  createLevel({
+    id: 'lie-low', chapter: 6, name: 'Lie low',
+    brief: 'Stay near the drifting light for 120 s in all, on the little sugar you start with. There is no food.',
+    hint: 'Calm halves what a cell burns, and lasts. A Calm gland with an Inhibitor in it is always on and costs ' +
+      'little: put it at the back between the Siphons, where the burning is.',
+    systems: MOODS_SYSTEMS,
+    limits: { kit: { protein: 30, sugar: 5, fat: 2 } },
+    food: { maxCount: 0 },
+    light: DRIFTING_LIGHT,
+    goal: { kind: 'stayNear', radius: 100, seconds: 120 },
+    timeLimit: 170, par: { seconds: 160, biomass: 22 },
+  }),
+  createLevel({
+    id: 'feast-and-famine', chapter: 6, name: 'Feast and famine',
+    brief: 'Food blooms round the drifting light for the first 40 s, then never again. Stay near the light for ' +
+      '220 s in all.',
+    hint: 'Starved halves what the body burns once the food is gone. Fed banks food fast while it lasts, but ' +
+      'locks it away if it stays on; Starved cancels it. A Nose fires a Fed gland, and a Receptor for Fed with an ' +
+      'Inhibitor in it fires a Starved gland when the Fed fades.',
+    systems: MOODS_SYSTEMS,
+    limits: { kit: { protein: 45, sugar: 2, fat: 2 } },
+    food: { maxCount: 8, interval: 2, nearLight: 120, until: 40 },
+    light: { ...DRIFTING_LIGHT, speed: 10 },
+    goal: { kind: 'stayNear', radius: 100, seconds: 220 },
+    timeLimit: 310, par: { seconds: 290, biomass: 37 },
+  }),
+  createLevel({
+    id: 'tanned-hide', chapter: 6, name: 'Tanned hide',
+    brief: 'The Puffer hunts you, and your kit has no mineral for Shell. Keep your Nucleus alive for 60 s.',
+    hint: 'A Tanner crosslinks the cells round it: they take 60% less damage and blunt thorns like Shell. Ring ' +
+      'the Nucleus with Tissue and make one of the ring a Tanner with an Inhibitor in it, so it is always on.',
+    systems: MOODS_SYSTEMS,
+    limits: { kit: { protein: 30, sugar: 4 } },
+    food: { maxCount: 0 },
+    start: { x: 700, y: 400, heading: 0 },
+    creatures: [{ design: 'puffer', x: 250, y: 150, heading: 2, behaviour: 'hunt' }],
+    goal: { kind: 'survive', seconds: 60 },
+    timeLimit: 70, par: { seconds: 70, biomass: 14 },
+  }),
+  createLevel({
+    id: 'snap', chapter: 6, name: 'Snap',
+    brief: 'The clam again, its Nucleus behind two layers of Shell, with the light on it, and no mineral or acid ' +
+      'needed: destroy its Nucleus in 50 s.',
+    hint: 'A springy muscle held contracted, then let go, strikes everything touching it and the cells round it. ' +
+      'Put a Muscle at the front with a slow Pacemaker in it (0.5 Hz: a second held, a second let go) and a ' +
+      'Resilin gland beside it with an Inhibitor in it. Crossed Light eyes drive you into the clam.',
+    systems: MOODS_SYSTEMS,
+    limits: { kit: { protein: 30, sugar: 4, fat: 3 } },
+    food: { maxCount: 0 },
+    start: { x: 700, y: 550, heading: 0 },
+    light: CLAM_LIGHT,
+    creatures: [ANCHORED_CLAM],
+    goal: { kind: 'kill', creature: 0 },
+    timeLimit: 50, par: { seconds: 45, biomass: 24 },
+  }),
+  createLevel({
+    id: 'moods', chapter: 6, name: 'Moods',
+    brief: 'Hold still until the light flashes, then swim to the ring. Your nerves are short: 3 units of fibre in ' +
+      'all, not enough to reach from an eye to the Siphons.',
+    hint: 'Send the flash as adrenaline: a Light eye into an Adrenal holding a Latch, so it stays on. A Receptor ' +
+      'for adrenaline beside each Siphon turns it back into a nerve signal. Seeping is slow and uneven: a Heart ' +
+      'with vessels from the Adrenal to both Receptors carries it to them evenly.',
+    systems: MOODS_SYSTEMS,
+    limits: { kit: { protein: 40, sugar: 8, fat: 2 }, maxFibreUnits: 3 },
+    food: { maxCount: 0 },
+    light: { ...WATCHER_LIGHT, flash: { at: 5, length: 0.5 } },
+    stillUntilLit: { speed: 10 },
+    goal: TOP_RING,
+    timeLimit: 35, par: { seconds: 30, biomass: 30 },
   }),
 ];
 

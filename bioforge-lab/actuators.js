@@ -52,7 +52,8 @@ function updateSize(cell, power, dt) {
   else if (resize === 'swell') targetSize = Math.min(BLOATER_MAX_SIZE, 1 + BLOATER_SWELL * signal * power);
   const snapping = resize === 'swell' ? targetSize > cell.size : targetSize < cell.size;
   const relaxRate = resize === 'contract' ? MUSCLE_RELAX_RATE : SIZE_RELAX_RATE;
-  cell.size += (targetSize - cell.size) * Math.min(1, dt * (snapping ? SIZE_SNAP_RATE : relaxRate));
+  const rate = (snapping ? SIZE_SNAP_RATE : relaxRate) * cell.resizeRateFactor;   // tanned cells are slower
+  cell.size += (targetSize - cell.size) * Math.min(1, dt * rate);
   cell.radius = CELL_RADIUS * cell.size;
 }
 

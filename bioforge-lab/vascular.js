@@ -10,8 +10,9 @@ const VESSEL_IDLE_CONDUCTANCE = 0.4;                      // flow per unit of fi
 const VESSEL_PUMP_CONDUCTANCE = 4;                        // extra flow per fed Heart on the vessel
 const VESSEL_MAX_CONDUCTANCE = 8;
 const VESSEL_SUBSTEPS = 4;                                // pipes hold little, so blood moves in small steps
-// indexes into cell.fluids of the fluids that travel in blood (hormones spread on their own, not in vessels)
-const BLOOD_FLUIDS = FLUIDS.map((fluid, index) => index).filter(index => FLUIDS[index].layer === 'vascular');
+// indexes into cell.fluids of the fluids that travel in blood: all of them, hormones too (until 2026-10-30
+// hormones only seeped, and stayed out of vessels)
+const BLOOD_FLUIDS = FLUIDS.map((fluid, index) => index);
 
 // total vessel units of a design's vessels routed through its cells; vessels without a route count nothing
 function vesselUnits(design) {

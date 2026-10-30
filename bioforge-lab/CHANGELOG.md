@@ -7,6 +7,21 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.0 (2026-10-30)
+- Milestone 7, the chemical layer: moods. Glands release hormones that spread through the body, seeping from cell to
+  cell and riding in the blood, and change how every cell they reach behaves.
+- Four hormones. Adrenaline makes working cells stronger, Synapses quicker to fire and Pacemakers faster. Calm
+  halves what a cell burns, but slows its Pacemakers and makes its Synapses harder to fire. Fed makes Fat store sugar
+  as fat early, fast and without loss; Starved halves what a cell burns and makes Fat give its stores back early.
+  Starved cancels Fed.
+- New cells: the Receptor (a sense: it signals how much of a hormone it holds; click it to choose which), the Calm,
+  Fed and Starved glands, the Tanner (crosslinks the cells round it: they take 60% less damage and blunt thorns like
+  Shell, but their muscles move at half speed) and the Resilin gland (makes muscles springy: one held contracted, then
+  let go, snaps open and strikes everything it touches, Shell too).
+- A cell's rim shows the hormone it holds most of; tanned cells get a brown ring, springy muscles a gold one that
+  glows as they charge. Shift+1–9 shows each fluid, the hormones too.
+- Chapter 6, Moods, with six levels: Fight or flight, Lie low, Feast and famine, Tanned hide, Snap and Moods.
+
 ## 0.6.1 (2026-10-30)
 - The tool bar on the left is gone. Unlimited biomass and Symmetry sit beside the Body, Nerves and Vessels tabs, with
   a red Delete all button that asks before it clears the creature, in the game's own box (Enter or Esc), as does

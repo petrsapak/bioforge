@@ -110,6 +110,8 @@ button.big:hover { background: #4a8044; }
 .stepper { display: flex; align-items: center; gap: 6px; margin-top: 5px; }
 .stepper button.small { flex: none; width: 26px; padding: 2px 0; font-size: 14px; }
 .stepper span { flex: 1; text-align: center; }
+.hormone-choice { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.hormone-choice button.selected { color: #f2e39b; font-weight: bold; }
 #info button.small { flex: none; margin-top: 5px; }
 .fibre-row {
   display: flex; align-items: center; gap: 6px; margin-top: 3px; padding: 1px 2px 1px 6px; background: #1c2a31;

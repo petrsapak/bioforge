@@ -1,6 +1,6 @@
 'use strict';
 // The vascular layer (sim and builder rules): a vessel carries blood between its two ends, much faster while a Heart
-// on it beats; an unsignalled Valve on it shuts it; hormones stay out of it; it is cut with its cells; the system can
+// on it beats; an unsignalled Valve on it shuts it; hormones ride in it too; it is cut with its cells; the system can
 // be switched off; vessel units are limited; and the builder lays, removes, stamps, saves and loads vessels.
 const { load } = require('./load');
 const { check, done } = require('./check');
@@ -74,7 +74,9 @@ check('a signalled Valve lets blood through', Math.abs(opened - pumped) < 1e-9, 
 const hormone = createColumn();
 cellAt(hormone.creature, 0, 0).fluids[sim.FLUID_ADRENALINE] = 1;
 siphonOxygenAfter(hormone, 1);
-check('hormones do not travel in vessels', hormone.siphon.fluids[sim.FLUID_ADRENALINE] === 0);
+// until 2026-10-30 hormones stayed out of vessels; now they ride in the blood (PLAN.md, milestone 7)
+check('hormones travel in vessels too', hormone.siphon.fluids[sim.FLUID_ADRENALINE] > 0.01,
+  String(hormone.siphon.fluids[sim.FLUID_ADRENALINE]));
 
 const injured = createColumn();
 check('the vessel is in the world', injured.world.vessels.length === 1 && injured.world.vessels[0].units === 4);

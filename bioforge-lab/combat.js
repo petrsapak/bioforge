@@ -29,11 +29,12 @@ const SPIT_RECOIL = 40;                                   // px/s the spitter is
 const HIT_MARGIN = 4;                                     // px added to a cell's radius for line and glob hits
 const HARD_CELL_STING_SHARE = 0.25;                       // share of a thorn hit or nettle sting a hard cell feels
 
-// inflicts damage on a cell, scaled by its armour: its type's, and half again once a Mineralizer hardened it
+// inflicts damage on a cell, scaled by its armour: its type's, half again once a Mineralizer hardened it, and what
+// a treatment (tanning) adds
 function damageCell(cell, damage) {
   if (cell.dead) return;
   const hardening = cell.mineralized ? MINERALIZED_DAMAGE_FACTOR : 1;
-  cell.health -= damage * cell.type.damageFactor * hardening;
+  cell.health -= damage * cell.type.damageFactor * hardening * cell.treatedDamageFactor;
   cell.hitFlash = HIT_FLASH_TIME;
 }
 
@@ -66,9 +67,9 @@ function applyBite(world, mouth, target) {
   spawnSparks(world, (mouth.x + target.x) / 2, (mouth.y + target.y) / 2, FLUIDS[FLUID_SUGAR].color, 3);
 }
 
-// Hard cells (Shell, Thorns, hardened cells) blunt thorns and nettle stings, on top of their armour: shell beats
-// spikes, and acid (secretions.js) beats shell.
-const stingShare = target => (isHardCell(target) ? HARD_CELL_STING_SHARE : 1);
+// Hard cells (Shell, Thorns, hardened cells) and tanned cells blunt thorns and nettle stings, on top of their armour:
+// shell beats spikes, and acid (secretions.js) beats shell.
+const stingShare = target => (isHardCell(target) || target.tanned ? HARD_CELL_STING_SHARE : 1);
 
 // unit vector from the cell to the nearest enemy cell within range, or straight out from its body if there is none
 function aimAtNearestEnemy(world, cell, range) {

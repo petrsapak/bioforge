@@ -101,7 +101,7 @@ The layer split is a proposal, to try in play first. The creature has 4 layers o
 | **Body** | Structural and organ cells: tissue, shell, muscle, gill, fat… They have mass, HP and shape, and each is made of materials. | Static | cells |
 | **Nerve** | Neurons (logic nodes) and nerve fibres from cell centre to cell centre. It carries graded signals and spikes. | Fast (ms) | Neurons inside body cells, fibres between them |
 | **Vascular** | Vessels from cell centre to cell centre, a Heart that pumps the vessels it sits on, and valves on the vessels. It carries blood: O₂, sugar, waste and dissolved materials. | Medium (seconds) | Vessels (2026-10-28); fluids also seep cell to cell |
-| **Chemical** | Glands release hormones (which spread slowly through the whole body, read by receptors) and secretions (which act on cells, your own or others'). | Slow (tens of seconds) | Adrenaline and repair fluid move like the other fluids |
+| **Chemical** | Glands release hormones (which spread slowly through the whole body, read by receptors) and secretions (which act on cells, your own or others'). | Slow (tens of seconds) | Four hormones seep and ride in the blood like the other fluids; `chemical.js` turns them into moods (milestone 7) |
 
 - **Routing:** a nerve fibre runs from the centre of its start cell through the centres of the cells between, to its end cell. One step is one unit, and each level limits the units. Vessels are routed the same way on their own layer (2026-10-28; until then planned along the hexagon sides), so a nerve and a vessel never compete for room.
 - **Crossing:** paths may cross, also inside a cell they both pass through; they stay separate, each in its own lane (a bridge arc until 2026-10-29).
@@ -243,11 +243,15 @@ fluid.js        work levels, fuel burning, products, fluids seeping between touc
                 50 (switchable)
 vascular.js     blood vessels: units, adding a design's vessels to a creature, cutting broken ones, blood flow
                 between their ends pumped by Hearts and shut by Valves (pure); system: vascular 55 (switchable)
+chemical.js     moods: each cell's hormones set its Synapse threshold, Pacemaker speed, fuel burn and Fat store
+                points (pure); system: chemical 52 (switchable)
 metabolism.js   Fat cells storing spare sugar as fat and turning it back; filling a new creature's stores from a
                 kit's leftovers (pure); system: metabolism 57 (switchable)
 actuators.js    resizing, weapon triggers, timers, debris rot (pure); system: actuators 60
 secretions.js   hard cells; acid and protease glands on touching enemy cells, the Mineralizer hardening its own
                 cells (pure); system: secretions 62 (switchable)
+treatments.js   Tanner and Resilin glands treating their own cells; tanned bonds; resilin muscles charging and
+                snapping open (pure); system: treatments 64 (switchable)
 combat.js       damage (armour, hardening), contact hits (hard cells blunt thorns and stings), aiming, snare
                 lines, globs (pure); system: projectiles 70
 growth.js       Bud parts and Mender regrowth (pure); systems: buds 80, regrow 90 (switchable)
@@ -306,17 +310,15 @@ progress.js     Continue: saving the design, the level and a running level or Sa
                 them up again; saving a creature to a file and loading one
 menus.js        the main menu, the Esc menu (pausing a run) and their Settings view
 ui.js           the app state, the controls, mouse and keyboard input, the frame loop
-tests/*.js      headless checks: node tests/all.js (autonomy, builder, design, determinism, editor, golden,
+tests/*.js      headless checks: node tests/all.js (autonomy, builder, chemical, design, determinism, editor, golden,
                 levels, menus, metabolism, music, nerve, probes, sandbox, savegame, secretions, showcase, sound, systems, title,
                 vascular, weapons); helpers: load.js,
                 dom.js (fake browser), check.js
 ```
 
-**The saved design format** (2026-10-28): a design is `{ cells, fibres, vessels }`; fibres and vessels are `{ from: { q, r }, to: { q, r } }`. A design cell is `{ q, r, typeName }`, plus on a Bud `budPart`, `partRotation`, `partOffset` and `partAim`, and on a Command `boundKey`. A library entry is `{ name, isCreature, cells, fibres, vessels }`; one saved before vessels loads with none. `migrateLibraryEntry()` in `design.js` reads the old short names (`t`, `tpl`, `bind`, `rot`, `off`, `aim`, `full`). The library lives under `bioforge-lab-library`; the first time, Lab copies Bioforge Moba's `bioforge-templates` list from it, and it never writes to that key, because pages opened from disk can share storage and Moba still uses it. Every Lab storage key starts with `bioforge-lab-`.
+**The saved design format** (2026-10-28): a design is `{ cells, fibres, vessels }`; fibres and vessels are `{ from: { q, r }, to: { q, r } }`. A design cell is `{ q, r, typeName }`, plus on a Bud `budPart`, `partRotation`, `partOffset` and `partAim`, on a Command `boundKey`, and on a Receptor `sensedHormone` (left out for Adrenaline). A library entry is `{ name, isCreature, cells, fibres, vessels }`; one saved before vessels loads with none. `migrateLibraryEntry()` in `design.js` reads the old short names (`t`, `tpl`, `bind`, `rot`, `off`, `aim`, `full`). The library lives under `bioforge-lab-library`; the first time, Lab copies Bioforge Moba's `bioforge-templates` list from it, and it never writes to that key, because pages opened from disk can share storage and Moba still uses it. Every Lab storage key starts with `bioforge-lab-`.
 
 **Cell behaviours.** Systems never check a cell's type name. Each cell type in `data/cells.js` declares behaviour fields (`work`, `product`, `trigger`, `resize`, `breathes`, `pumps`, `gatesFlow`, `needsSignal`…), and the systems read those, some through small registries (`WORK_LEVELS` and `PRODUCTS` in `fluid.js`, `TRIGGERS` in `actuators.js`). A new cell type made from existing behaviours needs only data. `tests/determinism.js` fails if a pure file compares `typeName`.
-
-Planned additions: `chemical.js`.
 
 The desktop build sits beside the game, in `desktop/` (Node and Electron, not loaded by the page):
 
@@ -417,7 +419,13 @@ tests/          the save file test, and a CRLF check of these files
    - Continue: the design and level saved as they change; a level or Sandbox run saved whole and picked up bit for bit, also after the game is closed.
    - Creature files to save and load; a save version with upgrade steps; Quit and Fullscreen in the desktop build.
    - Test: `tests/savegame.js` (snapshots of every level and a fight, the resume state, creature files, upgrades), `tests/menus.js` (the menus, Esc, Continue after a restart, Quit and Fullscreen, loading a file), `tests/title.js` (the scene stays alive and repeatable, the dimming).
-7. **Chemical layer and chapter 6.** Hormones, modulation, crosslinker and resilin.
+7. **Chemical layer and chapter 6.** ✅ Done 2026-10-30. Hormones, moods, the Receptor, the Tanner and the Resilin gland, and chapter 6, Moods.
+   - **Hormones** (user, 2026-10-30): Adrenaline, Calm, Fed and Starved, made by glands the player wires. They seep from cell to cell 4x faster than O₂ and sugar, and ride in the blood (until 2026-10-30 hormones only seeped, at the speed of sugar). The Adrenal burns 0.2 fuel and its hormone fades 25% a second; the Calm gland burns 0.02, the Fed and Starved glands 0.05, and their hormones fade 2% a second.
+   - **Moods** (`chemical.js`): full Adrenaline takes 40% off a Synapse's threshold and speeds Pacemakers 80% (and still makes working cells up to 80% stronger, `fluid.js`); full Calm adds 60% to thresholds, slows Pacemakers 50% and halves fuel burn; full Fed makes Fat store sugar from 30% full instead of 90%, three times as fast and without the usual fifth lost; full Starved halves fuel burn and makes Fat release from 85% full instead of 50%, three times as fast. **Starved cancels Fed** (chosen without asking: otherwise Fed left on locks the food away in a famine). The plan had Calm cut 40% and Starved 30%; both were too weak to matter.
+   - **The Receptor** (Sense) signals how full of one hormone it is; its card has a button per hormone (`sensedHormone` in the design).
+   - **Treatments** (`treatments.js`) are glands like the Mineralizer, burning fuel instead of spending protein (there is no protein store; chosen without asking). The Tanner tans the nearest cells within 2 hexes, one every 1.5 s: a tanned cell takes 40% of the damage, blunts thorns and stings like Shell without being hard (acid doesn't eat it), has 2.5x stiff bonds to tanned neighbours and resizes at half speed. The Resilin gland makes muscles springy: held contracted, one charges in 1 s; let go, it snaps open at once, kicks its neighbours (220 px/s × mass, momentum kept) and strikes every enemy cell touching it or them for up to 40 damage. A faster swim stroke from resilin was tried first: it swam worse, since the snap is the recovery stroke.
+   - **Chapter 6, Moods** (`MOODS_SYSTEMS`): Fight or flight (a race only adrenaline wins in time; the Puffer chase was dropped, since it couldn't catch even a plain runner), Lie low (the drifting light for 120 s on 5 sugar: Calm), Feast and famine (food for the first 40 s round a light drifting at 10 px/s, then 220 s in all near it: a Nose fires Fed, a Receptor for Fed with an Inhibitor fires Starved; Fed left on loses), Tanned hide (Bulwark without mineral: a Tissue ring with a Tanner), Snap (the Clam broken by a springy Muscle with a 0.5 Hz Pacemaker) and Moods (wait for the flash, then reach the ring with only 3 units of fibre: Light eye into an Adrenal holding a Latch, a Heart with vessels to a Receptor beside each Siphon; without the Heart the seeping is uneven and the body misses).
+   - Test: `tests/chemical.js` (glands, Receptor, moods, Fat stores, Tanner, Resilin, the strike, the systems off), `tests/levels.js` (every level's reference solution and wrong tool), `tests/vascular.js` (hormones in vessels).
 8. **Growth and chapter 7.** The growth plan, Buds, regrowth, Nucleic, and the metamorphosis boss.
    - Open: vessels in Bud parts (moved from milestone 3 on 2026-10-29).
    - **Spread levels** (2026-10-30, see "Late-game ideas" under Decisions). Open: does a Bud part break off as a new creature, or stay joined; what is counted (cells, creatures or area covered); how fast spreading is limited (material, Nucleic, food), so it is a puzzle and not just a bigger number.

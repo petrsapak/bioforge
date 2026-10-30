@@ -36,6 +36,9 @@ function wirePanelButtons(app) {
   onClick('reset-bud-aim', () => resetBudAim(app.edited, app.focusKey));
   onClick('neuron-setting-down', () => changeNeuronSetting(app.edited, app.focusKey, -1));
   onClick('neuron-setting-up', () => changeNeuronSetting(app.edited, app.focusKey, 1));
+  for (const hormone of HORMONES) {
+    onClick('sense-' + hormone.id, () => setSensedHormone(app.edited, app.focusKey, hormone.id));
+  }
   app.cardFibres.forEach((fibre, i) => onClick('remove-fibre-' + i, () => removeFibre(app.edited, fibre)));
   const info = byId('info');
   info.onmouseover = event => {
@@ -139,7 +142,8 @@ function showCard(app) {
 }
 
 function hasCardSettings(app, cell) {
-  return app.layer === 'nerve' || !!cell.neuron || !!CELLS[cell.typeName].growsParts;
+  const cellType = CELLS[cell.typeName];
+  return app.layer === 'nerve' || !!cell.neuron || !!cellType.growsParts || cellType.senses === 'hormone';
 }
 
 // the first sentence of a description, for the card; the whole text is its tooltip
@@ -157,17 +161,19 @@ function describeStamp(stamp) {
     '<span class="mouse right"></span> stop</div>';
 }
 
-// The clicked cell: Buds show and take their part; its neuron shows its setting, and a Command its key; its fibres.
+// The clicked cell: Buds show and take their part, a Receptor its hormone; its neuron shows its setting, and a
+// Command its key; its fibres.
 function describeFocusedCell(app, cell) {
   const cellType = CELLS[cell.typeName];
   const heading = `<b>${cellType.name}</b> <span class="dim">clicked · Esc</span>`;
   const fibres = describeCellFibres(app, app.focusKey);
   if (cellType.growsParts) return heading + describeBud(cell, cellType) + fibres;
+  const receptor = cellType.senses === 'hormone' ? describeReceptor(cell) : '';
   if (!cell.neuron) {
     const offer = app.layer === 'nerve' ? ` Click it again: ${NEURONS[app.selectedNeuron].name} in.` : '';
-    return heading + `<div class="line dim">No neuron.${offer}</div>` + fibres;
+    return heading + receptor + `<div class="line dim">No neuron.${offer}</div>` + fibres;
   }
-  return heading + describeNeuron(cell) + fibres;
+  return heading + receptor + describeNeuron(cell) + fibres;
 }
 
 // The cell's fibres, one row each: its colour on the grid, the cell at the other end, and a × that removes the
@@ -209,6 +215,18 @@ function describeNeuron(cell) {
     text += `<div class="keys-hint">Fires on <b>${key}</b> · press a letter or number to bind</div>`;
   }
   return text;
+}
+
+// the Receptor's hormone, as a row of buttons in the hormones' colours with the chosen one selected
+function describeReceptor(cell) {
+  const sensed = cell.sensedHormone || DEFAULT_SENSED_HORMONE;
+  const buttons = HORMONES.map(hormone => {
+    const selected = hormone.id === sensed ? ' selected' : '';
+    return `<button class="small${selected}" id="sense-${hormone.id}" style="border-color:${hormone.color}">` +
+      `${hormone.name}</button>`;
+  }).join('');
+  return `<div class="line">Senses <b>${FLUIDS[fluidIndex(sensed)].name}</b>:</div>` +
+    `<div class="hormone-choice">${buttons}</div>`;
 }
 
 function describeBud(bud, cellType) {

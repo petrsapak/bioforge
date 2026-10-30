@@ -13,12 +13,12 @@ const NOSE_RANGE = 300;                                   // px a Nose smells fo
 
 // What each neuron kind makes of its input sum. The cell's previous signal and neuronMemory are its state.
 const NEURON_RULES = {
-  pacemaker: (cell, input, world) => (sine(TAU * cell.neuron.setting * world.time) > 0 ? 1 : 0),
+  pacemaker: (cell, input, world, stepTime) => pacemakerSignal(world, cell, stepTime),
   command: (cell, input, world) => commandOutput(world, cell),
   ganglion: (cell, input, world, stepTime) =>
     cell.signal + (clamp01(input) - cell.signal) * Math.min(1, GANGLION_RATE * stepTime),
   inhibitor: (cell, input) => (input > SIGNAL_ON ? 0 : 1),
-  synapse: (cell, input) => (input >= cell.neuron.setting ? 1 : 0),
+  synapse: (cell, input) => (input >= cell.neuron.setting * cell.thresholdFactor ? 1 : 0),
   latch: (cell, input) => {
     const isPulse = input > SIGNAL_ON;
     if (isPulse && !cell.neuronMemory) cell.signal = cell.signal > SIGNAL_ON ? 0 : 1;   // a new pulse flips it
@@ -27,6 +27,14 @@ const NEURON_RULES = {
   },
   delay: (cell, input, world, stepTime) => delayedSignal(cell, input, stepTime),
 };
+
+// On and off at its rate. A mood (chemical.js) speeds the rate up or slows it down: the cycles gained or lost are
+// kept in clockShift, so a change of rate never makes it jump.
+function pacemakerSignal(world, cell, stepTime) {
+  const rate = cell.neuron.setting;
+  cell.clockShift += rate * (cell.clockFactor - 1) * stepTime;
+  return sine(TAU * (rate * world.time + cell.clockShift)) > 0 ? 1 : 0;
+}
 
 // A Delay neuron's memory: its own clock (s) and the moments its input changed, oldest first. Only changes are kept,
 // so a steady input costs one entry however long the delay is.
@@ -59,6 +67,10 @@ const SENSES = {
   enemy: (world, cell) => (enemyNear(world, cell) ? 1 : 0),
   light: (world, cell) => lightSeen(world, cell),
   food: (world, cell) => foodSmelled(world, cell),
+  hormone: (world, cell) => {
+    const fluid = fluidIndex(cell.sensedHormone);
+    return clamp01(cell.fluids[fluid] / cell.fluidCapacity[fluid]);
+  },
 };
 
 // What a sense organ feels now. In the test tank, Space stands in for every sense.

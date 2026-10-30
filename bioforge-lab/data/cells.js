@@ -7,7 +7,8 @@
 //   swimPower (free swimming force); damageFactor (share of damage taken: 0.5 = half)
 //   senses: what the cell feels, as a nerve signal its fibres carry: 'enemy' (an enemy cell is near, on or off) or
 //     'light' (graded: how far the light lies on the cell's side of the body, fading with distance) or 'food' (the
-//     same for the nearest food speck)
+//     same for the nearest food speck) or 'hormone' (graded: how full of its hormone the cell is; the design cell's
+//     sensedHormone says which, DEFAULT_SENSED_HORMONE if none)
 //   fuelBurn: O2 + sugar burned per second at full work (each unit burned becomes one unit of waste)
 //   oxygenCapacity, sugarCapacity: how much the cell holds; fatCapacity: how much fat it stores (metabolism.js);
 //   mineralCapacity: how much mineral it stores (a kit's leftover mineral and eaten mineral specks go there)
@@ -16,7 +17,8 @@
 //   work (fluid): how hard it works, which sets its fuel use: 'graded' (with its signal), 'onSignal' (fully while
 //     signalled), 'snare' (signalled or holding a line), 'swimming' (while the creature swims), 'always',
 //     'refillRepair' (until its repair fluid is nearly full), 'growPart' (while its Bud part is unfinished)
-//   product (fluid): what its burned fuel turns into: 'repair', 'adrenaline' or 'budPart'
+//   product (fluid): what its burned fuel turns into: 'repair', 'hormone' or 'budPart'; hormone: which hormone
+//     (a chemical fluid's id, data/fluids.js)
 //   breathes: makes O2 from the water; dumpsWaste: dumps waste into the water from the surface
 //   pumps: pumps the vessels it sits on (Heart); gatesFlow: lets fluid through only while signalled, both between
 //     touching cells and along a vessel that runs through it (Valve)
@@ -26,10 +28,12 @@
 //   growsParts: grows a saved part (Bud); rebuildsCells: regrows lost cells from repair fluid (Mender)
 //   secretes (secretions.js): what it puts on touching enemy cells while signalled: 'acid' or 'protease';
 //   mineralizes: while signalled, spends its stored mineral to harden its creature's cells near it
+//   treats (treatments.js): while signalled, changes its creature's cells near it: 'tan' or 'resilin'
 // Builder hints (design.js): needsSignal: does nothing without a nerve signal; isWeapon: can hurt other creatures;
 //   storesSugar: a sugar reservoir (Fat); storesMineral: a mineral store
 // Cells that burn no fuel are pipes: they pass O2 and sugar on to their neighbours but hold only a little.
 const PIPE_CAPACITY = 0.3;
+const DEFAULT_SENSED_HORMONE = 'adrenaline';            // what a new Receptor senses
 
 function cellType(definition) {
   const pipeOrStore = definition.fuelBurn ? 1 : PIPE_CAPACITY;
@@ -93,6 +97,11 @@ const CELLS = {
     category: 'Sense', name: 'Nose', cost: 3, health: 20, senses: 'food', color: '#c98ad8',
     description: 'Smells the nearest food speck: signals how far it lies on its side of the body, like a Light eye ' +
       `sees the light, and stronger the closer it is, up to ${NOSE_RANGE} px away.`,
+  }),
+  receptor: cellType({
+    category: 'Sense', name: 'Receptor', cost: 3, health: 20, senses: 'hormone', color: '#d07ad0',
+    description: 'Signals how much of one hormone it holds: none, up to full. Click it to choose the hormone: ' +
+      'Adrenaline, Calm, Fed or Starved.',
   }),
   muscle: cellType({
     category: 'Action', name: 'Muscle', cost: 3, health: 30, mass: 1.2, stiffness: 0.05, fuelBurn: 0.1,
@@ -188,9 +197,27 @@ const CELLS = {
   }),
   adrenal: cellType({
     category: 'Gland', name: 'Adrenal', cost: 3, health: 25, fuelBurn: 0.2, color: '#e04090',
-    work: 'onSignal', product: 'adrenaline', needsSignal: true,
+    work: 'onSignal', product: 'hormone', hormone: 'adrenaline', needsSignal: true,
     description: 'On a nerve signal, turns sugar into adrenaline. Muscles, cilia, siphons, bloaters and nettles ' +
       'that receive it work up to 80% harder.',
+  }),
+  calmgland: cellType({
+    category: 'Gland', name: 'Calm gland', cost: 3, health: 25, fuelBurn: 0.02, color: '#4a86d0',
+    work: 'onSignal', product: 'hormone', hormone: 'calm', needsSignal: true,
+    description: 'On a nerve signal, turns a little sugar into Calm, which lasts. Cells that receive it burn up to ' +
+      'half the fuel, but their Pacemakers slow down and their Synapses need more to fire.',
+  }),
+  fedgland: cellType({
+    category: 'Gland', name: 'Fed gland', cost: 3, health: 25, fuelBurn: 0.05, color: '#c07a34',
+    work: 'onSignal', product: 'hormone', hormone: 'fed', needsSignal: true,
+    description: 'On a nerve signal, turns a little sugar into Fed. Fat cells that receive it store sugar as fat ' +
+      'from 30% full instead of 90%, three times as fast and without the usual loss, and keep it.',
+  }),
+  starvedgland: cellType({
+    category: 'Gland', name: 'Starved gland', cost: 3, health: 25, fuelBurn: 0.05, color: '#8a80a8',
+    work: 'onSignal', product: 'hormone', hormone: 'starved', needsSignal: true,
+    description: 'On a nerve signal, turns a little sugar into Starved. Cells that receive it burn up to half the ' +
+      'fuel, and Fat cells turn fat back into sugar from 85% full instead of 50%, three times as fast.',
   }),
   acid: cellType({
     category: 'Gland', name: 'Acid gland', cost: 3, health: 25, fuelBurn: 0.12, color: '#ff7a3c',
@@ -205,6 +232,22 @@ const CELLS = {
     description: 'On a nerve signal, digests the soft enemy cells and debris it touches, and takes in sugar ' +
       'from them. It can\'t touch hard cells (Shell, Thorns, hardened cells). Never hurts your own cells. Burns ' +
       'fuel while signalled.',
+  }),
+  tanner: cellType({
+    category: 'Gland', name: 'Tanner', cost: 3, health: 25, fuelBurn: 0.1, color: '#8a5a2a',
+    work: 'onSignal', treats: 'tan', needsSignal: true,
+    description: `On a nerve signal, crosslinks its own cells one every ${TREAT_TIME} s, nearest first, up to ` +
+      `${TREAT_REACH} cells away. A tanned cell takes ${Math.round(100 * (1 - TANNED_DAMAGE_FACTOR))}% less ` +
+      'damage and blunts thorns and stings like Shell (acid doesn\'t eat it), and tanned cells next to each ' +
+      'other hold together stiffly, but tanned muscles and bloaters move at half speed.',
+  }),
+  resilin: cellType({
+    category: 'Gland', name: 'Resilin gland', cost: 3, health: 25, fuelBurn: 0.1, color: '#e0c060',
+    work: 'onSignal', treats: 'resilin', needsSignal: true,
+    description: `On a nerve signal, makes its creature's muscles springy, one every ${TREAT_TIME} s, nearest ` +
+      `first, up to ${TREAT_REACH} cells away. A springy muscle held contracted charges up over ` +
+      `${RESILIN_CHARGE_TIME} s; when its signal stops it snaps open at once, kicks its neighbours away and ` +
+      `strikes every enemy cell touching it or them for up to ${RESILIN_STRIKE_DAMAGE} damage.`,
   }),
   mineralizer: cellType({
     category: 'Gland', name: 'Mineralizer', cost: 3, health: 25, fuelBurn: 0.1, color: '#8fb0c8',

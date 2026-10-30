@@ -4,9 +4,9 @@
 // by touch); tipdemo.js converts them (see upgradeToNerveLayer in design.js). Example fields:
 //   cells: [q, r, typeName] for each cell; spaceLabel: what the demo shows while it holds Space (every other second);
 //   swims: swims forward; hasDummyEnemy: a dummy enemy just in front, of dummyType cells (default Tissue), touching
-//   the creature if dummyTouches; fluidView: the fluid shown (1 = O2 ..
-//   5 = adrenaline); startsHurt: cell types that start damaged; startsEmpty: cell types that start with no O2 or
-//   sugar; budPart: the part a Bud grows
+//   the creature if dummyTouches; fluidView: the fluid shown (1 + its index in FLUIDS: 1 = O2 .. 5 = adrenaline,
+//   6 = calm, 7 = fed, 8 = starved); startsHurt: cell types that start damaged; startsEmpty: cell types that start
+//   with no O2 or sugar; budPart: the part a Bud grows
 // Neuron examples (NEURON_TIPS) are in the current format: cells are [q, r, typeName, neuronKind, setting], with
 // neuronKind and setting optional; fibres are [fromQ, fromR, toQ, toR]; traces lists the [q, r] cells whose
 // signals are drawn as lanes under the tank.
@@ -288,8 +288,9 @@ const TIPS = {
     },
   },
   adrenal: {
-    howToUse: 'Give it a nerve signal and sugar. Adrenaline spreads from cell to cell and fades; cells nearest ' +
-      'the Adrenal get the most.',
+    howToUse: 'Give it a nerve signal and sugar. Adrenaline seeps from cell to cell and fades, so cells nearest ' +
+      'the Adrenal get the most; a vessel with a Heart carries it across the body fast. It also lowers Synapse ' +
+      'thresholds and speeds up Pacemakers.',
     example: {
       cells: [
         [0, 0, 'nucleus'], [0, 1, 'command'], [1, 1, 'adrenal'], [1, 0, 'fat'], [0, 2, 'cilia'], [-1, 2, 'cilia'],
@@ -336,6 +337,65 @@ const TIPS = {
         [0, 0, 'nucleus'], [-1, 0, 'tissue', 'command'], [1, 0, 'gill'], [-1, 1, 'fat'],
       ],
       fibres: [[-1, 0, 0, -1]],
+      spaceLabel: 'Space held',
+    },
+  },
+  receptor: {
+    howToUse: 'Click it to choose its hormone, then lay fibres from it like from any sense. Its signal rises and ' +
+      'falls slowly with the hormone, so a Synapse after it turns it into on and off: a mood becomes a switch.',
+    example: {
+      cells: [[0, 0, 'nucleus', 'command'], [0, 1, 'adrenal'], [1, 0, 'receptor'], [-1, 1, 'fat'], [1, 1, 'siphon']],
+      fibres: [[0, 0, 0, 1], [1, 0, 1, 1]],
+      spaceLabel: 'Space held',
+    },
+  },
+  calmgland: {
+    howToUse: 'Signal it while there is nothing to do: a calm body burns less and its Pacemakers slow, so it lasts ' +
+      'longer. Calm fades slowly, so stop it a little before you need to move fast.',
+    example: {
+      cells: [[0, 0, 'nucleus', 'pacemaker'], [0, 1, 'muscle'], [0, 2, 'tissue'], [-1, 0, 'calmgland'],
+        [-1, 1, 'tissue', 'command'], [1, 0, 'fat']],
+      fibres: [[0, 0, 0, 1], [-1, 1, -1, 0]],
+      spaceLabel: 'Space held',
+    },
+  },
+  fedgland: {
+    howToUse: 'Signal it while food is coming in (a Nose smelling food, say): Fat cells that get Fed bank the ' +
+      'sugar as fat early, instead of only when they are nearly full.',
+    example: {
+      cells: [[0, 0, 'nucleus', 'command'], [0, 1, 'fedgland'], [1, 0, 'fat'], [-1, 1, 'fat'], [1, 1, 'fat']],
+      fibres: [[0, 0, 0, 1]],
+      spaceLabel: 'Space held',
+      fluidView: 7,
+    },
+  },
+  starvedgland: {
+    howToUse: 'Signal it when food runs out: Fat cells that get Starved release their fat early, and the body ' +
+      'burns less. An Inhibitor after your Fed signal makes a good trigger.',
+    example: {
+      cells: [[0, 0, 'nucleus', 'command'], [0, 1, 'starvedgland'], [1, 0, 'fat'], [-1, 1, 'fat'], [1, 1, 'fat']],
+      fibres: [[0, 0, 0, 1]],
+      spaceLabel: 'Space held',
+      fluidView: 8,
+    },
+  },
+  tanner: {
+    howToUse: 'Put it in the middle of the cells you want tough, and signal it once at the start: it tans them ' +
+      'one by one, and they stay tanned. Keep it away from muscles you need fast.',
+    example: {
+      cells: [[0, 0, 'nucleus', 'command'], [0, -1, 'tanner'], [-1, -1, 'tissue'], [1, -2, 'tissue'],
+        [0, -2, 'tissue'], [1, -1, 'tissue'], [-1, 0, 'fat']],
+      fibres: [[0, 0, 0, -1]],
+      spaceLabel: 'Space held',
+    },
+  },
+  resilin: {
+    howToUse: 'Put it next to the muscle that should strike. Hold the muscle contracted for a second (a Latch ' +
+      'keeps it held, or a slow Pacemaker in the muscle), then let go: it snaps open like a flea\'s leg and ' +
+      'strikes whatever touches it, Shell too.',
+    example: {
+      cells: [[0, 0, 'nucleus', 'command'], [1, 0, 'resilin'], [0, 1, 'muscle'], [0, 2, 'tissue'], [-1, 0, 'fat']],
+      fibres: [[0, 0, 1, 0], [0, 0, 0, 1]],
       spaceLabel: 'Space held',
     },
   },

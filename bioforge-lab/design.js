@@ -319,7 +319,8 @@ function sugarSupply(body) {
 
 // ---------- Saved design format ----------
 // A design cell: { q, r, typeName }, plus on a Bud: budPart ({ name, cells }), partRotation (60° steps), partOffset
-// ([q, r] of the part's anchor from the Bud) and partAim (radians clockwise from the front); on a Command: boundKey.
+// ([q, r] of the part's anchor from the Bud) and partAim (radians clockwise from the front); on a Command: boundKey;
+// on a Receptor: sensedHormone (a hormone's id, data/fluids.js; left out: DEFAULT_SENSED_HORMONE).
 function createDesignCell(q, r, typeName, extras = {}) {
   return { q, r, typeName, ...extras };
 }

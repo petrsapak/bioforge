@@ -6,7 +6,8 @@ const { load } = require('./load');
 const { startApp } = require('./dom');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['LEVELS', 'TEMPLATES', 'runLevel', 'levelScore', 'levelLimits', 'buildCheck',
-  'createDesignCell', 'createNeuron', 'isLevelLightOn', 'isLevelOpen', 'isLevelEarned', 'RULES', 'FLUID_OXYGEN']);
+  'createDesignCell', 'createNeuron', 'isLevelLightOn', 'isLevelOpen', 'isLevelEarned', 'RULES', 'FLUID_OXYGEN',
+  'linksFromList']);
 
 const cell = (q, r, typeName, extra = {}) => sim.createDesignCell(q, r, typeName, extra);
 const fibre = (fromQ, fromR, toQ, toR) => ({ from: { q: fromQ, r: fromR }, to: { q: toQ, r: toR } });
@@ -85,6 +86,44 @@ const quarryBuild = rightTypeName => ({ cells: [cell(0, 0, 'nucleus'), cell(0, -
   cell(-1, 1, 'siphon'), cell(0, 1, 'siphon'), cell(-1, 0, 'mouth'),
   cell(1, 0, rightTypeName, rightTypeName === 'mineralizer' ? { neuron: sim.createNeuron('pacemaker') } : {})],
   fibres: CROSSED });
+// Fight or flight: Siphons driven by an always-on Inhibitor in the Nucleus, Fat beside them, Gills at the front, and
+// at the back between the Siphons this cell (an Adrenal is fired with them)
+const sprinterBuild = backTypeName => ({ cells: [cell(0, 0, 'nucleus', { neuron: sim.createNeuron('inhibitor') }),
+  cell(-1, 1, 'siphon'), cell(0, 1, 'siphon'), cell(0, -1, 'gill'), cell(1, -1, 'gill'), cell(-1, 0, 'fat'),
+  cell(1, 0, 'fat'), cell(-1, 2, backTypeName)],
+  fibres: [fibre(0, 0, -1, 1), fibre(0, 0, 0, 1), ...(backTypeName === 'adrenal' ? [fibre(0, 0, -1, 2)] : [])] });
+// Lie low: the crossed Seeker with Fat on both sides and this cell at the back (a Calm gland holds an Inhibitor)
+const calmSeekerBuild = backTypeName => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(-1, 0, 'fat'),
+  cell(1, 0, 'fat'),
+  cell(-1, 2, backTypeName, backTypeName === 'calmgland' ? { neuron: sim.createNeuron('inhibitor') } : {})],
+  fibres: CROSSED });
+// Feast and famine: Bloom's body with a Nose at the front middle into a Fed gland beside the Fat, and a Receptor for
+// Fed holding an Inhibitor into a Starved gland; Tissue where a gland is left out, so the body keeps its balance
+const feastBuild = (fed, starved) => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(-1, 0, 'fat'),
+  cell(1, 0, 'mouth'), cell(-1, 2, 'pore'), cell(-2, 1, 'gill'), cell(1, 1, 'gill'), cell(1, -2, fed ? 'nose' : 'tissue'),
+  cell(-1, -1, starved ? 'starvedgland' : 'tissue'),
+  cell(2, -1, starved ? 'receptor' : 'tissue',
+    starved ? { neuron: sim.createNeuron('inhibitor'), sensedHormone: 'fed' } : {}),
+  cell(-2, 0, fed ? 'fedgland' : 'tissue'), cell(2, 0, 'tissue')],
+  fibres: [...CROSSED, ...(fed ? [fibre(1, -2, -2, 0)] : []), ...(starved ? [fibre(2, -1, -1, -1)] : [])] });
+// Tanned hide: the Nucleus in a ring of Tissue, one of them a Tanner holding an Inhibitor if asked
+const tannedRingBuild = withTanner => ({ cells: [cell(0, 0, 'nucleus'),
+  ...[[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]].map(([q, r]) => (withTanner && q === 0 && r === 1
+    ? cell(q, r, 'tanner', { neuron: sim.createNeuron('inhibitor') }) : cell(q, r, 'tissue')))] });
+// Snap: the crossed Seeker with a Fat, and across the front this cell (a Resilin gland holds an Inhibitor), a Muscle
+// with a 0.5 Hz Pacemaker in it, and Tissue
+const snapBuild = leftTypeName => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(-1, 0, 'tissue'),
+  cell(1, 0, 'fat'),
+  cell(0, -2, leftTypeName, leftTypeName === 'resilin' ? { neuron: sim.createNeuron('inhibitor') } : {}),
+  cell(1, -2, 'muscle', { neuron: { kind: 'pacemaker', setting: 0.5 } }), cell(2, -2, 'tissue')], fibres: CROSSED });
+// Moods: a Light eye at the front middle into an Adrenal holding a Latch; a Fat each side; beside each Siphon this
+// cell (a Receptor drives its Siphon); a Heart at the back with vessels from the Adrenal and to both side cells
+const moodsBuild = (sideTypeName, withHeart = true) => ({ cells: [cell(0, 0, 'nucleus'), cell(1, -2, 'lighteye'),
+  cell(0, -1, 'adrenal', { neuron: sim.createNeuron('latch') }), cell(1, -1, 'gill'), cell(-1, 0, 'fat'),
+  cell(1, 0, 'fat'), cell(-1, 1, 'siphon'), cell(0, 1, 'siphon'), cell(-2, 1, sideTypeName), cell(1, 1, sideTypeName),
+  ...(withHeart ? [cell(-1, 2, 'heart')] : [])],
+  fibres: [fibre(1, -2, 0, -1), ...(sideTypeName === 'receptor' ? [fibre(-2, 1, -1, 1), fibre(1, 1, 0, 1)] : [])],
+  vessels: withHeart ? sim.linksFromList([[0, -1, -1, 2], [-1, 2, -2, 1], [-1, 2, 1, 1]]) : [] });
 const SOLUTIONS = {
   'first-stroke': { cells: [pacemakerNucleus(), cell(-1, 1, 'siphon'), cell(0, 1, 'siphon')],
     fibres: [fibre(0, 0, -1, 1), fibre(0, 0, 0, 1)] },
@@ -108,6 +147,12 @@ const SOLUTIONS = {
   clam: glandRowBuild(['acid', 'protease', 'acid']),
   quarry: quarryBuild('mineralizer'),
   siege: siegeBuild(),
+  'fight-or-flight': sprinterBuild('adrenal'),
+  'lie-low': calmSeekerBuild('calmgland'),
+  'feast-and-famine': feastBuild(true, true),
+  'tanned-hide': tannedRingBuild(true),
+  snap: snapBuild('resilin'),
+  moods: moodsBuild('receptor'),
 };
 // the wrong tool for each level: it must not win
 const WRONG_TOOLS = {
@@ -131,6 +176,12 @@ const WRONG_TOOLS = {
   clam: glandRowBuild(['acid', 'acid', 'acid']),
   quarry: quarryBuild('tissue'),
   siege: siegeBuild(['acid', 'acid', 'acid'], 'tissue'),
+  'fight-or-flight': sprinterBuild('tissue'),
+  'lie-low': calmSeekerBuild('tissue'),
+  'feast-and-famine': feastBuild(false, false),
+  'tanned-hide': tannedRingBuild(false),
+  snap: snapBuild('tissue'),
+  moods: moodsBuild('tissue'),
 };
 
 for (const level of sim.LEVELS) {
@@ -170,6 +221,12 @@ check('"Grazing": without a Fat beside the Mouth, the Mouth stays full and eats 
 const noStore = sim.runLevel(levelById('bloom'), bloomBuild('tissue'));
 check('"Bloom": with Tissue for the Fat, the bloom\'s food has nowhere to go', noStore.outcome === 'lost',
   `near the light ${noStore.goalTime.toFixed(0)} s, ate ${noStore.player.foodEaten}`);
+const fedOnly = sim.runLevel(levelById('feast-and-famine'), feastBuild(true, false));
+check('"Feast and famine": Fed left on loses: it locks the food away for the famine', fedOnly.outcome === 'lost',
+  `near the light ${fedOnly.goalTime.toFixed(0)} s`);
+const seeped = sim.runLevel(levelById('moods'), moodsBuild('receptor', false));
+check('"Moods": Receptors without a Heart get the adrenaline unevenly and miss the ring', seeped.outcome === 'lost',
+  seeped.reason);
 const blinking = levelById('freeze').light;
 check('a blinking light is on for 2 s, off for 3 s, and round again',
   [0.5, 2.5, 4.9, 5.1].map(time => sim.isLevelLightOn(blinking, time)).join() === 'true,false,false,true');
@@ -216,8 +273,8 @@ const listed = byId('levels-list').children;
 const rows = listed.filter(child => child.className.startsWith('level-tile'));
 const headings = listed.filter(child => child.className === 'chapter-heading');
 check('the levels sheet lists every level under its chapter', byId('levels-sheet').style.display === 'flex' &&
-  rows.length === readGlobal('LEVELS.length') && headings.length === 5 &&
-  headings[4].textContent === 'Chapter 5: Armour', `${rows.length} rows, ${headings.length} headings`);
+  rows.length === readGlobal('LEVELS.length') && headings.length === 6 &&
+  headings[5].textContent === 'Chapter 6: Moods', `${rows.length} rows, ${headings.length} headings`);
 check('at first only level 1 is open: the others are locked and say which win opens them',
   !rows[0].className.includes('locked') && rows.slice(1).every(row => row.className.includes('locked')) &&
   rows[1].title === 'Win “First stroke” to open it.', rows[1].title);

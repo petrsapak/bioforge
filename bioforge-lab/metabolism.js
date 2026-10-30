@@ -5,12 +5,15 @@
 const FAT_CELL_CAPACITY = 10;                             // fat a Fat cell stores
 const FAT_SUGAR_YIELD = 2;                                // sugar one fat turns back into
 const FAT_STORE_COST = 2.5;                               // sugar it takes to make one fat (a fifth is lost)
+const FAT_STORE_LOSS = FAT_STORE_COST - FAT_SUGAR_YIELD;  // sugar lost making one fat
 const FAT_STORE_FILL = 0.9;                               // share of its sugar room above which a cell stores fat
 const FAT_RELEASE_FILL = 0.5;                             // share of its sugar room below which it burns fat
 const FAT_RATE = 0.25;                                    // fat per second a cell makes, or turns back into sugar
+const FAT_FILL_GAP = 0.05;                                // the release fill stays this far below the store fill
 
 // Every cell that stores fat: nearly full of sugar, it turns the spare into fat; under half full, it turns fat back
-// into sugar. The gap between the two fills keeps a cell from flipping back and forth.
+// into sugar. The gap between the two fills keeps a cell from flipping back and forth. Fed and Starved (chemical.js)
+// move both fills, the speeds and the loss.
 function updateFatStores(world, dt) {
   for (const cell of world.cells) {
     if (!cell.type.fatCapacity) continue;
@@ -19,19 +22,24 @@ function updateFatStores(world, dt) {
   }
 }
 
-// turns the sugar above FAT_STORE_FILL into fat, while there is room for it
+// the share of its sugar room above which the cell stores fat
+const storeFill = cell => FAT_STORE_FILL + cell.storeFillShift;
+
+// turns the sugar above the store fill into fat, while there is room for it
 function storeSpareSugar(cell, dt) {
-  const spareSugar = cell.fluids[FLUID_SUGAR] - FAT_STORE_FILL * cell.fluidCapacity[FLUID_SUGAR];
-  const fatMade = Math.min(FAT_RATE * dt, spareSugar / FAT_STORE_COST, cell.type.fatCapacity - cell.fat);
+  const spareSugar = cell.fluids[FLUID_SUGAR] - storeFill(cell) * cell.fluidCapacity[FLUID_SUGAR];
+  const cost = FAT_SUGAR_YIELD + FAT_STORE_LOSS * cell.storeLoss;
+  const fatMade = Math.min(FAT_RATE * cell.storeRateFactor * dt, spareSugar / cost, cell.type.fatCapacity - cell.fat);
   if (fatMade <= 0) return;
   cell.fat += fatMade;
-  cell.fluids[FLUID_SUGAR] -= fatMade * FAT_STORE_COST;
+  cell.fluids[FLUID_SUGAR] -= fatMade * cost;
 }
 
-// turns fat into sugar until the cell is FAT_RELEASE_FILL full of sugar again
+// turns fat into sugar until the cell is full of sugar to the release fill again
 function releaseFat(cell, dt) {
-  const missingSugar = FAT_RELEASE_FILL * cell.fluidCapacity[FLUID_SUGAR] - cell.fluids[FLUID_SUGAR];
-  const fatUsed = Math.min(FAT_RATE * dt, missingSugar / FAT_SUGAR_YIELD, cell.fat);
+  const releaseFill = Math.min(FAT_RELEASE_FILL + cell.releaseFillShift, storeFill(cell) - FAT_FILL_GAP);
+  const missingSugar = releaseFill * cell.fluidCapacity[FLUID_SUGAR] - cell.fluids[FLUID_SUGAR];
+  const fatUsed = Math.min(FAT_RATE * cell.releaseRateFactor * dt, missingSugar / FAT_SUGAR_YIELD, cell.fat);
   if (fatUsed <= 0) return;
   cell.fat -= fatUsed;
   cell.fluids[FLUID_SUGAR] += fatUsed * FAT_SUGAR_YIELD;

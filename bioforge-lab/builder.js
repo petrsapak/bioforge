@@ -236,6 +236,17 @@ function removeNeuron(edited, key) {
   delete cell.boundKey;
 }
 
+// the hormones a Receptor can sense, as their fluid channels (data/fluids.js)
+const HORMONES = FLUIDS.filter(fluid => fluid.layer === 'chemical');
+
+// sets which hormone the Receptor at key senses; the default one is left out of the design
+function setSensedHormone(edited, key, hormoneId) {
+  const cell = edited.cells.get(key);
+  if (!cell || CELLS[cell.typeName].senses !== 'hormone' || !HORMONES.some(fluid => fluid.id === hormoneId)) return;
+  if (hormoneId === DEFAULT_SENSED_HORMONE) delete cell.sensedHormone;
+  else cell.sensedHormone = hormoneId;
+}
+
 // moves the cell's neuron setting by steps of its step size, within its limits
 function changeNeuronSetting(edited, key, steps) {
   const neuron = edited.cells.get(key).neuron;

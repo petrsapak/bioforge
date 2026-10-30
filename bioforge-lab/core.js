@@ -177,12 +177,28 @@ function createCell(typeName, q, r, creature) {
     fluids: FLUIDS.map(fluid => fluidCapacityOf(type, fluid) * fluid.startFill),
     efficiency: 1,                                        // share of its fuel demand it got
     adrenalineBoost: 1,
+    thresholdFactor: 1,                                   // mood (chemical.js): share of a Synapse's threshold
+    clockFactor: 1,                                       // mood: share of a Pacemaker's rate
+    clockShift: 0,                                        // Pacemaker: cycles gained or lost to moods so far
+    burnFactor: 1,                                        // mood: share of the fuel the cell's work burns
+    storeFillShift: 0,                                    // mood: added to the sugar fill at which Fat stores
+    releaseFillShift: 0,                                  // mood: added to the sugar fill at which Fat releases
+    storeRateFactor: 1,                                   // mood: share of the usual speed Fat stores at
+    releaseRateFactor: 1,                                 // mood: share of the usual speed Fat releases at
+    storeLoss: 1,                                         // mood: share of the usual loss when Fat stores sugar
+    sensedHormone: null,                                  // Receptor: the id of the hormone it senses
     onSurface: false,                                     // touches the water
     skinNeighbours: [],                                   // the cells next to it along the skin
     fat: 0,                                               // fat stored in the cell (metabolism.js)
     mineral: 0,                                           // mineral stored in the cell (Mineralizer, secretions.js)
     mineralized: false,                                   // hardened by a Mineralizer: takes half damage, acid eats it
     mineralizeProgress: 0,                                // Mineralizer: share of the way to hardening the next cell
+    tanned: false,                                        // crosslinked by a Tanner (treatments.js)
+    resilient: false,                                     // a muscle made springy by a Resilin gland
+    springCharge: 0,                                      // resilin muscle: share of a full charge, 0..1
+    treatProgress: 0,                                     // treatment gland: share of the way to the next cell
+    treatedDamageFactor: 1,                               // share of damage it takes for its treatments
+    resizeRateFactor: 1,                                  // share of the usual speed it contracts or swells at
     starving: false,
     poisoned: false,
     boundKey: null,                                       // Command: the key it fires on ('a'–'z', '0'–'9')
@@ -211,6 +227,7 @@ function spawn(world, design, x, y, angle, team) {
     const cell = createCell(blueprintCell.typeName, blueprintCell.q, blueprintCell.r, creature);
     if (blueprintCell.boundKey) cell.boundKey = blueprintCell.boundKey;
     if (blueprintCell.neuron) cell.neuron = { ...blueprintCell.neuron };
+    if (cell.type.senses === 'hormone') cell.sensedHormone = blueprintCell.sensedHormone || DEFAULT_SENSED_HORMONE;
     if (cell.type.growsParts && blueprintCell.budPart) cell.budGrowth = newBudGrowth(design.cells, blueprintCell);
     creature.cells.push(cell);
     world.cells.push(cell);

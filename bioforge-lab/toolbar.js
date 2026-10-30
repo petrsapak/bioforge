@@ -1,6 +1,6 @@
 'use strict';
 // The Body, Nerves and Vessels tabs at the top with their tools (Unlimited biomass, Symmetry, Delete all), the
-// built-in designs, the keys sheet (H) and the fluid views (Shift+1–6) (browser only).
+// built-in designs, the keys sheet (H) and the fluid views (Shift+1–9) (browser only).
 
 const MIRROR_MENU_WIDTH = 200;                            // px, as #mirror-menu in style.css
 
@@ -18,7 +18,7 @@ function setUpLayerSwitch(app) {
   byId('layer-vessel').onclick = () => showLayer(app, 'vessel');
 }
 
-// shows fluid view number `view` (0 = normal, otherwise 1 + its index in FLUIDS): from Shift+1–6, and in the builder
+// shows fluid view number `view` (0 = normal, otherwise 1 + its index in FLUIDS): from Shift+1–9, and in the builder
 // from a click on a Needs row (panel.js)
 function showFluidView(app, view) {
   app.fluidView = view;

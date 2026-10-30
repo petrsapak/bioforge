@@ -1,5 +1,5 @@
 'use strict';
-// Fluid system: cells burn O2 and sugar into waste, glands make repair fluid and adrenaline, and fluids seep between
+// Fluid system: cells burn O2 and sugar into waste, glands make repair fluid and hormones, and fluids seep between
 // touching cells from fuller to emptier. Vessels carry them farther and faster (vascular.js). Pure: no DOM.
 
 const FUEL_BURN_SCALE = 0.25;                             // every cell burns fuelBurn * this per second at full work
@@ -15,11 +15,15 @@ const POISON_DAMAGE = 6;                                  // health per second
 const REPAIR_RATE = 0.5;                                  // repair fluid used per second
 const REPAIR_HEALTH = 40;                                 // health restored per unit of repair fluid
 const STARVING_EFFICIENCY = 0.4;                          // below this share of its fuel, a working cell is starving
-const ADRENALINE_GAIN = 8;                                // adrenaline made per unit of fuel an adrenal burns
+const HORMONE_GAIN = 8;                                   // hormone made per unit of fuel a hormone gland burns
 const ADRENALINE_EFFECT = 0.8;                            // extra work at a full adrenaline level
 
 const LAUNCHED_PART_MIN_FUEL = 0.05;                      // O2 and sugar a launched part needs to stay fueled
 const MENDER_FULL_SHARE = 0.9;                            // a mender works until its repair fluid reaches this share
+
+// each hormone's index into cell.fluids, by its id
+const HORMONE_INDEX = Object.fromEntries(FLUIDS.filter(fluid => fluid.layer === 'chemical')
+  .map(fluid => [fluid.id, fluidIndex(fluid.id)]));
 
 // How hard a cell works (0..1), by the cell type's `work` behaviour (data/cells.js).
 const WORK_LEVELS = {
@@ -38,8 +42,8 @@ const PRODUCTS = {
   repair: (cell, burned) => {
     cell.fluids[FLUID_REPAIR] += burned / FUEL_BURN_SCALE;
   },
-  adrenaline: (cell, burned) => {
-    cell.fluids[FLUID_ADRENALINE] += burned * ADRENALINE_GAIN / FUEL_BURN_SCALE;
+  hormone: (cell, burned) => {
+    cell.fluids[HORMONE_INDEX[cell.type.hormone]] += burned * HORMONE_GAIN / FUEL_BURN_SCALE;
   },
   budPart: (cell, burned) => {
     if (cell.budGrowth) cell.budGrowth.progress += burned;
@@ -112,7 +116,7 @@ function decayFluids(cell, dt) {
 // a working cell burns fuel for its work; glands turn the burned fuel into what they make
 function burnAndProduce(cell, dt) {
   const work = workLevel(cell);
-  const burned = burnFuel(cell, cell.type.fuelBurn * FUEL_BURN_SCALE * work * dt);
+  const burned = burnFuel(cell, cell.type.fuelBurn * FUEL_BURN_SCALE * work * cell.burnFactor * dt);
   cell.starving = work > 0 && cell.efficiency < STARVING_EFFICIENCY;
   const product = PRODUCTS[cell.type.product];
   if (product) product(cell, burned);
