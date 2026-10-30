@@ -1,6 +1,6 @@
 'use strict';
-// The desktop build's main process: one game window around bioforge-lab/index.html, the save file, fullscreen, and
-// the browser's own keys and menus turned off (Electron only).
+// The desktop build's main process: one game window around bioforge-lab/index.html, the save file, fullscreen, the
+// game menu's Quit, and the browser's own keys and menus turned off (Electron only).
 
 const { app, BrowserWindow, Menu, ipcMain } = require('electron');
 const path = require('path');
@@ -67,15 +67,36 @@ function handleWindowKeys(gameWindow, event, input) {
   const isFullscreenKey = input.key === 'F11' || (input.alt && input.key === 'Enter');
   if (isFullscreenKey) {
     event.preventDefault();
-    const isFullscreen = !gameWindow.isFullScreen();
-    gameWindow.setFullScreen(isFullscreen);
-    saves.set(FULLSCREEN_KEY, isFullscreen);
+    toggleFullscreen(gameWindow);
     return;
   }
   if (input.key === 'F12' && !app.isPackaged) {
     event.preventDefault();
     gameWindow.webContents.toggleDevTools();
   }
+}
+
+// switches the window between fullscreen and maximized, and remembers it for the next start
+function toggleFullscreen(gameWindow) {
+  const isFullscreen = !gameWindow.isFullScreen();
+  gameWindow.setFullScreen(isFullscreen);
+  saves.set(FULLSCREEN_KEY, isFullscreen);
+}
+
+// The page's window calls (see preload.js): its menu's Quit and Fullscreen. Whether the window is fullscreen is
+// answered from the remembered wish, since the window itself may take a moment to change.
+function handleWindowMessages() {
+  ipcMain.on('window:quit', event => {
+    const gameWindow = BrowserWindow.fromWebContents(event.sender);
+    if (gameWindow) gameWindow.close();
+  });
+  ipcMain.on('window:toggle-fullscreen', event => {
+    const gameWindow = BrowserWindow.fromWebContents(event.sender);
+    if (gameWindow) toggleFullscreen(gameWindow);
+  });
+  ipcMain.on('window:is-fullscreen', event => {
+    event.returnValue = saves.items[FULLSCREEN_KEY] === true;
+  });
 }
 
 // the page's save calls (see preload.js)
@@ -101,6 +122,7 @@ if (!app.requestSingleInstanceLock()) {
     Menu.setApplicationMenu(null);
     saves = createSaveStore(path.join(app.getPath('userData'), SAVE_FILE_NAME));
     handleSaveMessages();
+    handleWindowMessages();
     createGameWindow();
   });
   app.on('window-all-closed', () => app.quit());

@@ -9,7 +9,7 @@ const GOAL_COLOR = '127,224,160';                         // r,g,b of the goal r
 const GOAL_PULSE_RATE = 2;                                // rad/s of the goal ring's breathing
 const DARK_LAMP_RADIUS = 9;                               // px in the arena: a light that is off
 const LEVEL_KEYS_HELP = '<b>Space</b> and bound keys: Commands &nbsp;<b>P</b> pause &nbsp;<b>.</b> one step ' +
-  '&nbsp;<b>,</b> speed<br><b>T</b> signals &nbsp;<b>R</b> retry &nbsp;<b>Esc</b> builder';
+  '&nbsp;<b>,</b> speed<br><b>T</b> signals &nbsp;<b>R</b> retry &nbsp;<b>Esc</b> menu';
 
 // the toolbar button, the levels sheet, the level card's buttons, the level bar and the result box
 function setUpLevels(app) {
@@ -171,6 +171,23 @@ function startLevelRun(app) {
     playSound(app, 'refuse');
     return;
   }
+  enterLevelMode(app, design);
+  retryLevel(app);
+}
+
+// Picks up a level run saved earlier (progress.js), where it was left. design: the design it runs.
+function resumeLevelRun(app, design, run) {
+  enterLevelMode(app, design);
+  app.levelRun = run;
+  resetProbes(app.probes, run.player);
+  app.paused = false;
+  app.stepRequested = false;
+  byId('level-result').style.display = 'none';
+  showTimeControls(app);
+}
+
+// leaves the builder for a level run of the design: the run's windows instead of the builder's
+function enterLevelMode(app, design) {
   app.mode = 'level';
   app.levelDesign = design;
   clearProbeChoice(app.probes);
@@ -180,7 +197,6 @@ function startLevelRun(app) {
   hideTooltip(app);
   closeSaveMenu();
   showModeWindows(app);
-  retryLevel(app);
 }
 
 // starts the run over with the same design, running at the chosen speed
@@ -237,9 +253,9 @@ function keepLevelResult(app, level, score) {
   return true;
 }
 
-// level keys: Esc back to the builder, R retry, P pause, . one step, , speed
+// level keys: Esc the menu, R retry, P pause, . one step, , speed
 function handleLevelKey(app, key) {
-  if (key === 'escape') enterBuilder(app);
+  if (key === 'escape') openPauseMenu(app);
   if (key === 'r') retryLevel(app);
   if (key === 'p') togglePause(app);
   if (key === '.') requestOneStep(app);

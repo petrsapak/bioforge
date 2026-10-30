@@ -13,7 +13,7 @@ const SANDBOX_SPEEDS = [1, 2, 4, 0.5, 0.25];              // game seconds per re
 const SANDBOX_KEYS_HELP = '<b>Mouse</b> is the light (Light eyes)<br>' +
   '<b>Click</b> spawn (on your cell: probe it) &nbsp;<b>Right-click</b> remove &nbsp;<b>R</b> respawn<br>' +
   '<b>Space</b> and bound keys: Commands &nbsp;<b>P</b> pause &nbsp;<b>.</b> one step &nbsp;<b>,</b> speed<br>' +
-  '<b>T</b> signals &nbsp;<b>Shift+1–6</b> view &nbsp;<b>Esc</b> builder';
+  '<b>T</b> signals &nbsp;<b>Shift+1–6</b> view &nbsp;<b>Esc</b> menu';
 
 // the top bar: who you play, what a click spawns, and the enemy, clear, respawn and exit buttons
 function setUpSandboxBar(app) {
@@ -55,16 +55,29 @@ function onSandboxButton(id, action) {
 const sandboxDesign = (app, designName) => designName === OWN_DESIGN ? bodyDesign(app.edited) : TEMPLATES[designName];
 
 function startSandbox(app) {
-  app.mode = 'sandbox';
   playSound(app, 'start');
-  app.world = newWorld(app.canvas.width, app.canvas.height);
-  app.world.enemiesIdle = byId('sandbox-enemy-mode').textContent.endsWith('idle');
-  app.player = null;
+  const world = newWorld(app.canvas.width, app.canvas.height);
+  world.enemiesIdle = byId('sandbox-enemy-mode').textContent.endsWith('idle');
+  enterSandboxMode(app, world, null);
+  spawnSandboxPlayer(app);
+}
+
+// picks up a Sandbox saved earlier (progress.js), where it was left
+function resumeSandbox(app, world, player) {
+  enterSandboxMode(app, world, player);
+  byId('sandbox-enemy-mode').textContent = `Enemies: ${world.enemiesIdle ? 'idle' : 'hunt'}`;
+  resetProbes(app.probes, player);
+}
+
+// leaves the builder for the Sandbox's world: the Sandbox's windows instead of the builder's
+function enterSandboxMode(app, world, player) {
+  app.mode = 'sandbox';
+  app.world = world;
+  app.player = player;
   app.paused = false;
   app.stepRequested = false;
   showTimeControls(app);
   clearProbeChoice(app.probes);
-  spawnSandboxPlayer(app);
   app.stamp = null;
   app.partDrag = null;
   app.aimDragKey = null;
@@ -218,9 +231,9 @@ function showVitalsHud(app, world, player, extraChips) {
   if (byId('hud-chips').innerHTML !== chipsHtml) byId('hud-chips').innerHTML = chipsHtml;
 }
 
-// sandbox keys: Esc back to the builder, R respawn, P pause, . one step, , speed
+// sandbox keys: Esc the menu, R respawn, P pause, . one step, , speed
 function handleSandboxKey(app, key) {
-  if (key === 'escape') enterBuilder(app);
+  if (key === 'escape') openPauseMenu(app);
   if (key === 'r') spawnSandboxPlayer(app);
   if (key === 'p') togglePause(app);
   if (key === '.') requestOneStep(app);

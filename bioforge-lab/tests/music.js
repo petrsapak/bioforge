@@ -27,11 +27,10 @@ first.fire('window', 'pointerdown', {});
 check('the first click starts it', music.playCount === 1 && !music.paused);
 first.fire('window', 'pointerdown', {});
 check('a second click doesn\'t start it again', music.playCount === 1);
-first.byId('toggle-music').onclick({});
-check('the toolbar button switches it off', music.paused && first.byId('toggle-music').classList.contains('off'));
+first.byId('setting-music').onclick({});
+check('Settings switches it off', music.paused && first.byId('setting-music').textContent === 'Off');
 first.fire('window', 'keydown', { key: 'm' });
-check('M switches it back on', !music.paused && !first.byId('toggle-music').classList.contains('off'),
-  music.playCount + ' starts');
+check('M switches it back on', !music.paused, music.playCount + ' starts');
 first.fire('window', 'keydown', { key: 'M' });
 check('M switches it off again, and a click doesn\'t restart it', music.paused);
 first.fire('window', 'pointerdown', {});
@@ -40,8 +39,8 @@ check('a click while it is off leaves it off', music.paused);
 const second = startApp([], first.storage.items);
 const nextMusic = fakeAudio(second.byId('music'));
 second.fire('window', 'pointerdown', {});
-check('switched off stays off on the next visit', nextMusic.playCount === 0 &&
-  second.byId('toggle-music').classList.contains('off'));
+check('switched off stays off on the next visit, and Settings says so', nextMusic.playCount === 0 &&
+  second.byId('setting-music').textContent === 'Off');
 
 // ---------- The seamless loop ----------
 // Two copies take turns: near the end of one, the other starts inside the track and the volumes cross.

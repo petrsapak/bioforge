@@ -80,12 +80,16 @@ function createApp(canvas) {
     builderTraces: createProbes(),                        // the Traces window's lanes: the test tank's signals
     isTracesCollapsed: () => false,
     coach: createCoach(),                                 // the How to box
+    menu: createMenuState(),                              // the main menu and the Esc menu (menus.js)
+    title: createTitleView(),                             // the living scene behind the main menu (titleview.js)
+    progress: createProgressState(),                      // saving where the player is, for Continue (progress.js)
     fps: 60,
     lastFrameTime: performance.now(),
   };
 }
 
 function boot() {
+  upgradeStoredSave(readStorage, writeStorage);           // before anything reads the save
   const app = createApp(byId('game'));
   fitCanvasToWindow(app);
   addEventListener('resize', () => {
@@ -105,12 +109,14 @@ function boot() {
   setUpMusic(app);
   setUpSounds(app);
   setUpLevels(app);
+  setUpProgress(app);
   app.isProbesShown = readStorage('probes-shown', true);
   app.hudBars = makeHudBars(byId('hud-bars'));
   showLibraryRows(app);
   listenToKeyboard(app);
   listenToMouse(app);
   rebuildTank(app);
+  setUpMenus(app);
   requestAnimationFrame(time => runFrame(app, time));
 }
 
@@ -295,7 +301,7 @@ function saveSelection(app, name) {
 // the windows of the app's mode: the builder's, or the HUD with the Sandbox's or the level's bar
 function showModeWindows(app) {
   const isBuilding = app.mode === 'build';
-  for (const id of ['builder-left', 'layer-tabs', 'budget', 'preview', 'library']) {
+  for (const id of ['builder-left', 'run-buttons', 'layer-tabs', 'budget', 'preview', 'library']) {
     byId(id).style.display = isBuilding ? '' : 'none';     // '' gives the display back to style.css
   }
   if (!isBuilding) {
@@ -335,6 +341,10 @@ function listenToKeyboard(app) {
     if (key === ' ') event.preventDefault();
     if (key === 'm' && !event.repeat) toggleMusic(app);
     if (key === 'n' && !event.repeat) toggleSounds(app);
+    if (isMenuOpen(app)) {
+      handleMenuKey(app, key);
+      return;
+    }
     if (key === 't' && !event.repeat && app.mode !== 'build') toggleProbes(app);
     const digit = digitOf(event);
     const commandKey = commandKeyOf(event);
@@ -384,28 +394,36 @@ function bindFocusedCommand(app, commandKey) {
   rebuildTank(app);
 }
 
-// F fits the grid; H shows the keys; Esc drops what is in hand; Q/E turn the stamp, the dragged part or the
-// clicked Bud's part
+// F fits the grid; H shows the keys; Esc closes a sheet or drops what is in hand, or else opens the menu; Q/E turn
+// the stamp, the dragged part or the clicked Bud's part
 function handleBuilderKey(app, key) {
   if (key === 'f') fitGridToScreen(app);
   if (key === 'h') toggleKeysSheet();
-  if (key === 'escape') {
-    if (app.partDrag || app.aimDragKey || app.fibreDrag || app.vesselDrag) {
-      app.partDrag = null;
-      app.aimDragKey = null;
-      app.fibreDrag = null;
-      app.vesselDrag = null;
-    } else {
-      app.stamp = null;
-      app.selection.clear();
-      app.focusKey = null;
-    }
-    closeSaveMenu();
-    byId('keys-sheet').style.display = 'none';
-    closeLevelsSheet();
-    refreshPanel(app);
-  }
+  if (key === 'escape' && !closeOpenSheet() && !letGoOfWhatIsInHand(app)) openPauseMenu(app);
   if (key === 'q' || key === 'e') turnWhatIsInHand(app, key === 'e' ? 1 : -1);
+}
+
+// closes the keys sheet, the levels sheet, the save menu or the Symmetry dial; false if none was open
+function closeOpenSheet() {
+  const sheets = [['keys-sheet', 'flex'], ['levels-sheet', 'flex'], ['save-menu', 'block'], ['mirror-menu', 'block']];
+  const openSheets = sheets.filter(([id, display]) => byId(id).style.display === display);
+  for (const [id] of openSheets) byId(id).style.display = 'none';
+  return openSheets.length > 0;
+}
+
+// Drops what the mouse holds: a drag, a stamp or the selection. False if it held nothing.
+function letGoOfWhatIsInHand(app) {
+  const isHolding = app.partDrag || app.aimDragKey || app.fibreDrag || app.vesselDrag || app.stamp ||
+    app.selection.size > 0;
+  if (!isHolding) return false;
+  app.partDrag = null;
+  app.aimDragKey = null;
+  app.fibreDrag = null;
+  app.vesselDrag = null;
+  app.stamp = null;
+  app.selection.clear();
+  refreshPanel(app);
+  return true;
 }
 
 function turnWhatIsInHand(app, steps) {
@@ -676,6 +694,13 @@ function runFrame(app, now) {
   app.fps += (1 / Math.max(frameTime, 1e-3) - app.fps) * FPS_SMOOTHING;
   updateMusic(app);
   updateCursor(app);
+  keepProgress(app, now);
+  updateScreenFade(app, dt);
+  if (isTitleShown(app)) {                                // the title covers the game, which waits behind it
+    runTitleFrame(app, dt);
+    requestAnimationFrame(time => runFrame(app, time));
+    return;
+  }
   if (app.mode === 'build') runBuilderFrame(app, dt, now);
   else if (app.mode === 'sandbox') {
     stepSandbox(app, dt);

@@ -10,18 +10,13 @@ const OTHER_LOUDNESS = 0.63;                              // share of volume for
 const OTHER_DEATH_LOUDNESS = 0.4;                         // share of volume for cells of other creatures dying
 const EAT_SUGAR_JUMP = 0.4;                               // share of a speck's sugar a Mouth gains in a frame on eating
 
-// Reads whether sounds are off and wires the button. Any button click makes the soft click sound.
+// Reads whether sounds are off (Settings and N switch them). Any button click makes the soft click sound.
 function setUpSounds(app) {
   app.soundsOff = readStorage('sounds-off', false);
   app.soundVoices = {};
   app.soundPlayedAt = {};
   app.soundWatch = null;
   app.cellSounds = new WeakMap();                         // cell -> what its sounds compare with (cellSoundEvents)
-  showSoundsButton(app);
-  byId('toggle-sounds').onclick = event => {
-    toggleSounds(app);
-    event?.currentTarget?.blur?.();
-  };
   addEventListener('click', event => {
     if (event.target?.closest?.('button')) playSound(app, 'click');
   });
@@ -67,13 +62,6 @@ function nextVoice(app, file) {
 function toggleSounds(app) {
   app.soundsOff = !app.soundsOff;
   writeStorage('sounds-off', app.soundsOff);
-  showSoundsButton(app);
-}
-
-// the button shows a crossed-out speaker while sounds are off
-function showSoundsButton(app) {
-  byId('toggle-sounds').classList.toggle('off', app.soundsOff);
-  byId('toggle-sounds').title = app.soundsOff ? 'Sounds are off: switch on (N)' : 'Sounds are on: switch off (N)';
 }
 
 // ---------- The creatures' sounds ----------

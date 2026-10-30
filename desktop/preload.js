@@ -1,6 +1,7 @@
 'use strict';
 // Runs in the game's page before its scripts: gives the page the save file as window.desktopSaves, with
-// localStorage's getItem and setItem, so windows.js's readStorage and writeStorage use it unchanged (desktop only).
+// localStorage's getItem and setItem, so windows.js's readStorage and writeStorage use it unchanged; and the window
+// as window.desktopWindow, for the game menu's Quit and Fullscreen (desktop only).
 
 const { contextBridge, ipcRenderer } = require('electron');
 
@@ -15,4 +16,13 @@ contextBridge.exposeInMainWorld('desktopSaves', {
     items[key] = JSON.parse(text);
     ipcRenderer.send('saves:set', key, items[key]);
   },
+});
+
+contextBridge.exposeInMainWorld('desktopWindow', {
+  // closes the game (the page has saved first)
+  quit: () => ipcRenderer.send('window:quit'),
+  // switches fullscreen on or off, remembered like F11
+  toggleFullscreen: () => ipcRenderer.send('window:toggle-fullscreen'),
+  // whether the window is (or is about to be) fullscreen
+  isFullscreen: () => ipcRenderer.sendSync('window:is-fullscreen'),
 });

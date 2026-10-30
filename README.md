@@ -27,7 +27,7 @@ npm start             # runs the live bioforge-lab folder in the desktop window
 npm run dist          # builds dist/Bioforge Lab Setup <version>.exe and a portable .exe
 ```
 
-The desktop build saves to `%APPDATA%\Bioforge Lab\save.json` instead of the browser's storage. F11 or Alt+Enter switches fullscreen; F12 opens the developer tools when run with `npm start`. The version is in `bioforge-lab/data/version.js`, and [`bioforge-lab/CHANGELOG.md`](bioforge-lab/CHANGELOG.md) lists what each version brought.
+The desktop build saves to `%APPDATA%\Bioforge Lab\save.json` instead of the browser's storage. F11 or Alt+Enter switches fullscreen, as does Settings in the game's menus, which also have Quit; F12 opens the developer tools when run with `npm start`. The version is in `bioforge-lab/data/version.js`, and [`bioforge-lab/CHANGELOG.md`](bioforge-lab/CHANGELOG.md) lists what each version brought.
 
 ## Tests
 

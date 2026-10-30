@@ -88,9 +88,15 @@ ENEMY_DESIGNS.forEach((name, i) => {
 runFrames(600);
 check('9 enemy types brawl for 10 s without an error', true, byId('hud-enemies').textContent);
 
+// Esc opens the menu (since 2026-10-30; before, it went straight back to the builder), and the menu leaves
 pressKey('Escape');
 runFrames(5);
-check('Esc goes back to the builder',
+check('Esc opens the menu over the Sandbox, with Back to the builder',
+  byId('menu-sheet').style.display === 'flex' && byId('menu-builder').style.display === '' &&
+  byId('sandbox-bar').style.display === 'flex');
+byId('menu-builder').onclick({});
+runFrames(5);
+check('Back to the builder goes back to the builder', byId('menu-sheet').style.display === 'none' &&
   byId('sandbox-bar').style.display === 'none' && byId('hud').style.display === 'none');
 // '' hands the display back to style.css; 'block' broke the dock's centring (user, 2026-10-28)
 check('back in the builder, the dock and the tabs keep their own layout', byId('dock').style.display === '' &&

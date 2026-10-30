@@ -9,10 +9,10 @@ Games about soft-body creatures built from cells. [`README.md`](README.md) has t
 
 ## Code rules
 - **No dependencies and no build step.** Every `index.html` must open straight from disk. Don't add npm packages, bundlers, TypeScript or ES modules.
-  - The one exception is `desktop/` (user, 2026-10-29: "let's introduce versioning and Electron"). It wraps `bioforge-lab/` in an Electron window and has its own npm packages (Electron, electron-builder) and build. The game folder itself stays dependency-free and never needs `desktop/` to run. Code that only the desktop build needs goes in `desktop/`; the game only checks whether `window.desktopSaves` exists.
+  - The one exception is `desktop/` (user, 2026-10-29: "let's introduce versioning and Electron"). It wraps `bioforge-lab/` in an Electron window and has its own npm packages (Electron, electron-builder) and build. The game folder itself stays dependency-free and never needs `desktop/` to run. Code that only the desktop build needs goes in `desktop/`; the game only checks whether `window.desktopSaves` and `window.desktopWindow` (Quit and Fullscreen in the menus) exist.
 - **Plain `<script src>` files in one global namespace.** A new script goes into `index.html` in load order. The tests read that list (`tests/load.js`), so they pick it up automatically.
   - Top-level names are shared by every file, so check that a new global name isn't taken (`grep -n "^const NAME\|^function NAME"`).
-- **Pure files have no DOM.** In Lab these are the sim files (`math.js`, `core.js`, `fibres.js`, `physics.js`, `nerve.js`, `fluid.js`, `metabolism.js`, `actuators.js`, `combat.js`, `growth.js`, `food.js`, `ai.js`, `levels.js`), `design.js`, `builder.js` and `data/*.js`. They must not touch `document`, `window`, canvas or `localStorage`, so that a Node server can run them later. Browser-only code goes in `cellart.js`, `render.js`, `windows.js`, `tipdemo.js`, `hud.js`, `dock.js`, `library.js`, `toolbar.js`, `panel.js`, `coach.js`, `builderview.js`, `tooltip.js`, `probes.js`, `sandbox.js`, `levelview.js`, `music.js`, `sound.js` or `ui.js`.
+- **Pure files have no DOM.** In Lab these are the sim files (`math.js`, `core.js`, `fibres.js`, `physics.js`, `nerve.js`, `fluid.js`, `metabolism.js`, `actuators.js`, `combat.js`, `growth.js`, `food.js`, `ai.js`, `levels.js`), `design.js`, `builder.js`, `snapshot.js`, `savegame.js`, `titlescene.js` and `data/*.js`. They must not touch `document`, `window`, canvas or `localStorage`, so that a Node server can run them later. Browser-only code goes in `cellart.js`, `render.js`, `windows.js`, `tipdemo.js`, `hud.js`, `dock.js`, `library.js`, `toolbar.js`, `panel.js`, `coach.js`, `builderview.js`, `tooltip.js`, `probes.js`, `sandbox.js`, `levelview.js`, `progress.js`, `titleview.js`, `menus.js`, `music.js`, `sound.js` or `ui.js`.
 - **New sim systems** go in their own file and register with `registerSystem({ name, order, switchable, update })` (see `core.js`). The order number sets their place in `step()`. A system that reacts to dying cells adds `onCellDeath(world, cell)`, which runs only while the system is on.
 - **Systems never check a cell's type name** (`cell.typeName === 'mouth'`). Cell types declare behaviour fields in `data/cells.js` (`work`, `trigger`, `breathes`, `needsSignal`…), and the systems and `design.js` read those. `tests/determinism.js` checks this.
 - **Every file starts** with `'use strict';` and a one-line comment saying what it holds, and whether it is pure or browser-only.
@@ -46,7 +46,7 @@ Games about soft-body creatures built from cells. [`README.md`](README.md) has t
 - Don't weaken a failing check to make it pass. If the check was wrong, explain why in a comment next to it.
 
 ## Git
-- Commit only when the user asks. The default branch is `main`. Tag only when the user asks (`lab-v0.4.1`).
+- Commit only when the user asks. The default branch is `main`. Always tag a version (user, 2026-10-30: "always do the tag"): when a commit finishes a changelog entry, tag it `lab-v<version>` (`lab-v0.4.1`). A tagged version is finished: the next change players notice starts a new patch entry.
 - Commit messages say what changed, such as `moba: split ui.js into design/windows/tipdemo/hud`, not `updates`. Start the message with the project folder's short name (`moba:`, `online:`, `docs:`).
 
 ## Versions (Lab)

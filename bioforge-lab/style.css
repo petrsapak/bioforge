@@ -72,15 +72,27 @@ button.big:hover { background: #4a8044; }
 .tool svg { width: 24px; height: 24px; }
 .tool:hover { background: #26363e; border-color: #5d6b77; }
 .tool.selected { border-color: #e8c547; background: #2b2a1f; box-shadow: 0 0 10px #e8c54755; }
-.tool.play { background: #3d6b38; border-color: #4a8044; }
-.tool.play:hover { background: #4a8044; }
-.tool .music-off-cross { display: none; }
-.tool.off .music-off-cross { display: inline; }
 .tool-gap { width: 30px; height: 1px; margin: 3px 0; background: #2a3b44; }
-.tool-space { flex: 1 1 8px; min-height: 8px; }
 #side-column {
-  display: flex; flex-direction: column; gap: 8px; width: 264px; max-height: calc(100vh - 20px); overflow-y: auto;
+  display: flex; flex-direction: column; gap: 8px; width: 264px; max-height: calc(100vh - 190px); overflow-y: auto;
 }
+
+/* ---------- Bottom-left corner: Levels and the Sandbox, big and coloured ---------- */
+#run-buttons {
+  position: absolute; left: 14px; bottom: 14px; display: flex; flex-direction: column; gap: 10px;
+}
+.run-button {
+  width: 76px; height: 72px; padding: 6px 0 4px; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 3px; border: 2px solid; border-radius: 14px; cursor: pointer; font: inherit;
+  font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+  box-shadow: 0 4px 14px #0008; transition: transform .1s, filter .1s;
+}
+.run-button svg { width: 34px; height: 34px; }
+.run-button:hover { transform: translateY(-2px); filter: brightness(1.12); }
+.run-button:active { transform: translateY(0); }
+.run-button.levels { background: linear-gradient(#4f9a48, #357031); border-color: #7fd07a; color: #fff; }
+.run-button.levels.selected { box-shadow: 0 0 0 2px #e8c547, 0 0 16px #e8c54788; }
+.run-button.sandbox { background: linear-gradient(#e6cf98, #c9a965); border-color: #f4e2b4; color: #3b2a12; }
 #panel, #coach {
   padding: 8px 10px; background: #0e181dcc; border: 1px solid #23323a88; border-radius: 12px;
   backdrop-filter: blur(3px);
@@ -481,3 +493,49 @@ button.small.run:hover { background: #4a8044; }
 #hud-chips .chip-still { background: #3d3a1e; color: #f2e39b; }
 .need-row[aria-pressed] { cursor: pointer; }
 .need-row[aria-pressed="true"] { background: #e8c5471f; box-shadow: inset 0 0 0 1px #e8c54788; }
+
+/* ---------- Menus: the main menu and the Esc menu, with their Settings ---------- */
+#menu-sheet {
+  position: absolute; inset: 0; display: none; align-items: center; justify-content: center; z-index: 29;
+  background: #000a;
+}
+#menu-box {
+  width: 300px; padding: 22px 24px 14px; background: #0d1519f2; border: 1px solid #2c4650; border-radius: 12px;
+  color: #b9c3cd;
+}
+#menu-title { margin-bottom: 16px; color: #e8c547; font-size: 22px; font-weight: 600; text-align: center; }
+#menu-buttons, #menu-settings-view { display: flex; flex-direction: column; gap: 6px; }
+.menu-button {
+  padding: 9px 12px; background: #1c2a31; color: #dfe4ea; border: 1px solid #2c3f48; border-radius: 6px;
+  cursor: pointer; font: inherit; font-size: 15px;
+}
+.menu-button:hover { background: #253740; border-color: #3e5864; }
+.menu-button.primary { background: #3d6b38; border-color: #4a8044; color: #fff; font-weight: 600; }
+.menu-button.primary:hover { background: #4a8044; }
+.menu-setting { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 2px 0; }
+.menu-setting button.small { flex: 0 0 64px; }
+.menu-setting kbd { color: #6f7f8a; font-size: 11px; }
+#menu-settings-view .menu-button { margin-top: 4px; }
+#creature-file-input { display: none; }
+
+/* ---------- The title screen: the main menu over the living scene, and the dimming between it and the lab ---------- */
+/* Megrim by Daniel Johnson, SIL Open Font License (fonts/OFL.txt): thin curving strokes, like membranes */
+@font-face { font-family: 'Megrim'; src: url('fonts/Megrim.ttf') format('truetype'); font-display: block; }
+#menu-box { transition: opacity .4s, transform .4s; }
+#menu-sheet.title-screen {
+  justify-content: flex-start; padding-left: max(40px, 7vw);
+  background: radial-gradient(ellipse at 62% 50%, #0000 35%, #000b 100%);
+}
+#menu-sheet.title-screen #menu-box {
+  width: 340px; padding: 30px 30px 16px; background: #08131ab0; border-color: #2c465099;
+  backdrop-filter: blur(5px); box-shadow: 0 18px 60px #0008;
+}
+#menu-sheet.title-screen #menu-title {
+  margin: 0 0 26px -2px; color: #f2d36b; font: 400 62px/1 'Megrim', system-ui, sans-serif; letter-spacing: 2px;
+  text-align: left; text-shadow: 0 0 18px #f2d36b66, 0 0 42px #f2d36b33;
+}
+#menu-sheet.leaving #menu-box { opacity: 0; transform: translateX(-16px); }
+body.title-shown > :not(#game):not(#menu-sheet):not(#screen-fade):not(#keys-sheet):not(audio):not(script) {
+  visibility: hidden;
+}
+#screen-fade { position: absolute; inset: 0; display: none; z-index: 50; background: #000; pointer-events: none; }

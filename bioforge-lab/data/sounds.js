@@ -29,6 +29,7 @@ const SOUND_EFFECTS = {
   refuse: soundEffect([soundFile('refuse.wav', -18.0)], -42, 0.3),
   open: soundEffect([soundFile('open.wav', -18.0)], -42, 0.2),
   start: soundEffect([soundFile('start.wav', -18.0)], -42, 0.5),
+  enterLab: soundEffect([soundFile('start.wav', -18.0)], -50, 0.5),   // leaving the title: the start sound, softer
   // the creature at work
   stroke: soundEffect([soundFile('stroke.wav', -18.0)], -44, 0.25, true),
   eat: soundEffect([soundFile('eat.wav', -19.9)], -42, 0.1, true),

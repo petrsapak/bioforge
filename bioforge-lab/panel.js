@@ -237,7 +237,7 @@ function showNeeds(app) {
   needs.innerHTML = '<div class="needs-title">Creature</div>' + sugarHtml(sugarSupply(body)) +
     '<div class="need-rows">' + app.needRows.map(row => needRowHtml(row, isNeedViewShown(app, row))).join('') +
     '</div>' +
-    `<div class="need-next">${next ? '<b>Next:</b> ' + next : 'Ready: try it in the Sandbox (▶).'}</div>` +
+    `<div class="need-next">${next ? '<b>Next:</b> ' + next : 'Ready: try it in the Sandbox (bottom left).'}</div>` +
     (planned ? `<div class="need-planned" data-need="planned">${planned.text}</div>` : '');
   needs.onmouseover = event => {
     const row = event.target.closest && event.target.closest('[data-need]');

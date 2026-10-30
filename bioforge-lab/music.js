@@ -20,11 +20,6 @@ function setUpMusic(app) {
   }
   app.music = { playing: byId('music'), waiting: byId('music-b'), fadeIsOn: false };
   app.musicOff = readStorage('music-off', false);
-  showMusicButton(app);
-  byId('toggle-music').onclick = event => {
-    toggleMusic(app);
-    event?.currentTarget?.blur?.();
-  };
   addEventListener('pointerdown', () => playMusic(app));
   addEventListener('keydown', () => playMusic(app));
   playMusic(app);
@@ -85,11 +80,4 @@ function toggleMusic(app) {
   if (app.music.fadeIsOn) finishFade(app);
   if (app.musicOff) app.music.playing.pause?.();
   else playMusic(app);
-  showMusicButton(app);
-}
-
-// the button shows a crossed-out note while the music is off
-function showMusicButton(app) {
-  byId('toggle-music').classList.toggle('off', app.musicOff);
-  byId('toggle-music').title = app.musicOff ? 'Music is off: switch on (M)' : 'Music is on: switch off (M)';
 }

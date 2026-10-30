@@ -19,14 +19,15 @@ const VESSEL_SHUT_COLOR = '#6a5a62';                      // a vessel an unsigna
 
 // view 0 = normal, 1..5 = fill level of one fluid; viewBox = { minX, minY, maxX, maxY }: draw only cells inside it.
 // Vessels and fibres are left out, since they clutter the game and the builder's preview; the tip demos add them.
-function drawWorld(context, world, view, viewBox) {
+// showRanges: the faint rings of what Eyespots see (the title scene leaves them out).
+function drawWorld(context, world, view, viewBox, showRanges = true) {
   const isVisible = viewBox
     ? cell => cell.x > viewBox.minX - VIEW_MARGIN && cell.x < viewBox.maxX + VIEW_MARGIN &&
       cell.y > viewBox.minY - VIEW_MARGIN && cell.y < viewBox.maxY + VIEW_MARGIN
     : () => true;
   drawBonds(context, world, isVisible);
   for (const cell of world.cells) {
-    if (isVisible(cell)) drawCell(context, cell, view);
+    if (isVisible(cell)) drawCell(context, cell, view, showRanges);
   }
   drawSnareLines(context, world);
   drawGlobs(context, world);
@@ -228,7 +229,7 @@ function drawWorldFibres(context, world) {
 // ---------- Cells ----------
 // One cell: its body and symbol (cellart.js), then overlays for key binding, signal, adrenaline, starving, poison and
 // hits.
-function drawCell(context, cell, view) {
+function drawCell(context, cell, view, showRanges = true) {
   const radius = cell.radius * 0.9;
   if (view) {
     drawFluidLevel(context, cell, radius, view - 1);
@@ -238,7 +239,7 @@ function drawCell(context, cell, view) {
   context.globalAlpha = 0.4 + 0.6 * clamp01(cell.health / cell.maxHealth);
   const outward = Math.atan2(cell.y - creature.centerY, cell.x - creature.centerX);   // away from the body centre
   drawCellArt(context, cell, radius, outward);
-  if (cell.type.senses === 'enemy') drawEyespotRange(context, cell);
+  if (showRanges && cell.type.senses === 'enemy') drawEyespotRange(context, cell);
   drawCellOverlays(context, cell, radius);
   context.globalAlpha = 1;
 }
@@ -265,7 +266,8 @@ function drawFluidLevel(context, cell, radius, fluid) {
 }
 
 // the light that Light eyes see (the mouse in the Sandbox): a soft glow
-function drawLight(context, light) {
+// showReach: the dashed ring at the edge of its reach (the title scene leaves it out)
+function drawLight(context, light, showReach = true) {
   if (!light) return;
   const glow = context.createRadialGradient(light.x, light.y, 0, light.x, light.y, LIGHT_GLOW_RADIUS);
   glow.addColorStop(0, 'rgba(255,230,150,0.35)');
@@ -277,6 +279,7 @@ function drawLight(context, light) {
   reach.addColorStop(1, 'rgba(255,230,150,0)');
   context.fillStyle = reach;
   fillCircle(context, light.x, light.y, light.range);
+  if (!showReach) return;
   context.strokeStyle = 'rgba(255,230,150,0.15)';
   context.setLineDash([4, 8]);
   context.beginPath();

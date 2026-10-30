@@ -6,6 +6,7 @@ const { load } = require('./load');
 const FRAME_MS = 16;
 const SCREEN_WIDTH = 1600;                                // px
 const SCREEN_HEIGHT = 900;
+const LEAVE_TITLE_FRAMES = 40;                            // frames for the title to dim to black (0.5 s) and close
 
 // A 2D canvas context that accepts every call and property and draws nothing. A call returns the context itself, so
 // what a call makes (a gradient) accepts calls too.
@@ -107,7 +108,10 @@ function createStorage(items) {
 
 // Starts the whole app in the fake browser (game.js boots it, since the fake has a `window`).
 // templateNames: the built-in design buttons ([data-template]) to make; storedItems: what localStorage holds.
-function startApp(templateNames, storedItems = {}) {
+// The game starts at the main menu, and Free build closes it (after the screen dims, LEAVE_TITLE_FRAMES) unless
+// options.atMainMenu keeps it open.
+// options.window: more fields of window, such as the desktop build's desktopWindow.
+function startApp(templateNames, storedItems = {}, options = {}) {
   const storage = createStorage(storedItems);
   const listeners = createListeners();
   const context2d = createIgnoringContext();
@@ -131,7 +135,7 @@ function startApp(templateNames, storedItems = {}) {
   let now = Date.now();
   const scope = load({
     document,
-    window: {},
+    window: { ...options.window },
     innerWidth: SCREEN_WIDTH,
     innerHeight: SCREEN_HEIGHT,
     performance: { now: () => now },
@@ -151,8 +155,12 @@ function startApp(templateNames, storedItems = {}) {
   const templateButton = name => templateButtons[templateNames.indexOf(name)];
   // a top-level name of the game's scripts (consts aren't properties of the global scope, so they are evaluated)
   const readGlobal = name => vm.runInContext(name, scope);
+  if (!options.atMainMenu) {
+    byId('menu-free-build').onclick({});
+    runFrames(LEAVE_TITLE_FRAMES);
+  }
   return { byId, fire, runFrames, templateButton, readGlobal, storage };
 }
 
 
-module.exports = { startApp, SCREEN_WIDTH, SCREEN_HEIGHT };
+module.exports = { startApp, SCREEN_WIDTH, SCREEN_HEIGHT, LEAVE_TITLE_FRAMES };

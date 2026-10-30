@@ -7,6 +7,23 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.6.0 (2026-10-30)
+- Milestone 6, menus and saves.
+- A title screen when the game starts: the main menu (Continue, Levels, Free build, Settings, and Quit in the desktop
+  game) over a living reef. Seekers swarm round a drifting light, Jellies pulse, and two rival packs of hunters (an
+  Eel and a Manta against a Crab, a Snarer and a Spitter) fight it out, while the camera drifts from one to the next.
+- Choosing where to go dims the screen with a soft sound, and the lab fades in; the Main menu fades back to the reef.
+- Esc opens a menu. In a level or the Sandbox it pauses the run: resume it, retry the level, go back to the builder,
+  change the settings or go to the main menu. In the builder, Esc first lets go of what you hold (a stamp, a drag,
+  the selected cells); with nothing in hand it opens the menu.
+- Settings: music, sounds, fullscreen, and the keys. Their buttons are gone from the toolbar; M, N and H still work.
+- Levels and the Sandbox are big buttons in the bottom-left corner of the builder: a green play button for Levels,
+  and a sand-coloured one with a lab flask for the Sandbox, where you try a creature out.
+- The game remembers where you left off. Your creature in the builder and the chosen level are kept as you work, and
+  Continue picks up a level or Sandbox run right where it was, even after closing the game.
+- Save your creature to a file, and load creature files, to back them up or share them.
+- Saves now carry a version number, so later versions of the game can bring older saves up to date.
+
 ## 0.5.2 (2026-10-29)
 - You choose where a nerve fibre runs: drag through the cells you want it to pass, and it follows the mouse. Go back
   over the path to undo a step. Drawing a fibre that is already there along a new path moves it.

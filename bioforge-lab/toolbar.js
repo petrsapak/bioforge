@@ -1,6 +1,6 @@
 'use strict';
-// The builder's toolbar down the left edge (Clear, Save creature, Unlimited biomass, Symmetry, the keys sheet and
-// the Sandbox button), the fluid views (Shift+1–6) and the Body, Nerves and Vessels tabs at the top (browser only).
+// The builder's toolbar down the left edge (Clear, Save creature, Unlimited biomass, Symmetry, Levels and the Sandbox
+// button), the keys sheet (H), the fluid views (Shift+1–6) and the Body, Nerves and Vessels tabs at the top (browser only).
 
 function setUpToolbar(app) {
   setUpLayerSwitch(app);
@@ -90,9 +90,8 @@ function showMirrorAxes(app) {
   byId('mirror-axes').classList.toggle('selected', app.mirrorAxes.length > 0);
 }
 
-// the sheet of mouse buttons and keys: the toolbar button or H opens it, any click closes it
+// the sheet of mouse buttons and keys: H or Settings opens it, any click closes it
 function setUpKeysSheet() {
-  byId('show-keys').onclick = toggleKeysSheet;
   byId('keys-sheet').onclick = toggleKeysSheet;
   byId('game-version').textContent = 'Bioforge Lab ' + GAME_VERSION;
 }

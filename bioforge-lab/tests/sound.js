@@ -80,11 +80,11 @@ check('the goal tune plays when the goal first counts up, not on coming back', t
 first.fire('window', 'keydown', { key: 'n' });
 const heardBefore = heard().length;
 first.runFrames(240);
-check('N switches the sounds off', heard().length === heardBefore &&
-  first.byId('toggle-sounds').classList.contains('off'));
+check('N switches the sounds off', heard().length === heardBefore);
 
 const second = startApp(['jet'], first.storage.items);
-check('switched off stays off on the next visit', second.byId('toggle-sounds').classList.contains('off'));
-second.byId('toggle-sounds').onclick({});
-check('the button switches them back on', !second.byId('toggle-sounds').classList.contains('off'));
+check('switched off stays off on the next visit, and Settings says so',
+  second.byId('setting-sounds').textContent === 'Off');
+second.byId('setting-sounds').onclick({});
+check('Settings switches them back on', second.byId('setting-sounds').textContent === 'On');
 done();
