@@ -80,6 +80,7 @@ function newWorld(width, height, options = {}) {
     spaceFiresAllSources: false,                          // Space fires every signal source, to try a design out
     enemiesIdle: false,                                   // sandbox: enemies hold still
     light: null,                                          // createLight(): what Light eyes see (sandbox: the mouse)
+    terrain: null,                                        // createTerrain() (terrain.js): rock and currents, or none
     systems: new Set(systems),
     ...overrides,
   };
@@ -158,6 +159,8 @@ function createCell(typeName, q, r, creature) {
     y: 0,
     velocityX: 0,
     velocityY: 0,
+    waterVelocityX: 0,                                    // px/s: the water round it, moved by a current
+    waterVelocityY: 0,
     forceX: 0,
     forceY: 0,
     health: type.health,

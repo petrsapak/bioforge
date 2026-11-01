@@ -142,6 +142,26 @@ const moodsBuild = (sideTypeName, withHeart = true) => ({ cells: [cell(0, 0, 'nu
   ...(withHeart ? [cell(-1, 2, 'heart')] : [])],
   fibres: [fibre(1, -2, 0, -1), ...(sideTypeName === 'receptor' ? [fibre(-2, 1, -1, 1), fibre(1, 1, 0, 1)] : [])],
   vessels: withHeart ? sim.linksFromList([[0, -1, -1, 2], [-1, 2, -2, 1], [-1, 2, 1, 1]]) : [] });
+// Crevice: a worm two cells wide, front to back: a pair of Bloaters, the Nucleus with a Pacemaker at the rate (Hz),
+// rows of Muscles (pairs on odd rows, one on even rows), a Tissue with an Inhibitor of the Pacemaker, and the back
+// cells (Bloaters, or backTypeName; a pair after an odd number of Muscle rows). The front Bloaters and the Muscles are
+// wired to the Nucleus, the back cells to the Inhibitor.
+function creviceWormBuild(rate = 1.5, muscleRows = 3, backTypeName = 'bloater') {
+  const at = (x, r, typeName, extra) => cell(x - r / 2, r, typeName, extra);
+  const rowAt = (r, typeName, extra) => (r % 2 ? [at(-0.5, r, typeName, extra), at(0.5, r, typeName)]
+    : [at(0, r, typeName, extra)]);
+  const front = rowAt(-1, 'bloater');
+  const muscles = Array.from({ length: muscleRows }, (unused, i) => rowAt(1 + i, 'muscle')).flat();
+  const inhibitorRow = rowAt(1 + muscleRows, 'tissue', { neuron: sim.createNeuron('inhibitor') });
+  const back = rowAt(2 + muscleRows, backTypeName);
+  const wire = (from, cells) => cells.map(target => fibre(from.q, from.r, target.q, target.r));
+  return { cells: [cell(0, 0, 'nucleus', { neuron: { kind: 'pacemaker', setting: rate } }), ...front, ...muscles,
+    ...inhibitorRow, ...back],
+  fibres: [...wire({ q: 0, r: 0 }, [...front, ...muscles, inhibitorRow[0]]), ...wire(inhibitorRow[0], back)] };
+}
+// Tail: the Wiggler with its Inhibitor taken out, so both sides of the tail contract together and only pulse
+const wigglerWithoutInhibitor = { ...sim.TEMPLATES.wiggler, cells: sim.TEMPLATES.wiggler.cells.map(bodyCell =>
+  (bodyCell.neuron && bodyCell.neuron.kind === 'inhibitor' ? { ...bodyCell, neuron: null } : bodyCell)) };
 const SOLUTIONS = {
   'first-stroke': { cells: [pacemakerNucleus(), cell(-1, 1, 'siphon'), cell(0, 1, 'siphon')],
     fibres: [fibre(0, 0, -1, 1), fibre(0, 0, 0, 1)] },
@@ -154,6 +174,8 @@ const SOLUTIONS = {
   'false-start': eyesThroughNucleus('latch'),
   metronome: eyesThroughNucleus('inhibitor', { kind: 'delay', setting: 3 }),
   dock: eyesThroughSynapse(1.5),
+  tail: sim.TEMPLATES.paddler,
+  crevice: creviceWormBuild(),
   'long-haul': seekerWithFat(true),
   exhaust: EXHAUST_BODY,
   'cold-water': coldWaterBuild(true),
@@ -184,6 +206,8 @@ const WRONG_TOOLS = {
   'false-start': SOLUTIONS.freeze,
   metronome: SOLUTIONS.freeze,
   dock: SOLUTIONS.freeze,
+  tail: wigglerWithoutInhibitor,
+  crevice: sim.TEMPLATES.paddler,
   'long-haul': SOLUTIONS.moth,
   exhaust: SOLUTIONS['long-haul'],
   'cold-water': SOLUTIONS.exhaust,
@@ -233,7 +257,19 @@ const levelById = id => sim.LEVELS.find(level => level.id === id);
 const dockRuns = [1, 2].map(threshold => sim.runLevel(levelById('dock'), eyesThroughSynapse(threshold)));
 check('"Dock": the Synapse\'s threshold matters: 1 stops short of the ring, 2 never stops',
   dockRuns.every(run => run.outcome === 'lost'), dockRuns.map(run => run.player.centerY.toFixed(0)).join());
-const fatOnly = sim.runLevel(levelById('long-haul'), seekerWithFat(false));
+check('"Tail" and "Crevice" don\'t allow Siphons or Cilia: the Jet doesn\'t fit',
+  ['tail', 'crevice'].every(id => /Siphon/.test(sim.buildCheck(sim.TEMPLATES.jet, sim.levelLimits(levelById(id))))));
+const wiggling = sim.runLevel(levelById('tail'), sim.TEMPLATES.wiggler);
+check('"Tail": the Wiggler wins without the Paddler\'s wave, but slower than the par', wiggling.outcome === 'won' &&
+  sim.levelScore(wiggling, sim.TEMPLATES.wiggler).stars === 2, `${wiggling.time.toFixed(1)} s`);
+const wormRuns = [creviceWormBuild(1), creviceWormBuild(1.5, 5), creviceWormBuild(2, 5)]
+  .map(build => sim.runLevel(levelById('crevice'), build));
+check('"Crevice": the worm crawls out at other rates and lengths too', wormRuns.every(run => run.outcome === 'won'),
+  wormRuns.map(run => `${run.outcome} ${run.time.toFixed(0)} s`).join(', '));
+const noBackGrip = sim.runLevel(levelById('crevice'), creviceWormBuild(1.5, 3, 'tissue'));
+check('"Crevice": without Bloaters at the back nothing holds the body while it stretches, and the current wins',
+  noBackGrip.outcome === 'lost', noBackGrip.reason);
+const fatOnly =sim.runLevel(levelById('long-haul'), seekerWithFat(false));
 check('"Long haul": Fat alone is not enough, it runs out of O2', fatOnly.outcome === 'lost' &&
   fatOnly.player.cells.every(playerCell => playerCell.fluids[sim.FLUID_OXYGEN] < 0.01), fatOnly.reason);
 const tissueBack = sim.runLevel(levelById('exhaust'), seekerWithStores('tissue'));

@@ -36,7 +36,8 @@ const GUIDE_CELLS = {
     watch: 'A muscle only bends the body. To swim, it needs a fin of Joints behind it, or it swims tail first. ' +
       'Speed is touchy about the rate: try it in small steps (short bodies beat fast, long ones slower).' },
   bloater: { chapter: 0, pairs: ['eyespot', 'command'],
-    watch: 'Burns fuel while swollen. Swelling shoves your own cells too.' },
+    watch: 'Burns fuel while swollen. Swelling shoves your own cells too. It lets go a little slower than it ' +
+      'swells, so a gripping Bloater needs a slow beat to let go of the rock.' },
   siphon: { chapter: 1, pairs: ['lighteye', 'nose', 'pacemaker', 'heart'],
     watch: 'Thirsty: a Siphon far from O₂ and sugar soon starves and stops. Put them at the back, one on each ' +
       'side.' },
@@ -174,6 +175,9 @@ const GUIDE_TOPICS = [
         'creature swims head first, about as fast as Siphons.',
       'A Delay in the back row of Muscles makes it beat a moment after the front: a wave runs down the body to the ' +
         'fin, nearly as fast as Cilia. Keep both sides the same, cell for cell and fibre for fibre, or it curves.',
+      'In a crevice there is no room to beat a tail, so crawl like a worm: a pair of Bloaters at each end, ' +
+        'Muscles between. The front pair grips while the Muscles pull the back up after it, the back pair grips ' +
+        'while they let go and stretch the body forward.',
     ],
     example: 'The Wiggler in Templates: a Mouth, a Pore and two Gills at the head, two rows of Muscles, a fin of ' +
       'five Joints. The Paddler is the same body with a 0.1 s Delay in each back-row Muscle.',

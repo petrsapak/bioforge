@@ -9,6 +9,7 @@ const ZOOM_MIN = 0.2;                                     // screen px per grid 
 const ZOOM_MAX = 5;                                       // screen px per grid px
 const ZOOM_START = 1.9;                                   // screen px per grid px
 const ZOOM_PER_WHEEL_UNIT = 0.0015;                       // zoom is scaled by e^-(this × wheel delta)
+const FOCUS_FOLLOW_RATE = 10;                             // per s: how fast the view glides to the arrow keys' cell
 const HEX_FILL_SIZE = HEX_SPACING_X / Math.sqrt(3) - 0.6; // grid px from a hex's centre to its corners, drawn
 const HEX_OUTLINE_SIZE = HEX_SPACING_X / Math.sqrt(3) - 1.2;
 const BUILDER_BACKGROUND = '#0b1418';
@@ -68,6 +69,7 @@ function fitGridToScreen(app) {
   app.gridView.zoom = clampZoom(Math.min(width / gridWidth, height / gridHeight));
   app.gridView.panX = 0;
   app.gridView.panY = 0;
+  app.isFollowingFocus = false;                           // or the view would glide back to the clicked cell
 }
 
 const clampZoom = zoom => Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoom));
@@ -80,6 +82,16 @@ function zoomAtCursor(app, screenX, screenY, wheelDelta) {
   view.panX += (screenX - origin.x) * (1 - zoom / view.zoom);
   view.panY += (screenY - origin.y) * (1 - zoom / view.zoom);
   view.zoom = zoom;
+}
+
+// While the arrow keys step the click from cell to cell, the view glides to keep that cell in the middle of the
+// screen, so it can't be stepped off it. Touching the mouse stops this (app.isFollowingFocus, see ui.js).
+function followFocusedCell(app, dt) {
+  if (!app.isFollowingFocus || !app.focusKey) return;
+  const [x, y] = keyToPixel(app.focusKey);
+  const share = Math.min(1, FOCUS_FOLLOW_RATE * dt);
+  app.gridView.panX += (-x * app.gridView.zoom - app.gridView.panX) * share;
+  app.gridView.panY += (-y * app.gridView.zoom - app.gridView.panY) * share;
 }
 
 // ---------- The builder ----------
@@ -188,18 +200,26 @@ function drawMirrorAxes(app) {
   context.setLineDash([]);
 }
 
-// Shift held in the Body view shows where the chosen cell type is used
-const isShowingSameType = app => app.keysHeld.has('shift') && app.layer === 'body' && !app.stamp &&
-  !!app.selectedType;
+// The cell type Shift shows: the clicked cell's, else the one chosen in the dock (null if neither). The clicked cell
+// comes first, since nothing is chosen in the dock at first (0.7.7) and Shift then showed nothing.
+function sameTypeShown(app) {
+  const focused = app.focusKey && app.edited.cells.get(app.focusKey);
+  return focused ? focused.typeName : app.selectedType;
+}
 
-// Shift: the other cells shaded, and every cell of the chosen type outlined
+// Shift held in the Body view shows where the clicked or chosen cell type is used
+const isShowingSameType = app => app.keysHeld.has('shift') && app.layer === 'body' && !app.stamp &&
+  !!sameTypeShown(app);
+
+// Shift: the other cells shaded, and every cell of the shown type outlined
 function drawSameTypeCells(app) {
   if (!isShowingSameType(app)) return;
   const context = app.context;
+  const typeName = sameTypeShown(app);
   for (const cell of app.edited.cells.values()) {
     const [x, y] = hexToPixel(cell.q, cell.r);
     traceHex(context, x, y, HEX_FILL_SIZE);
-    if (cell.typeName !== app.selectedType) {
+    if (cell.typeName !== typeName) {
       context.fillStyle = SAME_TYPE_SHADE;
       context.fill();
       continue;
@@ -210,14 +230,15 @@ function drawSameTypeCells(app) {
   }
 }
 
-// Shift: how many cells of the chosen type the design has, under the limits line at the top
+// Shift: how many cells of the shown type the design has, under the limits line at the top
 function drawSameTypeCount(app) {
-  const count = [...app.edited.cells.values()].filter(cell => cell.typeName === app.selectedType).length;
+  const typeName = sameTypeShown(app);
+  const count = [...app.edited.cells.values()].filter(cell => cell.typeName === typeName).length;
   const context = app.context;
   context.fillStyle = SAME_TYPE_COLOR;
   context.font = '13px system-ui';
   context.textAlign = 'center';
-  const label = `${count} ${CELLS[app.selectedType].name} cell${count === 1 ? '' : 's'}`;
+  const label = `${count} ${CELLS[typeName].name} cell${count === 1 ? '' : 's'}`;
   context.fillText(label, app.canvas.width / 2, SAME_TYPE_COUNT_Y);
 }
 

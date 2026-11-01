@@ -13,7 +13,7 @@ const { X: sim } = load({}, ['createEditedDesign', 'canPlaceCell', 'placeCell', 
   'hexesAlongStroke', 'MIRROR_AXIS_COUNT', 'FRONT_TO_BACK_AXIS', 'extendFibrePath', 'laidOutBodyFibres',
   'planFibreToggle', 'fibreUnits', 'laidOutBodyLinks', 'toggleVessel', 'mirrorKeyMaps', 'placeNeuronMirrored',
   'changeNeuronSettingMirrored', 'removeNeuronMirrored', 'toggleFibreMirrored', 'removeFibreMirrored',
-  'setSensedHormoneMirrored', 'toggleVesselMirrored', 'removeVesselMirrored']);
+  'setSensedHormoneMirrored', 'toggleVesselMirrored', 'removeVesselMirrored', 'cellInDirection']);
 
 const cellsOf = list => list.map(([q, r, typeName]) => sim.createDesignCell(q, r, typeName));
 const editedFrom = (cells, biomassLimit) => sim.createEditedDesign({ cells, fibres: [] }, biomassLimit);
@@ -357,6 +357,20 @@ const editedFrom = (cells, biomassLimit) => sim.createEditedDesign({ cells, fibr
   const stroke = sim.hexesAlongStroke(sim.hexToPixel(0, 0), sim.hexToPixel(5, 0));
   check('a fast stroke along a row covers all six hexes, in order',
     JSON.stringify(stroke) === JSON.stringify([0, 1, 2, 3, 4, 5].map(q => [q, 0])), JSON.stringify(stroke));
+}
+
+
+{ // the arrow keys: the next cell that way, gaps jumped over, up and down keeping to a column
+  const edited = editedFrom(cellsOf([[0, 0, 'nucleus'], [2, 0, 'tissue'], [0, -1, 'tissue'], [1, -1, 'tissue'],
+    [1, -2, 'tissue'], [1, -3, 'tissue'], [2, -3, 'tissue'], [2, -4, 'tissue']]));
+  const step = (fromKey, direction, columnX = 0) => sim.cellInDirection(edited, fromKey, direction, columnX);
+  check('Right jumps the gap to the next cell in the row', step('0,0', [1, 0]) === '2,0');
+  check('Left finds nothing: the cells in the row above are more above it than beside it',
+    step('0,0', [-1, 0]) === null);
+  let key = '0,0';
+  for (let i = 0; i < 4; i++) key = step(key, [0, -1]);
+  check('Up four times from x 0 keeps to the column x 0, through the zigzag of rows', key === '2,-4', key);
+  check('Down from the bottom finds nothing', step('0,0', [0, 1]) === null);
 }
 
 done();

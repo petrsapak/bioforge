@@ -12,6 +12,8 @@ const TANK_CENTER_PULL = 0.05;                            // share of the creatu
 const SAVE_MENU_WIDTH = 230;                              // px kept free right of the save menu's corner
 const SAVE_MENU_HEIGHT = 120;                             // px
 const LAYER_BY_KEY = { 1: 'body', 2: 'nerve', 3: 'vessel' };    // the builder's tab each number key opens
+// the builder's arrow keys: the screen direction each steps the clicked cell in
+const ARROW_STEPS = { arrowleft: [-1, 0], arrowright: [1, 0], arrowup: [0, -1], arrowdown: [0, 1] };
 // keys with a job of their own, which a Command can't be bound to: the tabs, Q/E, F, H, M, and P, R, T in runs
 const RESERVED_KEYS = new Set(['1', '2', '3', 'c', 'e', 'f', 'g', 'h', 'm', 'n', 'p', 'q', 'r', 't']);
 
@@ -32,6 +34,8 @@ function createApp(canvas) {
     selectedType: null,                                   // the cell type a click places (Body view); none at first
     selectedNeuron: null,                                 // the neuron a click places (Nerve view); none at first
     focusKey: null,                                       // the clicked cell, shown and set up in the panel
+    arrowColumn: null,                                    // { key, x }: the column Up and Down keep to (grid px)
+    isFollowingFocus: false,                              // the view follows the arrow keys' cell, till the mouse moves
     selection: new Set(),                                 // Ctrl+clicked hexes
     stamp: null,                                          // a saved part being placed: { template, rotation }
     mirrorAxes: readStorage('mirror-axes', []),           // the symmetry axes on, as turns of 30° (builder.js)
@@ -175,8 +179,14 @@ function loadDesign(app, design, label, savedName) {
   if (problem) showMessage(`${label}: ${problem}. Try it in the Sandbox, or trim it to fit.`);
 }
 
-// chooses the cell type to place, putting away a held stamp; the chosen one again puts it down
+// chooses the cell type to place, putting away a held stamp; the chosen one again puts it down. A type the chosen
+// level doesn't allow can't be picked.
 function pickCellType(app, typeName) {
+  if (isCellBanned(chosenLimits(app), typeName)) {
+    showMessage(`No ${CELLS[typeName].name} allowed in this level.`);
+    playSound(app, 'refuse');
+    return;
+  }
   app.selectedType = app.selectedType === typeName && !app.stamp ? null : typeName;
   app.stamp = null;
   refreshPanel(app);
@@ -287,6 +297,7 @@ function enterBuilder(app) {
   app.levelRun = null;
   app.gridView.panX = 0;                                // the Nucleus back in the middle of the screen
   app.gridView.panY = 0;
+  app.isFollowingFocus = false;
   showModeWindows(app);
   rebuildTank(app);
 }
@@ -302,7 +313,7 @@ function listenToKeyboard(app) {
     if (event.target && event.target.tagName === 'INPUT') return;   // typing a name
     const key = event.key.toLowerCase();
     app.keysHeld.add(key);
-    if (key === ' ') event.preventDefault();
+    if (key === ' ' || ARROW_STEPS[key]) event.preventDefault();   // not the page's scrolling
     if (isDialogOpen()) {
       event.preventDefault();
       handleDialogKey(key);
@@ -388,13 +399,30 @@ function bindFocusedCommand(app, commandKey) {
 }
 
 // F fits the grid; G opens the field guide; H shows the keys; Esc closes a sheet or drops what is in hand, or else
-// opens the menu; Q/E turn the stamp, the dragged part or the clicked Bud's part
+// opens the menu; Q/E turn the stamp, the dragged part or the clicked Bud's part; the arrows step between cells
 function handleBuilderKey(app, key) {
   if (key === 'f') fitGridToScreen(app);
   if (key === 'g') openGuideFromBuilder(app);
   if (key === 'h') toggleKeysSheet();
   if (key === 'escape' && !closeOpenSheet() && !letGoOfWhatIsInHand(app)) openPauseMenu(app);
   if (key === 'q' || key === 'e') turnWhatIsInHand(app, key === 'e' ? 1 : -1);
+  if (ARROW_STEPS[key]) stepToNextCell(app, ARROW_STEPS[key]);
+}
+
+// The arrow keys move the click from the clicked cell to the next one that way (from the Nucleus if none is
+// clicked). Up and down remember the column they started in, until a cell is clicked or left or right is pressed.
+function stepToNextCell(app, direction) {
+  const fromKey = app.focusKey || [...app.edited.cells.keys()].find(key => isNucleusHex(app, key));
+  if (!fromKey) return;
+  const isVertical = direction[0] === 0;
+  const isSameColumn = isVertical && app.arrowColumn && app.arrowColumn.key === fromKey;
+  const columnX = isSameColumn ? app.arrowColumn.x : keyToPixel(fromKey)[0];
+  const key = app.focusKey ? cellInDirection(app.edited, fromKey, direction, columnX) : fromKey;
+  if (!key) return;
+  app.focusKey = key;
+  app.arrowColumn = isVertical ? { key, x: columnX } : null;
+  app.isFollowingFocus = true;                            // the view keeps the cell in the middle (followFocusedCell)
+  refreshPanel(app);
 }
 
 // closes the keys sheet, the levels sheet, the save menu or the Symmetry dial; false if none was open
@@ -448,6 +476,12 @@ function hexUnderMouse(app, event) {
 // listens to the mouse on the canvas
 function listenToMouse(app) {
   const canvas = app.canvas;
+  // touching the mouse hands the view back to it (the arrow keys made it follow the clicked cell)
+  for (const type of ['mousemove', 'mousedown', 'wheel']) {
+    canvas.addEventListener(type, () => {
+      app.isFollowingFocus = false;
+    });
+  }
   canvas.addEventListener('mousemove', event => {
     trackMouse(app, event);
     trackSandboxLight(app, event);
@@ -746,6 +780,7 @@ function runBuilderFrame(app, dt, now) {
       cell.y += shiftY;
     }
   }
+  followFocusedCell(app, dt);
   drawBuilder(app);
   drawPreview(app);
   updateTooltip(app, now);

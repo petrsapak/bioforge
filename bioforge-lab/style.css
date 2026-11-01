@@ -359,6 +359,7 @@ button.small.primary:hover { background: #3d6b38; }
 }
 .palette-cell:hover { background: #5d6b77; }
 .palette-cell.selected { background: #e8c547; }
+.palette-cell.banned { opacity: 0.25; }
 
 /* ---------- Sandbox top bar ---------- */
 #sandbox-bar {

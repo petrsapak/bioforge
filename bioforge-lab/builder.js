@@ -1,8 +1,8 @@
 'use strict';
 // The design being edited in the builder, and every editing rule: placing and removing cells, Bud parts and their aim,
-// neurons, fibres and Command keys, vessels, stamping saved parts, and saving a selection. Pure: no DOM, so the rules
-// are tested in Node. Cells that aren't joined to the Nucleus are only planned: they cost nothing and stay out of the
-// creature, and so do fibres and vessels to or from them.
+// neurons, fibres and Command keys, vessels, stamping saved parts, saving a selection, and stepping between cells
+// with the arrow keys. Pure: no DOM, so the rules are tested in Node. Cells that aren't joined to the Nucleus are
+// only planned: they cost nothing and stay out of the creature, and so do fibres and vessels to or from them.
 
 const BUD_AIM_HANDLE_RADIUS = 12;                         // grid px around an aim arrow's tip that grab it
 const BUD_AIM_ARROW_LENGTH = 18;                          // grid px
@@ -404,6 +404,28 @@ function hexesAlongStroke([fromX, fromY], [toX, toY]) {
     hexes.push(hex);
   }
   return hexes;
+}
+
+// The arrow keys' step from the cell at fromKey: the nearest cell that way ([directionX, directionY], one of them 0),
+// gaps jumped over. Left and right keep to cells more beside it than above or below; up and down keep near columnX
+// (grid px), so that a run of steps up a zigzag of rows goes straight. Null if there is none that way.
+function cellInDirection(edited, fromKey, [directionX, directionY], columnX) {
+  const from = parseHexKey(fromKey);
+  const [fromX, fromY] = hexToPixel(from.q, from.r);
+  let bestKey = null;
+  let bestScore = Infinity;
+  for (const [key, cell] of edited.cells) {
+    const [x, y] = hexToPixel(cell.q, cell.r);
+    const ahead = (x - fromX) * directionX + (y - fromY) * directionY;
+    if (ahead <= 0) continue;
+    const across = directionX ? Math.abs(y - fromY) : Math.abs(x - columnX);
+    if (directionX && across >= ahead) continue;
+    const score = ahead + across;
+    if (score >= bestScore) continue;
+    bestScore = score;
+    bestKey = key;
+  }
+  return bestKey;
 }
 
 // ---------- The nerve layer ----------

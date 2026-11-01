@@ -112,7 +112,7 @@ const TIPS = {
   },
   bloater: {
     howToUse: 'Needs a nerve signal and fuel. On the surface its swelling hits enemies; inside, it pushes the ' +
-      'body apart.',
+      'body apart. In a crevice, a pair side by side swells against both walls and grips the rock.',
     example: {
       cells: [
         [0, 0, 'nucleus'], [0, -1, 'eyespot'], [1, -1, 'bloater'], [1, 0, 'bloater'], [-1, 0, 'bloater'],

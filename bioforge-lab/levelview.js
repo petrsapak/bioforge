@@ -150,7 +150,9 @@ function showLevelCard(app) {
   byId('level-card-brief').textContent = level.brief;
   const rule = (name, value) => `<span>${name}</span><b>${value}</b>`;
   const materials = limits.kit ? rule('Kit', kitText(limits.kit)) : rule('Biomass', limits.budget);
-  byId('level-card-rules').innerHTML = materials + rule('Time limit', level.timeLimit + ' s') +
+  const banned = limits.bannedCells.map(typeName => CELLS[typeName].name).join(', ');
+  const bannedRule = banned ? rule('Not allowed', banned) : '';
+  byId('level-card-rules').innerHTML = materials + bannedRule + rule('Time limit', level.timeLimit + ' s') +
     rule('★ Finish by', level.par.seconds + ' s') + rule('★ Use at most', level.par.biomass + ' biomass') +
     rule('Best', best ? `${best.seconds.toFixed(1)} s, ${formatBiomass(best.biomass)} biomass` : '–');
   byId('level-card-hint').textContent = app.isHintShown ? level.hint : '';

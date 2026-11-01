@@ -70,6 +70,7 @@ function applyDirectionInput(creature, input) {
 // ---------- Physics step ----------
 function updatePhysics(world, dt) {
   const substep = dt / PHYSICS_SUBSTEPS;
+  measureWaterFlow(world);
   for (let i = 0; i < PHYSICS_SUBSTEPS; i++) {
     for (const creature of world.creatures) applySteering(creature);
     applyBondForces(world);
@@ -78,6 +79,7 @@ function updatePhysics(world, dt) {
     applySkinDrag(world);
     applySnarePull(world);
     resolveCollisions(world);
+    applyRockForces(world);
     integrate(world, substep);
   }
 }
@@ -178,11 +180,13 @@ function applySkinDrag(world) {
   for (const cell of world.cells) {
     if (!cell.onSurface) continue;
     const neighbours = cell.skinNeighbours;
-    const speed = vectorLength(cell.velocityX, cell.velocityY);
+    const velocityX = cell.velocityX - cell.waterVelocityX;   // through the water, which a current moves
+    const velocityY = cell.velocityY - cell.waterVelocityY;
+    const speed = vectorLength(velocityX, velocityY);
     if (neighbours.length !== 2) {
       const roundDrag = SKIN_FACE_DRAG + SKIN_FACE_SQUARE_DRAG * speed;
-      cell.forceX -= roundDrag * cell.velocityX;
-      cell.forceY -= roundDrag * cell.velocityY;
+      cell.forceX -= roundDrag * velocityX;
+      cell.forceY -= roundDrag * velocityY;
       continue;
     }
     let directionX = neighbours[1].x - neighbours[0].x;
@@ -191,8 +195,8 @@ function applySkinDrag(world) {
     directionX /= chord;
     directionY /= chord;
     const skinShare = chord / (4 * CELL_RADIUS);           // this cell's share of the skin, about 1
-    const faceSpeed = cell.velocityY * directionX - cell.velocityX * directionY;
-    const edgeSpeed = cell.velocityX * directionX + cell.velocityY * directionY;
+    const faceSpeed = velocityY * directionX - velocityX * directionY;
+    const edgeSpeed = velocityX * directionX + velocityY * directionY;
     const faceDrag = SKIN_FACE_DRAG * faceSpeed + SKIN_FACE_SQUARE_DRAG * faceSpeed * Math.abs(faceSpeed);
     const edgeDrag = SKIN_EDGE_DRAG * edgeSpeed;
     // the face direction is the normal (-directionY, directionX)
@@ -231,11 +235,11 @@ function applyAngleSpringForces(world) {
   }
 }
 
-// slows every cell in proportion to its speed
+// slows every cell in proportion to its speed through the water
 function applyWaterDrag(world) {
   for (const cell of world.cells) {
-    cell.forceX -= WATER_DRAG * cell.velocityX;
-    cell.forceY -= WATER_DRAG * cell.velocityY;
+    cell.forceX -= WATER_DRAG * (cell.velocityX - cell.waterVelocityX);
+    cell.forceY -= WATER_DRAG * (cell.velocityY - cell.waterVelocityY);
   }
 }
 

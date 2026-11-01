@@ -56,9 +56,13 @@ function wirePanelButtons(app) {
   };
 }
 
-// marks the chosen cell type, neuron and view as selected
+// marks the chosen cell type, neuron and view as selected, and dims the cell types the chosen level doesn't allow
 function showSelectedButtons(app) {
-  for (const [typeName, button] of app.dockButtons) button.classList.toggle('selected', typeName === app.selectedType);
+  const limits = chosenLimits(app);
+  for (const [typeName, button] of app.dockButtons) {
+    button.classList.toggle('selected', typeName === app.selectedType);
+    button.classList.toggle('banned', isCellBanned(limits, typeName));
+  }
   for (const [kind, button] of app.neuronButtons) button.classList.toggle('selected', kind === app.selectedNeuron);
   byId('layer-body').classList.toggle('selected', app.layer === 'body');
   byId('layer-nerve').classList.toggle('selected', app.layer === 'nerve');

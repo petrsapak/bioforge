@@ -7,6 +7,19 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.9 (2026-11-01)
+- Rock: levels can have walls and stones built of hexes, and currents of moving water. Cells pressed against rock
+  are held by it, the harder the tighter.
+- Two new levels at the end of chapter 2, both without Siphons or Cilia: Tail (swim across the water on Muscles)
+  and Crevice (crawl along a crack in the rock against the current, gripping the walls with Bloaters).
+- A level can leave cells out: they are dimmed in the dock, and the level card lists them under Not allowed.
+- Bloaters let go a little faster after swelling, quick enough to let go of the rock.
+- In the builder, Shift shows every cell of the clicked cell's type again (with nothing clicked, of the type chosen
+  in the dock).
+- In the builder, the arrow keys step from the clicked cell to the next cell that way (from the Nucleus if none is
+  clicked); up and down keep to a straight column, and the view glides along to keep that cell in the middle
+  until the mouse moves again.
+
 ## 0.7.8 (2026-11-01)
 - Muscle swimming works: two rows of Muscles behind the head with a fin of Joints behind them swim head first at
   about the speed of Siphons, and a Delay in the back row's Muscles sends a wave down to the fin that swims as fast

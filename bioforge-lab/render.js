@@ -1,6 +1,6 @@
 'use strict';
-// Canvas drawing of the world: bonds, cells, blood vessels, nerve fibres, snare lines, globs, zaps, food and sparks
-// (browser only).
+// Canvas drawing of the world: rock and currents, bonds, cells, blood vessels, nerve fibres, snare lines, globs, zaps,
+// food and sparks (browser only).
 
 // bond colour by team, see-through like the cells: 0 = the player's side, 1 = enemies, -1 = debris
 const BOND_COLORS = { 0: 'rgba(80,170,140,0.22)', 1: 'rgba(200,90,110,0.22)', '-1': 'rgba(140,150,155,0.18)' };
@@ -22,6 +22,10 @@ const VESSEL_SHUT_COLOR = '#6a5a62';                      // a vessel an unsigna
 const VESSEL_COLORS = ['#e0485a', '#ff8a7a', '#c0304a', '#ff6f9a', '#d8645a', '#ff9fb4'];
 const VESSEL_WIDTH = 1.2;                                 // px, a little thicker than a fibre
 const VESSEL_IDLE_ALPHA = 0.55;                           // share of its strength a vessel no Heart pumps is drawn at
+const ROCK_COLORS = ['#3a3530', '#433d36', '#4b443b'];   // rock hexes, mixed so the rock looks like stone
+const ROCK_EDGE_COLOR = '#5e564b';
+const CURRENT_STREAK_SPACING = 18;                        // px between the streaks drawn in a current
+const CURRENT_STREAK_LENGTH = 0.4;                        // s of flow a streak is long
 
 // view 0 = normal, 1..5 = fill level of one fluid; viewBox = { minX, minY, maxX, maxY }: draw only cells inside it.
 // Vessels and fibres are left out, since they clutter the game and the builder's preview; the tip demos add them.
@@ -31,6 +35,8 @@ function drawWorld(context, world, view, viewBox, showRanges = true) {
     ? cell => cell.x > viewBox.minX - VIEW_MARGIN && cell.x < viewBox.maxX + VIEW_MARGIN &&
       cell.y > viewBox.minY - VIEW_MARGIN && cell.y < viewBox.maxY + VIEW_MARGIN
     : () => true;
+  drawCurrents(context, world);
+  drawRock(context, world);
   drawBonds(context, world, isVisible);
   for (const cell of world.cells) {
     if (isVisible(cell)) drawCell(context, cell, view, showRanges);
@@ -41,6 +47,45 @@ function drawWorld(context, world, view, viewBox, showRanges = true) {
   drawZaps(context, world);
   drawFood(context, world);
   drawSparks(context, world);
+}
+
+// the rock tiles as stone hexagons, each a shade from ROCK_COLORS picked by its place, so the pattern stays put
+function drawRock(context, world) {
+  if (!world.terrain) return;
+  context.strokeStyle = ROCK_EDGE_COLOR;
+  context.lineWidth = 1;
+  for (const [q, r] of world.terrain.tiles) {
+    const [x, y] = hexToPixel(q, r);
+    context.save();
+    context.translate(x, y);
+    traceHexagon(context, ROCK_CORNER, -Math.PI / 2);
+    context.fillStyle = ROCK_COLORS[((q * 7 + r * 13) % 3 + 3) % 3];
+    context.fill();
+    context.stroke();
+    context.restore();
+  }
+}
+
+// faint streaks drifting with each current, so the moving water shows
+function drawCurrents(context, world) {
+  if (!world.terrain) return;
+  context.strokeStyle = 'rgba(150,215,235,0.4)';
+  context.lineWidth = 1.5;
+  context.beginPath();
+  for (const current of world.terrain.currents) {
+    const speed = vectorLength(current.flowX, current.flowY) || 1;
+    const wrapInto = (value, size) => (value % size + size) % size;
+    for (let across = CURRENT_STREAK_SPACING / 2; across < current.width; across += CURRENT_STREAK_SPACING) {
+      for (let down = 0; down < current.height; down += CURRENT_STREAK_SPACING * 2) {
+        const drift = world.time * speed + (across * 37) % CURRENT_STREAK_SPACING;
+        const x = current.x + wrapInto(across + drift * current.flowX / speed, current.width);
+        const y = current.y + wrapInto(down + drift * current.flowY / speed, current.height);
+        context.moveTo(x, y);
+        context.lineTo(x - current.flowX * CURRENT_STREAK_LENGTH, y - current.flowY * CURRENT_STREAK_LENGTH);
+      }
+    }
+  }
+  context.stroke();
 }
 
 // the faint reach of every lit Photophore: as far as other creatures' Light eyes see it

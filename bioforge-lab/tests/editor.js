@@ -372,3 +372,52 @@ check("Bioforge Moba's old library carries over", byId('library-tab-creatures').
   dragFrom([1, 0], [0, 1]);
   pressKey('1');
 }
+
+{ // Shift shows every cell of the clicked cell's type; the arrow keys step the click from cell to cell
+  readGlobal('globalThis.testApp = null; const drawSameTypeCellsBefore = drawSameTypeCells; ' +
+    'drawSameTypeCells = app => { globalThis.testApp = app; return drawSameTypeCellsBefore(app); }; 0');
+  runFrames(1);
+  const app = readGlobal('globalThis.testApp');
+  const cell = (q, r, typeName) => readGlobal('createDesignCell')(q, r, typeName);
+  const cells = [cell(0, 0, 'nucleus'), cell(1, 0, 'muscle'), cell(3, 0, 'muscle'), cell(0, -1, 'tissue'),
+    cell(1, -1, 'tissue'), cell(1, -2, 'muscle')];
+  readGlobal('loadDesign')(app, { cells, fibres: [] }, 'test');
+  readGlobal('closeOpenSheet')();                        // the Symmetry dial, still open from above
+  clickHex(1, 0);
+  fire('window', 'keydown', { key: 'Shift' });
+  runFrames(1);
+  check('Shift with a clicked cell and nothing chosen in the dock shows the clicked cell\'s type',
+    readGlobal('isShowingSameType')(app) && readGlobal('sameTypeShown')(app) === 'muscle');
+  fire('window', 'keyup', { key: 'Shift' });
+  const focusedHex = () => app.focusKey;
+  pressKey('ArrowRight');
+  check('Right steps over the gap to the next cell in the row', focusedHex() === '3,0', focusedHex());
+  pressKey('ArrowRight');
+  check('with nothing further right the click stays', focusedHex() === '3,0', focusedHex());
+  pressKey('Escape');
+  pressKey('ArrowUp');
+  check('with no cell clicked, an arrow clicks the Nucleus', focusedHex() === '0,0', focusedHex());
+  pressKey('ArrowUp');
+  pressKey('ArrowUp');
+  check('Up twice from the Nucleus keeps to its column', focusedHex() === '1,-2', focusedHex());
+  pressKey('ArrowDown');
+  pressKey('ArrowLeft');
+  check('Left goes along the row', focusedHex() === '0,-1', focusedHex());
+  pressKey('2');
+  pressKey('ArrowUp');
+  check('in the Nerve view the arrows work too, and the card shows the cell stepped to',
+    focusedHex() === '1,-2' && /Muscle/.test(info()), focusedHex() + ' ' + info());
+  pressKey('1');
+  runFrames(120);
+  const [cellX, cellY] = readGlobal('hexToPixel')(1, -2);
+  const view = app.gridView;
+  const isCentred = () => Math.abs(view.panX + cellX * view.zoom) < 1 && Math.abs(view.panY + cellY * view.zoom) < 1;
+  check('after the arrow keys the view glides to keep the clicked cell in the middle', isCentred(),
+    `pan ${view.panX.toFixed(1)}, ${view.panY.toFixed(1)}`);
+  moveMouseTo(3, 0);
+  view.panX = 0;
+  runFrames(30);
+  check('once the mouse moves, the view stays where it is put', view.panX === 0, String(view.panX));
+}
+
+done();

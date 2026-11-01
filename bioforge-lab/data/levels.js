@@ -6,11 +6,14 @@
 //     and food; chapter 5 secretions; chapter 6 chemical, scent and treatments)
 //   seepFactor: share of the usual seeping between cells and unpumped vessel flow (cold water: less); a Heart's
 //     pumping is not slowed
-//   limits: design limits ({ budget, maxCells, maxNeurons, maxFibreUnits, maxVesselUnits }); any left out come from
+//   limits: design limits ({ budget, maxCells, maxNeurons, maxFibreUnits, maxVesselUnits, bannedCells: cell type
+//   names the level doesn't allow }); any left out come from
 //   RULES. kit: { protein, sugar, fat, mineral } (data/materials.js) instead of a budget: the body's recipes must fit
 //   it, and what is left is the creature's starting sugar, fat and mineral, in place of stores two thirds full
 //   food: the food supply (createFoodSupply in food.js), where the food system runs
 //   start: the player's spawn { x, y } in px and heading in rad (0 faces up)
+//   rocks: boxes { x, y, width, height } (px) filled with rock hexes (terrain.js); currents: boxes of moving water,
+//     { x, y, width, height, flowX, flowY } with the flow in px/s
 //   light: null, or { range } plus where it is: { x, y } fixed, { path, speed } going round a loop of points (px)
 //     at speed px/s, or { carriedBy } the index of the level creature it sits on. It shines all the time, unless
 //     it has blink: { on, off } (game s on, then off, repeating from the start) or flash: { at, length } (once, at
@@ -50,13 +53,28 @@ const DRIFTING_LIGHT = {                                  // round a loop of poi
 // a clam fixed to the rock in the upper middle, with the light on it so Light eyes find it
 const ANCHORED_CLAM = { design: 'clam', x: 700, y: 200, heading: 0, behaviour: 'wired', anchored: true };
 const CLAM_LIGHT = { carriedBy: 0, range: 900 };          // px
+// the cell types that swim without muscle, left out where muscle is the point
+const NO_JETS = ['siphon', 'cilia'];
+// Crevice: a band of rock across the middle with a crevice along it, three hex rows high (46 to 58 px between the
+// rock hexes, as hex rows run straight sideways), and a current flowing out of it to the left at 30 px/s
+const CREVICE_LEFT = 350;                                 // px
+const CREVICE_RIGHT = 1050;                               // px
+const CREVICE_TOP = 370;                                  // px: the lowest rock hex row above it is at 364
+const CREVICE_BOTTOM = 425;                               // px: the highest rock hex row below it is at 433
+const CREVICE_MIDDLE = 398;                               // px: the hex row along its middle
+const CREVICE_ROCKS = [
+  { x: CREVICE_LEFT, y: 250, width: CREVICE_RIGHT - CREVICE_LEFT, height: CREVICE_TOP - 250 },
+  { x: CREVICE_LEFT, y: CREVICE_BOTTOM, width: CREVICE_RIGHT - CREVICE_LEFT, height: 550 - CREVICE_BOTTOM },
+];
+const CREVICE_CURRENT = { x: CREVICE_LEFT, y: CREVICE_TOP, width: CREVICE_RIGHT - CREVICE_LEFT,
+  height: CREVICE_BOTTOM - CREVICE_TOP, flowX: -30, flowY: 0 };
 // the Puffer hunting from the bottom right corner, arriving at a given game s
 const pufferArriving = at => ({ design: 'puffer', x: 1250, y: 700, heading: 0, behaviour: 'hunt', at });
 
 // a level: the definition over the defaults
 function createLevel(definition) {
   return { arena: ARENA, systems: CHAPTER_1_SYSTEMS, seepFactor: 1, limits: {}, start: START_BOTTOM, light: null,
-    creatures: [], hint: '', ...definition };
+    creatures: [], rocks: [], currents: [], hint: '', ...definition };
 }
 
 const LEVELS = [
@@ -159,6 +177,34 @@ const LEVELS = [
     light: { x: 700, y: 60, range: 900 },
     goal: { kind: 'restIn', x: 700, y: 200, radius: 70, speed: 10, seconds: 2 },
     timeLimit: 40, par: { seconds: 18, biomass: 20 },
+  }),
+  createLevel({
+    id: 'tail', chapter: 2, name: 'Tail',
+    brief: 'No Siphons or Cilia here. Swim to the ring across the water on Muscles alone.',
+    hint: 'A tail beating side to side swims. Two rows of Muscles behind the Nucleus, the left side on a Pacemaker ' +
+      'and the right side on an Inhibitor of it, so the sides take turns, and a fin of Joints behind them. About ' +
+      '2 Hz. A Delay of 0.1 s in the back row sends a wave down the tail, which is faster. Keep the body even, or ' +
+      'it turns.',
+    limits: { budget: 50, bannedCells: NO_JETS },
+    start: { x: 150, y: 400, heading: Math.PI / 2 },
+    goal: { kind: 'reach', x: 1150, y: 400, radius: 90 },
+    timeLimit: 70, par: { seconds: 35, biomass: 30 },
+  }),
+  createLevel({
+    id: 'crevice', chapter: 2, name: 'Crevice',
+    brief: 'You are wedged in a crevice in the rock, and the water pours out of it past you. Work your way along ' +
+      'it to the ring at the far end. No Siphons or Cilia, and there is no room to beat a tail.',
+    hint: 'Crawl like a worm. A swollen Bloater pressed against both walls grips the rock. Put a pair of Bloaters ' +
+      'side by side at the front and another at the back, with rows of Muscles between them. Wire the front pair ' +
+      'and the Muscles to a Pacemaker, and the back pair to an Inhibitor of it: the back grips while the body ' +
+      'stretches forward, the front grips while it pulls the back after it. Slower than a tail, about 1.5 Hz, so the ' +
+      'Bloaters have time to let go.',
+    limits: { budget: 50, bannedCells: NO_JETS },
+    start: { x: CREVICE_LEFT + 80, y: CREVICE_MIDDLE, heading: Math.PI / 2 },
+    rocks: CREVICE_ROCKS,
+    currents: [CREVICE_CURRENT],
+    goal: { kind: 'reach', x: CREVICE_RIGHT, y: CREVICE_MIDDLE, radius: 60 },
+    timeLimit: 60, par: { seconds: 25, biomass: 32 },
   }),
   createLevel({
     id: 'long-haul', chapter: 3, name: 'Long haul',

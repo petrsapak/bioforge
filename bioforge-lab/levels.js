@@ -17,7 +17,7 @@ function isLevelOpen(results, levelIndex) {
 }
 
 // the design limits a level sets, filled in from RULES where it sets none; kit: its material kit, or null for a
-// biomass budget
+// biomass budget; bannedCells: the cell types the level doesn't allow
 function levelLimits(level) {
   return {
     budget: RULES.budget,
@@ -26,6 +26,7 @@ function levelLimits(level) {
     maxFibreUnits: RULES.maxFibreUnits,
     maxVesselUnits: RULES.maxVesselUnits,
     kit: null,
+    bannedCells: [],
     ...level.limits,
   };
 }
@@ -35,7 +36,8 @@ function levelLimits(level) {
 // kit, the player starts with the kit's leftovers as its sugar and fat, instead of stores two thirds full.
 function startLevel(level, design) {
   const world = newWorld(level.arena.width, level.arena.height, { systems: level.systems, seed: LEVEL_SEED,
-    seepFactor: level.seepFactor, foodSupply: createFoodSupply(level.food) });
+    seepFactor: level.seepFactor, foodSupply: createFoodSupply(level.food),
+    terrain: createTerrain(level.rocks, level.currents) });
   const player = spawn(world, design, level.start.x, level.start.y, level.start.heading, 0);
   player.autonomous = true;
   const kit = levelLimits(level).kit;

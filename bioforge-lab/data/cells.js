@@ -114,7 +114,8 @@ const CELLS = {
   bloater: cellType({
     category: 'Action', name: 'Bloater', cost: 3, health: 30, fuelBurn: 0.1, color: '#b77ee0',
     work: 'graded', resize: 'swell', needsSignal: true, isWeapon: true,
-    description: 'Swells to 180% size on a nerve signal, shoving enemies away. Burns fuel.',
+    description: 'Swells to 180% size on a nerve signal, shoving enemies away, or wedging the body in a crevice. ' +
+      'Burns fuel.',
   }),
   siphon: cellType({
     category: 'Action', name: 'Siphon', cost: 4, health: 25, fuelBurn: 0.15, color: '#5fb8e8',

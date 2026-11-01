@@ -67,9 +67,11 @@ function hexesReachableFromNucleus(isOpen) {
   return seen;
 }
 
-// why the design can't be run ('' = it can): the cell, biomass, neuron, fibre and vessel limits, from RULES or a
-// level's
+// why the design can't be run ('' = it can): a cell type the level doesn't allow, and the cell, biomass, neuron,
+// fibre and vessel limits, from RULES or a level's
 function buildCheck(design, limits = RULES) {
+  const bannedCell = design.cells.find(cell => isCellBanned(limits, cell.typeName));
+  if (bannedCell) return `No ${CELLS[bannedCell.typeName].name} allowed here`;
   if (design.cells.length > limits.maxCells) return `Too many cells: ${design.cells.length} / ${limits.maxCells}`;
   if (limits.kit) {
     const shortfall = kitShortfall(design, limits.kit);
@@ -87,6 +89,9 @@ function buildCheck(design, limits = RULES) {
   }
   return '';
 }
+
+// whether the limits leave this cell type out (a level's bannedCells)
+const isCellBanned = (limits, typeName) => !!limits.bannedCells && limits.bannedCells.includes(typeName);
 
 // ---------- Material kits ----------
 // A level with a kit ({ protein, sugar, fat }, data/levels.js) has no biomass budget: the body's recipes
