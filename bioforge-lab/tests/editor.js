@@ -253,11 +253,28 @@ pressKey('Escape');
 
 dockButton('bud').onclick();
 clickHex(-1, -1);
-partRow.onmousedown({ button: 0, target: {}, preventDefault() {} });
-moveMouseTo(-1, -1);
-fire('window', 'mouseup', { ...screenPointOf(-1, -1), target: canvas });
-runFrames(1);
-check('dragging the part onto a Bud makes the Bud grow it', /Grows <b>Front<\/b>/.test(info()), info());
+pressKey('t');
+const isLibraryShown = () => byId('library-sheet').style.display === 'flex';
+check('T in the builder opens the Templates screen, at My parts', isLibraryShown() &&
+  byId('library-title').textContent === 'My parts' && byId('show-library').classList.contains('selected'));
+pressKey('1');
+check('over the Templates screen the builder keys do nothing', isLibraryShown());
+byId('library-cards').children[0].onclick();
+check('with a Bud clicked, clicking a part makes the Bud grow it, and the screen closes',
+  /Grows <b>Front<\/b>/.test(info()) && !isLibraryShown(), info());
+byId('show-library').onclick();
+pressKey('Escape');
+check('the Templates button opens the screen and Esc closes it, keeping the clicked cell',
+  !isLibraryShown() && /Grows <b>Front<\/b>/.test(info()));
+byId('show-library').onclick();
+byId('library-filter').value = 'no such part';
+byId('library-filter').oninput();
+check('the filter keeps only the cards whose name has its words',
+  /Nothing by that name/.test(byId('library-cards').innerHTML));
+byId('library-filter').value = '';
+byId('library-filter').oninput();
+pressKey('t');
+check('T closes the screen again', !isLibraryShown());
 
 fire('game', 'mousedown', { clientX: 800, clientY: 450, button: 1, target: canvas });
 fire('window', 'mousemove', { clientX: 1000, clientY: 550, target: canvas });

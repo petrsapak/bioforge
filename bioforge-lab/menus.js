@@ -7,7 +7,7 @@
 // mode it opened over.
 const MENU_BUTTONS = {
   main: ['continue', 'levels', 'free-build', 'guide', 'settings', 'profile', 'quit'],
-  build: ['resume', 'save-creature', 'guide', 'settings', 'main', 'quit'],
+  build: ['resume', 'save-creature', 'templates', 'guide', 'settings', 'main', 'quit'],
   level: ['resume', 'retry', 'builder', 'guide', 'settings', 'main', 'quit'],
   sandbox: ['resume', 'builder', 'guide', 'settings', 'main', 'quit'],
 };
@@ -42,6 +42,10 @@ function setUpMenus(app) {
     'save-creature': () => {
       closeMenu(app);
       saveBuilderCreature(app);
+    },
+    templates: () => {
+      closeMenu(app);
+      openLibrary(app);
     },
     guide: () => openGuide(app),
     settings: () => showMenuView(app, 'settings'),

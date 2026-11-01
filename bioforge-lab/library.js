@@ -1,21 +1,23 @@
 'use strict';
-// The Templates window (browser only): the tabs My creatures, My parts and Examples, each a grid of cards with a
-// picture; saving the builder's creature into My creatures; and the saved library, kept in storage.
+// The Templates screen (browser only): a sheet over the builder, opened and closed like the field guide, with the
+// tabs My creatures, My parts and Examples down the left and the open tab's cards, with pictures, on the right;
+// saving the builder's creature into My creatures; and the saved library, kept in storage.
 // Entries are { name, isCreature, cells, fibres } (see design.js); the editing rules for them are in
 // builder.js.
 
 // Bioforge Moba and Lab before 2026-10-28 kept the library here, in the old format. Pages opened from disk can share
 // storage, so Lab reads that list once to carry it over, and never writes to it (Moba still uses it).
 const OLD_LIBRARY_STORAGE_KEY = 'bioforge-templates';
-const THUMBNAIL_WIDTH = 120;                              // px drawn (the card scales it to its width)
-const THUMBNAIL_HEIGHT = 84;                              // px drawn
-const THUMBNAIL_MAX_SCALE = 3;                            // thumbnail px per grid px, so tiny parts aren't blown up
+const THUMBNAIL_WIDTH = 200;                              // px drawn (the card scales it to its width)
+const THUMBNAIL_HEIGHT = 140;                             // px drawn
+const THUMBNAIL_MAX_SCALE = 4;                            // thumbnail px per grid px, so tiny parts aren't blown up
 const LIBRARY_TABS = ['creatures', 'parts', 'examples'];
+const LIBRARY_TAB_TITLES = { creatures: 'My creatures', parts: 'My parts', examples: 'Examples' };
 const LIBRARY_TAB_HELP = {
   creatures: 'Click a creature to load it into the builder (it replaces the design). Saving under a name that is ' +
-    'taken asks before it overwrites. Ctrl+S saves too.',
-  parts: 'Ctrl+click cells, then right-click them to save a part. Click a part to stamp it (Q/E turn it, Esc puts ' +
-    'it away), or drag it onto a Bud to make the Bud grow it.',
+    'taken asks before it overwrites. Ctrl+S saves too, from the builder.',
+  parts: 'Ctrl+click cells in the builder, then right-click them to save a part. Click a part to stamp it onto your ' +
+    'creature (Q/E turn it, Esc puts it away). With a Bud clicked, the part goes to the Bud, which grows it.',
   examples: 'Click one to load it into the builder (it replaces the design).',
 };
 
@@ -36,16 +38,53 @@ function saveLibrary(library) {
   writeStorage('library', library);
 }
 
-// ---------- The window ----------
-// wires the tabs and the Save and Import buttons, and opens the tab used last (Examples for a player with no
-// creatures yet)
+// ---------- The screen ----------
+// wires the tabs, the filter, the Save and Import buttons and closing, and opens the tab used last (Examples for a
+// player with no creatures yet)
 function setUpLibrary(app) {
   for (const tab of LIBRARY_TABS) byId('library-tab-' + tab).onclick = () => showLibraryTab(app, tab);
   byId('library-save').onclick = () => saveBuilderCreature(app);
   byId('library-import').onclick = () => chooseCreatureFile();
+  byId('show-library').onclick = () => toggleLibrary(app);
+  byId('library-close').onclick = () => closeLibrary(app);
+  byId('library-sheet').onclick = event => {
+    if (event.target === byId('library-sheet')) closeLibrary(app);   // a click beside the screen
+  };
+  const filter = byId('library-filter');
+  filter.oninput = () => {
+    app.libraryFilter = filter.value;
+    showLibraryCards(app);
+  };
+  filter.onkeydown = event => {
+    if (event.key === 'Escape') closeLibrary(app);
+  };
   const stored = readStorage('library-tab', null);
   const hasCreatures = app.library.some(entry => entry.isCreature);
   showLibraryTab(app, LIBRARY_TABS.includes(stored) ? stored : hasCreatures ? 'creatures' : 'examples');
+}
+
+const isLibraryOpen = app => byId('library-sheet').style.display === 'flex';
+
+// opens the Templates screen over the builder, at the tab it was left on
+function openLibrary(app) {
+  if (app.mode !== 'build') return;
+  hideTooltip(app);
+  byId('library-sheet').style.display = 'flex';
+  byId('show-library').classList.add('selected');
+  playSound(app, 'open');
+  showLibraryCards(app);
+}
+
+// hides the Templates screen
+function closeLibrary(app) {
+  byId('library-sheet').style.display = 'none';
+  byId('show-library').classList.remove('selected');
+}
+
+// the Templates button and T in the builder: opens the screen, or closes it
+function toggleLibrary(app) {
+  if (isLibraryOpen(app)) closeLibrary(app);
+  else openLibrary(app);
 }
 
 // opens one of the tabs and remembers it
@@ -55,13 +94,14 @@ function showLibraryTab(app, tab) {
   showLibraryCards(app);
 }
 
-// fills the open tab with its cards, and the tabs with their counts
+// fills the open tab with its cards (those whose name has the filter's words), and the tabs with their counts
 function showLibraryCards(app) {
   const tab = app.libraryTab;
   const creatureCount = app.library.filter(entry => entry.isCreature).length;
   byId('library-tab-creatures').innerHTML = `My creatures <span class="count">${creatureCount}</span>`;
   byId('library-tab-parts').innerHTML = `My parts <span class="count">${app.library.length - creatureCount}</span>`;
   for (const name of LIBRARY_TABS) byId('library-tab-' + name).classList.toggle('selected', name === tab);
+  byId('library-title').textContent = LIBRARY_TAB_TITLES[tab];
   byId('library-actions').style.display = tab === 'examples' ? 'none' : '';
   byId('library-save').style.display = tab === 'creatures' ? '' : 'none';
   byId('library-help').textContent = LIBRARY_TAB_HELP[tab];
@@ -71,17 +111,26 @@ function showLibraryCards(app) {
   showLibraryMarks(app);
 }
 
+// whether a name has the filter's words in it (any name, with no filter)
+function matchesLibraryFilter(app, name) {
+  const words = (app.libraryFilter || '').trim().toLowerCase();
+  return !words || name.toLowerCase().includes(words);
+}
+
 // the player's own creatures or parts, each with Rename, Export and Delete; a note when there are none
 function showOwnCards(app, box, isCreature) {
-  const entries = app.library.filter(entry => entry.isCreature === isCreature);
-  if (!entries.length) {
+  const kept = app.library.filter(entry => entry.isCreature === isCreature);
+  const entries = kept.filter(entry => matchesLibraryFilter(app, entry.name));
+  if (!kept.length) {
     box.innerHTML = isCreature
       ? '<div class="library-empty">No creatures yet. Save this creature keeps the one in the builder here.</div>'
-      : '<div class="library-empty">No parts yet.</div>';
+      : '<div class="library-empty">No parts yet. Ctrl+click cells in the builder, then right-click them.</div>';
+  } else if (!entries.length) {
+    box.innerHTML = '<div class="library-empty">Nothing by that name.</div>';
   }
   return entries.map(entry => {
     const card = makeLibraryCard(entry, entry.name, isCreature ? 'Click to load this creature'
-      : 'Click to stamp this part onto your creature, or drag it onto a Bud to make the Bud grow it');
+      : 'Click to stamp this part onto your creature, or, with a Bud clicked, to make the Bud grow it');
     const buttons = document.createElement('div');
     buttons.className = 'card-buttons';
     buttons.appendChild(makeCardButton('✎', 'Rename', () => renameLibraryEntry(app, entry)));
@@ -90,33 +139,38 @@ function showOwnCards(app, box, isCreature) {
     buttons.appendChild(makeCardButton('✕', 'Delete', () => removeLibraryEntry(app, entry)));
     card.element.appendChild(buttons);
     card.element.onclick = () => useLibraryEntry(app, entry);
-    if (!isCreature) {
-      card.element.onmousedown = event => {               // dragging a part onto a Bud
-        if (event.button !== 0 || (event.target.closest && event.target.closest('button'))) return;
-        app.libraryDrag = entry;
-        event.preventDefault();
-      };
-    }
     box.appendChild(card.element);
     return card;
   });
 }
 
-// the built-in designs (EXAMPLE_GROUPS in data/templates.js), under their group titles
+// the built-in designs (EXAMPLE_GROUPS in data/templates.js), under their group titles, each with its line under
+// its name
 function showExampleCards(app, box) {
-  return EXAMPLE_GROUPS.flatMap(group => {
+  const cards = EXAMPLE_GROUPS.flatMap(group => {
+    const examples = group.examples.filter(example => matchesLibraryFilter(app, example.name));
+    if (!examples.length) return [];
     const heading = document.createElement('div');
     heading.className = 'library-heading';
     heading.textContent = group.title;
     box.appendChild(heading);
-    return group.examples.map(example => {
+    return examples.map(example => {
       const card = makeLibraryCard(TEMPLATES[example.template], example.name, example.about);
+      const about = document.createElement('div');
+      about.className = 'card-about';
+      about.textContent = example.about;
+      card.element.appendChild(about);
       card.element.dataset.template = example.template;
-      card.element.onclick = () => loadDesign(app, TEMPLATES[example.template], example.name, '');
+      card.element.onclick = () => {
+        loadDesign(app, TEMPLATES[example.template], example.name, '');
+        closeLibrary(app);
+      };
       box.appendChild(card.element);
       return card;
     });
   });
+  if (!cards.length) box.innerHTML = '<div class="library-empty">Nothing by that name.</div>';
+  return cards;
 }
 
 // One card: the picture, the name, its size, and a badge for a creature that breaks the limits. Returns
@@ -195,8 +249,9 @@ function drawThumbnail(canvas, entry) {
 
 // ---------- Using the library ----------
 // A creature replaces the design. A part goes to the clicked Bud, or else is picked up as a stamp (clicking the stamp
-// in hand again puts it down).
+// in hand again puts it down). Either way the screen closes, to show the builder.
 function useLibraryEntry(app, entry) {
+  closeLibrary(app);
   if (entry.isCreature) {
     loadDesign(app, entry, entry.name, entry.name);
     return;
@@ -215,7 +270,7 @@ function useLibraryEntry(app, entry) {
 // (the one it was loaded or saved as) just saves again.
 function saveBuilderCreature(app) {
   const creatureCount = app.library.filter(entry => entry.isCreature).length;
-  askForName({ title: 'Save this creature', text: 'It goes into My creatures, in the Templates window.',
+  askForName({ title: 'Save this creature', text: 'It goes into My creatures, on the Templates screen.',
     confirmLabel: 'Save' }, app.lastLoadedName || `Creature ${creatureCount + 1}`, typed => {
     const name = cleanName(typed);
     if (!name) return;

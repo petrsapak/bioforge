@@ -193,7 +193,7 @@ function checkBuds(bodyCells, warn) {
   const budsWithoutPart = buds.filter(bud => !bud.budPart);
   if (budsWithoutPart.length) {
     warn('buds', 'problem', 'give it a part', `${budsWithoutPart.length} Bud(s) have no part to grow: click the Bud, ` +
-      'then a part in the Templates library.', keysOf(budsWithoutPart));
+      'then a part on the Templates screen (T).', keysOf(budsWithoutPart));
   }
   const cramped = budsWithPart.filter((bud, i) => !plans[i].cells.length);
   const blocked = budsWithPart.filter((bud, i) => plans[i].blockedCount);

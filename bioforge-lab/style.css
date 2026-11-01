@@ -84,7 +84,7 @@ button.big:hover { background: #4a8044; }
 /* ---------- Left side: the panel and the How to box ---------- */
 #builder-left { position: absolute; top: 10px; left: 10px; }
 #side-column {
-  display: flex; flex-direction: column; gap: 8px; width: 264px; max-height: calc(100vh - 190px); overflow-y: auto;
+  display: flex; flex-direction: column; gap: 8px; width: 264px; max-height: calc(100vh - 272px); overflow-y: auto;
 }
 
 /* ---------- Bottom-left corner: Levels and the Sandbox, big and coloured ---------- */
@@ -103,6 +103,8 @@ button.big:hover { background: #4a8044; }
 .run-button.levels { background: linear-gradient(#4f9a48, #357031); border-color: #7fd07a; color: #fff; }
 .run-button.levels.selected { box-shadow: 0 0 0 2px #e8c547, 0 0 16px #e8c54788; }
 .run-button.sandbox { background: linear-gradient(#e6cf98, #c9a965); border-color: #f4e2b4; color: #3b2a12; }
+.run-button.library { background: linear-gradient(#3f7d96, #2a5a6e); border-color: #7cc4de; color: #fff; }
+.run-button.library.selected { box-shadow: 0 0 0 2px #e8c547, 0 0 16px #e8c54788; }
 #panel, #coach {
   padding: 8px 10px; background: #0e181dcc; border: 1px solid #23323a88; border-radius: 12px;
   backdrop-filter: blur(3px);
@@ -217,8 +219,8 @@ button.big:hover { background: #4a8044; }
 .keys-version { margin-top: 4px; color: #6f7f8a; font-size: 11px; text-align: right; }
 .keys-grid > span:nth-child(odd) { text-align: right; white-space: nowrap; }
 
-/* ---------- Preview and library: floating windows that fold to their title bar ---------- */
-#preview, #library, #traces {
+/* ---------- Preview and traces: floating windows that fold to their title bar ---------- */
+#preview, #traces {
   position: absolute; right: 10px; display: flex; flex-direction: column; background: #0e181dcc;
   border: 1px solid #23323a88; border-radius: 10px; backdrop-filter: blur(3px); resize: both; overflow: hidden;
 }
@@ -226,59 +228,84 @@ button.big:hover { background: #4a8044; }
 #preview.collapsed { height: auto !important; min-height: 0; resize: none; }
 #preview.collapsed #preview-canvas { display: none; }
 #preview-canvas { flex: 1 1 auto; min-height: 0; width: 100%; }
-#library {
-  top: 380px; width: 268px; height: calc(100vh - 390px); max-height: calc(100vh - 20px); min-width: 170px;
-  min-height: 150px;
-}
-#library.collapsed { height: auto !important; resize: none; }
 #traces { top: 96px; right: 360px; width: 320px; min-width: 200px; min-height: 0; }
 #traces.collapsed { height: auto !important; resize: none; }
 #traces.collapsed #traces-canvas, #traces.collapsed #traces-note { display: none; }
 #traces-canvas { width: calc(100% - 20px); margin: 0 10px; }
 #traces-note { padding: 2px 10px 8px; color: #6f7b88; font-size: 11px; }
-#library.collapsed #library-body, #library.collapsed #library-tabs { display: none; }
-#library-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 0 8px 8px; }
-#preview-bar, #library-bar, #traces-bar {
+#preview-bar, #traces-bar {
   display: flex; align-items: center; padding: 5px 6px 5px 10px; cursor: move; color: #8a96a3; font-size: 11px;
   text-transform: uppercase; letter-spacing: 1px;
 }
-#preview-bar:hover, #library-bar:hover, #traces-bar:hover { color: #dfe4ea; }
-#preview-bar span, #library-bar span, #traces-bar span { flex: 1; }
-#preview-toggle, #library-toggle, #traces-toggle {
+#preview-bar:hover, #traces-bar:hover { color: #dfe4ea; }
+#preview-bar span, #traces-bar span { flex: 1; }
+#preview-toggle, #traces-toggle {
   width: 22px; height: 20px; padding: 0; background: #1c2a31; color: inherit; border: 1px solid #2c3f48;
   border-radius: 4px; cursor: pointer; font: inherit;
 }
-/* the Templates window: three tabs, then a grid of cards that adds columns as the window is widened */
-#library-tabs { display: flex; flex: none; gap: 2px; padding: 0 8px 6px; border-bottom: 1px solid #23323a88; }
-.library-tab {
-  flex: 1; padding: 4px 2px; background: none; color: #8a96a3; border: 0; border-bottom: 2px solid transparent;
-  cursor: pointer; font: inherit; font-size: 12px; white-space: nowrap;
+/* the Templates screen (library.js): a sheet like the field guide, the tabs down the left, the cards on the right */
+#library-sheet {
+  position: absolute; inset: 0; display: none; align-items: center; justify-content: center; z-index: 32;
+  background: #000a; backdrop-filter: blur(2px);
 }
-.library-tab:hover { color: #dfe4ea; }
-.library-tab.selected { color: #e8c547; border-bottom-color: #e8c547; }
-.library-tab .count { color: #6f7f8a; font-size: 10px; }
-#library-actions { display: flex; gap: 6px; margin: 8px 0 2px; }
+#library-inner {
+  display: flex; width: min(1080px, calc(100vw - 32px)); height: min(740px, calc(100vh - 32px)); overflow: hidden;
+  background: #0d1519f5; border: 1px solid #2c4650; border-radius: 12px; font-size: 13px; color: #b9c3cd;
+  box-shadow: 0 18px 50px #000c;
+}
+#library-nav { width: 220px; flex: none; display: flex; flex-direction: column; border-right: 1px solid #23323a; }
+#library-name {
+  padding: 14px 14px 0; color: #e8c547; font-size: 11px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase;
+}
+#library-filter {
+  margin: 10px; padding: 6px 9px; background: #0a1216; border: 1px solid #2c4650; border-radius: 6px;
+  color: #dfe4ea; font: inherit;
+}
+#library-filter:focus { outline: none; border-color: #5fd4f4; }
+#library-tabs { display: flex; flex-direction: column; gap: 2px; padding: 0 6px; }
+.library-tab {
+  display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; background: none;
+  color: #b9c3cd; border: 0; border-radius: 5px; cursor: pointer; font: inherit; text-align: left;
+}
+.library-tab:hover { background: #1a2a31; color: #e8ecef; }
+.library-tab.selected { background: #22343c; color: #fff; box-shadow: inset 2px 0 0 #e8c547; }
+.library-tab .count { color: #6f7f8a; font-size: 11px; }
+#library-help { margin: auto 0 0; padding: 12px 14px; line-height: 1.45; }
+#library-page { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+#library-head {
+  display: flex; align-items: center; gap: 12px; padding: 12px 16px 8px; border-bottom: 1px solid #23323a;
+}
+#library-title { flex: 1; color: #e8ecef; font-size: 20px; font-weight: 700; }
+#library-actions { display: flex; gap: 6px; }
+#library-close {
+  width: 28px; height: 28px; background: none; border: 1px solid #2c4650; border-radius: 6px; color: #b9c3cd;
+  cursor: pointer;
+}
+#library-close:hover { background: #1a2a31; color: #fff; }
 button.small.primary { background: #2f5a2c; border-color: #3d6b38; color: #fff; }
 button.small.primary:hover { background: #3d6b38; }
 #library-cards {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 6px; margin: 6px 0 8px;
+  flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  grid-auto-rows: min-content; gap: 10px; padding: 12px 16px 20px;
 }
 .library-heading {
-  grid-column: 1 / -1; margin: 6px 0 0; color: #8a96a3; font-size: 11px; text-transform: uppercase;
+  grid-column: 1 / -1; margin: 8px 0 0; color: #8a96a3; font-size: 11px; text-transform: uppercase;
   letter-spacing: 1px;
 }
 .library-empty { grid-column: 1 / -1; padding: 14px 6px; color: #6f7b88; font-size: 12px; text-align: center; }
 .library-card {
-  position: relative; min-width: 0; padding: 4px 4px 5px; background: #132228; border: 1px solid #23323a;
+  position: relative; min-width: 0; padding: 6px 6px 8px; background: #132228; border: 1px solid #23323a;
   border-radius: 7px; cursor: pointer;
 }
 .library-card:hover { background: #172b32; border-color: #3a5260; }
 .library-card.selected { background: #2b2a1f; border-color: #e8c547; }
 .library-card canvas { display: block; width: 100%; height: auto; border-radius: 4px; background: #0e1a1f; }
 .card-name {
-  margin-top: 4px; overflow: hidden; color: #dfe4ea; font-size: 12px; text-overflow: ellipsis; white-space: nowrap;
+  margin-top: 4px; overflow: hidden; color: #dfe4ea; font-size: 13px; text-overflow: ellipsis; white-space: nowrap;
 }
-.card-size { color: #6f7f8a; font-size: 10px; }
+.card-size { color: #6f7f8a; font-size: 11px; }
+.card-about { margin-top: 4px; color: #8a96a3; font-size: 11px; line-height: 1.4; }
 .card-badge {
   position: absolute; top: 7px; left: 7px; padding: 1px 4px; background: #4a3016; color: #f0b060; border-radius: 3px;
   font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;
@@ -579,7 +606,10 @@ button.small.primary:hover { background: #3d6b38; }
 .guide-term span { display: block; font-size: 12px; line-height: 1.45; }
 .card-guide { float: right; }
 @media (max-width: 640px) {
-  #guide-inner { flex-direction: column; }
+  #guide-inner, #library-inner { flex-direction: column; }
+  #library-nav { width: auto; border-right: 0; border-bottom: 1px solid #23323a; }
+  #library-tabs { flex-direction: row; }
+  #library-help { display: none; }
   #guide-nav { width: auto; max-height: 34%; border-right: 0; border-bottom: 1px solid #23323a; }
   .guide-hero { flex-direction: column; }
   .guide-demo { width: 100%; }

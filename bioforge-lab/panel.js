@@ -243,7 +243,7 @@ function describeReceptor(cell) {
 // the Bud's part in its card: what it grows, how long it takes and where it is aimed
 function describeBud(bud, cellType) {
   const part = bud.budPart;
-  if (!part) return '<div class="line">Grows nothing yet: drag a part from the library onto it.</div>';
+  if (!part) return '<div class="line">Grows nothing yet: click a part on the Templates screen (T).</div>';
   const growSeconds = designCost(part) * BUD_FUEL_PER_BIOMASS / (cellType.fuelBurn * FUEL_BURN_SCALE);
   const aimText = bud.partAim !== undefined
     ? `aimed at ${Math.round(((bud.partAim * 180 / Math.PI) % 360 + 360) % 360)}°`

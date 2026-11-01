@@ -95,7 +95,7 @@ function resumePendingRun(app) {
 
 // ---------- Creature files ----------
 // Writes a library entry to a file the player can keep or share (the browser's download, or the desktop build's
-// save dialog): Export on a card in the Templates window.
+// save dialog): Export on a card on the Templates screen.
 function exportLibraryEntry(entry) {
   const link = document.createElement('a');
   link.href = URL.createObjectURL(new Blob([creatureFileText(entry)], { type: 'application/json' }));
@@ -105,7 +105,7 @@ function exportLibraryEntry(entry) {
   showMessage(`Exported "${entry.name}" as ${link.download}.`);
 }
 
-// asks for a creature file (the answer comes to loadCreatureFromFile): Import in the Templates window
+// asks for a creature file (the answer comes to loadCreatureFromFile): Import on the Templates screen
 function chooseCreatureFile() {
   byId('creature-file-input').value = '';
   byId('creature-file-input').click();

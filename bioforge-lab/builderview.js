@@ -111,7 +111,6 @@ function drawBuilder(app) {
   drawSelection(app);
   drawSameTypeCells(app);
   drawWarningMarks(app);
-  drawLibraryDragHint(app);
   drawPlacementGhost(app);
   drawNeuronGhost(app);
   drawRemovalTarget(app);
@@ -147,7 +146,7 @@ function drawGridHexes(app, origin) {
   const context = app.context;
   const zoom = app.gridView.zoom;
   const margin = HEX_SPACING_X * zoom;                    // hexes this far off screen are skipped
-  const isBusy = app.layer !== 'body' || app.stamp || app.partDrag || app.aimDragKey || app.libraryDrag;
+  const isBusy = app.layer !== 'body' || app.stamp || app.partDrag || app.aimDragKey;
   const tinted = isBusy ? new Map() : hoverTints(app);
   for (let q = -GRID_RADIUS; q <= GRID_RADIUS; q++) {
     for (let r = -GRID_RADIUS; r <= GRID_RADIUS; r++) {
@@ -585,19 +584,6 @@ function drawWarningMarks(app) {
     traceHex(context, x, y, HEX_FILL_SIZE);
     context.stroke();
   }
-}
-
-// a library part dragged over the grid: says where to drop it
-function drawLibraryDragHint(app) {
-  if (!app.libraryDrag || !app.hoverPoint) return;
-  const context = app.context;
-  const hoveredCell = app.hoverHex && app.edited.cells.get(hexKey(...app.hoverHex));
-  const overBud = hoveredCell && CELLS[hoveredCell.typeName].growsParts;
-  context.fillStyle = overBud ? BUD_PART_COLOR : '#8a96a3';
-  context.font = '6px system-ui';
-  context.textAlign = 'left';
-  const text = overBud ? `Drop: this Bud grows "${app.libraryDrag.name}"` : 'Drop it on a Bud';
-  context.fillText(text, app.hoverPoint[0] + 8, app.hoverPoint[1] - 6);
 }
 
 // a Bud part being dragged, or a part being stamped: a ghost under the mouse, green if it fits, red if not

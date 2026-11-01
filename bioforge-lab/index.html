@@ -30,6 +30,9 @@
 <div id="budget"></div>
 <div id="lens-legend"></div>
 <div id="run-buttons">
+  <button class="run-button library" id="show-library" title="Templates: your creatures and parts, and examples (T)">
+    <svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.6" fill="#cfe9f5"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.6" fill="#cfe9f5" fill-opacity=".7"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.6" fill="#cfe9f5" fill-opacity=".7"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.6" fill="#cfe9f5" fill-opacity=".45"/></svg>
+    <span>Templates</span></button>
   <button class="run-button levels" id="show-levels" title="Levels: pick a challenge">
     <svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z" fill="#fff" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>
     <span>Levels</span></button>
@@ -70,6 +73,7 @@
       <span><b>A</b>–<b>Z</b> <b>0</b>–<b>9</b></span><span>bind a clicked Command to a free key</span>
       <span><b>F</b></span><span>show the whole grid</span>
       <span><b>G</b></span><span>the field guide, at the clicked cell or the one you place</span>
+      <span><b>T</b></span><span>the Templates screen: your creatures, parts and examples</span>
       <span><b>Shift</b>+<b>1</b>–<b>9</b></span><span>fluid views</span>
       <span><b>C</b></span><span>hormones on / off (here, in levels and in the Sandbox)</span>
       <span><b>M</b></span><span>music on / off</span>
@@ -163,20 +167,29 @@
   <canvas id="traces-canvas" width="300" height="24"></canvas>
   <div id="traces-note"></div>
 </div>
-<div id="library">
-  <div id="library-bar" title="Drag to move · drag the bottom-right corner to resize"><span>Templates</span><button id="library-toggle" title="Hide / show">–</button></div>
-  <div id="library-tabs">
-    <button class="library-tab" id="library-tab-creatures">My creatures</button>
-    <button class="library-tab" id="library-tab-parts">My parts</button>
-    <button class="library-tab" id="library-tab-examples">Examples</button>
-  </div>
-  <div id="library-body">
-    <div id="library-actions">
-      <button class="small primary" id="library-save" title="Keep the creature in the builder in My creatures (Ctrl+S)">Save this creature</button>
-      <button class="small" id="library-import" title="Load a creature or part file someone shared, or one you exported">Import…</button>
+<div id="library-sheet">
+  <div id="library-inner">
+    <div id="library-nav">
+      <div id="library-name">Templates</div>
+      <input id="library-filter" type="text" placeholder="Find by name" spellcheck="false">
+      <div id="library-tabs">
+        <button class="library-tab" id="library-tab-creatures">My creatures</button>
+        <button class="library-tab" id="library-tab-parts">My parts</button>
+        <button class="library-tab" id="library-tab-examples">Examples</button>
+      </div>
+      <div class="help" id="library-help"></div>
     </div>
-    <div id="library-cards"></div>
-    <div class="help" id="library-help"></div>
+    <div id="library-page">
+      <div id="library-head">
+        <span id="library-title"></span>
+        <div id="library-actions">
+          <button class="small primary" id="library-save" title="Keep the creature in the builder in My creatures (Ctrl+S)">Save this creature</button>
+          <button class="small" id="library-import" title="Load a creature or part file someone shared, or one you exported">Import…</button>
+        </div>
+        <button id="library-close" title="Close (Esc)">✕</button>
+      </div>
+      <div id="library-cards"></div>
+    </div>
   </div>
 </div>
 <div id="mirror-menu">
@@ -232,7 +245,8 @@
       <button class="menu-button" id="menu-free-build" title="The builder with the usual limits, and the Sandbox">Free build</button>
       <button class="menu-button" id="menu-retry">Retry</button>
       <button class="menu-button" id="menu-builder">Back to the builder</button>
-      <button class="menu-button" id="menu-save-creature" title="Keep the creature in the builder in My creatures, in the Templates window (Ctrl+S)">Save creature</button>
+      <button class="menu-button" id="menu-save-creature" title="Keep the creature in the builder in My creatures, on the Templates screen (Ctrl+S)">Save creature</button>
+      <button class="menu-button" id="menu-templates" title="Your saved creatures and parts, and the examples">Templates</button>
       <button class="menu-button" id="menu-guide" title="What every cell and neuron does, and how the game works">Field guide</button>
       <button class="menu-button" id="menu-settings">Settings</button>
       <button class="menu-button" id="menu-profile" title="Each player keeps their own creatures, level results and saved run">Profile</button>

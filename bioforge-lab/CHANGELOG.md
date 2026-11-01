@@ -7,6 +7,13 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.16 (2026-11-01)
+- Templates has a screen of its own, like the field guide, instead of the window beside the builder. Open it with
+  the Templates button (bottom left, above Levels), T, or Templates in the Esc menu; Esc, T or ✕ closes it. The
+  cards are bigger, the examples say what each one does, and a box finds templates by name.
+- Clicking a creature, an example or a part closes the screen, so you see what you picked. To give a part to a Bud,
+  click the Bud, then the part (dragging a part onto a Bud is gone, since the screen covers the builder).
+
 ## 0.7.15 (2026-11-01)
 - Moth is new: circle the lamp like a moth, between the green ring and the red one. Flying into the light loses, so
   the Lighthouse build doesn't win any more.

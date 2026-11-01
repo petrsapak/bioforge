@@ -44,7 +44,6 @@ function createApp(canvas) {
     partDrag: null,                                       // a Bud part being dragged: { budKey, grab, rotation }
     aimDragKey: null,                                     // the Bud whose aim arrow is being dragged
     fibreDrag: null,                                      // a fibre being laid: { fromKey, pathKeys }
-    libraryDrag: null,                                    // a library entry being dragged onto a Bud
     panDrag: null,                                        // middle-drag: { panX, panY, mouseX, mouseY } at its start
     hoverHex: null,                                       // [q, r] under the mouse
     hoverPoint: null,                                     // the mouse in grid px
@@ -55,8 +54,9 @@ function createApp(canvas) {
     cardFibres: [],                                       // the clicked cell's fibres, listed in the card
     hoveredFibre: null,                                   // a fibre whose row in the card is under the mouse
     library: loadLibrary(),
-    libraryCards: [],                                     // the Templates window's cards: { entry, element, badge }
+    libraryCards: [],                                     // the Templates screen's cards: { entry, element, badge }
     libraryTab: 'creatures',                              // its open tab (library.js)
+    libraryFilter: '',                                    // the words its cards' names are filtered by
     dockButtons: new Map(),                               // cell types
     neuronButtons: new Map(),
     showDockLayer: () => {},
@@ -137,10 +137,9 @@ function fitCanvasToWindow(app) {
   app.canvas.height = innerHeight;
 }
 
-// makes the preview, library and traces windows foldable, and the Sandbox HUD's vitals movable
+// makes the preview and traces windows foldable, and the Sandbox HUD's vitals movable
 function setUpWindows(app) {
   app.isPreviewCollapsed = makeCollapsible(byId('preview'), byId('preview-bar'), byId('preview-toggle'), 'preview');
-  makeCollapsible(byId('library'), byId('library-bar'), byId('library-toggle'), 'library');
   app.isTracesCollapsed = makeCollapsible(byId('traces'), byId('traces-bar'), byId('traces-toggle'), 'traces');
   makeFloating(byId('hud-vitals'), byId('hud-vitals'), 'hud-vitals');
   showTracesWindow(app);
@@ -276,12 +275,13 @@ function saveSelection(app, name) {
 // the windows of the app's mode: the builder's, or the HUD with the Sandbox's or the level's bar
 function showModeWindows(app) {
   const isBuilding = app.mode === 'build';
-  for (const id of ['builder-left', 'run-buttons', 'layer-tabs', 'budget', 'preview', 'library']) {
+  for (const id of ['builder-left', 'run-buttons', 'layer-tabs', 'budget', 'preview']) {
     byId(id).style.display = isBuilding ? '' : 'none';     // '' gives the display back to style.css
   }
   if (!isBuilding) {
     byId('keys-sheet').style.display = 'none';
     byId('levels-sheet').style.display = 'none';
+    closeLibrary(app);
   }
   byId('dock').style.display = isBuilding ? '' : 'none';
   showTracesWindow(app);
@@ -347,6 +347,10 @@ function listenToKeyboard(app) {
       return;
     }
     if (handleSaveKey(app, event)) return;
+    if (isLibraryOpen(app)) {                             // over the builder: only T and Esc, to close it
+      if ((key === 't' || key === 'escape') && !event.repeat) closeLibrary(app);
+      return;
+    }
     if (key === 't' && !event.repeat && app.mode !== 'build') toggleProbes(app);
     if (key === 'c' && !event.repeat && !event.ctrlKey && !event.metaKey) toggleChemicalLens(app);
     const digit = digitOf(event);
@@ -415,12 +419,14 @@ function bindFocusedCommand(app, commandKey) {
   rebuildTank(app);
 }
 
-// F fits the grid; G opens the field guide; H shows the keys; Esc closes a sheet or drops what is in hand, or else
-// opens the menu; Q/E turn the stamp, the dragged part or the clicked Bud's part; the arrows step between cells
+// F fits the grid; G opens the field guide; H shows the keys; T opens the Templates screen; Esc closes a sheet or
+// drops what is in hand, or else opens the menu; Q/E turn the stamp, the dragged part or the clicked Bud's part; the
+// arrows step between cells
 function handleBuilderKey(app, key) {
   if (key === 'f') fitGridToScreen(app);
   if (key === 'g') openGuideFromBuilder(app);
   if (key === 'h') toggleKeysSheet();
+  if (key === 't') openLibrary(app);
   if (key === 'escape' && !closeOpenSheet() && !letGoOfWhatIsInHand(app)) openPauseMenu(app);
   if (key === 'q' || key === 'e') turnWhatIsInHand(app, key === 'e' ? 1 : -1);
   if (ARROW_STEPS[key]) stepToNextCell(app, ARROW_STEPS[key]);
@@ -690,7 +696,7 @@ function placeChosenCell(app, q, r) {
   return true;
 }
 
-// lets go of a dragged Bud part, aim arrow or library part; a drop that doesn't fit says why
+// lets go of a dragged Bud part or aim arrow; a drop that doesn't fit says why
 function dropWhatIsInHand(app, event) {
   const hex = app.hoverHex;
   if (app.mode === 'build' && hex && app.fibreDrag) finishFibreDrag(app, hex);
@@ -704,17 +710,11 @@ function dropWhatIsInHand(app, event) {
       aimBudPart(app.edited, app.aimDragKey, app.hoverPoint[0], app.hoverPoint[1]);
       rebuildTank(app);
     }
-    const target = app.edited.cells.get(hexKey(...hex));
-    if (app.libraryDrag && event.target === app.canvas && target && CELLS[target.typeName].growsParts) {
-      app.focusKey = hexKey(...hex);
-      showProblem(app, giveBudPart(app.edited, app.focusKey, app.libraryDrag));
-    }
   }
   app.panDrag = null;
   app.paintDrag = null;
   app.partDrag = null;
   app.aimDragKey = null;
-  app.libraryDrag = null;
   app.fibreDrag = null;
 }
 

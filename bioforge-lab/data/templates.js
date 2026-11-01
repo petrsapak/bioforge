@@ -239,7 +239,7 @@ for (const name of Object.keys(TEMPLATES)) TEMPLATES[name] = upgradeToNerveLayer
 // Inhibitor, which keeps it beating (see upgradeToHeartAreas in design.js).
 for (const name of Object.keys(TEMPLATES)) TEMPLATES[name] = upgradeToHeartAreas(TEMPLATES[name], true);
 
-// The Templates window's Examples tab, in groups: each example is a design above, with the name and the line shown
+// The Templates screen's Examples tab, in groups: each example is a design above, with the name and the line shown
 // on its card
 const EXAMPLE_GROUPS = [
   {

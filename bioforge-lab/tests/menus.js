@@ -147,6 +147,13 @@ async function main() {
     library()[0].cells.length === starterCells);
   byId('dialog-confirm').onclick();
   check('confirming overwrites it', library().length === 1 && library()[0].cells.length !== starterCells);
+  pressKey('Escape');
+  byId('menu-templates').onclick({});
+  check('the Esc menu\'s Templates opens the Templates screen', byId('library-sheet').style.display === 'flex' &&
+    byId('menu-sheet').style.display !== 'flex');
+  cardNamed(byId, 'Ada').onclick();
+  check('clicking a creature loads it and closes the screen', byId('library-sheet').style.display === 'none' &&
+    cellCount(byId) !== starterCells);
   first.templateButton('starter').onclick();
 
   // ---------- The Esc menu over a level run ----------
