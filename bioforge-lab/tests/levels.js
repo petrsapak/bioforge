@@ -7,7 +7,8 @@ const { startApp } = require('./dom');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['LEVELS', 'TEMPLATES', 'runLevel', 'levelScore', 'levelLimits', 'buildCheck',
   'createDesignCell', 'createNeuron', 'isLevelLightOn', 'isLevelOpen', 'isLevelEarned', 'RULES', 'FLUID_OXYGEN',
-  'linksFromList']);
+  'linksFromList', 'CELLS', 'NEURONS', 'isCellLocked', 'isNeuronLocked',
+  'isLastLevelWon', 'withEverythingUnlocked']);
 
 const cell = (q, r, typeName, extra = {}) => sim.createDesignCell(q, r, typeName, extra);
 const fibre = (fromQ, fromR, toQ, toR) => ({ from: { q: fromQ, r: fromR }, to: { q: toQ, r: toR } });
@@ -159,6 +160,12 @@ function creviceWormBuild(rate = 1.5, muscleRows = 3, backTypeName = 'bloater') 
     ...inhibitorRow, ...back],
   fibres: [...wire({ q: 0, r: 0 }, [...front, ...muscles, inhibitorRow[0]]), ...wire(inhibitorRow[0], back)] };
 }
+// Tail: the Paddler with Tissue for its Mouth, Pore, Gills and Heart and no vessels, which do nothing in chapter 2,
+// so it uses only the cells the dock has by then
+const FEEDING_CELLS = ['mouth', 'pore', 'gill', 'heart'];
+const tailFish = { cells: sim.TEMPLATES.paddler.cells.map(bodyCell =>
+  (FEEDING_CELLS.includes(bodyCell.typeName) ? { ...bodyCell, typeName: 'tissue' } : bodyCell)),
+fibres: sim.TEMPLATES.paddler.fibres, vessels: [] };
 // Tail: the Wiggler with its Inhibitor taken out, so both sides of the tail contract together and only pulse
 const wigglerWithoutInhibitor = { ...sim.TEMPLATES.wiggler, cells: sim.TEMPLATES.wiggler.cells.map(bodyCell =>
   (bodyCell.neuron && bodyCell.neuron.kind === 'inhibitor' ? { ...bodyCell, neuron: null } : bodyCell)) };
@@ -174,7 +181,7 @@ const SOLUTIONS = {
   'false-start': eyesThroughNucleus('latch'),
   metronome: eyesThroughNucleus('inhibitor', { kind: 'delay', setting: 3 }),
   dock: eyesThroughSynapse(1.5),
-  tail: sim.TEMPLATES.paddler,
+  tail: tailFish,
   crevice: creviceWormBuild(),
   'long-haul': seekerWithFat(true),
   exhaust: EXHAUST_BODY,
@@ -317,6 +324,42 @@ check('the Jet wins the first level, but over the par biomass and time: 1 star',
   jetRun.outcome === 'won' && sim.levelScore(jetRun, sim.TEMPLATES.jet).stars === 1,
   `${jetRun.time.toFixed(1)} s`);
 
+// ---------- The dock fills level by level ----------
+const lastLevel = sim.LEVELS[sim.LEVELS.length - 1];
+check('every level unlocks real cell types and neurons', sim.LEVELS.every(level =>
+  level.unlocks.cells.every(typeName => sim.CELLS[typeName]) &&
+  level.unlocks.neurons.every(kind => sim.NEURONS[kind])));
+// the piece of the reference solution the level's dock doesn't have yet, or ''
+function lockedPieceOf(level) {
+  const limits = sim.levelLimits(level);
+  const solution = SOLUTIONS[level.id];
+  const cellPiece = solution.cells.find(bodyCell => sim.isCellLocked(limits, bodyCell.typeName));
+  if (cellPiece) return cellPiece.typeName;
+  const neuronPiece = solution.cells.find(bodyCell =>
+    bodyCell.neuron && sim.isNeuronLocked(limits, bodyCell.neuron.kind));
+  if (neuronPiece) return neuronPiece.neuron.kind;
+  return limits.vesselsLocked && solution.vessels && solution.vessels.length ? 'vessels' : '';
+}
+const levelsMissingPieces = sim.LEVELS.filter(level => lockedPieceOf(level))
+  .map(level => level.id + ': ' + lockedPieceOf(level));
+check('every reference solution is built from what its level\'s dock has by then', levelsMissingPieces.length === 0,
+  levelsMissingPieces.join(', '));
+{
+  const firstLimits = sim.levelLimits(sim.LEVELS[0]);
+  const coldWater = sim.levelLimits(levelById('cold-water'));
+  check('First stroke has the Nucleus, Tissue, Siphons and the Pacemaker, and no Light eye, Synapse or vessels',
+    !sim.isCellLocked(firstLimits, 'nucleus') && !sim.isCellLocked(firstLimits, 'siphon') &&
+    !sim.isNeuronLocked(firstLimits, 'pacemaker') && sim.isCellLocked(firstLimits, 'lighteye') &&
+    sim.isNeuronLocked(firstLimits, 'synapse') && firstLimits.vesselsLocked);
+  check('a later level keeps what the earlier ones unlocked, and Cold water opens the Vessels view',
+    !sim.isCellLocked(coldWater, 'lighteye') && !sim.isNeuronLocked(coldWater, 'synapse') && !coldWater.vesselsLocked &&
+    sim.isCellLocked(coldWater, 'shell'));
+  const opened = sim.withEverythingUnlocked(firstLimits);
+  check('winning the last level opens everything',
+    !sim.isLastLevelWon({}) && sim.isLastLevelWon({ [lastLevel.id]: { stars: 1 } }) &&
+    opened.lockedCells.length === 0 && opened.lockedNeurons.length === 0 && !opened.vesselsLocked);
+}
+
 // ---------- The app ----------
 // with every level open (RULES.allLevelsOpen, for testing), a later level can be chosen and brings its kit
 const allOpen = startApp();
@@ -327,6 +370,14 @@ const openTiles = allOpen.byId('levels-list').children.filter(child => child.cla
 const bloomTile = openTiles[sim.LEVELS.findIndex(level => level.id === 'bloom')];
 bloomTile.onclick();
 allOpen.byId('level-build').onclick();
+// the dock's buttons, shown or not
+const dockButtonsOf = page => page.byId('palette').children.flatMap(section => section.children[0].children);
+const isDockShown = (page, attribute, name) => dockButtonsOf(page)
+  .find(button => button.dataset[attribute] === name).style.display !== 'none';
+check('Bloom\'s dock has the cells of the levels before it, not the later ones, and the Vessels tab',
+  isDockShown(allOpen, 'type', 'mouth') && isDockShown(allOpen, 'type', 'heart') &&
+  !isDockShown(allOpen, 'type', 'shell') && !isDockShown(allOpen, 'type', 'nettle') &&
+  allOpen.byId('layer-vessel').style.display !== 'none');
 check('with every level open, any level can be chosen, and the builder takes its limits',
   openTiles.every(tile => !tile.className.includes('locked')) && /Protein/.test(allOpen.byId('budget').innerHTML) &&
   /\/ 38/.test(allOpen.byId('budget').innerHTML), allOpen.byId('budget').innerHTML.slice(0, 200));
@@ -336,6 +387,9 @@ const { byId, fire, runFrames, readGlobal, storage, templateButton } = startApp(
 readGlobal('RULES.allLevelsOpen = false');
 runFrames(3);
 check('no level is chosen at first', !byId('show-levels').classList.contains('selected'));
+check('in free build the dock has every cell and neuron, and the Vessels view',
+  dockButtonsOf({ byId }).every(button => button.style.display !== 'none') &&
+  byId('layer-vessel').style.display !== 'none');
 byId('show-levels').onclick();
 const listed = byId('levels-list').children;
 const rows = listed.filter(child => child.className.startsWith('level-tile'));
@@ -359,10 +413,29 @@ byId('level-build').onclick();
 check('Build for it chooses the level and goes back to the builder with its limits',
   byId('levels-sheet').style.display === 'none' && byId('budget').innerHTML.includes('of 40') &&
   byId('show-levels').classList.contains('selected'));
+{
+  const page = { byId };
+  const siphonButton = dockButtonsOf(page).find(button => button.dataset.type === 'siphon');
+  // its category's section, opened for it although the player had only the first one open
+  const siphonSection = byId('palette').children.find(section => section.children[0].children.includes(siphonButton));
+  const categoryTabs = byId('dock-tabs').children.filter(tab => tab.style.display !== 'none');
+  check('First stroke\'s dock has only Tissue, Siphons and the Pacemaker, its own ones marked new',
+    isDockShown(page, 'type', 'tissue') && siphonButton.style.display !== 'none' &&
+    siphonButton.classList.contains('new') && siphonSection.style.display !== 'none' &&
+    !isDockShown(page, 'type', 'lighteye') &&
+    isDockShown(page, 'neuron', 'pacemaker') && !isDockShown(page, 'neuron', 'synapse'),
+    dockButtonsOf(page).filter(button => button.style.display !== 'none').map(button => button.dataset.type ||
+      button.dataset.neuron).join(','));
+  check('the tabs of empty categories and the Vessels view are hidden, and 3 doesn\'t open it',
+    categoryTabs.length === 2 && byId('layer-vessel').style.display === 'none' &&
+    (fire('window', 'keydown', { key: '3' }), !byId('layer-vessel').classList.contains('selected')),
+    categoryTabs.map(tab => tab.textContent).join(','));
+}
 byId('show-levels').onclick();
 check('while a level is chosen, the sheet offers to leave it',
   byId('level-leave').style.display === 'block' && /Leave “First stroke”/.test(byId('level-leave').textContent));
 
+byId('layer-nerve').onclick();        // left in the Nerve view: the builder comes back in Body
 byId('level-run').onclick();          // the starting design is the Jet
 check('Run level closes the sheet and starts the level with its bar and HUD',
   byId('levels-sheet').style.display === 'none' && byId('level-bar').style.display === 'flex' &&
@@ -387,6 +460,8 @@ check('the win is kept as the best result', kept['first-stroke'] && kept['first-
 check('the result box offers Retry and Builder only (Next level was the same as Builder; user, 2026-10-30)',
   !byId('result-next').onclick && byId('result-retry').onclick && byId('result-builder').onclick);
 byId('result-builder').onclick();
+check('back in the builder from a level, the Body view is shown', byId('layer-body').classList.contains('selected') &&
+  !byId('layer-nerve').classList.contains('selected'));
 byId('show-levels').onclick();
 const rowsAfterWin = byId('levels-list').children.filter(child => child.className.startsWith('level-tile'));
 check('the win opens level 2, and only level 2', !rowsAfterWin[1].className.includes('locked') &&
@@ -419,4 +494,23 @@ const rowsAfterReset = byId('levels-list').children.filter(child => child.classN
 check('after it, no level has a result and level 2 is locked again',
   JSON.stringify(JSON.parse(storage.items['bioforge-lab-profile-1-level-results'])) === '{}' &&
   rowsAfterReset[1].className.includes('locked') && !rowsAfterReset[0].className.includes('locked'));
+
+// once the last level is won, every level's dock has everything
+{
+  const finished = startApp({ 'bioforge-lab-profile-1-level-results': JSON.stringify({ [lastLevel.id]: { stars: 1,
+    seconds: 1, biomass: 1 } }) });
+  finished.runFrames(3);
+  finished.byId('show-levels').onclick();
+  finished.byId('levels-list').children.find(child => child.className.startsWith('level-tile')).onclick();
+  finished.byId('level-build').onclick();
+  check('after the last level is won, First stroke\'s dock has everything, nothing marked new',
+    dockButtonsOf(finished).every(button => button.style.display !== 'none' && !button.classList.contains('new')));
+  // Reset level progress in Settings too: the results go, and the dock locks again
+  finished.byId('setting-reset-levels').onclick();
+  finished.byId('dialog-confirm').onclick();
+  check('Reset level progress in Settings forgets the results, and First stroke\'s dock locks again',
+    finished.storage.items['bioforge-lab-profile-1-level-results'] === '{}' &&
+    dockButtonsOf(finished).some(button => button.style.display === 'none'),
+    finished.storage.items['bioforge-lab-profile-1-level-results']);
+}
 done();

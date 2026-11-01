@@ -67,8 +67,9 @@ function hexesReachableFromNucleus(isOpen) {
   return seen;
 }
 
-// why the design can't be run ('' = it can): a cell type the level doesn't allow, and the cell, biomass, neuron,
-// fibre and vessel limits, from RULES or a level's
+// Why the design can't be run ('' = it can): a cell type the level doesn't allow, and the cell, biomass, neuron,
+// fibre and vessel limits, from RULES or a level's. Pieces still locked (lockedCells) only stay out of the dock: an
+// example or a saved creature that has them still runs, as First stroke's hint points at the Jet.
 function buildCheck(design, limits = RULES) {
   const bannedCell = design.cells.find(cell => isCellBanned(limits, cell.typeName));
   if (bannedCell) return `No ${CELLS[bannedCell.typeName].name} allowed here`;
@@ -92,6 +93,10 @@ function buildCheck(design, limits = RULES) {
 
 // whether the limits leave this cell type out (a level's bannedCells)
 const isCellBanned = (limits, typeName) => !!limits.bannedCells && limits.bannedCells.includes(typeName);
+
+// whether no level so far has unlocked this cell type or neuron kind (a level's lockedCells and lockedNeurons)
+const isCellLocked = (limits, typeName) => !!limits.lockedCells && limits.lockedCells.includes(typeName);
+const isNeuronLocked = (limits, kind) => !!limits.lockedNeurons && limits.lockedNeurons.includes(kind);
 
 // ---------- Material kits ----------
 // A level with a kit ({ protein, sugar, fat }, data/levels.js) has no biomass budget: the body's recipes

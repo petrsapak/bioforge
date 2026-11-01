@@ -235,7 +235,7 @@ function deleteProfileAsked(app, profile) {
 }
 
 // asks first, then forgets the current profile's level results: the stars go and the levels lock again from the
-// second one; its creatures stay. A chosen level that is locked now is left.
+// second one; its creatures stay. A chosen level that is locked now is left. In Settings and in Profiles.
 function resetLevelProgressAsked(app) {
   askToConfirm({
     title: 'Reset level progress?',
@@ -247,6 +247,7 @@ function resetLevelProgressAsked(app) {
     app.levelResults = {};
     writeStorage('level-results', app.levelResults);
     if (app.level && !isLevelOpen(app.levelResults, LEVELS.indexOf(app.level))) chooseLevel(app, null);
+    refreshPanel(app);                                    // the dock locks again what the last level's win opened
     showMessage('Level progress reset.');
   });
 }
@@ -277,6 +278,7 @@ function setUpSettings(app) {
   });
   onSandboxButton('setting-fullscreen', () => toggleFullscreen(app));
   onSandboxButton('setting-keys', toggleKeysSheet);
+  onSandboxButton('setting-reset-levels', () => resetLevelProgressAsked(app));   // the same as in Profiles
   onSandboxButton('menu-back', () => showMenuView(app, 'buttons'));
   addEventListener('fullscreenchange', () => showSettings(app));
 }

@@ -358,6 +358,7 @@ button.small.primary:hover { background: #3d6b38; }
   clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
 }
 .palette-cell:hover { background: #5d6b77; }
+.palette-cell.new { background: #4fae7a; }                 /* new in the chosen level */
 .palette-cell.selected { background: #e8c547; }
 .palette-cell.banned { opacity: 0.25; }
 

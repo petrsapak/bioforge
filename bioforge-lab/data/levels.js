@@ -1,6 +1,8 @@
 'use strict';
 // The levels and the creatures that live in them (pure data). levels.js builds and runs them. Field meanings:
 //   id, chapter, name; brief: what to do; hint: a nudge toward how
+//   unlocks: what the level adds to the dock ({ cells, neurons: type names, vessels: true when the Vessels view
+//     opens here }); a level's dock has what it and every level before it add (levelUnlocks in levels.js)
 //   arena: { width, height } in px; systems: the switchable systems that run (chapters 1 and 2: nerve only, so
 //     every cell works at full power and nothing starves; chapter 3 adds fluid and vascular; chapter 4 metabolism
 //     and food; chapter 5 secretions; chapter 6 chemical, scent and treatments)
@@ -74,12 +76,14 @@ const pufferArriving = at => ({ design: 'puffer', x: 1250, y: 700, heading: 0, b
 // a level: the definition over the defaults
 function createLevel(definition) {
   return { arena: ARENA, systems: CHAPTER_1_SYSTEMS, seepFactor: 1, limits: {}, start: START_BOTTOM, light: null,
-    creatures: [], rocks: [], currents: [], hint: '', ...definition };
+    creatures: [], rocks: [], currents: [], hint: '', ...definition,
+    unlocks: { cells: [], neurons: [], vessels: false, ...definition.unlocks } };
 }
 
 const LEVELS = [
   createLevel({
     id: 'first-stroke', chapter: 1, name: 'First stroke',
+    unlocks: { cells: ['tissue', 'siphon'], neurons: ['pacemaker'] },
     brief: 'Swim into the ring ahead.',
     hint: 'A Pacemaker in the Nucleus, wired to two Siphons at the back, pulses them both: the Jet does this.',
     limits: { budget: 40 },
@@ -88,6 +92,7 @@ const LEVELS = [
   }),
   createLevel({
     id: 'lighthouse', chapter: 1, name: 'Lighthouse',
+    unlocks: { cells: ['lighteye'] },
     brief: 'Reach the light.',
     hint: 'Two Light eyes at the front, each wired across to the Siphon on the far side: the eye nearer the light ' +
       'drives the far Siphon harder, which turns you toward it.',
@@ -131,6 +136,7 @@ const LEVELS = [
   }),
   createLevel({
     id: 'freeze', chapter: 2, name: 'Freeze',
+    unlocks: { neurons: ['inhibitor'] },
     brief: 'Swim to the ring. The light above it watches: while it is on, hold still. Still moving a moment ' +
       'after it comes on loses.',
     hint: 'An Inhibitor is on while its input is off. Wire both Light eyes into an Inhibitor in the Nucleus, and ' +
@@ -144,6 +150,7 @@ const LEVELS = [
   }),
   createLevel({
     id: 'false-start', chapter: 2, name: 'False start',
+    unlocks: { neurons: ['latch'] },
     brief: 'Hold still until the light flashes, then swim to the ring. It flashes only once.',
     hint: 'A Latch flips on at a pulse and stays on. Wire both Light eyes into a Latch in the Nucleus, and the ' +
       'Nucleus to both Siphons.',
@@ -155,6 +162,7 @@ const LEVELS = [
   }),
   createLevel({
     id: 'metronome', chapter: 2, name: 'Metronome',
+    unlocks: { neurons: ['delay'] },
     brief: 'Swim to the ring. The light comes on every 4 s, and this time you must already be still when it does: ' +
       'there is no moment to coast to a stop.',
     hint: 'The Freeze build stops too late. Give one Light eye a Delay neuron: its late copy of a flash comes back ' +
@@ -169,6 +177,7 @@ const LEVELS = [
   }),
   createLevel({
     id: 'dock', chapter: 2, name: 'Dock',
+    unlocks: { neurons: ['synapse'] },
     brief: 'Swim toward the light, but stop short of it: come to rest in the ring for 2 s.',
     hint: 'The nearer the light, the brighter your eyes. A Synapse is on once its inputs add up to its threshold: ' +
       'wire both Light eyes into a Synapse, the Synapse into an Inhibitor in another cell, and that cell to both ' +
@@ -180,6 +189,7 @@ const LEVELS = [
   }),
   createLevel({
     id: 'tail', chapter: 2, name: 'Tail',
+    unlocks: { cells: ['muscle', 'joint'] },
     brief: 'No Siphons or Cilia here. Swim to the ring across the water on Muscles alone.',
     hint: 'A tail beating side to side swims. Two rows of Muscles behind the Nucleus, the left side on a Pacemaker ' +
       'and the right side on an Inhibitor of it, so the sides take turns, and a fin of Joints behind them. About ' +
@@ -192,6 +202,7 @@ const LEVELS = [
   }),
   createLevel({
     id: 'crevice', chapter: 2, name: 'Crevice',
+    unlocks: { cells: ['bloater'] },
     brief: 'You are wedged in a crevice in the rock, and the water pours out of it past you. Work your way along ' +
       'it to the ring at the far end. No Siphons or Cilia, and there is no room to beat a tail.',
     hint: 'Crawl like a worm. A swollen Bloater pressed against both walls grips the rock. Put a pair of Bloaters ' +
@@ -208,6 +219,7 @@ const LEVELS = [
   }),
   createLevel({
     id: 'long-haul', chapter: 3, name: 'Long haul',
+    unlocks: { cells: ['fat', 'gill'] },
     brief: 'The light drifts round the arena, as in Moth. Keep close to it for 150 s in all: longer than a bare ' +
       'body\'s O₂, sugar and room for waste last. Speed the run up with the speed button (,).',
     hint: 'Watch the O₂, Sugar and Waste bars. Fat stores sugar, a Gill makes O₂ from the water, and a Pore on ' +
@@ -221,6 +233,7 @@ const LEVELS = [
   }),
   createLevel({
     id: 'exhaust', chapter: 3, name: 'Exhaust',
+    unlocks: { cells: ['airsac', 'pore'] },
     brief: 'The light drifts faster now. Keep close to it for 120 s in all. Hard work makes waste, and waste that ' +
       'builds up poisons the cells that made it.',
     hint: 'A Pore on the surface dumps waste into the water. Put one at the back, touching both Siphons, so their ' +
@@ -233,6 +246,7 @@ const LEVELS = [
   }),
   createLevel({
     id: 'cold-water', chapter: 3, name: 'Cold water',
+    unlocks: { cells: ['heart'], vessels: true },
     brief: 'The same chase as Exhaust, in cold water: fluids barely seep from cell to cell (20x slower), and ' +
       'blood in a vessel barely moves on its own. Your Siphons burn through their own O₂ and sugar, and the ' +
       'stores and the Pore beside them can\'t keep up.',
@@ -277,6 +291,7 @@ const LEVELS = [
   }),
   createLevel({
     id: 'grazing', chapter: 4, name: 'Grazing',
+    unlocks: { cells: ['nose', 'mouth'] },
     brief: 'A trail of food specks winds across the dark water. Eat 13 of them.',
     hint: 'Two Noses at the front, each wired across to the Siphon on the far side, follow the smell from speck ' +
       'to speck, as crossed Light eyes follow the light. Any cell touching a speck eats it while a Mouth has room, ' +
@@ -304,6 +319,7 @@ const LEVELS = [
   }),
   createLevel({
     id: 'bulwark', chapter: 5, name: 'Bulwark',
+    unlocks: { cells: ['shell'] },
     brief: 'The Puffer hunts you, and you can\'t outswim it. Keep your Nucleus alive for 60 s.',
     hint: 'Shell takes half damage, and thorns barely scratch it. Wall the Nucleus in with Shell on all six sides. ' +
       'Shell and Thorns are built with mineral: the kit has just enough for a ring.',
@@ -317,6 +333,7 @@ const LEVELS = [
   }),
   createLevel({
     id: 'clam', chapter: 5, name: 'Clam',
+    unlocks: { cells: ['acid', 'protease', 'eyespot'] },
     brief: 'A clam sits on the rock, its Nucleus behind two layers of Shell, and the light is on it. Destroy its ' +
       'Nucleus.',
     hint: 'Acid eats Shell fast but soft cells only slowly; protease digests soft cells but can\'t touch Shell. Put ' +
@@ -333,6 +350,7 @@ const LEVELS = [
   }),
   createLevel({
     id: 'anglerfish', chapter: 5, name: 'Anglerfish',
+    unlocks: { cells: ['photophore'] },
     brief: 'It is dark. A Seeker rests nearby: its Light eyes drive it to any light they see. Lure it in and ' +
       'destroy its Nucleus. You don\'t have to swim at all.',
     hint: 'A Photophore glows while signalled (an Inhibitor in it keeps it on). The Seeker swims to it head first, ' +
@@ -348,6 +366,7 @@ const LEVELS = [
   }),
   createLevel({
     id: 'quarry', chapter: 5, name: 'Quarry',
+    unlocks: { cells: ['mineralizer'] },
     brief: 'Grazing\'s trail again, but the specks are mineral, and at 30 s the Puffer comes for you. Your kit has ' +
       'no mineral: eat it, armour yourself and keep your Nucleus alive for 80 s.',
     hint: 'Grazing\'s Noses and Mouth follow the trail. Put a Mineralizer where the Fat was, with a Pacemaker in it: ' +
@@ -378,6 +397,7 @@ const LEVELS = [
   }),
   createLevel({
     id: 'fight-or-flight', chapter: 6, name: 'Fight or flight',
+    unlocks: { cells: ['adrenal'] },
     brief: 'The ring is right across the water and the clock is short: two Siphons alone are too slow. Reach it ' +
       'in 26 s.',
     hint: 'Adrenaline makes working cells up to 80% stronger. Put an Adrenal behind the Siphons, touching both, and ' +
@@ -391,6 +411,7 @@ const LEVELS = [
   }),
   createLevel({
     id: 'lie-low', chapter: 6, name: 'Lie low',
+    unlocks: { cells: ['calmgland'] },
     brief: 'Stay near the drifting light for 120 s in all, on the little sugar you start with. There is no food.',
     hint: 'Calm halves what a cell burns, and lasts. A Calm gland with an Inhibitor in it is always on and costs ' +
       'little: put it at the back between the Siphons, where the burning is.',
@@ -403,6 +424,7 @@ const LEVELS = [
   }),
   createLevel({
     id: 'feast-and-famine', chapter: 6, name: 'Feast and famine',
+    unlocks: { cells: ['fedgland', 'starvedgland', 'receptor'] },
     brief: 'Food blooms round the drifting light for the first 40 s, then never again. Stay near the light for ' +
       '220 s in all.',
     hint: 'Starved halves what the body burns once the food is gone. Fed banks food fast while it lasts, but ' +
@@ -417,6 +439,7 @@ const LEVELS = [
   }),
   createLevel({
     id: 'tanned-hide', chapter: 6, name: 'Tanned hide',
+    unlocks: { cells: ['tanner'] },
     brief: 'The Puffer hunts you, and your kit has no mineral for Shell. Keep your Nucleus alive for 60 s.',
     hint: 'A Tanner crosslinks the cells round it: they take 60% less damage and blunt thorns like Shell. Ring ' +
       'the Nucleus with Tissue and make one of the ring a Tanner with an Inhibitor in it, so it is always on.',
@@ -430,6 +453,7 @@ const LEVELS = [
   }),
   createLevel({
     id: 'snap', chapter: 6, name: 'Snap',
+    unlocks: { cells: ['resilin'] },
     brief: 'The clam again, its Nucleus behind two layers of Shell, with the light on it, and no mineral or acid ' +
       'needed: destroy its Nucleus in 50 s.',
     hint: 'A springy muscle held contracted, then let go, strikes everything touching it and the cells round it. ' +

@@ -56,9 +56,12 @@ function wirePanelButtons(app) {
   };
 }
 
-// marks the chosen cell type, neuron and view as selected, and dims the cell types the chosen level doesn't allow
+// marks the chosen cell type, neuron and view as selected, dims the cell types the chosen level doesn't allow, and
+// leaves out of the dock and the tabs what it hasn't unlocked yet
 function showSelectedButtons(app) {
   const limits = chosenLimits(app);
+  app.showDockPieces(limits, chosenNewPieces(app));
+  byId('layer-vessel').style.display = limits.vesselsLocked ? 'none' : '';
   for (const [typeName, button] of app.dockButtons) {
     button.classList.toggle('selected', typeName === app.selectedType);
     button.classList.toggle('banned', isCellBanned(limits, typeName));

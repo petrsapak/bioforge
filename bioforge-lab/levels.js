@@ -16,9 +16,11 @@ function isLevelOpen(results, levelIndex) {
   return RULES.allLevelsOpen || isLevelEarned(results, levelIndex);
 }
 
-// the design limits a level sets, filled in from RULES where it sets none; kit: its material kit, or null for a
-// biomass budget; bannedCells: the cell types the level doesn't allow
+// The design limits a level sets, filled in from RULES where it sets none; kit: its material kit, or null for a
+// biomass budget; bannedCells: the cell types the level doesn't allow; lockedCells, lockedNeurons and vesselsLocked:
+// what no level up to this one has unlocked yet (levelUnlocks), which the dock doesn't show.
 function levelLimits(level) {
+  const unlocked = levelUnlocks(level);
   return {
     budget: RULES.budget,
     maxCells: RULES.maxCells,
@@ -28,7 +30,35 @@ function levelLimits(level) {
     kit: null,
     bannedCells: [],
     ...level.limits,
+    lockedCells: Object.keys(CELLS).filter(typeName => !unlocked.cells.has(typeName)),
+    lockedNeurons: Object.keys(NEURONS).filter(kind => !unlocked.neurons.has(kind)),
+    vesselsLocked: !unlocked.hasVessels,
   };
+}
+
+// What a level's dock has: the pieces it and every level before it unlock (data/levels.js), plus the Nucleus, which
+// every creature has. So the dock fills level by level, and each level brings what it needs.
+function levelUnlocks(level) {
+  const cells = new Set(Object.keys(CELLS).filter(typeName => CELLS[typeName].isNucleus));
+  const neurons = new Set();
+  let hasVessels = false;
+  for (const earlier of LEVELS.slice(0, LEVELS.indexOf(level) + 1)) {
+    earlier.unlocks.cells.forEach(typeName => cells.add(typeName));
+    earlier.unlocks.neurons.forEach(kind => neurons.add(kind));
+    hasVessels = hasVessels || earlier.unlocks.vessels;
+  }
+  return { cells, neurons, hasVessels };
+}
+
+// the limits with nothing locked, for a player who has won the last level
+function withEverythingUnlocked(limits) {
+  return { ...limits, lockedCells: [], lockedNeurons: [], vesselsLocked: false };
+}
+
+// whether the last level is won, which opens every cell and neuron in every level (not every level: a player
+// stuck on one would be locked out)
+function isLastLevelWon(results) {
+  return !!results[LEVELS[LEVELS.length - 1].id];
 }
 
 // A level in play: its world, the player's creature, the level's other creatures, the clock and the outcome

@@ -106,6 +106,7 @@ function boot() {
   app.dockButtons = dock.cellButtons;
   app.neuronButtons = dock.neuronButtons;
   app.showDockLayer = dock.showLayer;
+  app.showDockPieces = dock.showPieces;
   app.showDockLayer(app.layer);
   setUpWindows(app);
   setUpToolbar(app);
@@ -201,6 +202,7 @@ function pickNeuron(app, kind) {
 // ---------- Body, Nerve and Vessels views ----------
 // switches the builder between the Body view (cells), the Nerve view (neurons and fibres) and the Vessels view
 function showLayer(app, layer) {
+  if (layer === 'vessel' && chosenLimits(app).vesselsLocked) return;   // no level so far has opened it
   app.layer = layer;
   app.stamp = null;
   app.partDrag = null;
@@ -289,7 +291,7 @@ function showModeWindows(app) {
   byId('level-result').style.display = 'none';
 }
 
-// goes back to the builder from a level or the Sandbox
+// goes back to the builder from a level or the Sandbox, always in the Body view (user, 2026-11-01)
 function enterBuilder(app) {
   app.mode = 'build';
   app.world = null;
@@ -299,12 +301,22 @@ function enterBuilder(app) {
   app.gridView.panY = 0;
   app.isFollowingFocus = false;
   showModeWindows(app);
+  showLayer(app, 'body');
   rebuildTank(app);
 }
 
-// what the builder's design must fit: the chosen level's limits, or RULES
+// what the builder's design must fit: the chosen level's limits, or RULES; once the last level is won nothing is
+// locked in any level
 function chosenLimits(app) {
-  return app.level ? levelLimits(app.level) : RULES;
+  if (!app.level) return RULES;
+  const limits = levelLimits(app.level);
+  return isLastLevelWon(app.levelResults) ? withEverythingUnlocked(limits) : limits;
+}
+
+// the pieces the chosen level brings to the dock, marked there as new; none in free build or once all are open
+function chosenNewPieces(app) {
+  if (!app.level || isLastLevelWon(app.levelResults)) return { cells: [], neurons: [] };
+  return app.level.unlocks;
 }
 
 // ---------- Keyboard ----------

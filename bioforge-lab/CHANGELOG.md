@@ -7,6 +7,15 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.10 (2026-11-01)
+- In the levels the cell bar fills as you go: each level adds the cells and neurons it needs, marked new with a
+  green rim, and the bar keeps what the levels before it brought. Empty tabs stay hidden, and the Vessels view opens
+  with Cold water. Free build and the Sandbox have everything, and so does every level once the last one is won.
+  Examples and saved creatures with cells you haven't met yet still load and run.
+- Coming back to the builder from a level or the Sandbox always shows the Body view.
+- Settings has Reset level progress too (it was only under Profile): it forgets your stars and locks the levels
+  again, after asking.
+
 ## 0.7.9 (2026-11-01)
 - Rock: levels can have walls and stones built of hexes, and currents of moving water. Cells pressed against rock
   are held by it, the harder the tighter.

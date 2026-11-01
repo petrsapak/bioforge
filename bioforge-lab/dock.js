@@ -1,7 +1,7 @@
 'use strict';
 // The dock at the bottom of the builder: in the Body view a tab per cell category, any number of them open side by
 // side, each cell type a hexagon button showing the cell (its name and cost are in the hover hint); in the Nerve view
-// the neurons (browser only).
+// the neurons. In a level it shows only the pieces unlocked so far, the level's own ones marked (browser only).
 
 const DOCK_HEX_WIDTH = 54;                                // px
 const DOCK_HEX_HEIGHT = Math.round(DOCK_HEX_WIDTH * 2 / Math.sqrt(3));
@@ -13,7 +13,8 @@ const DOCK_ICON_ZOOM = 1.5;                               // how much bigger tha
 const DOCK_NEURON_CELL_RADIUS = CELL_RADIUS * 0.9 * MEMBRANE_RADIUS / NEURON_BADGE_SIZE;
 
 // Builds the dock. Clicking a cell type calls onPickCell(typeName), a neuron onPickNeuron(kind). Returns the buttons
-// by type name and by neuron kind, and showLayer(layer), which shows the tabs and sections of 'body' or 'nerve'.
+// by type name and by neuron kind, showLayer(layer), which shows the tabs and sections of 'body' or 'nerve', and
+// showPieces(limits, newPieces), which hides the limits' locked pieces and marks newPieces ({ cells, neurons }).
 function buildDock(onPickCell, onPickNeuron) {
   const sections = [];
   const cellButtons = new Map();
@@ -41,7 +42,8 @@ function buildDock(onPickCell, onPickNeuron) {
   const bodySections = sections.filter(section => section.layer === 'body');
   const tabs = makeDockTabs(bodySections);
   let layer = 'body';
-  const openCategories = readOpenCategories(bodySections);
+  const chosenCategories = readOpenCategories(bodySections);   // the tabs the player opened
+  let openCategories = new Set(chosenCategories);             // those of them shown: the ones with pieces
   const showSections = () => {
     for (const section of sections) {
       const isShown = section.layer === layer && (layer !== 'body' || openCategories.has(section.category));
@@ -54,9 +56,14 @@ function buildDock(onPickCell, onPickNeuron) {
   for (const tab of tabs) {
     tab.onclick = () => {
       const category = tab.dataset.category;
-      if (!openCategories.has(category)) openCategories.add(category);
-      else if (openCategories.size > 1) openCategories.delete(category);
-      writeStorage('dock-categories', [...openCategories]);
+      if (!openCategories.has(category)) {
+        openCategories.add(category);
+        chosenCategories.add(category);
+      } else if (openCategories.size > 1) {
+        openCategories.delete(category);
+        chosenCategories.delete(category);
+      }
+      writeStorage('dock-categories', [...chosenCategories]);
       showSections();
     };
   }
@@ -65,9 +72,45 @@ function buildDock(onPickCell, onPickNeuron) {
     byId('dock-bar').textContent = { body: 'Cells', nerve: 'Neurons', vessel: 'Vessels: drag cell to cell' }[layer];
     showSections();
   };
+  // hides the locked pieces, and with them any category left empty; a category the player had open that is empty
+  // now gives way to the first one with something in it, without forgetting the choice
+  let markedPieces = null;                                // the newPieces last shown, so their tabs open only once
+  const showPieces = (limits, newPieces) => {
+    for (const [typeName, button] of cellButtons) {
+      showDockButton(button, !isCellLocked(limits, typeName), newPieces.cells.includes(typeName));
+    }
+    for (const [kind, button] of neuronButtons) {
+      showDockButton(button, !isNeuronLocked(limits, kind), newPieces.neurons.includes(kind));
+    }
+    const filled = bodySections.filter(section => shownButtons(section).length > 0).map(section => section.category);
+    for (const tab of tabs) tab.style.display = filled.includes(tab.dataset.category) ? '' : 'none';
+    // a level's new pieces don't start out hidden in a closed tab: their tabs open as if clicked
+    if (newPieces !== markedPieces) {
+      for (const section of bodySections) {
+        if (section.buttons.some(button => button.classList.contains('new'))) chosenCategories.add(section.category);
+      }
+      markedPieces = newPieces;
+    }
+    openCategories = new Set(chosenCategories);
+    for (const category of chosenCategories) if (!filled.includes(category)) openCategories.delete(category);
+    if (openCategories.size === 0 && filled.length) openCategories.add(filled[0]);
+    layOutDock(sections);
+    showSections();
+  };
   layOutDock(sections);
   setUpDockToggle();
-  return { cellButtons, neuronButtons, showLayer };
+  return { cellButtons, neuronButtons, showLayer, showPieces };
+}
+
+// a dock button shown or hidden, with the mark of a piece the chosen level brings
+function showDockButton(button, isShown, isNew) {
+  button.style.display = isShown ? '' : 'none';
+  button.classList.toggle('new', isNew);
+}
+
+// the section's buttons the dock shows now
+function shownButtons(section) {
+  return section.buttons.filter(button => button.style.display !== 'none');
 }
 
 // the categories the player left open, in the dock's order; the first category when none is remembered
@@ -173,9 +216,11 @@ function layOutDock(sections) {
   const columnStep = DOCK_HEX_WIDTH + DOCK_HEX_GAP;
   const rowStep = DOCK_HEX_HEIGHT * 0.75 + DOCK_HEX_GAP;
   for (const section of sections) {
-    const columns = Math.ceil(section.buttons.length / DOCK_ROWS);
-    const usedRows = Math.ceil(section.buttons.length / columns);
-    section.buttons.forEach((button, i) => {
+    const buttons = shownButtons(section);
+    if (buttons.length === 0) continue;
+    const columns = Math.ceil(buttons.length / DOCK_ROWS);
+    const usedRows = Math.ceil(buttons.length / columns);
+    buttons.forEach((button, i) => {
       const row = Math.floor(i / columns);
       const column = i % columns;
       button.style.left = column * columnStep + (row % 2 ? columnStep / 2 : 0) + 'px';
