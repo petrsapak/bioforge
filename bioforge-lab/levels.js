@@ -71,8 +71,8 @@ function isLastLevelWon(results) {
 }
 
 // A level in play: its world, the player's creature, the level's other creatures, the clock and the outcome
-// ('won', 'lost' or null while it runs). goalTime counts the seconds a stayNear goal has been met. With a material
-// kit, the player starts with the kit's leftovers as its sugar and fat, instead of stores two thirds full.
+// ('won', 'lost' or null while it runs). goalTime counts the seconds a stayNear or circle goal has been met. With a
+// material kit, the player starts with the kit's leftovers as its sugar and fat, instead of stores two thirds full.
 function startLevel(level, design) {
   const world = newWorld(level.arena.width, level.arena.height, { systems: level.systems, seed: LEVEL_SEED,
     seepFactor: level.seepFactor, foodSupply: createFoodSupply(level.food),
@@ -183,6 +183,13 @@ const LEVEL_GOALS = {
     if (light && distanceToPlayer(run, light.x, light.y) < goal.radius) run.goalTime += dt;
     return run.goalTime >= goal.seconds;
   },
+  circle: (run, goal, dt) => {
+    const light = run.world.light;
+    if (!light) return false;
+    const distance = distanceToPlayer(run, light.x, light.y);
+    if (distance >= goal.inner && distance < goal.radius) run.goalTime += dt;
+    return run.goalTime >= goal.seconds;
+  },
   eat: (run, goal) => run.player.foodEaten >= goal.count,
   survive: (run, goal) => run.time >= goal.seconds,
   kill: (run, goal) => !!run.creatures[goal.creature] && !run.creatures[goal.creature].alive,
@@ -210,6 +217,9 @@ function checkLevelGoal(run, dt) {
   } else if (isFalseStart(run)) {
     run.outcome = 'lost';
     run.reason = 'False start: you moved before the flash.';
+  } else if (isBurned(run)) {
+    run.outcome = 'lost';
+    run.reason = 'You flew into the light.';
   } else if (run.time >= run.level.timeLimit) {
     run.outcome = 'lost';
     run.reason = 'Out of time.';
@@ -222,6 +232,13 @@ function isSeenMoving(run) {
   const rule = run.level.stillWhileLit;
   if (!rule) return false;
   return levelLightOnTime(run.level.light, run.time) > rule.grace && run.playerSpeed > rule.speed;
+}
+
+// A circle goal loses when the player's centre comes within its inner radius of the light.
+function isBurned(run) {
+  const goal = run.level.goal;
+  const light = run.world.light;
+  return goal.kind === 'circle' && !!light && distanceToPlayer(run, light.x, light.y) < goal.inner;
 }
 
 // A level with a stillUntilLit rule loses when the player swims faster than its speed before the light first comes on.

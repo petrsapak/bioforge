@@ -182,14 +182,25 @@ fibres: [...CROSSED, ...(isWired ? [fibre(-1, 0, 0, -2), fibre(-1, 0, 1, -2), fi
 // Spit: the crossed Seeker with two always-on Spitters at the front and a Fat on each side
 const spitBuild = { cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(0, -2, 'spitter', lit()),
   cell(1, -2, 'spitter', lit()), cell(-1, 0, 'fat'), cell(1, 0, 'fat')], fibres: CROSSED };
+// Moth: both Light eyes into both Siphons, and a Pacemaker in the Nucleus into one Siphon (pacemakerSide 'left' or
+// 'right'): the light drives it forward and the Pacemaker side keeps it turning, round the light
+const mothBuild = (pacemakerSide = 'right') => ({ cells: [pacemakerNucleus(), ...eyesAndSiphons],
+  fibres: [fibre(0, -1, -1, 1), fibre(0, -1, 0, 1), fibre(1, -1, -1, 1), fibre(1, -1, 0, 1),
+    pacemakerSide === 'right' ? fibre(0, 0, 0, 1) : fibre(0, 0, -1, 1)] });
+// Hunt: the crossed Seeker with a Pacemaker in the Nucleus pulsing both Siphons, so it swims on until it sees the
+// light; or with Cilia on both sides of the Nucleus, which always beat
+const huntBuild = { cells: [pacemakerNucleus(), ...eyesAndSiphons],
+  fibres: [...CROSSED, fibre(0, 0, -1, 1), fibre(0, 0, 0, 1)] };
+const huntCiliaBuild = { cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(-1, 0, 'cilia'), cell(1, 0, 'cilia')],
+  fibres: CROSSED };
 const SOLUTIONS = {
   'first-stroke': { cells: [pacemakerNucleus(), cell(-1, 1, 'siphon'), cell(0, 1, 'siphon')],
     fibres: [fibre(0, 0, -1, 1), fibre(0, 0, 0, 1)] },
   lighthouse: { cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons], fibres: CROSSED },
-  moth: { cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons], fibres: CROSSED },
+  moth: mothBuild(),
   shade: { cells: [pacemakerNucleus(), ...eyesAndSiphons],
     fibres: [...SAME_SIDE, fibre(0, 0, -1, 1), fibre(0, 0, 0, 1)] },
-  hunt: { cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons], fibres: CROSSED },
+  hunt: huntBuild,
   freeze: eyesThroughNucleus('inhibitor'),
   'false-start': eyesThroughNucleus('latch'),
   metronome: eyesThroughNucleus('inhibitor', { kind: 'delay', setting: 3 }),
@@ -222,16 +233,16 @@ const SOLUTIONS = {
 // the wrong tool for each level: it must not win
 const WRONG_TOOLS = {
   lighthouse: sim.TEMPLATES.jet,
-  moth: sim.TEMPLATES.jet,
+  moth: SOLUTIONS.lighthouse,
   shade: SOLUTIONS.lighthouse,
-  hunt: SOLUTIONS.shade,
+  hunt: SOLUTIONS.lighthouse,
   freeze: SOLUTIONS.lighthouse,
   'false-start': SOLUTIONS.freeze,
   metronome: SOLUTIONS.freeze,
   dock: SOLUTIONS.freeze,
   tail: wigglerWithoutInhibitor,
   crevice: sim.TEMPLATES.paddler,
-  'long-haul': SOLUTIONS.moth,
+  'long-haul': SOLUTIONS.lighthouse,
   exhaust: SOLUTIONS['long-haul'],
   'cold-water': SOLUTIONS.exhaust,
   marathon: SOLUTIONS['cold-water'],
@@ -310,6 +321,24 @@ const coldRuns = ['pacemaker', 'eyes']
 check('"Cold water": a Heart beating in pulses, or only while the eyes see the light, wins as well',
   coldRuns.every(run => run.outcome === 'won'),
   coldRuns.map(run => run.outcome + ' ' + run.time.toFixed(0)).join(', '));
+// Moth and Hunt must each need something the Lighthouse build doesn't have (user, 2026-10-30: "moth can be finished
+// with the same design as level 2 ... Level5 can be finished with the same design as levels 2,3")
+const mothRuns = [mothBuild('left'), sim.TEMPLATES.jet, SOLUTIONS.shade]
+  .map(build => sim.runLevel(levelById('moth'), build));
+check('"Moth": circling the other way wins too; the Jet and the Shade build never circle the lamp',
+  mothRuns[0].outcome === 'won' && mothRuns.slice(1).every(run => run.outcome === 'lost'),
+  mothRuns.map(run => `${run.outcome} ${run.goalTime.toFixed(0)} s`).join(', '));
+const mothSeeker = sim.runLevel(levelById('moth'), SOLUTIONS.lighthouse);
+check('"Moth": the Lighthouse build flies into the light', /flew into the light/.test(mothSeeker.reason || ''),
+  mothSeeker.reason);
+const huntRuns = [huntCiliaBuild, sim.TEMPLATES.jet, SOLUTIONS.shade, SOLUTIONS.moth]
+  .map(build => sim.runLevel(levelById('hunt'), build));
+check('"Hunt": Cilia on the sides catch the Darter too; the Jet, the Shade and the Moth builds lose',
+  huntRuns[0].outcome === 'won' && huntRuns.slice(1).every(run => run.outcome === 'lost'),
+  huntRuns.map(run => `${run.outcome} ${run.time.toFixed(0)} s`).join(', '));
+// Packed lunch was beaten by the Marathon build (user, 2026-10-30: "14 can be finished with the same vessel as 13")
+const lunchProblem = sim.buildCheck(SOLUTIONS.marathon, sim.levelLimits(levelById('packed-lunch')));
+check('"Packed lunch": the Marathon build doesn\'t fit its kit', /Not enough protein/.test(lunchProblem), lunchProblem);
 const unbeating = sim.runLevel(levelById('cold-water'), coldWaterBuild('none'));
 check('"Cold water": a Heart without a signal doesn\'t beat, and loses', unbeating.outcome === 'lost',
   `${unbeating.reason} ${unbeating.goalTime.toFixed(0)} s near the light`);

@@ -24,6 +24,8 @@
 //     arrives (left out: there from the start); anchored: fixed in place, nothing moves it
 //   goal: { kind: 'reach', x, y, radius } swim the creature's centre into the ring;
 //     { kind: 'stayNear', radius, seconds } stay that close to the light for that long in all;
+//     { kind: 'circle', inner, radius, seconds } stay between inner and radius (px) from the light for that long in
+//     all; coming within inner of it loses;
 //     { kind: 'eat', count } eat that many food specks;
 //     { kind: 'restIn', x, y, radius, speed, seconds } stay in the ring, slower than speed (px/s), that long without
 //     a break;
@@ -102,12 +104,15 @@ const LEVELS = [
   }),
   createLevel({
     id: 'moth', chapter: 1, name: 'Moth',
-    brief: 'The light drifts round the arena. Keep close to it: 15 s within the dashed ring in all.',
-    hint: 'A creature that turns toward the light follows it as it moves. It has to keep up.',
+    brief: 'Circle the lamp like a moth: 20 s in all inside the green ring. Flying into the red ring round the ' +
+      'lamp loses.',
+    hint: 'The Lighthouse build flies straight into it. Wire both Light eyes to both Siphons, so the light drives ' +
+      'you forward, and a Pacemaker in the Nucleus to one Siphon only: that side pushes harder, so you keep ' +
+      'turning, round and round the light.',
     limits: { budget: 40 },
-    light: DRIFTING_LIGHT,
-    goal: { kind: 'stayNear', radius: 100, seconds: 15 },
-    timeLimit: 60, par: { seconds: 30, biomass: 20 },
+    light: { x: 950, y: 350, range: 650 },
+    goal: { kind: 'circle', inner: 50, radius: 200, seconds: 20 },
+    timeLimit: 60, par: { seconds: 35, biomass: 14 },
   }),
   createLevel({
     id: 'shade', chapter: 1, name: 'Shade',
@@ -124,15 +129,17 @@ const LEVELS = [
   }),
   createLevel({
     id: 'hunt', chapter: 1, name: 'Hunt',
-    brief: 'The glowing Darter is prey: it jets away when you come close. Stay on its tail: 8 s within the ring ' +
-      'round it, in all.',
-    hint: 'Follow the light it carries. It only flees straight ahead, so it ends up against a wall, where you can ' +
-      'catch up. A slow follower loses it; one that never slows down overshoots.',
+    brief: 'The glowing Darter is prey, far across the arena, too far for your eyes to see it at first. Catch it: ' +
+      'get into the ring round it.',
+    hint: 'The Lighthouse build sits still until it sees a light, and this one is out of sight. Keep swimming ' +
+      'until you see it, then turn toward it: a Pacemaker in the Nucleus pulsing both Siphons, with the eyes ' +
+      'crossed to them as in Lighthouse. Cilia on the sides, which always beat, work too.',
     limits: { budget: 50 },
+    start: { x: 150, y: 700, heading: 1.1 },
     light: { carriedBy: 0, range: 700 },
-    creatures: [{ design: 'darter', x: 1050, y: 250, heading: 0, behaviour: 'wired' }],
-    goal: { kind: 'stayNear', radius: 80, seconds: 8 },
-    timeLimit: 60, par: { seconds: 30, biomass: 20 },
+    creatures: [{ design: 'darter', x: 1250, y: 150, heading: 0, behaviour: 'wired' }],
+    goal: { kind: 'stayNear', radius: 80, seconds: 0.5 },
+    timeLimit: 50, par: { seconds: 40, biomass: 14 },
   }),
   createLevel({
     id: 'freeze', chapter: 2, name: 'Freeze',
@@ -280,12 +287,13 @@ const LEVELS = [
   createLevel({
     id: 'packed-lunch', chapter: 4, name: 'Packed lunch',
     brief: 'Long haul\'s chase, but you build from a kit of materials instead of a biomass budget, and what you ' +
-      'don\'t use is all the fuel you get: there is no food. Keep close to the light for 150 s in all.',
+      'don\'t use is all the fuel you get: there is no food. The protein is tight: the Marathon build doesn\'t ' +
+      'fit. Keep close to the light for 150 s in all.',
     hint: 'Cells are built from Protein, and a Fat cell takes one Fat as well. Leftover Sugar spreads over the ' +
       'body, but leftover Fat goes only into Fat cells, which turn it back into sugar as they run low. Long haul\'s ' +
       'Seeker with one Fat, a Gill and a Pore carries enough.',
     systems: FEEDING_SYSTEMS,
-    limits: { kit: { protein: 32, sugar: 4, fat: 7 } },
+    limits: { kit: { protein: 22, sugar: 4, fat: 7 } },
     food: { maxCount: 0 },
     light: DRIFTING_LIGHT,
     goal: { kind: 'stayNear', radius: 100, seconds: 150 },
@@ -377,7 +385,7 @@ const LEVELS = [
     light: CLAM_LIGHT,
     creatures: [ANCHORED_CLAM],
     goal: { kind: 'kill', creature: 0 },
-    timeLimit: 50, par: { seconds: 36, biomass: 28 },
+    timeLimit: 90, par: { seconds: 36, biomass: 28 },
   }),
   createLevel({
     id: 'anglerfish', chapter: 5, name: 'Anglerfish',

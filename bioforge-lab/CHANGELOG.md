@@ -7,6 +7,13 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.15 (2026-11-01)
+- Moth is new: circle the lamp like a moth, between the green ring and the red one. Flying into the light loses, so
+  the Lighthouse build doesn't win any more.
+- Hunt is new: the Darter starts far across the arena, out of sight. Keep swimming until you see it, then catch it.
+- Packed lunch's kit has less protein (22), so the Marathon build doesn't fit.
+- Clam gives you 90 s instead of 50.
+
 ## 0.7.14 (2026-11-01)
 - Vessels are gone. A Heart now pumps blood between every cell within 5 steps of it, about 25 times faster than
   fluids seep, so there is nothing to lay: put a Heart near the cells that work hardest. Hover a Heart in the builder
