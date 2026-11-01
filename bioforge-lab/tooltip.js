@@ -11,9 +11,8 @@ function createTooltipState() {
   return { target: null, typeName: null, neuronKind: null, anchor: null, since: 0, mouseX: 0, mouseY: 0 };
 }
 
-// Notes what the mouse is over (a dock button, or a placed cell in the Body view only: in the Nerve and Vessels
-// views the mouse crosses cells all the time while laying fibres and vessels); a new target hides the tooltip and
-// restarts the wait.
+// Notes what the mouse is over (a dock button, or a placed cell in the Body view only: in the Nerve view the mouse
+// crosses cells all the time while laying fibres); a new target hides the tooltip and restarts the wait.
 function trackTooltipTarget(app, event) {
   const tooltip = app.tooltip;
   tooltip.mouseX = event.clientX;

@@ -5,7 +5,7 @@
 // [[q, r, typeName], ...] -> design cells
 const blueprintFromList = list => list.map(([q, r, typeName]) => ({ q, r, typeName }));
 const designFromList = list => ({ cells: blueprintFromList(list) });
-// [[fromQ, fromR, toQ, toR], ...] -> design fibres or vessels
+// [[fromQ, fromR, toQ, toR], ...] -> design fibres
 const linksFromList = list => list.map(([fromQ, fromR, toQ, toR]) =>
   ({ from: { q: fromQ, r: fromR }, to: { q: toQ, r: toR } }));
 
@@ -93,7 +93,7 @@ function pulsedByNucleus(design, rate) {
 }
 
 // The Wiggler's and the Paddler's body: a Mouth, a Pore and two Gills at the head, two rows of Muscles with a Heart
-// between them, pumping vessels up each side to the Gills, and a fin of five Joints behind. It is mirror-symmetric
+// between them, and a fin of five Joints behind. It is mirror-symmetric
 // (the Mouth, Pore and Heart weigh the same), so it swims straight. The Pacemaker in the
 // Nucleus drives the left Muscles through the left Gill, and an Inhibitor in the right Gill drives the right ones, so
 // the sides take turns and both are the same number of fibres from the beat. The Muscles bend the front, and the
@@ -112,13 +112,12 @@ function muscleFish(rate, backDelay) {
       ...body.map(([q, r, typeName]) => createDesignCell(q, r, typeName, isBackRowMuscle(q, r) ? backRow : {})),
     ],
     fibres: linksFromList([[0, 0, -1, 0], [-1, 0, -1, 1], [-1, 1, -2, 2], [0, 0, 1, 0], [1, 0, 0, 1], [0, 1, 0, 2]]),
-    vessels: linksFromList([[-1, 2, -1, 0], [-1, 2, 1, 0]]),
   };
 }
 
 const TEMPLATES = {
   // The default design: a Pacemaker in the Nucleus pulses two Siphons at the back, so it swims forward in pulses on
-  // its own. Mouth, gill and heart feed the siphons, the Heart pumping vessels to the Gill and both Siphons; the pore
+  // its own. Mouth, gill and heart feed the siphons, the Heart pumping blood between them all; the pore
   // lets out waste. Written in the current format.
   jet: {
     cells: [
@@ -131,7 +130,6 @@ const TEMPLATES = {
       createDesignCell(0, 1, 'siphon'),
     ],
     fibres: [{ from: { q: 0, r: 0 }, to: { q: -1, r: 1 } }, { from: { q: 0, r: 0 }, to: { q: 0, r: 1 } }],
-    vessels: linksFromList([[-1, 0, 1, -1], [-1, 0, -1, 1], [-1, 0, 0, 1]]),
   },
   paddler: muscleFish(2.2, 0.1),
   // Follows the light (in the Sandbox, the mouse): each Light eye is wired across to the Siphon on the far side, so
@@ -149,7 +147,6 @@ const TEMPLATES = {
       createDesignCell(-2, 1, 'pore'),
     ],
     fibres: [{ from: { q: 0, r: -1 }, to: { q: 0, r: 1 } }, { from: { q: 1, r: -1 }, to: { q: -1, r: 1 } }],
-    vessels: linksFromList([[1, 1, 0, 1], [1, 1, -1, 1], [1, 1, -1, 0]]),
   },
   wiggler: muscleFish(2.2, 0),
   squirter: designFromList([
@@ -238,14 +235,9 @@ Object.assign(TEMPLATES, {
 // cells, wired by touch); they are converted to neurons and fibres here (see upgradeToNerveLayer in design.js).
 for (const name of Object.keys(TEMPLATES)) TEMPLATES[name] = upgradeToNerveLayer(TEMPLATES[name]);
 
-// The small builds' vessels, from each Heart to its farthest working cells (added with the vascular layer, 2026-10-28)
-const SMALL_BUILD_VESSELS = {
-  lancer: [[-1, 1, 1, 0], [-1, 1, 1, 2]],
-  stinger: [[1, 0, -2, -1], [1, 0, -2, 0]],
-  spitter: [[-1, 1, 2, -1], [-1, 1, 1, 2]],
-  snarer: [[-1, 1, 2, 0], [-1, 1, 1, 2]],
-};
-for (const [name, vessels] of Object.entries(SMALL_BUILD_VESSELS)) TEMPLATES[name].vessels = linksFromList(vessels);
+// The designs above were made while a Heart beat on its own. Now it beats only on a signal, so each Heart gets an
+// Inhibitor, which keeps it beating (see upgradeToHeartAreas in design.js).
+for (const name of Object.keys(TEMPLATES)) TEMPLATES[name] = upgradeToHeartAreas(TEMPLATES[name], true);
 
 // The Templates window's Examples tab, in groups: each example is a design above, with the name and the line shown
 // on its card

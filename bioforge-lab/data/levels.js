@@ -1,15 +1,14 @@
 'use strict';
 // The levels and the creatures that live in them (pure data). levels.js builds and runs them. Field meanings:
 //   id, chapter, name; brief: what to do; hint: a nudge toward how
-//   unlocks: what the level adds to the dock ({ cells, neurons: type names, vessels: true when the Vessels view
-//     opens here }); a level's dock has what it and every level before it add (levelUnlocks in levels.js)
+//   unlocks: what the level adds to the dock ({ cells, neurons: type names }); a level's dock has what it and every
+//     level before it add (levelUnlocks in levels.js)
 //   arena: { width, height } in px; systems: the switchable systems that run (chapters 1 and 2: nerve only, so
 //     every cell works at full power and nothing starves; chapter 3 adds fluid and vascular; chapter 4 metabolism
 //     and food; chapter 5 secretions; chapter 6 chemical, scent and treatments)
-//   seepFactor: share of the usual seeping between cells and unpumped vessel flow (cold water: less); a Heart's
-//     pumping is not slowed
-//   limits: design limits ({ budget, maxCells, maxNeurons, maxFibreUnits, maxVesselUnits, bannedCells: cell type
-//   names the level doesn't allow }); any left out come from
+//   seepFactor: share of the usual seeping between cells (cold water: less); a Heart's pumping is not slowed
+//   limits: design limits ({ budget, maxCells, maxNeurons, maxFibreUnits, bannedCells: cell type names the level
+//   doesn't allow }); any left out come from
 //   RULES. kit: { protein, sugar, fat, mineral } (data/materials.js) instead of a budget: the body's recipes must fit
 //   it, and what is left is the creature's starting sugar, fat and mineral, in place of stores two thirds full
 //   food: the food supply (createFoodSupply in food.js), where the food system runs
@@ -77,7 +76,7 @@ const pufferArriving = at => ({ design: 'puffer', x: 1250, y: 700, heading: 0, b
 function createLevel(definition) {
   return { arena: ARENA, systems: CHAPTER_1_SYSTEMS, seepFactor: 1, limits: {}, start: START_BOTTOM, light: null,
     creatures: [], rocks: [], currents: [], hint: '', ...definition,
-    unlocks: { cells: [], neurons: [], vessels: false, ...definition.unlocks } };
+    unlocks: { cells: [], neurons: [], ...definition.unlocks } };
 }
 
 const LEVELS = [
@@ -247,28 +246,30 @@ const LEVELS = [
   }),
   createLevel({
     id: 'cold-water', chapter: 3, name: 'Cold water',
-    unlocks: { cells: ['heart'], vessels: true },
-    brief: 'The same chase as Exhaust, in cold water: fluids barely seep from cell to cell (20x slower), and ' +
-      'blood in a vessel barely moves on its own. Your Siphons burn through their own O₂ and sugar, and the ' +
-      'stores and the Pore beside them can\'t keep up.',
-    hint: 'The cold doesn\'t slow a beating Heart. Put a Heart at the front between the eyes, and in the Vessels ' +
-      'view (3) lay a vessel from it to the Fat, the Air sac, each Siphon and the Pore. Blood flows from the ' +
-      'stores through the Heart to the Siphons, and their waste flows on to the Pore.',
+    unlocks: { cells: ['heart'] },
+    brief: 'The same chase as Exhaust, in cold water: fluids barely seep from cell to cell (20x slower). Your ' +
+      'Siphons burn through their own O₂ and sugar, and the stores and the Pore beside them can\'t keep up. ' +
+      'Keep close to the light for 100 s in all.',
+    hint: `The cold doesn't slow a beating Heart: it pumps blood between every cell within ${HEART_REACH} steps ` +
+      'of it. A Heart beats only on a nerve signal: an Inhibitor in it (Nerves view) keeps it beating, and a ' +
+      'Pacemaker beats it in pulses, for half the fuel. Put it where it keeps the body even, such as at the front ' +
+      'between the eyes.',
     systems: CIRCULATION_SYSTEMS,
     seepFactor: 0.05,
     limits: { budget: 45 },
     light: { ...DRIFTING_LIGHT, speed: 24 },
-    goal: { kind: 'stayNear', radius: 100, seconds: 120 },
-    timeLimit: 240, par: { seconds: 190, biomass: 25 },
+    goal: { kind: 'stayNear', radius: 100, seconds: 100 },
+    timeLimit: 240, par: { seconds: 150, biomass: 25 },
   }),
   createLevel({
     id: 'marathon', chapter: 3, name: 'Marathon',
     brief: 'Cold water again, and the light drifts as slowly as in Long haul, but keep close to it for 200 s in ' +
-      'all. That is longer than the Cold water build\'s O₂ and sugar last.',
+      'all. That is longer than the Cold water build\'s O₂ and sugar last, and a Heart that never stops beating ' +
+      'burns as much as a Siphon.',
     hint: 'Everything from this chapter at once. Two Fats on the sides for sugar, a Gill beside each Siphon for ' +
-      'O₂, the Pore at the back for waste, and a Heart at the front with a vessel to each of them and to both ' +
-      'Siphons. A Gill makes O₂ for every cell only if blood carries it away. Keep the body short and even, or ' +
-      'it turns.',
+      'O₂, the Pore at the back for waste, and a Heart at the front. A Gill makes O₂ for every cell only if ' +
+      'blood carries it away, but the Heart needn\'t beat all the time: a Pacemaker in it beats it in pulses, for ' +
+      'half the fuel. Keep the body short and even, or it turns.',
     systems: CIRCULATION_SYSTEMS,
     seepFactor: 0.05,
     limits: { budget: 50 },
@@ -319,6 +320,21 @@ const LEVELS = [
     timeLimit: 260, par: { seconds: 250, biomass: 24 },
   }),
   createLevel({
+    id: 'sting', chapter: 5, name: 'Sting',
+    unlocks: { cells: ['nettle', 'eyespot'] },
+    brief: 'The glowing Darter again. This time catch it and destroy its Nucleus.',
+    hint: 'A Nettle stings every enemy cell close to it, but only while signalled, and burns fuel then. An Eyespot ' +
+      'signals while an enemy is near: put three Nettles across the front, wired from an Eyespot, and let crossed ' +
+      'Light eyes chase the light. The Darter flees into a wall, where you catch it.',
+    systems: ARMOUR_SYSTEMS,
+    limits: { kit: { protein: 36, sugar: 4, fat: 3 } },
+    food: { maxCount: 0 },
+    light: { carriedBy: 0, range: 900 },
+    creatures: [{ design: 'darter', x: 1050, y: 250, heading: 0, behaviour: 'wired' }],
+    goal: { kind: 'kill', creature: 0 },
+    timeLimit: 60, par: { seconds: 32, biomass: 34 },
+  }),
+  createLevel({
     id: 'bulwark', chapter: 5, name: 'Bulwark',
     unlocks: { cells: ['shell'] },
     brief: 'The Puffer hunts you, and you can\'t outswim it. Keep your Nucleus alive for 60 s.',
@@ -333,8 +349,22 @@ const LEVELS = [
     timeLimit: 70, par: { seconds: 70, biomass: 12 },
   }),
   createLevel({
+    id: 'pincushion', chapter: 5, name: 'Pincushion',
+    unlocks: { cells: ['thorn'] },
+    brief: 'The Puffer hunts you again. Shell only outlasts it: this time destroy its Nucleus.',
+    hint: 'A Thorn hurts what hits it, harder the faster, and needs no fuel or nerves. It is hard, too, so the ' +
+      'Puffer\'s own thorns barely scratch it. Ring the Nucleus with Thorns and let the Puffer charge.',
+    systems: ARMOUR_SYSTEMS,
+    limits: { kit: { protein: 30, sugar: 4, mineral: 6 } },
+    food: { maxCount: 0 },
+    start: { x: 700, y: 400, heading: 0 },
+    creatures: [{ design: 'puffer', x: 250, y: 150, heading: 2, behaviour: 'hunt' }],
+    goal: { kind: 'kill', creature: 0 },
+    timeLimit: 60, par: { seconds: 30, biomass: 18 },
+  }),
+  createLevel({
     id: 'clam', chapter: 5, name: 'Clam',
-    unlocks: { cells: ['acid', 'protease', 'eyespot'] },
+    unlocks: { cells: ['acid', 'protease'] },
     brief: 'A clam sits on the rock, its Nucleus behind two layers of Shell, and the light is on it. Destroy its ' +
       'Nucleus.',
     hint: 'Acid eats Shell fast but soft cells only slowly; protease digests soft cells but can\'t touch Shell. Put ' +
@@ -395,6 +425,23 @@ const LEVELS = [
     creatures: [ANCHORED_CLAM, pufferArriving(50)],
     goal: { kind: 'survive', seconds: 120 },
     timeLimit: 130, par: { seconds: 130, biomass: 34 },
+  }),
+  createLevel({
+    id: 'spit', chapter: 5, name: 'Spit',
+    unlocks: { cells: ['spitter'] },
+    brief: 'An urchin sits on the rock with the light on it, and its Nettles sting anything that comes close. ' +
+      'Destroy its Nucleus without touching it.',
+    hint: `A signalled Spitter spits a glob every ${SPIT_COOLDOWN} s at the nearest enemy within ${SPIT_RANGE} px, ` +
+      'and each spit kicks it back. Two Spitters at the front, each holding an Inhibitor so they are always on, ' +
+      'and crossed Light eyes: you swim in until the kicks hold you off, out of the Nettles\' reach.',
+    systems: ARMOUR_SYSTEMS,
+    limits: { kit: { protein: 30, sugar: 6, fat: 2 } },
+    food: { maxCount: 0 },
+    start: { x: 700, y: 620, heading: 0 },
+    light: { carriedBy: 0, range: 900 },
+    creatures: [{ design: 'urchin', x: 700, y: 250, heading: 0, behaviour: 'wired', anchored: true }],
+    goal: { kind: 'kill', creature: 0 },
+    timeLimit: 50, par: { seconds: 34, biomass: 26 },
   }),
   createLevel({
     id: 'fight-or-flight', chapter: 6, name: 'Fight or flight',
@@ -478,7 +525,8 @@ const LEVELS = [
       'water: a Receptor for Calm and a Light eye both into a Synapse in each Siphon swim only once you are calm. ' +
       'Protease across the front.',
     systems: MOODS_SYSTEMS,
-    limits: { kit: { protein: 45, sugar: 8, fat: 2 } },
+    // Spitters kill the urchin from out of its reach, as in Spit, without calming it
+    limits: { kit: { protein: 45, sugar: 8, fat: 2 }, bannedCells: ['spitter'] },
     food: { maxCount: 0 },
     start: { x: 700, y: 430, heading: 0 },
     light: { carriedBy: 0, range: 900 },
@@ -491,8 +539,8 @@ const LEVELS = [
     brief: 'Hold still until the light flashes, then swim to the ring. Your nerves are short: 3 units of fibre in ' +
       'all, not enough to reach from an eye to the Siphons.',
     hint: 'Send the flash as adrenaline: a Light eye into an Adrenal holding a Latch, so it stays on. A Receptor ' +
-      'for adrenaline beside each Siphon turns it back into a nerve signal. Seeping is slow and uneven: a Heart ' +
-      'with vessels from the Adrenal to both Receptors carries it to them evenly.',
+      'for adrenaline beside each Siphon turns it back into a nerve signal. Seeping is slow and uneven: a beating ' +
+      'Heart between the Adrenal and both Receptors carries it to them evenly.',
     systems: MOODS_SYSTEMS,
     limits: { kit: { protein: 40, sugar: 8, fat: 2 }, maxFibreUnits: 3 },
     food: { maxCount: 0 },

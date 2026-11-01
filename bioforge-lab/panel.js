@@ -61,7 +61,6 @@ function wirePanelButtons(app) {
 function showSelectedButtons(app) {
   const limits = chosenLimits(app);
   app.showDockPieces(limits, chosenNewPieces(app));
-  byId('layer-vessel').style.display = limits.vesselsLocked ? 'none' : '';
   for (const [typeName, button] of app.dockButtons) {
     button.classList.toggle('selected', typeName === app.selectedType);
     button.classList.toggle('banned', isCellBanned(limits, typeName));
@@ -69,14 +68,13 @@ function showSelectedButtons(app) {
   for (const [kind, button] of app.neuronButtons) button.classList.toggle('selected', kind === app.selectedNeuron);
   byId('layer-body').classList.toggle('selected', app.layer === 'body');
   byId('layer-nerve').classList.toggle('selected', app.layer === 'nerve');
-  byId('layer-vessel').classList.toggle('selected', app.layer === 'vessel');
   showLibraryMarks(app);
   byId('unlimited-biomass').classList.toggle('selected', app.edited.biomassLimit === Infinity);
 }
 
 // ---------- The limits line ----------
 // The current tab's limits in words under the tabs: biomass and cells in the Body view, neurons and fibre in the Nerve
-// view, vessel units in the Vessels view. A full limit turns orange. A design that breaks any limit, in any view,
+// view. A full limit turns orange. A design that breaks any limit, in any view,
 // says so below the line.
 function showLimits(app) {
   const limits = chosenLimits(app);
@@ -85,7 +83,6 @@ function showLimits(app) {
   const isUnlimited = app.edited.biomassLimit === Infinity;
   const used = bodyCost(app.edited);
   const cellCount = bodyCells(app.edited).length;
-  const vesselCount = vesselUsage(app.edited);
   const biomassText = isUnlimited ? `${formatBiomass(used)} <span class="dim">unlimited</span>`
     : `${formatBiomass(used)} / ${limits.budget}`;
   const biomassTitle = `Biomass used: ${formatBiomass(used)} of ${limits.budget}` +
@@ -99,8 +96,6 @@ function showLimits(app) {
       `${nerve.neurons} / ${limits.maxNeurons}`, nerve.neurons >= limits.maxNeurons) +
     limitHtml('nerve', app.layer, 'Fibre', `Fibre: ${nerve.units} of ${limits.maxFibreUnits} units`,
       `${nerve.units} / ${limits.maxFibreUnits}`, nerve.units >= limits.maxFibreUnits) +
-    limitHtml('vessel', app.layer, 'Vessels', `Vessels: ${vesselCount} of ${limits.maxVesselUnits} units`,
-      `${vesselCount} / ${limits.maxVesselUnits}`, vesselCount >= limits.maxVesselUnits) +
     '</div>' + (problem ? `<div class="limits-problem">⚠ ${problem}</div>` : '');
 }
 

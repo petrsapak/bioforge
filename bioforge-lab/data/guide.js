@@ -57,7 +57,8 @@ const GUIDE_CELLS = {
   mouth: { pairs: ['nose', 'fat', 'photophore'],
     watch: 'It eats only what touches it, so put it where the body meets food first: usually the front.' },
   heart: { pairs: ['gill', 'fat', 'siphon', 'valve'],
-    watch: 'It pumps only the vessels it sits on, and only while it is fed itself.' },
+    watch: 'It beats only while it gets a signal, and burns fuel as it beats: a Heart left on all the time ' +
+      'eats into a long swim.' },
   valve: { pairs: ['heart', 'pacemaker'],
     watch: 'Shut by default: a Valve without a signal is a wall.' },
   airsac: { pairs: ['heart', 'gill'],
@@ -116,7 +117,7 @@ const GUIDE_TOPICS = [
     paragraphs: [
       'You don\'t steer your creature. You build it, wire it, and let it go: it acts on its senses and its nerves ' +
         'alone. A level is won by the design, not by your reflexes.',
-      'Build in three layers: Body (1) for the cells, Nerves (2) for neurons and fibres, Vessels (3) for blood. ' +
+      'Build in two views: Body (1) for the cells, and Nerves (2) for neurons and fibres. ' +
         'The test tank under the grid runs the design while you build, so every change shows at once.',
     ],
     example: 'A Nucleus with two Siphons behind it and a Pacemaker in the Nucleus wired to both swims in a straight ' +
@@ -196,14 +197,16 @@ const GUIDE_TOPICS = [
     related: ['gill', 'fat', 'airsac', 'pore'],
   },
   {
-    id: 'blood', title: 'Blood: vessels and the Heart', chapter: 3,
+    id: 'blood', title: 'Blood: the Heart', chapter: 3,
     demo: 'heart',
     paragraphs: [
-      'Seeping is slow. A vessel (Vessels view, drag from cell to cell) carries every fluid along it, and much ' +
-        'faster while a fed Heart sits on it. A Valve on a vessel shuts it until it gets a signal.',
+      `Seeping is slow. A beating Heart pumps every fluid between the cells within ${HEART_REACH} steps of it, ` +
+        'many times faster. It beats only while it gets a signal, as hard as the signal, and burns fuel as it ' +
+        'beats. A Valve shuts the blood out as it shuts out seeping, until it gets a signal.',
       'Hormones ride in the blood too, so a Heart spreads a mood evenly through the body.',
     ],
-    example: 'A Heart beside a Gill, with vessels to each Siphon: the thirsty Siphons stay fed on a long swim.',
+    example: 'A Heart wired to the Light eyes beats only while the Siphons work, which is when they need the ' +
+      'blood: on a long swim it burns less than a Heart that never stops.',
     related: ['heart', 'valve', 'gill', 'siphon'],
   },
   {
@@ -294,8 +297,8 @@ const GUIDE_TERMS = [
     'lighteye'],
   ['Neuron', 'The logic one cell can hold: Pacemaker, Command, Ganglion, Delay, Inhibitor, Synapse or Latch.', 'latch'],
   ['Threshold', 'The sum of inputs a Synapse needs to be on. Adrenaline lowers it, Calm raises it.', 'synapse'],
-  ['Vessel', 'A blood line through the body. It carries fluids fast while a fed Heart pumps it.', 'heart'],
-  ['Seeping', 'Fluids moving slowly from a fuller cell to an emptier neighbour, without vessels.', 'airsac'],
+  ['Blood', `Fluids pumped between the cells within ${HEART_REACH} steps of a beating Heart.`, 'heart'],
+  ['Seeping', 'Fluids moving slowly from a fuller cell to an emptier neighbour, with no Heart beating.', 'airsac'],
   ['Starving', 'A working cell short of O₂ or sugar: it works weaker, and a Photophore goes dark.', 'siphon'],
   ['Poisoned', 'A working cell too full of waste: it loses health until a Pore takes the waste away.', 'pore'],
   ['Hard cell', 'A cell built with mineral or hardened by a Mineralizer. Acid eats it; protease can\'t.', 'shell'],

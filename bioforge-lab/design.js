@@ -1,9 +1,8 @@
 'use strict';
 // Builder design logic: hex lookup, the limits check, the design warnings and the Needs rows they fill, the sugar
 // supply, and the saved design format with the conversion of older saves. Pure: no DOM.
-// A design is { cells, fibres, vessels } (the format is described under "Saved design format" below).
+// A design is { cells, fibres } (the format is described under "Saved design format" below).
 
-const VESSEL_SUPPLY_REACH = 2;                            // cells from a pumped vessel's end that blood reaches well
 
 // The rows of the builder's Needs card, in the order a player should fix them. A Buds row only shows on a body with
 // Buds. A click on a row with a `fluid` (a FLUIDS id) shows that fluid's view. A row with a `system` only shows
@@ -69,7 +68,7 @@ function hexesReachableFromNucleus(isOpen) {
 }
 
 // Why the design can't be run ('' = it can): a cell type the level doesn't allow, and the cell, biomass, neuron,
-// fibre and vessel limits, from RULES or a level's. Pieces still locked (lockedCells) only stay out of the dock: an
+// and fibre limits, from RULES or a level's. Pieces still locked (lockedCells) only stay out of the dock: an
 // example or a saved creature that has them still runs, as First stroke's hint points at the Jet.
 function buildCheck(design, limits = RULES) {
   const bannedCell = design.cells.find(cell => isCellBanned(limits, cell.typeName));
@@ -85,10 +84,6 @@ function buildCheck(design, limits = RULES) {
   if (neuronCount > limits.maxNeurons) return `Too many neurons: ${neuronCount} / ${limits.maxNeurons}`;
   const units = fibreUnits(design);
   if (units > limits.maxFibreUnits) return `Too many fibre units: ${units} / ${limits.maxFibreUnits}`;
-  const vesselUnitCount = vesselUnits(design);
-  if (vesselUnitCount > limits.maxVesselUnits) {
-    return `Too many vessel units: ${vesselUnitCount} / ${limits.maxVesselUnits}`;
-  }
   return '';
 }
 
@@ -139,7 +134,7 @@ function kitReserves(design, kit) {
 }
 
 // Design checks: signals, Bud parts, weapons, and whether the body has O2, sugar and a waste exit for its working
-// cells. body: the cells joined to the nucleus with their fibres and vessels; plannedKeys: hex keys of cells not
+// cells. body: the cells joined to the nucleus with their fibres; plannedKeys: hex keys of cells not
 // joined to it.
 // Returns warnings as { need, level, short, text, keys }: need is the Needs row it belongs to (or 'planned'), level
 // is 'problem' (it doesn't work), 'hint' (it works, but poorly) or 'note', short is the fix in a few words, and
@@ -159,7 +154,7 @@ function designWarnings(body, plannedKeys) {
   checkBuds(bodyCells, warn);
   if (!countWith('isWeapon')) warn('weapon', 'note', 'none', 'No weapons: it cannot hurt anything.');
   checkFluids(typeAt, countWith, warn);
-  checkVessels(body, warn);
+  checkHearts(body, warn);
   return warnings;
 }
 
@@ -255,30 +250,17 @@ function checkFluids(typeAt, countWith, warn) {
   }
 }
 
-// Hearts pump only the vessels they sit on, and blood reaches a working cell well only near the end of a pumped vessel
-// (elsewhere fluids only seep, slowly)
-function checkVessels(body, warn) {
-  const area = createRouteArea(body.cells);
-  const routes = (body.vessels || []).map(vessel => routeFibre(area, vessel.from, vessel.to)).filter(Boolean);
-  const pumpKeys = new Set(keysOf(body.cells.filter(cell => typeOfCell(cell).pumps)));
-  const onVessel = new Set(routes.flatMap(route => route.hexes));
-  const idleHearts = [...pumpKeys].filter(key => !onVessel.has(key));
-  if (idleHearts.length) {
-    warn('blood', 'problem', 'Heart on no vessel', `${idleHearts.length} Heart(s) sit on no vessel and pump ` +
-      'nothing: lay vessels through them (Vessels, 3).', idleHearts);
-  }
-  const pumpedEnds = routes
-    .filter(route => route.hexes.some(key => pumpKeys.has(key)))
-    .flatMap(route => [route.hexes[0], route.hexes[route.hexes.length - 1]])
-    .map(parseHexKey);
-  const fueled = body.cells.filter(cell => typeOfCell(cell).fuelBurn);
-  const farFromBlood = fueled.filter(cell => !pumpedEnds.some(end => hexDistance(cell, end) <= VESSEL_SUPPLY_REACH));
-  if (farFromBlood.length) {
-    warn('blood', 'hint', 'seeps slowly',
-      `${farFromBlood.length} fuel-burning cell(s) are more than ${VESSEL_SUPPLY_REACH} cells from the end of a ` +
-      'vessel with a Heart on it: fluids only seep to them, slowly. A Heart and vessels help (Vessels, 3).',
-      keysOf(farFromBlood));
-  }
+// Blood reaches a working cell fast only within a Heart's reach (vascular.js); elsewhere fluids only seep, slowly.
+// (Whether a Heart gets a signal is checkSignals' job, as for every cell that needs one.)
+function checkHearts(body, warn) {
+  const hearts = body.cells.filter(cell => typeOfCell(cell).pumps);
+  const fueled = body.cells.filter(cell => typeOfCell(cell).fuelBurn && !typeOfCell(cell).pumps);
+  const outOfReach = fueled.filter(cell => !hearts.some(heart => hexDistance(cell, heart) <= HEART_REACH));
+  if (!outOfReach.length) return;
+  const where = hearts.length ? `more than ${HEART_REACH} steps from every Heart` : 'pumped by no Heart';
+  warn('blood', 'hint', hearts.length ? 'out of reach' : 'seeps slowly',
+    `${outOfReach.length} fuel-burning cell(s) are ${where}: fluids only seep to them, slowly. A beating Heart ` +
+    `within ${HEART_REACH} steps helps.`, keysOf(outOfReach));
 }
 
 // ---------- The Needs card ----------
@@ -363,21 +345,43 @@ function migrateBudPart(savedPart) {
   return part;
 }
 
-// A saved library entry in the current format: { name, isCreature, cells, fibres, vessels }. Old entries called
-// isCreature `full`, entries from before the nerve layer get their neurons and fibres (see upgradeToNerveLayer), and
-// entries from before the vascular layer have no vessels.
+// A saved library entry in the current format: { name, isCreature, cells, fibres }. Old entries called isCreature
+// `full`, entries from before the nerve layer get their neurons and fibres (see upgradeToNerveLayer), and entries
+// from before the Heart's areas keep their Hearts beating (see upgradeToHeartAreas).
 function migrateLibraryEntry(savedEntry) {
   const isCreature = savedEntry.isCreature !== undefined ? savedEntry.isCreature : savedEntry.full;
   const design = { cells: savedEntry.cells.map(migrateDesignCell) };
   if (savedEntry.fibres) design.fibres = savedEntry.fibres;
-  const upgraded = upgradeToNerveLayer(design);
+  const upgraded = upgradeToHeartAreas(upgradeToNerveLayer(design), isFromBeforeHeartAreas(savedEntry));
   return {
     name: String(savedEntry.name),
     isCreature: !!isCreature,
     cells: upgraded.cells,
     fibres: upgraded.fibres,
-    vessels: savedEntry.vessels || [],
   };
+}
+
+// ---------- Designs from before the Heart's areas ----------
+// Until 2026-11-01 a fed Heart beat all the time, and pumped vessels the player laid. Now it beats only on a signal,
+// so a design saved before then (isOld) gets an Inhibitor in every Heart that has no neuron, which keeps it beating
+// as before; its vessels are dropped. Bud parts are upgraded with it.
+
+// whether a saved design is from before 2026-11-01: it has a vessels list (every save from the vascular layer on
+// had one), or no fibres (it is from before the nerve layer)
+const isFromBeforeHeartAreas = saved => 'vessels' in saved || !saved.fibres;
+
+// the design with its Hearts kept beating and its vessels dropped, if it is old (see above)
+function upgradeToHeartAreas(design, isOld) {
+  if (!isOld) return design;
+  const cells = design.cells.map(cell => {
+    const upgraded = { ...cell };
+    if (cell.budPart) upgraded.budPart = upgradeToHeartAreas(cell.budPart, true);
+    if (CELLS[cell.typeName] && CELLS[cell.typeName].pumps && !cell.neuron) upgraded.neuron = createNeuron('inhibitor');
+    return upgraded;
+  });
+  const upgraded = { ...design, cells };
+  delete upgraded.vessels;
+  return upgraded;
 }
 
 // ---------- Designs from before the nerve layer ----------

@@ -183,7 +183,8 @@ const TIPS = {
       'from the body; thorns on it hit hard.',
     example: {
       cells: [
-        [0, 0, 'nucleus'], [0, -1, 'bud'], [1, -1, 'command'], [-1, 0, 'gill'], [1, 0, 'fat'], [0, 1, 'heart'],
+        [0, 0, 'nucleus'], [0, -1, 'bud'], [1, -1, 'command'], [-1, 0, 'gill'], [1, 0, 'fat'],
+        [0, 1, 'heart', 'inhibitor'],
       ],
       spaceLabel: 'Space held',
       budPart: {
@@ -198,10 +199,11 @@ const TIPS = {
   },
   gill: {
     howToUse: 'Put it anywhere in the body. Its O₂ spreads from cell to cell to everything that burns fuel; a ' +
-      'Heart nearby spreads it faster.',
+      'beating Heart spreads it faster.',
     example: {
       cells: [
-        [0, 0, 'nucleus'], [-1, 0, 'gill'], [1, 0, 'gill'], [0, 1, 'heart'], [0, 2, 'pacemaker'], [-1, 2, 'muscle'],
+        [0, 0, 'nucleus'], [-1, 0, 'gill'], [1, 0, 'gill'], [0, 1, 'heart', 'inhibitor'], [0, 2, 'pacemaker'],
+        [-1, 2, 'muscle'],
         [-1, 3, 'muscle'], [0, 3, 'tissue'],
       ],
       fluidView: 1,
@@ -218,15 +220,14 @@ const TIPS = {
     },
   },
   heart: {
-    howToUse: 'Lay vessels through it (Vessels view, V): each vessel it sits on carries blood fast between its two ' +
-      'ends. Run them from the Gill and the Mouth to the cells that work hardest. More hearts on one vessel add up ' +
-      'to a limit.',
+    howToUse: `Give it a nerve signal and it beats, pumping blood between every cell within ${HEART_REACH} steps ` +
+      'of it, as hard as the signal. An Inhibitor in it keeps it beating; a fibre from the Light eyes beats it only ' +
+      'while the Siphons work, and saves fuel. Two Hearts over the same cells add up, to a limit.',
     example: {
       cells: [
-        [0, 0, 'nucleus'], [0, -1, 'gill'], [-1, 0, 'heart'], [0, 1, 'tissue'], [0, 2, 'tissue'], [0, 3, 'tissue'],
-        [0, 4, 'muscle'], [1, 3, 'pacemaker'],
+        [0, 0, 'nucleus'], [0, -1, 'gill'], [-1, 0, 'heart', 'inhibitor'], [0, 1, 'tissue'], [0, 2, 'tissue'],
+        [0, 3, 'tissue'], [0, 4, 'muscle'], [1, 3, 'pacemaker'],
       ],
-      vessels: [[0, -1, -1, 0], [-1, 0, 0, 4]],
       fluidView: 1,
     },
   },
@@ -283,7 +284,7 @@ const TIPS = {
     example: {
       cells: [
         [0, 0, 'nucleus'], [0, 1, 'mender'], [0, -1, 'shell'], [1, -1, 'shell'], [-1, 0, 'gill'], [1, 0, 'fat'],
-        [-1, 1, 'heart'],
+        [-1, 1, 'heart', 'inhibitor'],
       ],
       fluidView: 4,
       startsHurt: ['shell'],
@@ -291,7 +292,7 @@ const TIPS = {
   },
   adrenal: {
     howToUse: 'Give it a nerve signal and sugar. Adrenaline seeps from cell to cell and fades, so cells nearest ' +
-      'the Adrenal get the most; a vessel with a Heart carries it across the body fast. It also lowers Synapse ' +
+      'the Adrenal get the most; a beating Heart carries it across the body fast. It also lowers Synapse ' +
       'thresholds and speeds up Pacemakers.',
     example: {
       cells: [

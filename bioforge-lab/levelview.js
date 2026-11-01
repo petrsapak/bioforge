@@ -111,7 +111,7 @@ function chapterHeading(chapter) {
 }
 
 // Makes the level the one the builder works toward (null: free build). Its limits, budget or kit, become the
-// builder's. A chosen cell type or neuron it hasn't unlocked is put down, and the Vessels view left if it is locked.
+// builder's. A chosen cell type or neuron it hasn't unlocked is put down.
 function chooseLevel(app, level) {
   app.level = level || null;
   app.isHintShown = false;
@@ -120,7 +120,6 @@ function chooseLevel(app, level) {
   app.edited.kit = limits.kit || null;
   if (app.selectedType && isCellLocked(limits, app.selectedType)) app.selectedType = null;
   if (app.selectedNeuron && isNeuronLocked(limits, app.selectedNeuron)) app.selectedNeuron = null;
-  if (app.layer === 'vessel' && limits.vesselsLocked) showLayer(app, 'body');
   showLevelButton(app);
   refreshPanel(app);
 }

@@ -197,12 +197,11 @@ function exampleCells(example) {
 }
 
 // An example build from TIPS or NEURON_TIPS as a design. Examples are in the format from before the nerve layer,
-// unless they list their own fibres as [fromQ, fromR, toQ, toR]; vessels are listed the same way.
+// unless they list their own fibres as [fromQ, fromR, toQ, toR].
 function exampleDesign(example) {
   const cells = exampleCells(example);
   const fibres = example.fibres && linksFromList(example.fibres);
   const design = upgradeToNerveLayer(fibres ? { cells, fibres } : { cells });
-  design.vessels = linksFromList(example.vessels || []);
   // after the upgrade: an old example lists its neurons as cell types (command, pacemaker) that CELLS no longer has
   if (example.budPart) {
     for (const cell of design.cells) if (CELLS[cell.typeName].growsParts) cell.budPart = example.budPart;
@@ -211,7 +210,7 @@ function exampleDesign(example) {
 }
 
 // What an example wires to what, for the guide's wiring pictures: [{ from, to, link }], each end named by the
-// neuron its cell holds, else its cell type; link is 'fibre' or 'vessel', and each pair is listed once.
+// neuron its cell holds, else its cell type; link is 'fibre', and each pair is listed once.
 function exampleWiring(example) {
   const design = exampleDesign(example);
   const nameAt = new Map(design.cells.map(cell =>
@@ -228,6 +227,5 @@ function exampleWiring(example) {
     }
   };
   addPairs(design.fibres, 'fibre');
-  addPairs(design.vessels, 'vessel');
   return pairs;
 }

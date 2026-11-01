@@ -1,6 +1,6 @@
 'use strict';
 // Fluid system: cells burn O2 and sugar into waste, glands make repair fluid and hormones, and fluids seep between
-// touching cells from fuller to emptier. Vessels carry them farther and faster (vascular.js). Pure: no DOM.
+// touching cells from fuller to emptier. A beating Heart pumps them faster (vascular.js). Pure: no DOM.
 
 const FUEL_BURN_SCALE = 0.25;                             // every cell burns fuelBurn * this per second at full work
 const FLOW_CONDUCTANCE = 0.1;                             // flow between touching cells, per unit of fill difference
@@ -129,23 +129,27 @@ function isFueled(creature) {
 }
 
 // Fluids seep between touching cells from the fuller one to the emptier one (by fill level); a valve without a signal
-// lets nothing through. (Until 2026-10-28 a fed Heart sped up every link within 3 cells of it; now it pumps vessels.)
+// lets nothing through. (A beating Heart pumps the links in its reach on top of this: vascular.js.)
 // The world's seepFactor slows it all down (a level's cold water).
 function updateFluidFlow(world, dt) {
-  const valveOpen = cell => !cell.type.gatesFlow || cell.signal > SIGNAL_ON;
-  for (const link of world.fluidLinks) link.open = valveOpen(link.first) && valveOpen(link.second);
+  for (const link of world.fluidLinks) link.open = isLinkOpen(link);
   const substep = dt / FLOW_SUBSTEPS;
   for (let i = 0; i < FLOW_SUBSTEPS; i++) {
     for (const link of world.fluidLinks) {
-      if (link.open) flowAlongLink(link, world.seepFactor, substep);
+      if (link.open) flowAlongLink(link, link.conductance * world.seepFactor, substep);
     }
   }
 }
 
-// moves each fluid between the link's two cells by their difference in fill level
-function flowAlongLink(link, seepFactor, dt) {
+// whether fluid may pass between the link's two cells: a Valve without a signal lets nothing through
+function isLinkOpen(link) {
+  const valveOpen = cell => !cell.type.gatesFlow || cell.signal > SIGNAL_ON;
+  return valveOpen(link.first) && valveOpen(link.second);
+}
+
+// moves each fluid between the link's two cells by their difference in fill level (conductance: flow per unit)
+function flowAlongLink(link, conductance, dt) {
   const { first, second } = link;
-  const conductance = link.conductance * seepFactor;
   for (let fluid = 0; fluid < FLUID_COUNT; fluid++) {
     const firstFill = first.fluids[fluid] / first.fluidCapacity[fluid];
     const secondFill = second.fluids[fluid] / second.fluidCapacity[fluid];

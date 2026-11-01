@@ -65,7 +65,6 @@ function newWorld(width, height, options = {}) {
     angleSprings: [],                                     // keep chains of cells from folding
     fluidLinks: [],                                       // fluids move only along these, one per touching pair
     fibres: [],                                           // nerve fibres (fibres.js); signals travel only along these
-    vessels: [],                                          // blood vessels (vascular.js)
     globs: [],
     zaps: [],
     sparks: [],
@@ -73,10 +72,11 @@ function newWorld(width, height, options = {}) {
     foodTimer: 0,
     foodSupply: createFoodSupply(),                       // food.js: how much food there is and where it appears
     flowTimer: 0,
+    pumpTimer: 0,                                         // s since Hearts last pumped (vascular.js)
     randomState: seed | 0,                                // the seeded random generator; see randomFraction()
     waterFeedRate: 0,                                     // sugar per second Mouths take straight from the water
     waterMineralRate: 0,                                  // mineral per second Mineralizers take from the water
-    seepFactor: 1,                                        // share of the usual seeping and unpumped vessel flow
+    seepFactor: 1,                                        // share of the usual seeping (cold water: less)
     spaceFiresAllSources: false,                          // Space fires every signal source, to try a design out
     enemiesIdle: false,                                   // sandbox: enemies hold still
     light: null,                                          // createLight(): what Light eyes see (sandbox: the mouse)
@@ -134,7 +134,6 @@ function createCreature(team, cells, options = {}) {
     cellsByHex: null,
     design: null,                                         // the design's cells, for regrowing lost ones
     designFibres: [],                                     // the design's fibres, reconnected when cells regrow
-    designVessels: [],                                    // the design's vessels, reconnected when cells regrow
     bounds: null,                                         // { minX, minY, maxX, maxY }, updated by the physics
     regrowthPool: 0,                                      // repair fluid saved up for the next regrown cell
     foodEaten: 0,                                         // food specks its Mouths have taken in
@@ -181,6 +180,8 @@ function createCell(typeName, q, r, creature) {
     fluidCapacity: FLUIDS.map(fluid => fluidCapacityOf(type, fluid)),
     fluids: FLUIDS.map(fluid => fluidCapacityOf(type, fluid) * fluid.startFill),
     efficiency: 1,                                        // share of its fuel demand it got
+    beat: 0,                                              // Heart: how hard it beats this step (vascular.js)
+    heartPump: 0,                                         // the beats of the Hearts whose reach it lies in
     adrenalineBoost: 1,
     thresholdFactor: 1,                                   // mood (chemical.js): share of a Synapse's threshold
     clockFactor: 1,                                       // mood: share of a Pacemaker's rate
@@ -224,7 +225,6 @@ function spawn(world, design, x, y, angle, team) {
     cellsByHex: new Map(),
     design: design.cells,
     designFibres: design.fibres || [],
-    designVessels: design.vessels || [],
   });
   const cos = cosine(angle);
   const sin = sine(angle);
@@ -260,7 +260,6 @@ function spawn(world, design, x, y, angle, team) {
     addAngleSpringsAround(world, cell, neighbours);
   }
   connectFibres(world, creature, creature.designFibres);
-  connectVessels(world, creature, creature.designVessels);
   world.creatures.push(creature);
   markSurface(world, creature);
   return creature;
@@ -274,7 +273,7 @@ function addBond(world, first, second) {
 
 // an open fluid link between two touching cells of a creature
 function addFluidLink(world, first, second) {
-  world.fluidLinks.push({ first, second, open: true, conductance: FLOW_CONDUCTANCE });
+  world.fluidLinks.push({ first, second, open: true, conductance: FLOW_CONDUCTANCE, pumpConductance: 0 });
 }
 
 // an angle spring at pivot for every pair of its neighbours
@@ -352,7 +351,6 @@ function removeCreature(world, creature) {
   world.angleSprings = world.angleSprings.filter(spring => !belongs(spring.pivot));
   world.fluidLinks = world.fluidLinks.filter(link => !belongs(link.first));
   world.fibres = world.fibres.filter(fibre => !belongs(fibre.from) && !belongs(fibre.to));
-  world.vessels = world.vessels.filter(vessel => !belongs(vessel.first));
   world.creatures = world.creatures.filter(other => other !== creature);
 }
 
@@ -387,7 +385,6 @@ function removeDeadCells(world) {
   world.fluidLinks = world.fluidLinks.filter(link => !link.first.dead && !link.second.dead);
   for (const creature of damagedCreatures) splitIntoPieces(world, creature);
   cutBrokenFibres(world);
-  cutBrokenVessels(world);
   world.creatures = world.creatures.filter(creature => creature.alive && creature.cells.length);
 }
 

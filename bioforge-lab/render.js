@@ -1,6 +1,6 @@
 'use strict';
-// Canvas drawing of the world: rock and currents, bonds, cells, blood vessels, nerve fibres, snare lines, globs, zaps,
-// food and sparks (browser only).
+// Canvas drawing of the world: rock and currents, bonds, cells, nerve fibres, snare lines, globs, zaps, food and
+// sparks (browser only).
 
 // bond colour by team, see-through like the cells: 0 = the player's side, 1 = enemies, -1 = debris
 const BOND_COLORS = { 0: 'rgba(80,170,140,0.22)', 1: 'rgba(200,90,110,0.22)', '-1': 'rgba(140,150,155,0.18)' };
@@ -15,20 +15,13 @@ const FIBRE_ARROW_SIZE = 2.2;                             // px
 const LIGHT_GLOW_RADIUS = 40;                             // px of the glow drawn around the light
 const LURE_GLOW_RADIUS = 22;                              // px of the glow drawn around a lit Photophore
 const LURE_COLOR = '159,240,224';                         // r,g,b of a Photophore's light
-const VESSEL_PUMPED_COLOR = '#e0485a';                    // a vessel being laid, and the pumped core's base
-const VESSEL_PUMPED_CORE_COLOR = '#ffd8dc';               // the core of a vessel a fed Heart pumps
-const VESSEL_SHUT_COLOR = '#6a5a62';                      // a vessel an unsignalled Valve shuts
-// vessels that share a cell get different shades of red from this list, as fibres get colours
-const VESSEL_COLORS = ['#e0485a', '#ff8a7a', '#c0304a', '#ff6f9a', '#d8645a', '#ff9fb4'];
-const VESSEL_WIDTH = 1.2;                                 // px, a little thicker than a fibre
-const VESSEL_IDLE_ALPHA = 0.55;                           // share of its strength a vessel no Heart pumps is drawn at
 const ROCK_COLORS = ['#3a3530', '#433d36', '#4b443b'];   // rock hexes, mixed so the rock looks like stone
 const ROCK_EDGE_COLOR = '#5e564b';
 const CURRENT_STREAK_SPACING = 18;                        // px between the streaks drawn in a current
 const CURRENT_STREAK_LENGTH = 0.4;                        // s of flow a streak is long
 
 // view 0 = normal, 1..5 = fill level of one fluid; viewBox = { minX, minY, maxX, maxY }: draw only cells inside it.
-// Vessels and fibres are left out, since they clutter the game and the builder's preview; the tip demos add them.
+// Fibres are left out, since they clutter the game and the builder's preview; the tip demos add them.
 // showRanges: the faint rings of what Eyespots see (the title scene leaves them out).
 function drawWorld(context, world, view, viewBox, showRanges = true) {
   const isVisible = viewBox
@@ -207,55 +200,11 @@ function drawSparks(context, world) {
   context.globalAlpha = 1;
 }
 
-// ---------- Blood vessels ----------
-// A vessel as a thin line along its points (its cells' centres, or its lane beside them, as fibres have), curved
-// through the cells between its ends (see smoothLinkLine), with a small dot at each end, where blood goes in and out.
-// state: 'pumped' (a light core, like a fibre carrying a signal), 'idle' (fainter) or 'shut' (grey, dashed). style:
-// { color, alpha, width (px), gap (px from an end cell's centre to the line's end) }.
-function drawVessel(context, points, state, style = {}) {
-  const { color = VESSEL_COLORS[0], alpha = 1, width = VESSEL_WIDTH, gap = LINK_END_GAP } = style;
-  const line = smoothLinkLine(points, gap);
-  const isShut = state === 'shut';
-  context.globalAlpha = state === 'idle' ? alpha * VESSEL_IDLE_ALPHA : alpha;
-  context.strokeStyle = isShut ? VESSEL_SHUT_COLOR : color;
-  context.fillStyle = context.strokeStyle;
-  context.lineWidth = width;
-  context.lineCap = 'round';
-  context.lineJoin = 'round';
-  if (isShut) context.setLineDash([width * 2, width * 1.5]);
-  traceLine(context, line);
-  context.stroke();
-  context.setLineDash([]);
-  if (state === 'pumped') {
-    context.strokeStyle = VESSEL_PUMPED_CORE_COLOR;
-    context.lineWidth = width * 0.4;
-    context.stroke();
-  }
-  for (const [x, y] of [line[0], line[line.length - 1]]) fillCircle(context, x, y, width * 0.9 + 0.4);
-  context.globalAlpha = 1;
-}
-
-// how a world vessel is drawn this frame: shut by a Valve, pumped by a Heart, or idle
-function vesselState(vessel) {
-  if (!vessel.open) return 'shut';
-  return vessel.pumping > 0 ? 'pumped' : 'idle';
-}
-
-// the world's vessels, through the moving centres of the cells they run through
-function drawWorldVessels(context, world) {
-  const lanes = layOutWorldLinks(world).vessels;
-  world.vessels.forEach((vessel, i) => {
-    const color = VESSEL_COLORS[lanes[i].colorIndex % VESSEL_COLORS.length];
-    drawVessel(context, lanes[i].points, vesselState(vessel), { color, alpha: 0.85 });
-  });
-}
-
-// The world's fibres and vessels in one set of lanes (see layOutFibreLanes), the fibres first, so that neither lies on
-// the other: { fibres, vessels }, one { points, lane, colorIndex } per world fibre and vessel, in their order.
-function layOutWorldLinks(world) {
+// The world's fibres in lanes (see layOutFibreLanes), so that fibres sharing a cell lie side by side: one { points,
+// lane, colorIndex } per world fibre, in their order.
+function layOutWorldFibres(world) {
   const pathOf = link => link.path.map(cell => ({ node: cell, x: cell.x, y: cell.y }));
-  const lanes = layOutFibreLanes([...world.fibres.map(pathOf), ...world.vessels.map(pathOf)], FIBRE_COLORS.length);
-  return { fibres: lanes.slice(0, world.fibres.length), vessels: lanes.slice(world.fibres.length) };
+  return layOutFibreLanes(world.fibres.map(pathOf), FIBRE_COLORS.length);
 }
 
 // ---------- Nerve fibres ----------
@@ -309,7 +258,7 @@ function drawFibreArrow(context, [fromX, fromY], [toX, toY], width) {
 
 // the world's fibres side by side in their lanes, through the moving centres of the cells they run through
 function drawWorldFibres(context, world) {
-  const lanes = layOutWorldLinks(world).fibres;
+  const lanes = layOutWorldFibres(world);
   world.fibres.forEach((fibre, i) => {
     drawFibre(context, lanes[i].points, fibre.value, { color: FIBRE_COLORS[lanes[i].colorIndex], alpha: 0.85 });
   });

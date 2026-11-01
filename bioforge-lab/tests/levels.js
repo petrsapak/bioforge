@@ -39,24 +39,27 @@ const seekerWithFat = withGill => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSi
 // the crossed Seeker with a Fat and an Air sac on the sides, and this cell at the back touching both Siphons
 const seekerWithStores = backTypeName => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(-1, 0, 'fat'),
   cell(1, 0, 'airsac'), cell(-1, 2, backTypeName)], fibres: CROSSED });
-// Exhaust's body plumbed for cold water. heart: a Heart at the front between the eyes, with a vessel from it to the
-// Fat, the Air sac, each Siphon and the Pore; no heart: vessels straight from the stores to the Siphons and the Pore.
+// Exhaust's body with a Heart at the front between the eyes for cold water. heartBeat: what beats the Heart: an
+// Inhibitor in it (all the time), a Pacemaker in it (in pulses), 'eyes' (fibres from both Light eyes: while they see
+// the light, as the Siphons work) or 'none' (nothing: it doesn't beat).
 const EXHAUST_BODY = seekerWithStores('pore');
-const coldWaterBuild = withHeart => withHeart ?
-  { cells: [...EXHAUST_BODY.cells, cell(1, -2, 'heart')], fibres: CROSSED,
-    vessels: [fibre(1, -2, -1, 0), fibre(1, -2, 1, 0), fibre(1, -2, -1, 1), fibre(1, -2, 0, 1), fibre(1, -2, -1, 2)] } :
-  { cells: EXHAUST_BODY.cells, fibres: CROSSED,
-    vessels: [fibre(-1, 0, 0, 1), fibre(1, 0, -1, 1), fibre(-1, 0, -1, 1), fibre(1, 0, 0, 1), fibre(-1, 2, -1, 0)] };
-// The Cold water build lasting longer: two Fats on the sides, a Gill beside each Siphon, and a vessel from the
-// Heart to each Gill too. airSac: an Air sac on the right side instead of the second Fat; plumbed: false leaves the
-// Gills off the vessels.
-const marathonBuild = ({ airSac = false, plumbed = true } = {}) => {
-  const coldWater = coldWaterBuild(true);
+// the Heart at the front and the fibres that beat it, for heartBeat as above
+function heartAtFront(heartBeat) {
+  const isNeuron = heartBeat === 'inhibitor' || heartBeat === 'pacemaker';
+  return { heart: cell(1, -2, 'heart', isNeuron ? { neuron: sim.createNeuron(heartBeat) } : {}),
+    fibres: heartBeat === 'eyes' ? [fibre(0, -1, 1, -2), fibre(1, -1, 1, -2)] : [] };
+}
+const coldWaterBuild = (heartBeat = 'inhibitor') => {
+  const { heart, fibres } = heartAtFront(heartBeat);
+  return { cells: [...EXHAUST_BODY.cells, heart], fibres: [...CROSSED, ...fibres] };
+};
+// The Cold water build lasting longer: two Fats on the sides and a Gill beside each Siphon, and its Heart beating in
+// pulses. airSac: an Air sac on the right side instead of the second Fat.
+const marathonBuild = ({ airSac = false, heartBeat = 'pacemaker' } = {}) => {
+  const coldWater = coldWaterBuild(heartBeat);
   const cells = coldWater.cells.map(bodyCell =>
     bodyCell.typeName === 'airsac' && !airSac ? cell(1, 0, 'fat') : bodyCell);
-  const gillVessels = plumbed ? [fibre(1, -2, -2, 1), fibre(1, -2, 1, 1)] : [];
-  return { cells: [...cells, cell(-2, 1, 'gill'), cell(1, 1, 'gill')], fibres: CROSSED,
-    vessels: [...coldWater.vessels, ...gillVessels] };
+  return { cells: [...cells, cell(-2, 1, 'gill'), cell(1, 1, 'gill')], fibres: coldWater.fibres };
 };
 // Packed lunch: the crossed Seeker with this store on the left, a Gill on the right and a Pore at the back
 const lunchBuild = storeTypeName => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(-1, 0, storeTypeName),
@@ -136,13 +139,12 @@ const snapBuild = leftTypeName => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSi
   cell(0, -2, leftTypeName, leftTypeName === 'resilin' ? { neuron: sim.createNeuron('inhibitor') } : {}),
   cell(1, -2, 'muscle', { neuron: { kind: 'pacemaker', setting: 0.5 } }), cell(2, -2, 'tissue')], fibres: CROSSED });
 // Moods: a Light eye at the front middle into an Adrenal holding a Latch; a Fat each side; beside each Siphon this
-// cell (a Receptor drives its Siphon); a Heart at the back with vessels from the Adrenal and to both side cells
+// cell (a Receptor drives its Siphon); a Heart at the back, kept beating by an Inhibitor
 const moodsBuild = (sideTypeName, withHeart = true) => ({ cells: [cell(0, 0, 'nucleus'), cell(1, -2, 'lighteye'),
   cell(0, -1, 'adrenal', { neuron: sim.createNeuron('latch') }), cell(1, -1, 'gill'), cell(-1, 0, 'fat'),
   cell(1, 0, 'fat'), cell(-1, 1, 'siphon'), cell(0, 1, 'siphon'), cell(-2, 1, sideTypeName), cell(1, 1, sideTypeName),
-  ...(withHeart ? [cell(-1, 2, 'heart')] : [])],
-  fibres: [fibre(1, -2, 0, -1), ...(sideTypeName === 'receptor' ? [fibre(-2, 1, -1, 1), fibre(1, 1, 0, 1)] : [])],
-  vessels: withHeart ? sim.linksFromList([[0, -1, -1, 2], [-1, 2, -2, 1], [-1, 2, 1, 1]]) : [] });
+  ...(withHeart ? [cell(-1, 2, 'heart', { neuron: sim.createNeuron('inhibitor') })] : [])],
+  fibres: [fibre(1, -2, 0, -1), ...(sideTypeName === 'receptor' ? [fibre(-2, 1, -1, 1), fibre(1, 1, 0, 1)] : [])] });
 // Crevice: a worm two cells wide, front to back: a pair of Bloaters, the Nucleus with a Pacemaker at the rate (Hz),
 // rows of Muscles (pairs on odd rows, one on even rows), a Tissue with an Inhibitor of the Pacemaker, and the back
 // cells (Bloaters, or backTypeName; a pair after an odd number of Muscle rows). The front Bloaters and the Muscles are
@@ -160,15 +162,26 @@ function creviceWormBuild(rate = 1.5, muscleRows = 3, backTypeName = 'bloater') 
     ...inhibitorRow, ...back],
   fibres: [...wire({ q: 0, r: 0 }, [...front, ...muscles, inhibitorRow[0]]), ...wire(inhibitorRow[0], back)] };
 }
-// Tail: the Paddler with Tissue for its Mouth, Pore, Gills and Heart and no vessels, which do nothing in chapter 2,
-// so it uses only the cells the dock has by then
+// Tail: the Paddler with Tissue for its Mouth, Pore, Gills and Heart (without the Heart's Inhibitor), which do
+// nothing in chapter 2, so it uses only the cells the dock has by then
 const FEEDING_CELLS = ['mouth', 'pore', 'gill', 'heart'];
-const tailFish = { cells: sim.TEMPLATES.paddler.cells.map(bodyCell =>
-  (FEEDING_CELLS.includes(bodyCell.typeName) ? { ...bodyCell, typeName: 'tissue' } : bodyCell)),
-fibres: sim.TEMPLATES.paddler.fibres, vessels: [] };
+const asTailCell = ({ neuron, ...bodyCell }) => {
+  const keepsNeuron = neuron && bodyCell.typeName !== 'heart';
+  const typeName = FEEDING_CELLS.includes(bodyCell.typeName) ? 'tissue' : bodyCell.typeName;
+  return { ...bodyCell, typeName, ...(keepsNeuron ? { neuron } : {}) };
+};
+const tailFish = { cells: sim.TEMPLATES.paddler.cells.map(asTailCell), fibres: sim.TEMPLATES.paddler.fibres };
 // Tail: the Wiggler with its Inhibitor taken out, so both sides of the tail contract together and only pulse
 const wigglerWithoutInhibitor = { ...sim.TEMPLATES.wiggler, cells: sim.TEMPLATES.wiggler.cells.map(bodyCell =>
   (bodyCell.neuron && bodyCell.neuron.kind === 'inhibitor' ? { ...bodyCell, neuron: null } : bodyCell)) };
+// Sting: the crossed Seeker with Nettles across the front fired by an Eyespot on the left, and a Fat on the right;
+// isWired: false leaves the Eyespot's fibres out, so the Nettles never fire
+const stingBuild = (isWired = true) => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(0, -2, 'nettle'),
+  cell(1, -2, 'nettle'), cell(2, -2, 'nettle'), cell(-1, 0, 'eyespot'), cell(1, 0, 'fat')],
+fibres: [...CROSSED, ...(isWired ? [fibre(-1, 0, 0, -2), fibre(-1, 0, 1, -2), fibre(-1, 0, 2, -2)] : [])] });
+// Spit: the crossed Seeker with two always-on Spitters at the front and a Fat on each side
+const spitBuild = { cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(0, -2, 'spitter', lit()),
+  cell(1, -2, 'spitter', lit()), cell(-1, 0, 'fat'), cell(1, 0, 'fat')], fibres: CROSSED };
 const SOLUTIONS = {
   'first-stroke': { cells: [pacemakerNucleus(), cell(-1, 1, 'siphon'), cell(0, 1, 'siphon')],
     fibres: [fibre(0, 0, -1, 1), fibre(0, 0, 0, 1)] },
@@ -185,16 +198,19 @@ const SOLUTIONS = {
   crevice: creviceWormBuild(),
   'long-haul': seekerWithFat(true),
   exhaust: EXHAUST_BODY,
-  'cold-water': coldWaterBuild(true),
+  'cold-water': coldWaterBuild(),
   marathon: marathonBuild(),
   'packed-lunch': lunchBuild('fat'),
   grazing: grazingBuild('fat'),
   bloom: bloomBuild('fat'),
+  sting: stingBuild(),
   bulwark: ringBuild('shell'),
+  pincushion: ringBuild('thorn'),
   clam: glandRowBuild(['acid', 'protease', 'acid']),
   anglerfish: cupBuild('photophore'),
   quarry: quarryBuild('mineralizer'),
   siege: siegeBuild(),
+  spit: spitBuild,
   'fight-or-flight': sprinterBuild('adrenal'),
   'lie-low': calmSeekerBuild('calmgland'),
   'feast-and-famine': feastBuild(true, true),
@@ -223,11 +239,14 @@ const WRONG_TOOLS = {
   grazing: { cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(-1, 0, 'mouth'), cell(1, 0, 'fat')],
     fibres: CROSSED },
   bloom: SOLUTIONS['packed-lunch'],
+  sting: stingBuild(false),
   bulwark: ringBuild('tissue'),
+  pincushion: ringBuild('shell'),
   clam: glandRowBuild(['acid', 'acid', 'acid']),
   anglerfish: cupBuild('tissue'),
   quarry: quarryBuild('tissue'),
   siege: siegeBuild(['acid', 'acid', 'acid'], 'tissue'),
+  spit: glandRowBuild(['acid', 'protease', 'acid']),
   'fight-or-flight': sprinterBuild('tissue'),
   'lie-low': calmSeekerBuild('tissue'),
   'feast-and-famine': feastBuild(false, false),
@@ -264,6 +283,8 @@ const levelById = id => sim.LEVELS.find(level => level.id === id);
 const dockRuns = [1, 2].map(threshold => sim.runLevel(levelById('dock'), eyesThroughSynapse(threshold)));
 check('"Dock": the Synapse\'s threshold matters: 1 stops short of the ring, 2 never stops',
   dockRuns.every(run => run.outcome === 'lost'), dockRuns.map(run => run.player.centerY.toFixed(0)).join());
+check('"Lullaby" doesn\'t allow Spitters, which kill the urchin from out of reach without calming it',
+  /Spitter/.test(sim.buildCheck(spitBuild, sim.levelLimits(levelById('lullaby')))));
 check('"Tail" and "Crevice" don\'t allow Siphons or Cilia: the Jet doesn\'t fit',
   ['tail', 'crevice'].every(id => /Siphon/.test(sim.buildCheck(sim.TEMPLATES.jet, sim.levelLimits(levelById(id))))));
 const wiggling = sim.runLevel(levelById('tail'), sim.TEMPLATES.wiggler);
@@ -282,12 +303,19 @@ check('"Long haul": Fat alone is not enough, it runs out of O2', fatOnly.outcome
 const tissueBack = sim.runLevel(levelById('exhaust'), seekerWithStores('tissue'));
 check('"Exhaust": the same body with Tissue for the Pore loses its Siphons to waste', tissueBack.outcome === 'lost' &&
   tissueBack.player.cells.filter(playerCell => playerCell.type.jets).length < 2, tissueBack.reason);
-const unpumped = sim.runLevel(levelById('cold-water'), coldWaterBuild(false));
-check('"Cold water": the same vessels without a Heart lose', unpumped.outcome === 'lost',
-  `${unpumped.reason} ${unpumped.goalTime.toFixed(0)} s near the light`);
-const marathonRuns = [marathonBuild({ airSac: true }), marathonBuild({ plumbed: false })]
+// Cold water should have more than one way to win (user, 2026-10-30: "it seems like there's only one design that can
+// finish the assigment")
+const coldRuns = ['pacemaker', 'eyes']
+  .map(heartBeat => sim.runLevel(levelById('cold-water'), coldWaterBuild(heartBeat)));
+check('"Cold water": a Heart beating in pulses, or only while the eyes see the light, wins as well',
+  coldRuns.every(run => run.outcome === 'won'),
+  coldRuns.map(run => run.outcome + ' ' + run.time.toFixed(0)).join(', '));
+const unbeating = sim.runLevel(levelById('cold-water'), coldWaterBuild('none'));
+check('"Cold water": a Heart without a signal doesn\'t beat, and loses', unbeating.outcome === 'lost',
+  `${unbeating.reason} ${unbeating.goalTime.toFixed(0)} s near the light`);
+const marathonRuns = [marathonBuild({ heartBeat: 'inhibitor' }), marathonBuild({ airSac: true })]
   .map(build => sim.runLevel(levelById('marathon'), build));
-check('"Marathon": an Air sac for the second Fat runs out of sugar, and Gills off the vessels don\'t feed the Siphons',
+check('"Marathon": a Heart that never stops beating runs the body dry, and so does an Air sac for the second Fat',
   marathonRuns.every(run => run.outcome === 'lost'),
   marathonRuns.map(run => `${run.reason} ${run.goalTime.toFixed(0)} s near the light`).join(', '));
 const fullMouth = sim.runLevel(levelById('grazing'), grazingBuild('tissue'));
@@ -337,8 +365,7 @@ function lockedPieceOf(level) {
   if (cellPiece) return cellPiece.typeName;
   const neuronPiece = solution.cells.find(bodyCell =>
     bodyCell.neuron && sim.isNeuronLocked(limits, bodyCell.neuron.kind));
-  if (neuronPiece) return neuronPiece.neuron.kind;
-  return limits.vesselsLocked && solution.vessels && solution.vessels.length ? 'vessels' : '';
+  return neuronPiece ? neuronPiece.neuron.kind : '';
 }
 const levelsMissingPieces = sim.LEVELS.filter(level => lockedPieceOf(level))
   .map(level => level.id + ': ' + lockedPieceOf(level));
@@ -347,13 +374,13 @@ check('every reference solution is built from what its level\'s dock has by then
 {
   const firstLimits = sim.levelLimits(sim.LEVELS[0]);
   const coldWater = sim.levelLimits(levelById('cold-water'));
-  check('First stroke has the Nucleus, Tissue, Siphons and the Pacemaker, and no Light eye, Synapse or vessels',
+  check('First stroke has the Nucleus, Tissue, Siphons and the Pacemaker, and no Light eye, Synapse or Heart',
     !sim.isCellLocked(firstLimits, 'nucleus') && !sim.isCellLocked(firstLimits, 'siphon') &&
     !sim.isNeuronLocked(firstLimits, 'pacemaker') && sim.isCellLocked(firstLimits, 'lighteye') &&
-    sim.isNeuronLocked(firstLimits, 'synapse') && firstLimits.vesselsLocked);
-  check('a later level keeps what the earlier ones unlocked, and Cold water opens the Vessels view',
-    !sim.isCellLocked(coldWater, 'lighteye') && !sim.isNeuronLocked(coldWater, 'synapse') && !coldWater.vesselsLocked &&
-    sim.isCellLocked(coldWater, 'shell'));
+    sim.isNeuronLocked(firstLimits, 'synapse') && sim.isCellLocked(firstLimits, 'heart'));
+  check('a later level keeps what the earlier ones unlocked, and Cold water brings the Heart',
+    !sim.isCellLocked(coldWater, 'lighteye') && !sim.isNeuronLocked(coldWater, 'synapse') &&
+    !sim.isCellLocked(coldWater, 'heart') && sim.isCellLocked(coldWater, 'shell'));
   check('Shade brings Cilia and Dock the Ganglion; no level brings the Command (a key the player holds)',
     sim.levelBringing('cilia') === levelById('shade') && sim.levelBringing('ganglion') === levelById('dock') &&
     sim.levelBringing('command') === null);
@@ -363,7 +390,7 @@ check('every reference solution is built from what its level\'s dock has by then
   const opened = sim.withEverythingUnlocked(firstLimits);
   check('winning the last level opens everything',
     !sim.isLastLevelWon({}) && sim.isLastLevelWon({ [lastLevel.id]: { stars: 1 } }) &&
-    opened.lockedCells.length === 0 && opened.lockedNeurons.length === 0 && !opened.vesselsLocked);
+    opened.lockedCells.length === 0 && opened.lockedNeurons.length === 0);
 }
 
 // ---------- The app ----------
@@ -380,10 +407,9 @@ allOpen.byId('level-build').onclick();
 const dockButtonsOf = page => page.byId('palette').children.flatMap(section => section.children[0].children);
 const isDockShown = (page, attribute, name) => dockButtonsOf(page)
   .find(button => button.dataset[attribute] === name).style.display !== 'none';
-check('Bloom\'s dock has the cells of the levels before it, not the later ones, and the Vessels tab',
+check('Bloom\'s dock has the cells of the levels before it, not the later ones',
   isDockShown(allOpen, 'type', 'mouth') && isDockShown(allOpen, 'type', 'heart') &&
-  !isDockShown(allOpen, 'type', 'shell') && !isDockShown(allOpen, 'type', 'nettle') &&
-  allOpen.byId('layer-vessel').style.display !== 'none');
+  !isDockShown(allOpen, 'type', 'shell') && !isDockShown(allOpen, 'type', 'nettle'));
 check('with every level open, any level can be chosen, and the builder takes its limits',
   openTiles.every(tile => !tile.className.includes('locked')) && /Protein/.test(allOpen.byId('budget').innerHTML) &&
   /\/ 38/.test(allOpen.byId('budget').innerHTML), allOpen.byId('budget').innerHTML.slice(0, 200));
@@ -393,9 +419,8 @@ const { byId, fire, runFrames, readGlobal, storage, templateButton } = startApp(
 readGlobal('RULES.allLevelsOpen = false');
 runFrames(3);
 check('no level is chosen at first', !byId('show-levels').classList.contains('selected'));
-check('in free build the dock has every cell and neuron, and the Vessels view',
-  dockButtonsOf({ byId }).every(button => button.style.display !== 'none') &&
-  byId('layer-vessel').style.display !== 'none');
+check('in free build the dock has every cell and neuron',
+  dockButtonsOf({ byId }).every(button => button.style.display !== 'none'));
 byId('show-levels').onclick();
 const listed = byId('levels-list').children;
 const rows = listed.filter(child => child.className.startsWith('level-tile'));
@@ -435,9 +460,7 @@ check('First stroke\'s Needs card has no Oxygen, Sugar, Waste or Blood rows, nor
     isDockShown(page, 'neuron', 'pacemaker') && !isDockShown(page, 'neuron', 'synapse'),
     dockButtonsOf(page).filter(button => button.style.display !== 'none').map(button => button.dataset.type ||
       button.dataset.neuron).join(','));
-  check('the tabs of empty categories and the Vessels view are hidden, and 3 doesn\'t open it',
-    categoryTabs.length === 2 && byId('layer-vessel').style.display === 'none' &&
-    (fire('window', 'keydown', { key: '3' }), !byId('layer-vessel').classList.contains('selected')),
+  check('the tabs of empty categories are hidden', categoryTabs.length === 2,
     categoryTabs.map(tab => tab.textContent).join(','));
 }
 byId('show-levels').onclick();

@@ -93,11 +93,10 @@ check('planned cells reported with their keys',
   sim.RULES.maxFibreUnits = savedUnitLimit;
 }
 
-// the note about cells far from a pumped vessel is only a hint; anything else (such as a Heart on no vessel) means a
-// broken hero
+// the note about cells out of a Heart's reach is only a hint; anything else means a broken hero
 const seriousWarnings = design =>
   sim.designWarnings(design, [])
-    .filter(warning => !/vessel with a Heart on it/.test(warning.text))
+    .filter(warning => !/only seep to them/.test(warning.text))
     .map(warning => warning.text)
     .join(' | ');
 for (const name of ['lancer', 'stinger', 'spitter', 'snarer']) {

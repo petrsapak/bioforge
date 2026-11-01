@@ -17,8 +17,8 @@ function isLevelOpen(results, levelIndex) {
 }
 
 // The design limits a level sets, filled in from RULES where it sets none; kit: its material kit, or null for a
-// biomass budget; bannedCells: the cell types the level doesn't allow; lockedCells, lockedNeurons and vesselsLocked:
-// what no level up to this one has unlocked yet (levelUnlocks), which the dock doesn't show.
+// biomass budget; bannedCells: the cell types the level doesn't allow; lockedCells and lockedNeurons: what no level up
+// to this one has unlocked yet (levelUnlocks), which the dock doesn't show.
 function levelLimits(level) {
   const unlocked = levelUnlocks(level);
   return {
@@ -26,13 +26,11 @@ function levelLimits(level) {
     maxCells: RULES.maxCells,
     maxNeurons: RULES.maxNeurons,
     maxFibreUnits: RULES.maxFibreUnits,
-    maxVesselUnits: RULES.maxVesselUnits,
     kit: null,
     bannedCells: [],
     ...level.limits,
     lockedCells: Object.keys(CELLS).filter(typeName => !unlocked.cells.has(typeName)),
     lockedNeurons: Object.keys(NEURONS).filter(kind => !unlocked.neurons.has(kind)),
-    vesselsLocked: !unlocked.hasVessels,
   };
 }
 
@@ -41,13 +39,11 @@ function levelLimits(level) {
 function levelUnlocks(level) {
   const cells = new Set(Object.keys(CELLS).filter(typeName => CELLS[typeName].isNucleus));
   const neurons = new Set();
-  let hasVessels = false;
   for (const earlier of LEVELS.slice(0, LEVELS.indexOf(level) + 1)) {
     earlier.unlocks.cells.forEach(typeName => cells.add(typeName));
     earlier.unlocks.neurons.forEach(kind => neurons.add(kind));
-    hasVessels = hasVessels || earlier.unlocks.vessels;
   }
-  return { cells, neurons, hasVessels };
+  return { cells, neurons };
 }
 
 // the level that brings a cell type or neuron kind to the dock, or null for the Nucleus and the pieces no level
@@ -65,7 +61,7 @@ function isPieceMet(results, name) {
 
 // the limits with nothing locked, for a player who has won the last level
 function withEverythingUnlocked(limits) {
-  return { ...limits, lockedCells: [], lockedNeurons: [], vesselsLocked: false };
+  return { ...limits, lockedCells: [], lockedNeurons: [] };
 }
 
 // whether the last level is won, which opens every cell and neuron in every level (not every level: a player

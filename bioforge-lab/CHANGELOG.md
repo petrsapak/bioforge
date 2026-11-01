@@ -7,6 +7,26 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.14 (2026-11-01)
+- Vessels are gone. A Heart now pumps blood between every cell within 5 steps of it, about 25 times faster than
+  fluids seep, so there is nothing to lay: put a Heart near the cells that work hardest. Hover a Heart in the builder
+  to see its reach.
+- A Heart beats only while it gets a nerve signal, as hard as the signal, and burns as much fuel as a Siphon while
+  it beats. An Inhibitor in it keeps it beating; a Pacemaker beats it in pulses for half the fuel.
+- The Vessels tab and the 3 key are gone; 3 can be bound to a Command now.
+- Cold water can be won several ways and asks for 100 s near the light (it was 120). Marathon now needs a Heart that
+  doesn't beat all the time.
+- Your saved creatures and creature files keep working: each Heart without a neuron gets an Inhibitor, so it beats as
+  before, and its vessels are dropped. The built-in creatures' Hearts got one too.
+
+## 0.7.13 (2026-11-01)
+- Three new levels in chapter 5 bring the weapons. Sting: catch the Darter and kill it with Nettles fired by an
+  Eyespot. Pincushion: the Puffer hunts you, and a ring of Thorns turns its charges against it. Spit: kill the
+  stinging urchin from out of its reach with Spitters.
+- The Eyespot now comes with Sting instead of Clam.
+- Lullaby doesn't allow Spitters, which would kill the urchin without calming it.
+- Saved progress: Bulwark now opens once Sting is won, and Clam once Pincushion is won.
+
 ## 0.7.12 (2026-11-01)
 - In chapters 1 and 2 the Needs card no longer lists Oxygen, Sugar, Waste and Blood, since nothing there can
   starve. They come back in chapter 3.

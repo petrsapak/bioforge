@@ -238,7 +238,7 @@ check('Inhibitor is NOT (of the sum)', truthTable(sim.createNeuron('inhibitor'))
   for (const kind of neuronKinds) {
     const example = sim.NEURON_TIPS[kind].example;
     const world = sim.newTestTank(288, 190);
-    const design = { cells: sim.exampleCells(example), fibres: sim.linksFromList(example.fibres), vessels: [] };
+    const design = { cells: sim.exampleCells(example), fibres: sim.linksFromList(example.fibres) };
     const creature = sim.spawn(world, design, 144, 105, 0, 0);
     const neuronCell = creature.cells.find(cell => cell.neuron && cell.neuron.kind === kind);
     let highest = 0;

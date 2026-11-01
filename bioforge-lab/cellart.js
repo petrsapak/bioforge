@@ -406,10 +406,10 @@ const CELL_SYMBOLS = {
       context.fill();
     }
   },
-  // a heart that beats while fed
+  // a heart that beats as hard as it beats in the sim (vascular.js): still without a signal
   heart(context, cell, palette) {
     const beat = Math.max(0, Math.sin(secondsNow() * HEART_BEAT_RATE));
-    traceHeart(context, 0.42 + 0.12 * cell.efficiency * beat);
+    traceHeart(context, 0.42 + 0.12 * (cell.beat || 0) * beat);
     fillIn(context, palette.light);
   },
   // two flaps, light while open

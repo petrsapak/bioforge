@@ -69,7 +69,7 @@ function buildDock(onPickCell, onPickNeuron) {
   }
   const showLayer = newLayer => {
     layer = newLayer;
-    byId('dock-bar').textContent = { body: 'Cells', nerve: 'Neurons', vessel: 'Vessels: drag cell to cell' }[layer];
+    byId('dock-bar').textContent = { body: 'Cells', nerve: 'Neurons' }[layer];
     showSections();
   };
   // hides the locked pieces, and with them any category left empty; a category the player had open that is empty

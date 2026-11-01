@@ -1,6 +1,6 @@
 'use strict';
 // The builder (full app, fake DOM), driven by the mouse and keys: placing and removing cells, the dock's tabs, the
-// tooltip, the Needs card and its fluid views, binding a Command, the Traces window, fibres and vessels, saving a
+// tooltip, the Needs card and its fluid views, binding a Command, the Traces window, fibres, saving a
 // selection and stamping it, giving a Bud a part by dragging, painting, symmetry, the tooltip demos, and carrying old
 // saves over.
 const { startApp } = require('./dom');
@@ -44,7 +44,6 @@ const dockButtons = () => byId('palette').children.flatMap(section => section.ch
 const dockButton = typeName => dockButtons().find(button => button.dataset.type === typeName);
 const neuronButton = kind => dockButtons().find(button => button.dataset.neuron === kind);
 const fibreUnitsShown = () => +/Fibre: (\d+)/.exec(byId('budget').innerHTML)[1];
-const vesselUnitsShown = () => +/Vessels: (\d+)/.exec(byId('budget').innerHTML)[1];
 // the How to box's steps: their captions and which is marked next or done
 const coachSteps = () => byId('coach-steps').children.map(step => ({
   caption: step.children[1].textContent,
@@ -226,19 +225,8 @@ check('with no Command clicked, 1 opens the Body tab, which hides the Traces win
   byId('dock-bar').textContent === 'Cells' && byId('traces').style.display === 'none');
 
 pressKey('3');
-check('3 opens the Vessels tab', byId('layer-vessel').classList.contains('selected') &&
-  /Vessels/.test(byId('dock-bar').textContent) && /a vessel/.test(nextCoachStep()), nextCoachStep());
-moveMouseTo(-1, 0);
-fire('game', 'mousedown', { ...screenPointOf(-1, 0), button: 0, target: canvas });
-moveMouseTo(0, 1);
-fire('window', 'mouseup', { ...screenPointOf(0, 1), target: canvas });
-runFrames(1);
-check('a drag from the Gill to a Cilia lays a vessel of 2 units', vesselUnitsShown() === 2, String(vesselUnitsShown()));
-fire('game', 'mousedown', { ...screenPointOf(0, 1), button: 2, target: canvas });
-runFrames(1);
-check('a right-click on the vessel removes it', vesselUnitsShown() === 0, String(vesselUnitsShown()));
-pressKey('1');
-check('1 goes back to the Body tab', byId('dock-bar').textContent === 'Cells');
+check('3 opens no tab: there is no Vessels view since the Heart pumps an area (2026-11-01)',
+  byId('dock-bar').textContent === 'Cells' && !/Vessels/.test(byId('budget').innerHTML));
 pressKey('Escape');
 
 clickHex(0, -1, { ctrlKey: true });
@@ -337,8 +325,9 @@ check("Bioforge Moba's old library carries over", byId('library-tab-creatures').
   check('every cell and neuron tooltip demo starts and runs', failed.length === 0, failed.join('; '));
 }
 
-{ // symmetry in the Nerves and Vessels views (user, 2026-10-30: "I want the nerve fibres, functions and vessels to
-  // follow symetry as well"). The Starter's Gill (-1, 0) mirrors its Tissue (1, 0) across the front-to-back axis,
+{ // symmetry in the Nerves view (user, 2026-10-30: "I want the nerve fibres, functions and vessels to follow
+  // symetry as well"; vessels went on 2026-11-01). The Starter's Gill (-1, 0) mirrors its Tissue (1, 0) across the
+  // front-to-back axis,
   // and its two Cilia (-1, 1) and (0, 1) mirror each other.
   const dragFrom = ([fromQ, fromR], [toQ, toR]) => {
     moveMouseTo(fromQ, fromR);
@@ -360,16 +349,7 @@ check("Bioforge Moba's old library carries over", byId('library-tab-creatures').
     fibreUnitsShown() === fibresBefore + 2, String(fibreUnitsShown()));
   dragFrom([1, 0], [0, 1]);
   check('and dragging it again removes both', fibreUnitsShown() === fibresBefore, String(fibreUnitsShown()));
-  pressKey('3');
-  runFrames(1);
-  dragFrom([1, 0], [0, 1]);
-  const oneVessel = vesselUnitsShown();
-  dragFrom([1, 0], [0, 1]);
   frontAxis.onclick();
-  dragFrom([1, 0], [0, 1]);
-  check('a vessel is laid on its mirror image too, and with the axis off only the one dragged',
-    oneVessel === 2 * vesselUnitsShown() && oneVessel > 0, `${oneVessel} then ${vesselUnitsShown()}`);
-  dragFrom([1, 0], [0, 1]);
   pressKey('1');
 }
 

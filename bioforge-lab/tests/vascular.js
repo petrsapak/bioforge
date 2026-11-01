@@ -1,33 +1,37 @@
 'use strict';
-// The vascular layer (sim and builder rules): a vessel carries blood between its two ends, much faster while a Heart
-// on it beats; an unsignalled Valve on it shuts it; hormones ride in it too; it is cut with its cells; the system can
-// be switched off; vessel units are limited; and the builder lays, removes, stamps, saves and loads vessels.
+// The vascular system (sim and design rules): a beating Heart pumps blood between the cells within its reach, much
+// faster than they seep; it beats only on a signal and as hard as it; an unsignalled Valve shuts the pumped flow as
+// it shuts seeping; cold water doesn't slow a Heart; hormones ride in the blood; the system can be switched off; the
+// builder warns about cells out of reach; and designs from before the Heart's areas keep their Hearts beating.
 const { load } = require('./load');
 const { check, done } = require('./check');
-const { X: sim } = load({}, ['newWorld', 'spawn', 'step', 'createDesignCell', 'vesselUnits', 'buildCheck', 'RULES',
-  'FLUID_OXYGEN', 'FLUID_ADRENALINE', 'createEditedDesign', 'toggleVessel', 'removeCell', 'bodyDesign', 'placeCell',
-  'templateFromSelection', 'stampPlacement', 'migrateLibraryEntry', 'designWarnings', 'TEMPLATES', 'hexKey',
-  'linksFromList']);
+const { X: sim } = load({}, ['newWorld', 'spawn', 'step', 'createDesignCell', 'createNeuron', 'FLUID_OXYGEN',
+  'FLUID_ADRENALINE', 'HEART_REACH', 'migrateLibraryEntry', 'readCreatureFile', 'designWarnings', 'TEMPLATES',
+  'CELLS', 'heartBeat']);
 
 const STEP = 1 / 40;                                      // game s per step
 const NO_INPUT = { swimX: 0, swimY: 0, ability: false, heldKeys: new Set() };
 const cellAt = (creature, q, r) => creature.cells.find(cell => cell.q === q && cell.r === r);
+const inhibitor = () => ({ neuron: sim.createNeuron('inhibitor') });
 
-// A column of five cells: the Nucleus on top, a Siphon at the bottom, and between them a middle cell (a Heart unless
-// told otherwise) and two Tissue. With a vessel, it runs from the Nucleus down to the Siphon through all of them.
-function createColumn({ middleType = 'heart', valveAt2 = false, hasVessel = true, systems = ['vascular'] } = {}) {
-  const cells = [
-    sim.createDesignCell(0, 0, 'nucleus'),
-    sim.createDesignCell(0, 1, middleType),
-    sim.createDesignCell(0, 2, valveAt2 ? 'valve' : 'tissue'),
-    sim.createDesignCell(0, 3, 'tissue'),
-    sim.createDesignCell(0, 4, 'siphon'),
-  ];
-  const vessels = hasVessel ? sim.linksFromList([[0, 0, 0, 4]]) : [];
-  const world = sim.newWorld(600, 600, { systems });
-  const creature = sim.spawn(world, { cells, fibres: [], vessels }, 300, 200, 0, 0);
+// A column of cells straight down from the Nucleus: a Heart (or another cell) just below it, Tissue, and a Siphon at
+// the end, `length` cells from the top. heartNeuron: the neuron in the Heart (an Inhibitor keeps it beating);
+// valveBeforeSiphon: 'shut' or 'open': the cell above the Siphon, its only way in, is a Valve (open: it holds an
+// Inhibitor, so it is signalled).
+function createColumn({ middleType = 'heart', heartNeuron = inhibitor(), valveBeforeSiphon = false, length = 4,
+  systems = ['nerve', 'fluid', 'vascular'] } = {}) {
+  const cells = [sim.createDesignCell(0, 0, 'nucleus'),
+    sim.createDesignCell(0, 1, middleType, middleType === 'heart' ? heartNeuron : {})];
+  for (let r = 2; r < length; r++) {
+    const isValve = r === length - 1 && !!valveBeforeSiphon;
+    cells.push(sim.createDesignCell(0, r, isValve ? 'valve' : 'tissue', isValve && valveBeforeSiphon === 'open' ?
+      inhibitor() : {}));
+  }
+  cells.push(sim.createDesignCell(0, length, 'siphon'));
+  const world = sim.newWorld(600, 900, { systems });
+  const creature = sim.spawn(world, { cells, fibres: [] }, 300, 200, 0, 0);
   creature.aiControlled = false;
-  const siphon = cellAt(creature, 0, 4);
+  const siphon = cellAt(creature, 0, length);
   siphon.fluids[sim.FLUID_OXYGEN] = 0;
   return { world, creature, siphon };
 }
@@ -41,100 +45,93 @@ function siphonOxygenAfter(column, seconds, beforeStep = () => {}) {
   return column.siphon.fluids[sim.FLUID_OXYGEN];
 }
 
-// after 0.2 s, before the pumped Siphon is full: a pumped vessel carries 11x as much
-const pumped = siphonOxygenAfter(createColumn(), 0.2);
-const idle = siphonOxygenAfter(createColumn({ middleType: 'tissue' }), 0.2);
-const none = siphonOxygenAfter(createColumn({ hasVessel: false }), 1);
-check('a vessel carries O2 from the Nucleus to the far Siphon', idle > 0.01, idle.toFixed(3));
-check('a Heart on the vessel pumps it several times faster', pumped > 3 * idle,
-  `pumped ${pumped.toFixed(3)}, idle ${idle.toFixed(3)}`);
-check('without a vessel nothing reaches it (seeping is the fluid system\'s, off here)', none === 0, String(none));
-// cold water (a world seepFactor below 1) slows the unpumped flow, not a Heart's push
+// after 0.3 s, before the pumped Siphon is full
+const pumped = siphonOxygenAfter(createColumn(), 0.3);
+const seeped = siphonOxygenAfter(createColumn({ middleType: 'tissue' }), 0.3);
+check('fluids seep to the Siphon slowly with no Heart', seeped > 0 && seeped < 0.05, seeped.toFixed(4));
+check('a beating Heart pumps O2 to it several times faster', pumped > 5 * seeped,
+  `pumped ${pumped.toFixed(4)}, seeped ${seeped.toFixed(4)}`);
+const unsignalled = siphonOxygenAfter(createColumn({ heartNeuron: {} }), 0.3);
+check('a Heart without a signal doesn\'t beat, and pumps nothing', Math.abs(unsignalled - seeped) < 1e-9,
+  `${unsignalled} vs ${seeped}`);
+const beatOf = (signal, efficiency) => sim.heartBeat({ signal, efficiency, budParent: null });
+check('a Heart beats as hard as its signal, held back by a lack of fuel', beatOf(0.5, 1) === 0.5 &&
+  beatOf(2, 1) === 1 && beatOf(1, 0.25) === 0.25 && beatOf(0, 1) === 0);
+
+const reach = sim.HEART_REACH;
+const farSiphon = siphonOxygenAfter(createColumn({ length: reach + 2 }), 0.3);
+const farSeeped = siphonOxygenAfter(createColumn({ middleType: 'tissue', length: reach + 2 }), 0.3);
+check(`a Siphon more than ${reach} steps from the Heart gets only what seeps`, farSiphon < 2 * farSeeped + 1e-6,
+  `${farSiphon.toFixed(5)} vs ${farSeeped.toFixed(5)}`);
+const edgeSiphon = siphonOxygenAfter(createColumn({ length: reach + 1 }), 0.3);
+check(`a Siphon ${reach} steps from the Heart is pumped`, edgeSiphon > 5 * farSeeped, edgeSiphon.toFixed(4));
+
+// cold water (a world seepFactor below 1) slows seeping, not a Heart's push
 const coldColumn = middleType => {
   const column = createColumn({ middleType });
   column.world.seepFactor = 0.05;
   return column;
 };
-const coldIdle = siphonOxygenAfter(coldColumn('tissue'), 0.2);
-const coldPumped = siphonOxygenAfter(coldColumn('heart'), 0.2);
-check('in cold water an unpumped vessel carries 20x less', Math.abs(coldIdle / idle - 0.05) < 0.005,
-  `${coldIdle.toFixed(4)} vs ${idle.toFixed(4)}`);
-check('in cold water a pumped vessel loses only its unpumped share', coldPumped > 0.9 * pumped,
+const coldSeeped = siphonOxygenAfter(coldColumn('tissue'), 0.3);
+const coldPumped = siphonOxygenAfter(coldColumn('heart'), 0.3);
+check('in cold water seeping is far slower', coldSeeped < 0.1 * seeped, `${coldSeeped} vs ${seeped}`);
+check('in cold water a beating Heart pumps nearly as well', coldPumped > 0.9 * pumped,
   `${coldPumped.toFixed(4)} vs ${pumped.toFixed(4)}`);
-const switchedOff = siphonOxygenAfter(createColumn({ systems: [] }), 1);
-check('with the vascular system off, vessels carry nothing', switchedOff === 0, String(switchedOff));
+const switchedOff = siphonOxygenAfter(createColumn({ systems: ['nerve', 'fluid'] }), 0.3);
+check('with the vascular system off, a Heart pumps nothing', Math.abs(switchedOff - seeped) < 1e-5,
+  `${switchedOff} vs ${seeped}`);
 
-const shut = siphonOxygenAfter(createColumn({ valveAt2: true }), 1);
-check('an unsignalled Valve on the vessel shuts it', shut === 0, String(shut));
-const opened = siphonOxygenAfter(createColumn({ valveAt2: true }), 0.2, column => {
-  cellAt(column.creature, 0, 2).signal = 1;
-});
-check('a signalled Valve lets blood through', Math.abs(opened - pumped) < 1e-9, `${opened} vs ${pumped}`);
+const shut = siphonOxygenAfter(createColumn({ valveBeforeSiphon: 'shut' }), 1);
+check('an unsignalled Valve before the Siphon shuts the blood out', shut === 0, String(shut));
+const opened = siphonOxygenAfter(createColumn({ valveBeforeSiphon: 'open' }), 0.3);
+check('a signalled Valve lets it through', opened > 5 * seeped, opened.toFixed(4));
 
 const hormone = createColumn();
 cellAt(hormone.creature, 0, 0).fluids[sim.FLUID_ADRENALINE] = 1;
-siphonOxygenAfter(hormone, 1);
-// until 2026-10-30 hormones stayed out of vessels; now they ride in the blood (PLAN.md, milestone 7)
-check('hormones travel in vessels too', hormone.siphon.fluids[sim.FLUID_ADRENALINE] > 0.01,
-  String(hormone.siphon.fluids[sim.FLUID_ADRENALINE]));
+const hormoneSeeped = createColumn({ middleType: 'tissue' });
+cellAt(hormoneSeeped.creature, 0, 0).fluids[sim.FLUID_ADRENALINE] = 1;
+siphonOxygenAfter(hormone, 0.3);
+siphonOxygenAfter(hormoneSeeped, 0.3);
+const adrenalineAt = column => column.siphon.fluids[sim.FLUID_ADRENALINE];
+check('hormones ride in the blood too', adrenalineAt(hormone) > 3 * adrenalineAt(hormoneSeeped),
+  `${adrenalineAt(hormone).toFixed(4)} vs ${adrenalineAt(hormoneSeeped).toFixed(4)}`);
 
-const injured = createColumn();
-check('the vessel is in the world', injured.world.vessels.length === 1 && injured.world.vessels[0].units === 4);
-cellAt(injured.creature, 0, 2).health = 0;
-sim.step(injured.world, STEP, NO_INPUT);
-check('a vessel is cut when a cell it runs through dies', injured.world.vessels.length === 0);
-
-// ---------- Limits ----------
-const longVessel = { cells: createColumn().creature.design, vessels: sim.linksFromList([[0, 0, 0, 4], [0, 4, 0, 1]]) };
-check('vessel units are counted along their routes', sim.vesselUnits(longVessel) === 7,
-  String(sim.vesselUnits(longVessel)));
-const savedLimit = sim.RULES.maxVesselUnits;
-sim.RULES.maxVesselUnits = 6;
-check('more vessel units than the limit are reported', /Too many vessel units: 7 \/ 6/.test(sim.buildCheck(longVessel)),
-  sim.buildCheck(longVessel));
-sim.RULES.maxVesselUnits = savedLimit;
-
-const heartOnly = { cells: createColumn().creature.design, fibres: [], vessels: [] };
+// ---------- The builder's warnings ----------
 const warningTexts = design => sim.designWarnings(design, []).map(warning => warning.text).join(' | ');
-check('a Heart on no vessel is a warning', /Heart\(s\) sit on no vessel/.test(warningTexts(heartOnly)),
-  warningTexts(heartOnly));
-const heartOnVessel = { ...heartOnly, vessels: longVessel.vessels };
-check('a Heart on a vessel is not', !/sit on no vessel/.test(warningTexts(heartOnVessel)));
-for (const name of ['jet', 'seeker', 'paddler']) {
-  const design = sim.TEMPLATES[name];
-  check(`the ${name} has vessels from its Heart and no vessel warning`,
-    design.vessels.length > 0 && !/vessel/.test(warningTexts(design)), warningTexts(design));
-}
+const near = { cells: createColumn().creature.design, fibres: [] };
+check('a body within its Heart\'s reach gets no blood warning', !/seep to them/.test(warningTexts(near)),
+  warningTexts(near));
+const far = { cells: createColumn({ length: reach + 2 }).creature.design, fibres: [] };
+check('a fuel-burning cell out of every Heart\'s reach is a hint', /more than 5 steps from every Heart/.test(
+  warningTexts(far)), warningTexts(far));
+const heartless = { cells: createColumn({ middleType: 'tissue' }).creature.design, fibres: [] };
+check('with no Heart the working cells only seep', /pumped by no Heart/.test(warningTexts(heartless)),
+  warningTexts(heartless));
+const unwired = { cells: createColumn({ heartNeuron: {} }).creature.design, fibres: [] };
+check('a Heart with no signal is a signal warning, like any cell that needs one', /signal/i.test(
+  warningTexts(unwired)), warningTexts(unwired));
 
-// ---------- The builder ----------
-const edited = sim.createEditedDesign({ cells: createColumn().creature.design });
-const key = (q, r) => sim.hexKey(q, r);
-check('a vessel is laid between two cells', sim.toggleVessel(edited, key(0, 0), key(0, 4)) === 'laid' &&
-  edited.vessels.length === 1);
-check('dragging it the other way round removes it', sim.toggleVessel(edited, key(0, 4), key(0, 0)) === 'removed' &&
-  edited.vessels.length === 0);
-check('no vessel from a cell to itself or to an empty hex', sim.toggleVessel(edited, key(0, 0), key(0, 0)) === '' &&
-  sim.toggleVessel(edited, key(0, 0), key(3, 3)) === '');
-sim.toggleVessel(edited, key(0, 0), key(0, 4));
-sim.placeCell(edited, 3, 0, 'tissue');
-sim.placeCell(edited, 3, 1, 'tissue');
-sim.toggleVessel(edited, key(3, 0), key(3, 1));
-check('the body keeps only the vessels between joined cells', sim.bodyDesign(edited).vessels.length === 1);
-const saved = sim.templateFromSelection(edited, new Set([key(0, 0), key(0, 1), key(0, 2), key(0, 3), key(0, 4)]),
-  'Column');
-check('saving a selection keeps its vessels', saved.vessels.length === 1);
-const loaded = sim.migrateLibraryEntry(JSON.parse(JSON.stringify(saved)));
-check('a saved entry loads with its vessels', loaded.vessels.length === 1 && loaded.vessels[0].to.r === 4);
-check('an entry saved before vessels loads with none', sim.migrateLibraryEntry({ name: 'Old', cells: [] }).vessels
-  .length === 0);
-const part = { name: 'Pipe', isCreature: false, cells: [sim.createDesignCell(0, 0, 'heart'),
-  sim.createDesignCell(1, 0, 'tissue')], fibres: [], vessels: sim.linksFromList([[0, 0, 1, 0]]) };
-const placement = sim.stampPlacement(edited, { template: part, rotation: 1 }, -3, 2);
-const placedVessel = placement.vessels[0];
-check('a stamp places its vessels turned and moved with its cells', placement.vessels.length === 1 &&
-  placedVessel.from.q === -3 && placedVessel.from.r === 2 && placedVessel.to.q === -3 && placedVessel.to.r === 3,
-  JSON.stringify(placement.vessels));
-sim.removeCell(edited, 0, 4);
-check('removing a cell removes its vessels', !edited.vessels.some(vessel => vessel.to.r === 4));
+// ---------- Designs from before the Heart's areas ----------
+const oldEntry = { name: 'Old jet', isCreature: true, fibres: [],
+  cells: [sim.createDesignCell(0, 0, 'nucleus'), sim.createDesignCell(0, 1, 'heart'),
+    sim.createDesignCell(1, 0, 'heart', { neuron: sim.createNeuron('pacemaker') })],
+  vessels: [{ from: { q: 0, r: 1 }, to: { q: 0, r: 0 } }] };
+const upgraded = sim.migrateLibraryEntry(oldEntry);
+const heartNeuronAt = (entry, q, r) => entry.cells.find(cell => cell.q === q && cell.r === r).neuron;
+check('a saved creature from before 2026-11-01 gets an Inhibitor in each Heart without a neuron, and loses its vessels',
+  heartNeuronAt(upgraded, 0, 1).kind === 'inhibitor' && heartNeuronAt(upgraded, 1, 0).kind === 'pacemaker' &&
+  !('vessels' in upgraded), JSON.stringify(upgraded));
+const { vessels, ...savedSince } = oldEntry;
+const current = sim.migrateLibraryEntry(JSON.parse(JSON.stringify(savedSince)));
+check('a creature saved since is left as it is', !heartNeuronAt(current, 0, 1), JSON.stringify(current.cells));
+const oldFile = JSON.stringify({ kind: 'bioforge-lab-creature', version: 1, gameVersion: '0.7.12',
+  creature: oldEntry });
+const fromFile = sim.readCreatureFile(oldFile);
+check('an old creature file gets the same upgrade', !!fromFile.entry &&
+  heartNeuronAt(fromFile.entry, 0, 1).kind === 'inhibitor', JSON.stringify(fromFile));
+const templateHearts = Object.values(sim.TEMPLATES).flatMap(design => design.cells)
+  .filter(cell => sim.CELLS[cell.typeName].pumps);
+check('every built-in design\'s Heart holds a neuron, so it beats', templateHearts.length > 0 &&
+  templateHearts.every(cell => cell.neuron), `${templateHearts.length} Hearts`);
 
 done();

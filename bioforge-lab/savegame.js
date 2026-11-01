@@ -120,7 +120,7 @@ function readResumeState(saved) {
 // ---------- Creature files ----------
 // a library entry as the text of a creature file
 function creatureFileText(entry) {
-  const creature = { name: entry.name, cells: entry.cells, fibres: entry.fibres || [], vessels: entry.vessels || [] };
+  const creature = { name: entry.name, cells: entry.cells, fibres: entry.fibres || [] };
   return JSON.stringify({ kind: CREATURE_FILE_KIND, version: CREATURE_FILE_VERSION, gameVersion: GAME_VERSION,
     creature });
 }
@@ -150,7 +150,7 @@ function readCreatureFile(text) {
   return { entry };
 }
 
-// A saved design ({ name, cells, fibres, vessels }) as a library entry in the current format, or null if it is
+// A saved design ({ name, cells, fibres }) as a library entry in the current format, or null if it is
 // damaged: no cells, a cell off the grid, or a cell type or neuron this game doesn't have.
 function checkedDesign(saved) {
   if (!Array.isArray(saved.cells) || !saved.cells.length) return null;

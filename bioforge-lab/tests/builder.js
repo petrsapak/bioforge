@@ -11,9 +11,9 @@ const { X: sim } = load({}, ['createEditedDesign', 'canPlaceCell', 'placeCell', 
   'removeNeuron', 'changeNeuronSetting', 'toggleFibre', 'bodyDesign', 'nerveUsage', 'fibresAt', 'removeFibre',
   'nerveRemovalTarget', 'hexToPixel', 'mirrorImages', 'mirroredPlacement', 'placeMirrored', 'removeMirrored',
   'hexesAlongStroke', 'MIRROR_AXIS_COUNT', 'FRONT_TO_BACK_AXIS', 'extendFibrePath', 'laidOutBodyFibres',
-  'planFibreToggle', 'fibreUnits', 'laidOutBodyLinks', 'toggleVessel', 'mirrorKeyMaps', 'placeNeuronMirrored',
-  'changeNeuronSettingMirrored', 'removeNeuronMirrored', 'toggleFibreMirrored', 'removeFibreMirrored',
-  'setSensedHormoneMirrored', 'toggleVesselMirrored', 'removeVesselMirrored', 'cellInDirection']);
+  'planFibreToggle', 'fibreUnits', 'mirrorKeyMaps', 'placeNeuronMirrored', 'changeNeuronSettingMirrored',
+  'removeNeuronMirrored', 'toggleFibreMirrored', 'removeFibreMirrored', 'setSensedHormoneMirrored',
+  'cellInDirection']);
 
 const cellsOf = list => list.map(([q, r, typeName]) => sim.createDesignCell(q, r, typeName));
 const editedFrom = (cells, biomassLimit) => sim.createEditedDesign({ cells, fibres: [] }, biomassLimit);
@@ -194,19 +194,6 @@ const editedFrom = (cells, biomassLimit) => sim.createEditedDesign({ cells, fibr
   check('two fibres along the same cells run apart, not on top of each other', apart > 1.5, apart.toFixed(2) + " px");
 }
 
-{ // vessels are drawn in lanes too, beside the fibres and each other
-  const edited = editedFrom(cellsOf([[0, 0, 'heart'], [1, 0, 'tissue'], [2, 0, 'muscle'], [3, 0, 'muscle']]));
-  sim.toggleFibre(edited, sim.hexKey(0, 0), sim.hexKey(3, 0));
-  sim.toggleVessel(edited, sim.hexKey(0, 0), sim.hexKey(2, 0));
-  sim.toggleVessel(edited, sim.hexKey(0, 0), sim.hexKey(3, 0));
-  const { fibres, vessels } = sim.laidOutBodyLinks(edited, 8);
-  const lanes = [...fibres, ...vessels].map(entry => entry.lane);
-  check('a fibre and two vessels through the same cells get three lanes', vessels.length === 2 &&
-    new Set(lanes).size === 3, lanes.join(' '));
-  check('the fibre is laid out first, so it keeps the centre line', fibres[0].lane === 0);
-  check('vessels sharing a cell get different shades', vessels[0].colorIndex !== vessels[1].colorIndex);
-}
-
 { // fibres travel with saved parts: saving a selection, stamping it, and growing it on a Bud
   const edited = editedFrom(cellsOf([[0, 0, 'nucleus'], [1, 0, 'tissue'], [2, 0, 'muscle'], [0, -1, 'bud']]), Infinity);
   sim.placeNeuron(edited, sim.hexKey(1, 0), 'pacemaker');
@@ -218,7 +205,7 @@ const editedFrom = (cells, biomassLimit) => sim.createEditedDesign({ cells, fibr
     edited.fibres.length === 2);
   const drawn = { name: 'Bent', isCreature: false,
     cells: cellsOf([[0, 0, 'tissue'], [1, 0, 'tissue'], [1, -1, 'muscle']]),
-    fibres: [{ from: { q: 0, r: 0 }, to: { q: 1, r: -1 }, via: [{ q: 1, r: 0 }] }], vessels: [] };
+    fibres: [{ from: { q: 0, r: 0 }, to: { q: 1, r: -1 }, via: [{ q: 1, r: 0 }] }] };
   const turned = sim.stampPlacement(edited, { template: drawn, rotation: 2 }, 6, 6).fibres[0];
   check('a turned stamp turns a drawn route with it', !!turned && turned.via.length === 1 &&
     sim.hexKey(turned.via[0].q, turned.via[0].r) !== sim.hexKey(7, 6));
@@ -296,7 +283,7 @@ const editedFrom = (cells, biomassLimit) => sim.createEditedDesign({ cells, fibr
   check('with no axes, a click places one cell', sim.placeMirrored(edited, 0, 1, 'tissue', []) === 1);
 }
 
-{ // symmetry in the Nerves and Vessels views: neurons, settings, fibres and vessels copied onto the mirrored cells
+{ // symmetry in the Nerves view: neurons, settings and fibres copied onto the mirrored cells
   const key = sim.hexKey;
   const front = [sim.FRONT_TO_BACK_AXIS];
   const edited = editedFrom(cellsOf([[0, 0, 'nucleus'], [1, 0, 'muscle'], [-1, 0, 'muscle'], [2, 0, 'tissue'],
@@ -342,15 +329,6 @@ const editedFrom = (cells, biomassLimit) => sim.createEditedDesign({ cells, fibr
   sim.setSensedHormoneMirrored(edited, key(0, 1), 'fed', front);
   check('a Receptor\'s hormone is copied onto the mirrored Receptor',
     edited.cells.get(key(-1, 1)).sensedHormone === 'fed');
-
-  check('a vessel laid is laid on its mirror image too',
-    sim.toggleVesselMirrored(edited, key(0, 0), key(1, 0), front) === 'laid' && edited.vessels.length === 2);
-  sim.toggleVesselMirrored(edited, key(1, 0), key(-1, 0), front);
-  check('a vessel between two mirrored cells is its own image', edited.vessels.length === 3);
-  sim.removeVesselMirrored(edited, edited.vessels[0], front);
-  check('a vessel taken out takes its image with it', edited.vessels.length === 1);
-  sim.toggleVesselMirrored(edited, key(-1, 0), key(1, 0), front);
-  check('and dragged again either way round, it is removed', edited.vessels.length === 0);
 }
 
 { // painting: a stroke passes over every hex between two mouse points, each once

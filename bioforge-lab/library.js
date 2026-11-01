@@ -1,7 +1,7 @@
 'use strict';
 // The Templates window (browser only): the tabs My creatures, My parts and Examples, each a grid of cards with a
 // picture; saving the builder's creature into My creatures; and the saved library, kept in storage.
-// Entries are { name, isCreature, cells, fibres, vessels } (see design.js); the editing rules for them are in
+// Entries are { name, isCreature, cells, fibres } (see design.js); the editing rules for them are in
 // builder.js.
 
 // Bioforge Moba and Lab before 2026-10-28 kept the library here, in the old format. Pages opened from disk can share

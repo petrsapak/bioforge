@@ -1,8 +1,8 @@
 'use strict';
 // The design being edited in the builder, and every editing rule: placing and removing cells, Bud parts and their aim,
-// neurons, fibres and Command keys, vessels, stamping saved parts, saving a selection, and stepping between cells
-// with the arrow keys. Pure: no DOM, so the rules are tested in Node. Cells that aren't joined to the Nucleus are
-// only planned: they cost nothing and stay out of the creature, and so do fibres and vessels to or from them.
+// neurons, fibres and Command keys, stamping saved parts, saving a selection, and stepping between cells with the
+// arrow keys. Pure: no DOM, so the rules are tested in Node. Cells that aren't joined to the Nucleus are only
+// planned: they cost nothing and stay out of the creature, and so do fibres to or from them.
 
 const BUD_AIM_HANDLE_RADIUS = 12;                         // grid px around an aim arrow's tip that grab it
 const BUD_AIM_ARROW_LENGTH = 18;                          // grid px
@@ -10,7 +10,6 @@ const MIN_AIM_DRAG = 2;                                   // grid px the aim tip
 const NAME_MAX_LENGTH = 40;                               // characters in a saved name
 const NEURON_PICK_RADIUS = 6;                             // grid px around a cell's centre that pick its neuron
 const FIBRE_PICK_DISTANCE = 3;                            // grid px from a fibre's line that pick the fibre
-const VESSEL_PICK_DISTANCE = 5;                           // grid px from a vessel's line that pick the vessel
 const STROKE_SAMPLE_SPACING = HEX_SPACING_X / 4;          // grid px between the points a painting drag is read at
 
 const keyOfCell = cell => hexKey(cell.q, cell.r);
@@ -20,20 +19,19 @@ const formatBiomass = value => String(Math.round(value * 2) / 2);
 const wrapTurns = turns => (turns % 6 + 6) % 6;
 
 // ---------- The edited design ----------
-// The one place an edited design is built from a design ({ cells, fibres, vessels }). Its cells, fibres and vessels
-// are copies, so the source design stays as it was. biomassLimit: RULES.budget, or Infinity while building without a
+// The one place an edited design is built from a design ({ cells, fibres }). Its cells and fibres are copies, so
+// the source design stays as it was. biomassLimit: RULES.budget, or Infinity while building without a
 // limit. kit: the chosen level's material kit, which takes the budget's place (unless the limit is Infinity).
 function createEditedDesign(design, biomassLimit = RULES.budget, kit = null) {
   return {
     cells: new Map(design.cells.map(cell => [keyOfCell(cell), { ...cell }])),
     fibres: (design.fibres || []).map(copyLink),
-    vessels: (design.vessels || []).map(copyLink),
     biomassLimit,
     kit,
   };
 }
 
-// a copy of a fibre or vessel ({ from, to }, and a fibre's via cells if it has them)
+// a copy of a fibre ({ from, to }, and its via cells if it has them)
 function copyLink(link) {
   const copy = { from: { ...link.from }, to: { ...link.to } };
   if (link.via) copy.via = link.via.map(point => ({ ...point }));
@@ -42,17 +40,13 @@ function copyLink(link) {
 
 const fibreStartKey = fibre => hexKey(fibre.from.q, fibre.from.r);
 const fibreEndKey = fibre => hexKey(fibre.to.q, fibre.to.r);
-// whether a fibre or vessel has both ends among these hex keys
+// whether a fibre has both ends among these hex keys
 const isLinkWithin = (link, keys) => keys.has(fibreStartKey(link)) && keys.has(fibreEndKey(link));
 // the link, without its via cells if one of them is not among these hex keys (it then takes the shortest route)
 function keepViaWithin(link, keys) {
   if (link.via && !link.via.every(point => keys.has(hexKey(point.q, point.r)))) delete link.via;
   return link;
 }
-// whether a vessel runs between these two hex keys, either way round
-const isVesselBetween = (vessel, firstKey, secondKey) =>
-  (fibreStartKey(vessel) === firstKey && fibreEndKey(vessel) === secondKey) ||
-  (fibreStartKey(vessel) === secondKey && fibreEndKey(vessel) === firstKey);
 
 // the hex keys of the cells joined to the Nucleus
 function joinedKeys(edited) {
@@ -71,13 +65,12 @@ function plannedKeys(edited) {
   return [...edited.cells.keys()].filter(key => !joined.has(key));
 }
 
-// the creature that is spawned: the joined cells and the fibres and vessels between them
+// the creature that is spawned: the joined cells and the fibres between them
 function bodyDesign(edited) {
   const joined = joinedKeys(edited);
   return {
     cells: bodyCells(edited),
     fibres: edited.fibres.filter(fibre => isLinkWithin(fibre, joined)),
-    vessels: edited.vessels.filter(vessel => isLinkWithin(vessel, joined)),
   };
 }
 
@@ -123,7 +116,7 @@ function placeCell(edited, q, r, typeName) {
   edited.cells.set(hexKey(q, r), createDesignCell(q, r, typeName));
 }
 
-// Removes the cell on (q, r) with its neuron, fibres and vessels, except the Nucleus. Cells cut off from the Nucleus
+// Removes the cell on (q, r) with its neuron and fibres, except the Nucleus. Cells cut off from the Nucleus
 // stay, as planned cells. A fibre laid through the cell keeps its ends and takes the shortest route again.
 function removeCell(edited, q, r) {
   const key = hexKey(q, r);
@@ -132,7 +125,6 @@ function removeCell(edited, q, r) {
   edited.cells.delete(key);
   const isElsewhere = link => fibreStartKey(link) !== key && fibreEndKey(link) !== key;
   edited.fibres = edited.fibres.filter(isElsewhere);
-  edited.vessels = edited.vessels.filter(isElsewhere);
   for (const fibre of edited.fibres) {
     if (fibre.via && fibre.via.some(point => hexKey(point.q, point.r) === key)) delete fibre.via;
   }
@@ -208,9 +200,9 @@ function removeMirrored(edited, q, r, axes) {
   return twins.length;
 }
 
-// ---------- Symmetry in the Nerves and Vessels views ----------
-// A mirror map is a list of axes whose reflections are applied in order. With the axes on, a neuron, its setting, a
-// fibre or a vessel is copied onto the cells that mirror its own.
+// ---------- Symmetry in the Nerves view ----------
+// A mirror map is a list of axes whose reflections are applied in order. With the axes on, a neuron, its setting or
+// a fibre is copied onto the cells that mirror its own.
 
 // (q, r) moved by a mirror map
 function applyMirrorMap(map, q, r, centre) {
@@ -253,8 +245,8 @@ function mirrorTwinKeys(edited, key, axes) {
     .filter(twinKey => edited.cells.has(twinKey));
 }
 
-// The paths (lists of hex keys) that mirror this one, each once, without the path itself: what a fibre or vessel
-// being drawn will be copied onto
+// The paths (lists of hex keys) that mirror this one, each once, without the path itself: what a fibre being drawn
+// will be copied onto
 function mirrorKeyPaths(edited, pathKeys, axes) {
   const seen = new Set([pathKeys.join('|')]);
   const paths = [];
@@ -267,24 +259,24 @@ function mirrorKeyPaths(edited, pathKeys, axes) {
   return paths;
 }
 
-// A link's end keys as one string; the ends of a vessel in either order, as it runs both ways
+// A fibre's end keys as one string; isDirected false: the ends in either order (the same two cells)
 function linkEndsKey(link, isDirected) {
   const ends = [fibreStartKey(link), fibreEndKey(link)];
   return (isDirected ? ends : ends.sort()).join('>');
 }
 
-// The fibres or vessels that mirror this one, between cells that are there, each once. One that would join the
-// same two cells as the link itself is left out: a fibre between two mirrored cells would get one back the other
-// way, and two fibres signalling each other make a loop. A via cell without a cell on its image drops the image's
-// via, so it takes the shortest route.
-function mirroredLinks(edited, link, axes, isDirected) {
+// The fibres that mirror this one, between cells that are there, each once. One that would join the same two cells
+// as the fibre itself is left out: a fibre between two mirrored cells would get one back the other way, and two
+// fibres signalling each other make a loop. A via cell without a cell on its image drops the image's via, so it
+// takes the shortest route.
+function mirroredLinks(edited, link, axes) {
   const cellKeys = new Set(edited.cells.keys());
   const ownEnds = linkEndsKey(link, false);
   const seen = new Set();
   const images = [];
   for (const mapKey of mirrorKeyMaps(edited, axes)) {
     const image = moveLink(link, point => parseHexKey(mapKey(hexKey(point.q, point.r))));
-    const endsKey = linkEndsKey(image, isDirected);
+    const endsKey = linkEndsKey(image, true);
     const isOwnCells = linkEndsKey(image, false) === ownEnds;
     if (isOwnCells || seen.has(endsKey) || fibreStartKey(image) === fibreEndKey(image)) continue;
     if (!isLinkWithin(image, cellKeys)) continue;
@@ -294,9 +286,9 @@ function mirroredLinks(edited, link, axes, isDirected) {
   return images;
 }
 
-// the index of the fibre or vessel already between these ends (a vessel either way round), or -1
-function linkIndexBetween(links, link, isDirected) {
-  return links.findIndex(other => linkEndsKey(other, isDirected) === linkEndsKey(link, isDirected));
+// the index of the fibre already between these ends, or -1
+function linkIndexBetween(links, link) {
+  return links.findIndex(other => linkEndsKey(other, true) === linkEndsKey(link, true));
 }
 
 // puts the neuron into the cell at key and into the mirrored cells that have none
@@ -344,8 +336,8 @@ function toggleFibreMirrored(edited, fromKey, toKey, viaKeys, axes) {
   if (!result) return result;
   const fibre = { from: parseHexKey(fromKey), to: parseHexKey(toKey) };
   if (viaKeys) fibre.via = viaKeys.map(parseHexKey);
-  for (const image of mirroredLinks(edited, fibre, axes, true)) {
-    const index = linkIndexBetween(edited.fibres, image, true);
+  for (const image of mirroredLinks(edited, fibre, axes)) {
+    const index = linkIndexBetween(edited.fibres, image);
     if (result === 'removed') {
       if (index >= 0) edited.fibres.splice(index, 1);
     } else if (index >= 0) {
@@ -359,34 +351,11 @@ function toggleFibreMirrored(edited, fromKey, toKey, viaKeys, axes) {
 
 // removes this fibre (an entry of edited.fibres) and the fibres on its mirror images
 function removeFibreMirrored(edited, fibre, axes) {
-  const images = mirroredLinks(edited, fibre, axes, true);
+  const images = mirroredLinks(edited, fibre, axes);
   removeFibre(edited, fibre);
   for (const image of images) {
-    const index = linkIndexBetween(edited.fibres, image, true);
+    const index = linkIndexBetween(edited.fibres, image);
     if (index >= 0) edited.fibres.splice(index, 1);
-  }
-}
-
-// Lays or removes a vessel as toggleVessel does, and the same on its mirror images. Returns toggleVessel's result.
-function toggleVesselMirrored(edited, fromKey, toKey, axes) {
-  const result = toggleVessel(edited, fromKey, toKey);
-  if (!result) return result;
-  const vessel = { from: parseHexKey(fromKey), to: parseHexKey(toKey) };
-  for (const image of mirroredLinks(edited, vessel, axes, false)) {
-    const index = linkIndexBetween(edited.vessels, image, false);
-    if (result === 'removed' && index >= 0) edited.vessels.splice(index, 1);
-    if (result === 'laid' && index < 0) edited.vessels.push(image);
-  }
-  return result;
-}
-
-// removes this vessel (an entry of edited.vessels) and the vessels on its mirror images
-function removeVesselMirrored(edited, vessel, axes) {
-  const images = mirroredLinks(edited, vessel, axes, false);
-  removeVessel(edited, vessel);
-  for (const image of images) {
-    const index = linkIndexBetween(edited.vessels, image, false);
-    if (index >= 0) edited.vessels.splice(index, 1);
   }
 }
 
@@ -519,33 +488,14 @@ function routedBodyFibres(edited) {
 // The body's fibres for drawing, side by side where they share cells (see layOutFibreLanes): [{ fibre, route,
 // points (grid px), lane, colorIndex }]. paletteSize: how many fibre colours there are to share out.
 function laidOutBodyFibres(edited, paletteSize = 1) {
-  return laidOutBodyLinks(edited, paletteSize).fibres;
-}
-
-// The body's fibres and vessels for drawing, all in one set of lanes, so that a vessel never lies on a fibre or on
-// another vessel: { fibres, vessels }, each [{ fibre or link, route, points (grid px), lane, colorIndex }]. The
-// fibres take their lanes first, so a vessel doesn't move them.
-function laidOutBodyLinks(edited, paletteSize = 1) {
   const fibres = routedBodyFibres(edited);
-  const vessels = routedBodyVessels(edited);
   const pathOf = ({ route }) => route.hexes.map(key => {
     const { q, r } = parseHexKey(key);
     const [x, y] = hexToPixel(q, r);
     return { node: key, x, y };
   });
-  const lanes = layOutFibreLanes([...fibres, ...vessels].map(pathOf), paletteSize);
-  return {
-    fibres: fibres.map((entry, i) => ({ ...entry, ...lanes[i] })),
-    vessels: vessels.map((entry, i) => ({ ...entry, ...lanes[fibres.length + i] })),
-  };
-}
-
-// links (fibres or vessels) with their routes through these cells; links without a route are left out
-function routeLinks(cells, links) {
-  const area = createRouteArea(cells);
-  return links
-    .map(link => ({ link, route: routeFibre(area, link.from, link.to) }))
-    .filter(({ route }) => route);
+  const lanes = layOutFibreLanes(fibres.map(pathOf), paletteSize);
+  return fibres.map((entry, i) => ({ ...entry, ...lanes[i] }));
 }
 
 // how much of the nerve limits the body uses
@@ -575,19 +525,6 @@ function nerveRemovalTarget(edited, [x, y]) {
   return hasNeuron ? { neuronKey: key } : null;
 }
 
-// The link whose route passes nearest the grid point (x, y), within reach; the one drawn last, on top, when tied.
-// routed: [{ link, route }]. null if none is in reach.
-function nearestRoutedLink(routed, x, y, reach) {
-  const drawn = routed.map(({ link, route }) => ({
-    link,
-    points: route.hexes.map(routeKey => {
-      const point = parseHexKey(routeKey);
-      return hexToPixel(point.q, point.r);
-    }),
-  }));
-  return nearestLink(drawn, x, y, reach);
-}
-
 // The link whose drawn line passes nearest the grid point (x, y), within reach; the one drawn last when tied.
 // drawn: [{ link, points ([x, y] grid px) }], measured along the curved line they are drawn with (smoothLinkLine).
 // null if none is in reach.
@@ -605,41 +542,6 @@ function nearestLink(drawn, x, y, reach) {
     }
   }
   return nearest;
-}
-
-// ---------- The vascular layer ----------
-// Lays a vessel between two cells, or removes the one already there (either way round). Returns what happened:
-// 'laid', 'removed', or '' when there is nothing to do (the same cell, or a hex without a cell).
-function toggleVessel(edited, fromKey, toKey) {
-  if (fromKey === toKey || !edited.cells.has(fromKey) || !edited.cells.has(toKey)) return '';
-  const index = edited.vessels.findIndex(vessel => isVesselBetween(vessel, fromKey, toKey));
-  if (index >= 0) {
-    edited.vessels.splice(index, 1);
-    return 'removed';
-  }
-  edited.vessels.push({ from: parseHexKey(fromKey), to: parseHexKey(toKey) });
-  return 'laid';
-}
-
-// the body's vessels with their routes through the body's cells, for drawing: [{ link, route }]
-function routedBodyVessels(edited) {
-  const body = bodyDesign(edited);
-  return routeLinks(body.cells, body.vessels);
-}
-
-// vessel units the body uses
-function vesselUsage(edited) {
-  return vesselUnits(bodyDesign(edited));
-}
-
-// removes this vessel (an entry of edited.vessels)
-function removeVessel(edited, vessel) {
-  edited.vessels = edited.vessels.filter(other => other !== vessel);
-}
-
-// the vessel a right-click at a grid point takes out in the Vessels view, or null
-function vesselRemovalTarget(edited, [x, y]) {
-  return nearestRoutedLink(routedBodyVessels(edited), x, y, VESSEL_PICK_DISTANCE);
 }
 
 // grid px from a point to the line segment between two points
@@ -821,15 +723,14 @@ function budHandleAt(edited, q, r, point, focusKey) {
 
 // ---------- Stamping saved parts ----------
 // A stamp is a saved part being placed: { template, rotation }.
-// Its cells turned and moved to (q, r), leaving out hexes already taken, its fibres and vessels between the cells
-// that are placed, and the problem if it can't go there.
+// Its cells turned and moved to (q, r), leaving out hexes already taken, its fibres between the cells that are
+// placed, and the problem if it can't go there.
 function stampPlacement(edited, stamp, q, r) {
   const cells = stamp.template.cells
     .map(cell => turnTemplateCell(cell, stamp.rotation, q, r))
     .filter(cell => !edited.cells.has(keyOfCell(cell)));
   const placedKeys = new Set(cells.map(keyOfCell));
   const fibres = placeStampLinks(stamp.template.fibres, stamp.rotation, q, r, placedKeys);
-  const vessels = placeStampLinks(stamp.template.vessels, stamp.rotation, q, r, placedKeys);
   const reserved = reservedHexes(edited);
   let problem = '';
   if (!cells.length) problem = 'Every hex there is already taken.';
@@ -846,10 +747,10 @@ function stampPlacement(edited, stamp, q, r) {
         `you have ${formatBiomass(edited.biomassLimit - costNow)} left.`;
     }
   }
-  return { cells, fibres, vessels, problem };
+  return { cells, fibres, problem };
 }
 
-// a stamp's fibres or vessels turned and moved with its cells, keeping those between cells that are placed
+// a stamp's fibres turned and moved with its cells, keeping those between cells that are placed
 function placeStampLinks(links, rotation, q, r, placedKeys) {
   const place = point => {
     const turned = turnTemplateCell(point, rotation, q, r);
@@ -877,7 +778,6 @@ function placeStamp(edited, stamp, q, r) {
   if (placement.problem) return placement.problem;
   for (const cell of placement.cells) edited.cells.set(keyOfCell(cell), cell);
   edited.fibres.push(...placement.fibres);
-  edited.vessels.push(...placement.vessels);
   return '';
 }
 
@@ -899,7 +799,6 @@ function templateFromSelection(edited, selectedKeys, name) {
     isCreature,
     cells: cells.map(cell => ({ ...cell, ...shift(cell) })),
     fibres: shiftLinks(edited.fibres),
-    vessels: shiftLinks(edited.vessels),
   };
 }
 

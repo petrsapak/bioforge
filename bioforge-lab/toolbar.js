@@ -1,5 +1,5 @@
 'use strict';
-// The Body, Nerves and Vessels tabs at the top with their tools (Hormones, Unlimited biomass, Symmetry, Delete
+// The Body and Nerves tabs at the top with their tools (Hormones, Unlimited biomass, Symmetry, Delete
 // all), the built-in designs, the keys sheet (H) and the fluid views (Shift+1–9) (browser only).
 
 const MIRROR_MENU_WIDTH = 200;                            // px, as #mirror-menu in style.css
@@ -13,11 +13,10 @@ function setUpToolbar(app) {
   setUpChemicalLens(app);
 }
 
-// the tabs at the top centre; the keys 1, 2 and 3 are in ui.js
+// the tabs at the top centre; the keys 1 and 2 are in ui.js
 function setUpLayerSwitch(app) {
   byId('layer-body').onclick = () => showLayer(app, 'body');
   byId('layer-nerve').onclick = () => showLayer(app, 'nerve');
-  byId('layer-vessel').onclick = () => showLayer(app, 'vessel');
 }
 
 // shows fluid view number `view` (0 = normal, otherwise 1 + its index in FLUIDS): from Shift+1–9, and in the builder
@@ -47,7 +46,7 @@ function clearDesign(app) {
   }
   askToConfirm({
     title: 'Delete all?',
-    text: 'Every cell but the Nucleus goes, with its nerves and vessels. F5 quick saves the creature first, if you ' +
+    text: 'Every cell but the Nucleus goes, with its nerves. F5 quick saves the creature first, if you ' +
       'might want it back.',
     confirmLabel: 'Delete all',
     isDangerous: true,
@@ -56,7 +55,7 @@ function clearDesign(app) {
 
 // The Symmetry button opens a dial of the six axes through the Nucleus; each one clicked turns on or off. Cells
 // placed or removed in the Body view are mirrored across every axis that is on, and so are neurons, their settings,
-// fibres and vessels in the Nerves and Vessels views (builder.js).
+// and fibres in the Nerves view (builder.js).
 function setUpMirrorMenu(app) {
   const dial = byId('mirror-dial');
   for (let axisTurns = 0; axisTurns < MIRROR_AXIS_COUNT; axisTurns++) {

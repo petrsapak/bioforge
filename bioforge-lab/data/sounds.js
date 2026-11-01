@@ -25,7 +25,6 @@ const SOUND_EFFECTS = {
   place: soundEffect([soundFile('place.wav', -18.0)], -42, 0.05, true),
   remove: soundEffect([soundFile('remove.wav', -28.5)], -42, 0.05),
   wire: soundEffect([soundFile('wire.wav', -29.9)], -42, 0.05),
-  vessel: soundEffect([soundFile('vessel.wav', -18.7)], -42, 0.05),
   refuse: soundEffect([soundFile('refuse.wav', -18.0)], -42, 0.3),
   open: soundEffect([soundFile('open.wav', -18.0)], -42, 0.2),
   start: soundEffect([soundFile('start.wav', -18.0)], -42, 0.5),

@@ -2,7 +2,7 @@
 // The field guide sheet: a list of every cell, neuron, topic and glossary term down the left, each with its picture,
 // and a filter; the chosen entry on the right, told in pictures first: the cell or neuron with its live example tank
 // (tipdemo.js, with the hormone lens for hormones), its cost, health and fuel as pips and bars, the example's wiring
-// as icons joined by moving fibres and vessels, then the words: how to use it, what to watch out for, and what it
+// as icons joined by moving fibres, then the words: how to use it, what to watch out for, and what it
 // works with as picture tiles. Opened from the menus, G in the builder and the clicked cell's card; Esc or ✕ closes
 // it (browser only). The entries are built in fieldguide.js.
 
@@ -263,13 +263,13 @@ function factsHtml(facts) {
   return `<table class="guide-facts">${rows.join('')}</table>`;
 }
 
-// The example's wiring as pictures: each pair of ends joined by a fibre (signals flowing along it) or a vessel. The
-// ends open their own pages.
+// The example's wiring as pictures: each pair of ends joined by a fibre (signals flowing along it). The ends open
+// their own pages.
 function wiringHtml(example) {
   const pairs = exampleWiring(example);
   if (!pairs.length) return '';
   const rows = pairs.map(({ from, to, link }) => '<div class="guide-wire">' + wireEndHtml(from) +
-    `<span class="guide-wire-line ${link}" title="${link === 'fibre' ? 'Fibre' : 'Vessel'}"></span>` +
+    `<span class="guide-wire-line ${link}" title="Fibre"></span>` +
     wireEndHtml(to) + '</div>');
   return `<div class="guide-heading">Wiring in the example</div><div class="guide-wires">${rows.join('')}</div>`;
 }

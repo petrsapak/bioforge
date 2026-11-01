@@ -27,8 +27,9 @@ runFrames(3);
 templateButton('seeker').onclick();
 byId('start-sandbox').onclick();
 runFrames(5);
+// the Seeker's Heart holds an Inhibitor, so it beats, and is probed like any cell acting on a signal (2026-11-01)
 check('the Sandbox probes the senses first, then the cells acting on a signal',
-  laneLabels() === '1 Light eye,2 Light eye,3 Siphon,4 Siphon', laneLabels());
+  laneLabels() === '1 Light eye,2 Light eye,3 Heart ¬,4 Siphon,5 Siphon', laneLabels());
 check('the signal panel shows', byId('hud-probes').style.display === 'block');
 runFrames(20);
 const sampleCount = probes().lanes[0].samples.length;
@@ -49,14 +50,14 @@ check('T shows it again', byId('hud-probes').style.display === 'block');
 // count the creatures spawned, to see a click on the water still spawn an enemy
 readGlobal('globalThis.spawnCount = 0; const spawnBefore = spawn; ' +
   'spawn = (...args) => { globalThis.spawnCount++; return spawnBefore(...args); };');
-const siphonLane = probes().lanes[2];
+const siphonLane = probes().lanes[3];
 clickCell(siphonLane.cell);
 check('a click on a probed cell removes its lane and numbers the rest again',
-  laneLabels() === '1 Light eye,2 Light eye,3 Siphon', laneLabels());
+  laneLabels() === '1 Light eye,2 Light eye,3 Heart ¬,4 Siphon', laneLabels());
 const nucleus = playerCell('nucleus');
 clickCell(nucleus);
 check('a click on an unprobed cell of yours adds a lane at the end',
-  probes().lanes.length === 4 && probes().lanes[3].cell === nucleus && laneLabels().endsWith('4 Nucleus'),
+  probes().lanes.length === 5 && probes().lanes[4].cell === nucleus && laneLabels().endsWith('5 Nucleus'),
   laneLabels());
 const chosenLabels = laneLabels();
 pressKey('r');

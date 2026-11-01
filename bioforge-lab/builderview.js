@@ -21,7 +21,6 @@ const HOVERED_WARNING_COLOR = '#ffb48f';
 const SELECTION_COLOR = '#e8c547';
 const DIM_TEXT_COLOR = '#6f7b88';
 const NERVE_VIEW_SHADE = 'rgba(11,20,24,0.62)';           // laid over the cells in the Nerve view
-const VESSEL_VIEW_SHADE = 'rgba(11,20,24,0.4)';           // laid over the cells in the Vessels view
 const NEURON_GHOST_ALPHA = 0.5;                           // the neuron a click would put in, under the mouse
 const FIBRE_REMOVE_COLOR = '#ff7a6a';                     // a drag that would remove the fibre already there
 const FIBRE_NERVE_VIEW_WIDTH = 1;                         // grid px
@@ -29,12 +28,11 @@ const FIBRE_BODY_VIEW_WIDTH = 0.7;                        // grid px
 const FIBRE_HIGHLIGHT_WIDTH = 1.9;                        // grid px: the fibre under the mouse, or one being laid
 const FIBRE_BODY_VIEW_ALPHA = 0.3;                        // opacity of fibres in the Body view
 const FIBRE_DIMMED_ALPHA = 0.22;                          // the other fibres while one is highlighted
-const VESSEL_VIEW_WIDTH = 1.3;                            // grid px
-const VESSEL_BODY_VIEW_WIDTH = 0.8;                       // grid px
-const VESSEL_BODY_VIEW_ALPHA = 0.35;                      // opacity of vessels in the Body view
-const VESSEL_HIGHLIGHT_WIDTH = 2.2;                       // grid px: a vessel being laid
+const HEART_REACH_TINT = 'rgba(224,72,90,0.16)';           // the cells a Heart under the mouse pumps
+const HEART_REACH_BEATING_TINT = 'rgba(255,110,125,0.34)'; // the same while it beats in the test tank
+const HEART_REACH_OUTLINE = 'rgba(255,140,150,0.6)';      // the edge of its reach
 const MIRROR_AXIS_COLOR = 'rgba(126,200,240,0.55)';
-const MIRROR_GHOST_ALPHA = 0.45;                          // the copies the axes will make of a fibre or vessel
+const MIRROR_GHOST_ALPHA = 0.45;                          // the copies the axes will make of a fibre
 const SAME_TYPE_COLOR = '#7fe8ff';                        // Shift: the outline on every cell of the chosen type
 const SAME_TYPE_SHADE = 'rgba(11,20,24,0.55)';            // Shift: laid over the other cells
 const SAME_TYPE_COUNT_Y = 112;                             // px from the top: the Shift count, under the limits
@@ -107,9 +105,8 @@ function drawBuilder(app) {
   drawMirrorAxes(app);
   drawDesignCells(app);
   if (app.isLensOn) drawBuilderLens(app);
-  const links = laidOutBodyLinks(app.edited, FIBRE_COLORS.length);
-  drawVesselLayer(app, links.vessels);
-  drawNerveLayer(app, links.fibres);
+  drawHeartReach(app);
+  drawNerveLayer(app, laidOutBodyFibres(app.edited, FIBRE_COLORS.length));
   drawBudParts(app);
   drawSelection(app);
   drawSameTypeCells(app);
@@ -119,8 +116,6 @@ function drawBuilder(app) {
   drawNeuronGhost(app);
   drawRemovalTarget(app);
   drawFibreDrag(app);
-  drawVesselRemovalTarget(app);
-  drawVesselDrag(app);
   drawGridLabels(app);
   context.restore();
   context.fillStyle = DIM_TEXT_COLOR;
@@ -294,7 +289,7 @@ function drawDesignCells(app) {
 // while they carry a signal in the test tank. In the Nerve view the cells fade and the neurons and fibres stand out,
 // and the highlighted fibre is drawn whole and bold over the others, which dim; in the Body view the fibres stay
 // faint. The fibres go over the neuron badges, so that every cell they pass through shows. laidOut: the body's fibres
-// in their lanes (laidOutBodyLinks).
+// in their lanes (laidOutBodyFibres).
 function drawNerveLayer(app, laidOut) {
   const context = app.context;
   const isNerveView = app.layer === 'nerve';
@@ -337,6 +332,40 @@ function drawHighlightedFibre(app, { fibre, points, colorIndex }, value) {
   }
 }
 
+// The reach of the Heart under the mouse, or of a Heart about to be placed there: the cells it pumps while it beats
+// (within HEART_REACH, vascular.js) tinted red, brighter while it beats in the test tank, and the edge of the reach
+// outlined.
+function drawHeartReach(app) {
+  const heartKey = heartUnderMouse(app);
+  if (!heartKey) return;
+  const heart = parseHexKey(heartKey);
+  const live = app.tank.cells.find(cell => keyOfCell(cell) === heartKey);
+  const isBeating = !!live && live.type.pumps && live.beat > 0;
+  const context = app.context;
+  context.fillStyle = isBeating ? HEART_REACH_BEATING_TINT : HEART_REACH_TINT;
+  for (const designCell of app.edited.cells.values()) {
+    if (hexDistance(designCell, heart) > HEART_REACH) continue;
+    const [x, y] = hexToPixel(designCell.q, designCell.r);
+    traceHex(context, x, y, HEX_FILL_SIZE);
+    context.fill();
+  }
+  const [heartX, heartY] = hexToPixel(heart.q, heart.r);
+  context.strokeStyle = HEART_REACH_OUTLINE;
+  context.lineWidth = 0.8;
+  context.setLineDash([3, 3]);
+  strokeCircle(context, heartX, heartY, (HEART_REACH + 0.5) * HEX_SPACING_X);
+  context.setLineDash([]);
+}
+
+// the hex key of the Heart whose reach to show: a Heart under the mouse, or the hex a chosen Heart would go on
+function heartUnderMouse(app) {
+  if (!app.hoverHex || app.mode !== 'build') return null;
+  const key = hexKey(...app.hoverHex);
+  const cell = app.edited.cells.get(key);
+  if (cell) return CELLS[cell.typeName].pumps ? key : null;
+  return app.layer === 'body' && app.selectedType && CELLS[app.selectedType].pumps ? key : null;
+}
+
 // lays a shade over every cell of the design, so a layer drawn on top stands out
 function shadeCells(app, shade) {
   const context = app.context;
@@ -346,86 +375,6 @@ function shadeCells(app, shade) {
     traceHex(context, x, y, HEX_FILL_SIZE);
     context.fill();
   }
-}
-
-// Vessels from cell centre to cell centre, thin and in their own lanes beside the fibres (laidOut: the body's vessels
-// from laidOutBodyLinks), in shades of red where they share a cell. A light core shows while a Heart pumps them in the
-// test tank, grey dashes while a Valve shuts them. In the Vessels view the cells fade a little and the vessels stand
-// out; in the other views they stay faint.
-function drawVesselLayer(app, laidOut) {
-  const isVesselView = app.layer === 'vessel';
-  if (isVesselView) shadeCells(app, VESSEL_VIEW_SHADE);
-  const liveStates = new Map(app.tank.vessels.map(vessel =>
-    [vesselKey(keyOfCell(vessel.first), keyOfCell(vessel.second)), vesselState(vessel)]));
-  const style = isVesselView
-    ? { alpha: 0.95, width: VESSEL_VIEW_WIDTH }
-    : { alpha: VESSEL_BODY_VIEW_ALPHA, width: VESSEL_BODY_VIEW_WIDTH };
-  for (const { link, points, colorIndex } of laidOut) {
-    const state = liveStates.get(vesselKey(fibreStartKey(link), fibreEndKey(link))) || 'idle';
-    drawVessel(app.context, points, state, { ...style, color: VESSEL_COLORS[colorIndex % VESSEL_COLORS.length] });
-  }
-}
-
-// the same text for a vessel either way round
-function vesselKey(firstKey, secondKey) {
-  return firstKey < secondKey ? firstKey + '~' + secondKey : secondKey + '~' + firstKey;
-}
-
-// Vessels view: the vessel a right-click would take out, in red
-function drawVesselRemovalTarget(app) {
-  if (app.layer !== 'vessel' || app.vesselDrag || !app.hoverPoint) return;
-  const vessel = vesselRemovalTarget(app.edited, app.hoverPoint);
-  const routed = vessel && routedBodyVessels(app.edited).find(({ link }) => link === vessel);
-  if (!routed) return;
-  const context = app.context;
-  context.strokeStyle = FIBRE_REMOVE_COLOR;
-  context.lineWidth = VESSEL_HIGHLIGHT_WIDTH;
-  context.lineCap = 'round';
-  traceLine(context, smoothLinkLine(routed.route.hexes.map(keyToPixel)));
-  context.stroke();
-}
-
-// A vessel being laid: over another cell, the route it would take through the body with its units ("+3"), or in red
-// with "remove" if that vessel is already there; elsewhere a dashed line from its start cell to the mouse.
-function drawVesselDrag(app) {
-  if (!app.vesselDrag || !app.hoverPoint) return;
-  const context = app.context;
-  const fromKey = app.vesselDrag.fromKey;
-  const [startX, startY] = keyToPixel(fromKey);
-  const toKey = app.hoverHex ? hexKey(...app.hoverHex) : null;
-  const route = toKey && toKey !== fromKey
-    ? routeFibre(createRouteArea(bodyCells(app.edited)), parseHexKey(fromKey), parseHexKey(toKey))
-    : null;
-  context.strokeStyle = SELECTION_COLOR;
-  context.lineWidth = 1.2;
-  strokeCircle(context, startX, startY, CELL_RADIUS);
-  if (!route) {
-    context.strokeStyle = VESSEL_PUMPED_COLOR;
-    context.lineWidth = 2;
-    context.setLineDash([3, 2]);
-    strokeLine(context, startX, startY, app.hoverPoint[0], app.hoverPoint[1]);
-    context.setLineDash([]);
-    return;
-  }
-  const isThere = app.edited.vessels.some(vessel => isVesselBetween(vessel, fromKey, toKey));
-  const points = route.hexes.map(keyToPixel);
-  if (!isThere) {
-    drawMirroredDrags(app, route.hexes, (mirrored, alpha) =>
-      drawVessel(context, mirrored, 'pumped', { alpha, width: VESSEL_HIGHLIGHT_WIDTH }));
-  }
-  if (isThere) {
-    context.strokeStyle = FIBRE_REMOVE_COLOR;
-    context.lineWidth = VESSEL_HIGHLIGHT_WIDTH;
-    traceLine(context, smoothLinkLine(points));
-    context.stroke();
-  } else {
-    drawVessel(context, points, 'pumped', { alpha: 0.9, width: VESSEL_HIGHLIGHT_WIDTH });
-  }
-  const [endX, endY] = keyToPixel(toKey);
-  context.font = 'bold 7px system-ui';
-  context.textAlign = 'left';
-  context.fillStyle = isThere ? FIBRE_REMOVE_COLOR : VESSEL_PUMPED_COLOR;
-  context.fillText(isThere ? 'remove' : `+${route.units}`, endX + CELL_RADIUS + 2, endY - CELL_RADIUS);
 }
 
 // the neurons on top of the faded cells, lit with their live signal
@@ -468,7 +417,7 @@ function drawNeuronGhost(app) {
   app.context.globalAlpha = 1;
 }
 
-// faint copies of a fibre or vessel being drawn (pathKeys) where the axes on will copy it: drawPath(points, alpha)
+// faint copies of a fibre being drawn (pathKeys) where the axes on will copy it: drawPath(points, alpha)
 function drawMirroredDrags(app, pathKeys, drawPath) {
   for (const path of mirrorKeyPaths(app.edited, pathKeys, app.mirrorAxes)) {
     if (path.every(key => app.edited.cells.has(key))) drawPath(path.map(keyToPixel), MIRROR_GHOST_ALPHA);
