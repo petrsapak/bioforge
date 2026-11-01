@@ -7,6 +7,9 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.11 (2026-11-01)
+- The game starts on a black loading screen instead of showing the lab for a moment before the main menu.
+
 ## 0.7.10 (2026-11-01)
 - In the levels the cell bar fills as you go: each level adds the cells and neurons it needs, marked new with a
   green rim, and the bar keeps what the levels before it brought. Empty tabs stay hidden, and the Vessels view opens

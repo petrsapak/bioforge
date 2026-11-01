@@ -126,7 +126,10 @@ function boot() {
   listenToMouse(app);
   rebuildTank(app);
   setUpMenus(app);
-  requestAnimationFrame(time => runFrame(app, time));
+  requestAnimationFrame(time => {
+    runFrame(app, time);
+    hideLoadingScreen();                                  // the title is drawn now, under the black of its fade-in
+  });
 }
 
 // makes the canvas fill the window

@@ -150,6 +150,11 @@ function enterTitle(app, showMenu) {
   });
 }
 
+// takes away the loading screen that covered the page while the scripts loaded
+function hideLoadingScreen() {
+  byId('loading-screen').classList.add('done');
+}
+
 // the game's first frames: the title comes up out of black
 function fadeInAtStart(app) {
   app.title.fade.opacity = 1;

@@ -788,7 +788,14 @@ button.small.run:hover { background: #4a8044; }
   text-align: left; text-shadow: 0 0 18px #f2d36b66, 0 0 42px #f2d36b33;
 }
 #menu-sheet.leaving #menu-box { opacity: 0; transform: translateX(-16px); }
-body.title-shown > :not(#game):not(#menu-sheet):not(#screen-fade):not(#keys-sheet):not(#dialog-sheet):not(#guide-sheet):not(audio):not(script) {
+body.title-shown > :not(#game):not(#menu-sheet):not(#screen-fade):not(#loading-screen):not(#keys-sheet):not(#dialog-sheet):not(#guide-sheet):not(audio):not(script) {
   visibility: hidden;
 }
+/* Covers the page from its first paint until the title's first frame is drawn, so the lab never shows first. */
+#loading-screen {
+  position: absolute; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+  background: #000;
+}
+#loading-screen.done { display: none; }
+#loading-text { color: #5d6b75; font-size: 14px; letter-spacing: 1px; }
 #screen-fade { position: absolute; inset: 0; display: none; z-index: 50; background: #000; pointer-events: none; }

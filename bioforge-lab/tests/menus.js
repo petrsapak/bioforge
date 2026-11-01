@@ -30,6 +30,7 @@ async function main() {
   runFrames(2);
   check('the game starts at the main menu', byId('menu-sheet').style.display === 'flex' &&
     byId('menu-title').textContent === 'Bioforge');
+  check('the loading screen is gone once the title is drawn', byId('loading-screen').classList.contains('done'));
   check('with nothing saved yet there is no Continue, and no Quit outside the desktop build',
     !isShown(byId, 'menu-continue') && !isShown(byId, 'menu-quit') && isShown(byId, 'menu-levels') &&
     isShown(byId, 'menu-free-build'));
