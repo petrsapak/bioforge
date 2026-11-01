@@ -467,6 +467,7 @@ button.small.primary:hover { background: #3d6b38; }
 }
 .guide-icon { display: inline-block; flex: none; }
 .guide-link:hover { background: #1a2a31; color: #e8ecef; }
+.guide-link.unmet { opacity: 0.45; }
 .guide-link.selected { background: #22343c; color: #fff; box-shadow: inset 2px 0 0 #5fd4f4; }
 #guide-page { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 #guide-head {

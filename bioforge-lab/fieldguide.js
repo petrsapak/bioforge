@@ -23,15 +23,23 @@ function guideEntry(kind, key, name, chapter) {
 function guideSections() {
   const cellEntries = category => Object.entries(CELLS)
     .filter(([, type]) => type.category === category)
-    .map(([typeName, type]) => guideEntry('cell', typeName, type.name, GUIDE_CELLS[typeName].chapter));
+    .map(([typeName, type]) => guideEntry('cell', typeName, type.name, pieceChapter(typeName)));
   return [
     ...CELL_CATEGORY_ORDER.map(category => ({ title: `Cells: ${category}`, entries: cellEntries(category) })),
     { title: 'Neurons', entries: Object.entries(NEURONS)
-      .map(([kind, type]) => guideEntry('neuron', kind, type.name, GUIDE_NEURONS[kind].chapter)) },
+      .map(([kind, type]) => guideEntry('neuron', kind, type.name, pieceChapter(kind))) },
     { title: 'How it works', entries: GUIDE_TOPICS.map(topic => guideEntry('topic', topic.id, topic.title,
       topic.chapter)) },
     { title: 'Glossary', entries: [guideEntry('term', 'all', 'All terms', 1)] },
   ];
+}
+
+// the chapter of the level that brings a cell type or neuron kind; 1 for the Nucleus, which every creature has, and
+// 0 for a piece no level brings
+function pieceChapter(name) {
+  if (CELLS[name] && CELLS[name].isNucleus) return 1;
+  const level = levelBringing(name);
+  return level ? level.chapter : 0;
 }
 
 // every entry, in section order

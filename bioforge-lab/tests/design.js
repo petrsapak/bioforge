@@ -66,6 +66,12 @@ check('planned cells reported with their keys',
   const jet = sim.TEMPLATES.jet;
   check('the Jet has every need met', needStates(jet) ===
     'signal ok, oxygen ok, sugar ok, waste ok, blood ok, weapon ok', needStates(jet));
+  const nerveOnly = sim.designNeeds(jet, sim.designWarnings(jet, []), ['nerve']).map(row => row.need).join(', ');
+  check('with only the nerve system on (chapters 1 and 2), the card leaves out O2, sugar, waste and blood',
+    nerveOnly === 'signal, weapon', nerveOnly);
+  const noVessels = sim.designNeeds(jet, sim.designWarnings(jet, []), ['nerve', 'fluid']).map(row => row.need);
+  check('with fluid but no vascular system, the card leaves out only blood',
+    noVessels.includes('oxygen') && !noVessels.includes('blood'), noVessels.join(', '));
   const supply = sim.sugarSupply(jet);
   check('the Jet\'s sugar lasts a while even with every cell working',
     supply.burn > 0 && supply.stock / supply.burn > 5, JSON.stringify(supply));

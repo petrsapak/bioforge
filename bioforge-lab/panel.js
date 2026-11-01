@@ -260,16 +260,19 @@ function describeBud(bud, cellType) {
 }
 
 // ---------- The Needs card ----------
-// How long the sugar lasts, a row per need (✓ met, ✗ missing with its fix, ~ works poorly, – not needed yet) and the
-// next thing to fix. Hovering a row marks its cells on the grid; clicking one with a view shows it (see showNeedView).
+// How long the sugar lasts (where fluids run), a row per need (✓ met, ✗ missing with its fix, ~ works poorly, – not
+// needed yet) and the next thing to fix. Hovering a row marks its cells on the grid; clicking one with a view
+// shows it (see showNeedView).
 function showNeeds(app) {
   const body = bodyDesign(app.edited);
   app.warnings = designWarnings(body, plannedKeys(app.edited));
-  app.needRows = designNeeds(body, app.warnings);
+  const systems = chosenSystems(app);
+  app.needRows = designNeeds(body, app.warnings, systems);
   const planned = app.warnings.find(warning => warning.need === 'planned');
   const next = nextNeed(app.needRows);
   const needs = byId('needs');
-  needs.innerHTML = '<div class="needs-title">Creature</div>' + sugarHtml(sugarSupply(body)) +
+  const sugar = systems.includes('fluid') ? sugarHtml(sugarSupply(body)) : '';
+  needs.innerHTML = '<div class="needs-title">Creature</div>' + sugar +
     '<div class="need-rows">' + app.needRows.map(row => needRowHtml(row, isNeedViewShown(app, row))).join('') +
     '</div>' +
     `<div class="need-next">${next ? '<b>Next:</b> ' + next : 'Ready: try it in the Sandbox (bottom left).'}</div>` +

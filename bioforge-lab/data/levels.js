@@ -112,6 +112,7 @@ const LEVELS = [
   }),
   createLevel({
     id: 'shade', chapter: 1, name: 'Shade',
+    unlocks: { cells: ['cilia'] },
     brief: 'The light is in your eyes. Turn away from it and swim to the dark ring.',
     hint: 'Wire each Light eye to the Siphon on its own side: the eye nearer the light drives that side harder, ' +
       'which turns you away from it. Eyes alone slow down once the light is behind them; a Pacemaker on the ' +
@@ -177,7 +178,7 @@ const LEVELS = [
   }),
   createLevel({
     id: 'dock', chapter: 2, name: 'Dock',
-    unlocks: { neurons: ['synapse'] },
+    unlocks: { neurons: ['synapse', 'ganglion'] },
     brief: 'Swim toward the light, but stop short of it: come to rest in the ring for 2 s.',
     hint: 'The nearer the light, the brighter your eyes. A Synapse is on once its inputs add up to its threshold: ' +
       'wire both Light eyes into a Synapse, the Synapse into an Inhibitor in another cell, and that cell to both ' +

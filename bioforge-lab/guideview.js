@@ -87,13 +87,20 @@ function showGuideList(app) {
     if (!entries.length) return '';
     const links = entries.map(entry => {
       const selected = entry.id === app.guide.entryId ? ' selected' : '';
+      const unmet = isEntryUnmet(app, entry) ? ' unmet' : '';
+      const hint = unmet ? ` title="Not met yet: it comes with ${escapeHtml(levelBringing(entry.key).name)}"` : '';
       const icon = guideIconHtml(entryPicture(entry), GUIDE_LIST_ICON_SIZE);
-      return `<button class="guide-link${selected}" data-guide="${entry.id}">${icon}` +
+      return `<button class="guide-link${selected}${unmet}" data-guide="${entry.id}"${hint}>${icon}` +
         `<span>${escapeHtml(entry.name)}</span></button>`;
     }).join('');
     return `<div class="guide-section">${section.title}</div>${links}`;
   }).join('');
   byId('guide-list').innerHTML = html || '<div class="dim">Nothing by that name.</div>';
+}
+
+// whether an entry is a cell type or neuron the player hasn't met in the levels yet; it still opens, only dimmed
+function isEntryUnmet(app, entry) {
+  return (entry.kind === 'cell' || entry.kind === 'neuron') && !isPieceMet(app.levelResults, entry.key);
 }
 
 // shows one entry on the right, and starts its example tank if it has one
@@ -152,7 +159,7 @@ function cellPageHtml(typeName) {
     watchHtml(notes.watch) +
     tilesHtml('Works well with', notes.pairs) +
     chipsHtml('Read more', topicsAbout(typeName)) +
-    chapterHtml(notes.chapter);
+    pieceLevelHtml(typeName);
 }
 
 // a neuron's page in the field guide
@@ -166,7 +173,7 @@ function neuronPageHtml(kind) {
     watchHtml(notes.watch) +
     tilesHtml('Works well with', notes.pairs) +
     chipsHtml('Read more', topicsAbout(kind)) +
-    chapterHtml(notes.chapter);
+    pieceLevelHtml(kind);
 }
 
 // a topic: its first paragraph beside the demo's tank, the rest under it, the example and the cells it is about
@@ -309,6 +316,16 @@ function chapterHtml(chapter) {
     ? `First asked for in chapter ${chapter}, ${CHAPTER_NAMES[chapter]}.`
     : 'No level asks for it yet: try it in the Sandbox.';
   return `<div class="guide-chapter">${text}</div>`;
+}
+
+// which level brings a cell type or neuron to the dock
+function pieceLevelHtml(name) {
+  const level = levelBringing(name);
+  if (CELLS[name] && CELLS[name].isNucleus) return '<div class="guide-chapter">Every creature has one.</div>';
+  if (!level) return chapterHtml(0);
+  const number = LEVELS.indexOf(level) + 1;
+  return `<div class="guide-chapter">Comes with level ${number}, ${escapeHtml(level.name)}, in chapter ` +
+    `${level.chapter}, ${CHAPTER_NAMES[level.chapter]}.</div>`;
 }
 
 // the ids of the topics that name this cell type or neuron among their related ones

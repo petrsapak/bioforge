@@ -316,6 +316,11 @@ function chosenLimits(app) {
   return isLastLevelWon(app.levelResults) ? withEverythingUnlocked(limits) : limits;
 }
 
+// the switchable systems that run in the chosen level, or in free build all that RULES has on (the Needs card)
+function chosenSystems(app) {
+  return app.level ? app.level.systems : RULES.systems;
+}
+
 // the pieces the chosen level brings to the dock, marked there as new; none in free build or once all are open
 function chosenNewPieces(app) {
   if (!app.level || isLastLevelWon(app.levelResults)) return { cells: [], neurons: [] };

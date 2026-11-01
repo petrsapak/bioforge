@@ -7,6 +7,13 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.12 (2026-11-01)
+- In chapters 1 and 2 the Needs card no longer lists Oxygen, Sugar, Waste and Blood, since nothing there can
+  starve. They come back in chapter 3.
+- Cilia now come with Shade, and the Ganglion with Dock.
+- The field guide dims the cells and neurons you haven't met in the levels yet, and each page says which level
+  brings it.
+
 ## 0.7.11 (2026-11-01)
 - The game starts on a black loading screen instead of showing the lab for a moment before the main menu.
 

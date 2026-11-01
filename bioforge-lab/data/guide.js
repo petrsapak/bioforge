@@ -1,112 +1,111 @@
 'use strict';
-// The field guide's own words (pure data): for each cell type and neuron, the chapter that first asks for it, what
-// it goes well with and what to watch out for; the topics on how the game's systems work, with examples; and the
-// glossary. What each cell does and its numbers come from data/cells.js and the systems (fieldguide.js), so they
-// can't drift from the game. No level solutions. Field meanings:
-//   cells / neurons: { chapter (0: no chapter asks for it yet, only the Sandbox), pairs (cell types or neuron kinds
-//     it works well with), watch (what to watch out for) }
+// The field guide's own words (pure data): for each cell type and neuron, what it goes well with and what to watch
+// out for (the level that brings it comes from data/levels.js); the topics on how the game's systems work, with
+// examples; and the glossary. What each cell does and its numbers come from data/cells.js and the systems
+// (fieldguide.js), so they can't drift from the game. No level solutions. Field meanings:
+//   cells / neurons: { pairs (cell types or neuron kinds it works well with), watch (what to watch out for) }
 //   topics: { id, title, chapter, demo (the cell type or neuron whose example tank the page runs, and its icon),
 //     paragraphs, example (a short build in words), related (cell types and neurons) }
 //   terms: [term, meaning, icon (a cell type or neuron drawn beside it)]
 
 const GUIDE_CELLS = {
-  nucleus: { chapter: 1, pairs: ['shell', 'tissue'],
+  nucleus: { pairs: ['shell', 'tissue'],
     watch: 'Everything cut off from it floats away as debris and rots. Keep it inside the body, not at the front.' },
-  tissue: { chapter: 1, pairs: ['nucleus'],
+  tissue: { pairs: ['nucleus'],
     watch: 'Cheap, but every cell adds weight: a fat body swims slower and turns slower.' },
-  shell: { chapter: 5, pairs: ['nucleus', 'thorn', 'mineralizer'],
+  shell: { pairs: ['nucleus', 'thorn', 'mineralizer'],
     watch: 'Heavy and stiff, so a shelled body swims slowly. Acid eats it fast: a shell is no answer to an Acid ' +
       'gland.' },
-  joint: { chapter: 0, pairs: ['muscle'],
+  joint: { pairs: ['muscle'],
     watch: 'A body with joints bends where they are: good for a tail, bad for a body that must stay straight. A ' +
       'fin of Joints behind the muscles must be two or three cells wide: a chain one cell wide just flops.' },
-  cilia: { chapter: 0, pairs: ['heart', 'fat'],
+  cilia: { pairs: ['heart', 'fat'],
     watch: 'They always beat, so they can\'t be switched off, and they burn fuel all the time.' },
-  eyespot: { chapter: 1, pairs: ['nettle', 'acid', 'protease', 'siphon'],
+  eyespot: { pairs: ['nettle', 'acid', 'protease', 'siphon'],
     watch: 'It is on or off, nothing between: it says something is near, not where. Use Light eyes or a Nose to ' +
       'steer.' },
-  lighteye: { chapter: 1, pairs: ['siphon', 'synapse', 'inhibitor'],
+  lighteye: { pairs: ['siphon', 'synapse', 'inhibitor'],
     watch: 'Wire each eye to the Siphon on the far side to turn toward the light, to the same side to turn away. ' +
       'An uneven body curves past what the eyes are aiming at.' },
-  nose: { chapter: 4, pairs: ['mouth', 'siphon', 'fedgland'],
+  nose: { pairs: ['mouth', 'siphon', 'fedgland'],
     watch: 'It smells only the nearest speck, so it can be pulled about between two.' },
-  receptor: { chapter: 6, pairs: ['synapse', 'inhibitor', 'siphon'],
+  receptor: { pairs: ['synapse', 'inhibitor', 'siphon'],
     watch: 'Hormones rise and fall slowly, so its signal does too. A Synapse after it makes a clean on and off.' },
-  muscle: { chapter: 1, pairs: ['pacemaker', 'inhibitor', 'joint', 'resilin'],
+  muscle: { pairs: ['pacemaker', 'inhibitor', 'joint', 'resilin'],
     watch: 'A muscle only bends the body. To swim, it needs a fin of Joints behind it, or it swims tail first. ' +
       'Speed is touchy about the rate: try it in small steps (short bodies beat fast, long ones slower).' },
-  bloater: { chapter: 0, pairs: ['eyespot', 'command'],
+  bloater: { pairs: ['eyespot', 'command'],
     watch: 'Burns fuel while swollen. Swelling shoves your own cells too. It lets go a little slower than it ' +
       'swells, so a gripping Bloater needs a slow beat to let go of the rock.' },
-  siphon: { chapter: 1, pairs: ['lighteye', 'nose', 'pacemaker', 'heart'],
+  siphon: { pairs: ['lighteye', 'nose', 'pacemaker', 'heart'],
     watch: 'Thirsty: a Siphon far from O₂ and sugar soon starves and stops. Put them at the back, one on each ' +
       'side.' },
-  nettle: { chapter: 0, pairs: ['eyespot', 'heart'],
+  nettle: { pairs: ['eyespot', 'heart'],
     watch: 'Stings barely scratch hard cells. A Nettle burns fuel all the time it is signalled.' },
-  snare: { chapter: 0, pairs: ['eyespot', 'protease', 'nettle'],
+  snare: { pairs: ['eyespot', 'protease', 'nettle'],
     watch: 'It holds for a few seconds, then needs a pause before it can shoot again.' },
-  spitter: { chapter: 0, pairs: ['eyespot', 'command'],
+  spitter: { pairs: ['eyespot', 'command'],
     watch: 'It pushes you back each time it spits.' },
-  thorn: { chapter: 5, pairs: ['siphon', 'shell'],
+  thorn: { pairs: ['siphon', 'shell'],
     watch: 'Its damage comes from speed: a creature that slows to a stop on its target barely hurts it.' },
-  photophore: { chapter: 5, pairs: ['protease', 'mouth', 'pacemaker', 'eyespot'],
+  photophore: { pairs: ['protease', 'mouth', 'pacemaker', 'eyespot'],
     watch: 'It lures anything with Light eyes, hunters too. Your own Light eyes ignore it.' },
-  bud: { chapter: 0, pairs: ['heart', 'fat'],
+  bud: { pairs: ['heart', 'fat'],
     watch: 'Growing a part takes O₂ and sugar for every bit of biomass it holds.' },
-  gill: { chapter: 3, pairs: ['heart', 'siphon'],
+  gill: { pairs: ['heart', 'siphon'],
     watch: 'It makes O₂ only; sugar has to come from your kit, Fat or food.' },
-  mouth: { chapter: 4, pairs: ['nose', 'fat', 'photophore'],
+  mouth: { pairs: ['nose', 'fat', 'photophore'],
     watch: 'It eats only what touches it, so put it where the body meets food first: usually the front.' },
-  heart: { chapter: 3, pairs: ['gill', 'fat', 'siphon', 'valve'],
+  heart: { pairs: ['gill', 'fat', 'siphon', 'valve'],
     watch: 'It pumps only the vessels it sits on, and only while it is fed itself.' },
-  valve: { chapter: 3, pairs: ['heart', 'pacemaker'],
+  valve: { pairs: ['heart', 'pacemaker'],
     watch: 'Shut by default: a Valve without a signal is a wall.' },
-  airsac: { chapter: 3, pairs: ['heart', 'gill'],
+  airsac: { pairs: ['heart', 'gill'],
     watch: 'It only stores O₂: it doesn\'t make any.' },
-  fat: { chapter: 3, pairs: ['heart', 'fedgland', 'starvedgland', 'mouth'],
+  fat: { pairs: ['heart', 'fedgland', 'starvedgland', 'mouth'],
     watch: 'Plain cells only pass sugar on, holding little, so cells far from a Fat run dry first.' },
-  pore: { chapter: 3, pairs: ['heart'],
+  pore: { pairs: ['heart'],
     watch: 'It must touch the water: one buried inside the body dumps nothing.' },
-  mender: { chapter: 0, pairs: ['heart', 'fat'],
+  mender: { pairs: ['heart', 'fat'],
     watch: 'Repair fluid seeps slowly, so a Mender heals its neighbours first.' },
-  adrenal: { chapter: 6, pairs: ['eyespot', 'lighteye', 'latch', 'siphon', 'heart'],
+  adrenal: { pairs: ['eyespot', 'lighteye', 'latch', 'siphon', 'heart'],
     watch: 'Adrenaline fades in a few seconds, and it makes everything burn more fuel while it lasts.' },
-  calmgland: { chapter: 6, pairs: ['receptor', 'pacemaker', 'synapse'],
+  calmgland: { pairs: ['receptor', 'pacemaker', 'synapse'],
     watch: 'Calm lasts a long time. It slows your Pacemakers and raises your own thresholds too, and its cloud in ' +
       'the water calms whoever swims through it.' },
-  fedgland: { chapter: 6, pairs: ['nose', 'mouth', 'fat', 'receptor'],
+  fedgland: { pairs: ['nose', 'mouth', 'fat', 'receptor'],
     watch: 'Fed left on keeps storing, even when you need the sugar: switch it off when food runs out.' },
-  starvedgland: { chapter: 6, pairs: ['receptor', 'inhibitor', 'fat'],
+  starvedgland: { pairs: ['receptor', 'inhibitor', 'fat'],
     watch: 'Starved cancels Fed. It saves fuel, but a starved body is a slow body.' },
-  acid: { chapter: 5, pairs: ['eyespot', 'protease', 'photophore'],
+  acid: { pairs: ['eyespot', 'protease', 'photophore'],
     watch: 'Slow on soft cells. Pair it with protease to finish what it opens.' },
-  protease: { chapter: 5, pairs: ['eyespot', 'acid', 'photophore', 'snare'],
+  protease: { pairs: ['eyespot', 'acid', 'photophore', 'snare'],
     watch: 'It can\'t touch hard cells. What it digests becomes sugar in the gland.' },
-  tanner: { chapter: 6, pairs: ['inhibitor', 'shell', 'muscle'],
+  tanner: { pairs: ['inhibitor', 'shell', 'muscle'],
     watch: 'Tanned muscles move at half speed, so tan the hide, not the tail.' },
-  resilin: { chapter: 6, pairs: ['muscle', 'pacemaker', 'inhibitor'],
+  resilin: { pairs: ['muscle', 'pacemaker', 'inhibitor'],
     watch: 'A springy muscle must be held contracted to charge: a fast Pacemaker never charges it.' },
-  mineralizer: { chapter: 5, pairs: ['mouth', 'pacemaker', 'shell'],
+  mineralizer: { pairs: ['mouth', 'pacemaker', 'shell'],
     watch: 'It needs mineral: leftover in the kit or mineral specks eaten by a Mouth.' },
 };
 
 const GUIDE_NEURONS = {
-  pacemaker: { chapter: 1, pairs: ['muscle', 'siphon', 'valve', 'resilin'],
+  pacemaker: { pairs: ['muscle', 'siphon', 'valve', 'resilin'],
     watch: 'Calm slows it and adrenaline speeds it up, so a mood changes your rhythm. Every fibre on the way ' +
       'is a nerve step late: wire both sides of a swimming tail the same number of fibres from it.' },
-  command: { chapter: 1, pairs: ['nettle', 'bloater', 'spitter'],
+  command: { pairs: ['nettle', 'bloater', 'spitter'],
     watch: 'It acts only while a key is held, so a creature that must act on its own needs a sense or a ' +
       'Pacemaker instead.' },
-  ganglion: { chapter: 0, pairs: ['lighteye', 'siphon'],
+  ganglion: { pairs: ['lighteye', 'siphon'],
     watch: 'Smoothing makes a signal late: a smoothed tail swims slower.' },
-  delay: { chapter: 2, pairs: ['lighteye', 'inhibitor', 'muscle'],
+  delay: { pairs: ['lighteye', 'inhibitor', 'muscle'],
     watch: 'It delays the signal, not just its start: a long delay keeps acting on what has already stopped. ' +
       'For a wave down a tail, keep it short: about 0.1 s per row of Muscles.' },
-  inhibitor: { chapter: 2, pairs: ['lighteye', 'siphon', 'photophore'],
+  inhibitor: { pairs: ['lighteye', 'siphon', 'photophore'],
     watch: 'With nothing wired into it, it is always on: the easy way to keep a gland or a Photophore working.' },
-  synapse: { chapter: 2, pairs: ['lighteye', 'receptor', 'siphon'],
+  synapse: { pairs: ['lighteye', 'receptor', 'siphon'],
     watch: 'Moods move its threshold: adrenaline lowers it, Calm raises it.' },
-  latch: { chapter: 2, pairs: ['lighteye', 'adrenal'],
+  latch: { pairs: ['lighteye', 'adrenal'],
     watch: 'Each pulse flips it, so a flickering input flips it more than once.' },
 };
 

@@ -6,13 +6,14 @@
 const VESSEL_SUPPLY_REACH = 2;                            // cells from a pumped vessel's end that blood reaches well
 
 // The rows of the builder's Needs card, in the order a player should fix them. A Buds row only shows on a body with
-// Buds. A click on a row with a `fluid` (a FLUIDS id) shows that fluid's view.
+// Buds. A click on a row with a `fluid` (a FLUIDS id) shows that fluid's view. A row with a `system` only shows
+// where that system runs: without fluid every cell works at full power, so nothing needs O2, sugar or an exit.
 const NEED_ROWS = [
   { need: 'signal', icon: '↯', label: 'Signal' },
-  { need: 'oxygen', icon: 'O₂', label: 'Oxygen', fluid: 'oxygen' },
-  { need: 'sugar', icon: '⚡', label: 'Sugar', fluid: 'sugar' },
-  { need: 'waste', icon: '☁', label: 'Waste', fluid: 'waste' },
-  { need: 'blood', icon: '♥', label: 'Blood' },
+  { need: 'oxygen', icon: 'O₂', label: 'Oxygen', fluid: 'oxygen', system: 'fluid' },
+  { need: 'sugar', icon: '⚡', label: 'Sugar', fluid: 'sugar', system: 'fluid' },
+  { need: 'waste', icon: '☁', label: 'Waste', fluid: 'waste', system: 'fluid' },
+  { need: 'blood', icon: '♥', label: 'Blood', system: 'vascular' },
   { need: 'weapon', icon: '⚔', label: 'Weapon' },
   { need: 'buds', icon: '✿', label: 'Buds' },
 ];
@@ -283,8 +284,9 @@ function checkVessels(body, warn) {
 // ---------- The Needs card ----------
 // One row per need: 'none' while nothing in the body needs it, else 'ok', or the worst of its warnings: 'missing'
 // for a problem, 'weak' for a hint, 'none' for a note. Each row keeps its warnings, the first one's short fix and
-// the hexes they are about.
-function designNeeds(body, warnings) {
+// the hexes they are about. systems: the switchable systems that run (a level's, or RULES'); rows of others are left
+// out.
+function designNeeds(body, warnings, systems = RULES.systems) {
   const types = body.cells.map(typeOfCell);
   const hasAny = behaviour => types.some(cellType => cellType[behaviour]);
   const burnsFuel = hasAny('fuelBurn');
@@ -297,7 +299,8 @@ function designNeeds(body, warnings) {
     weapon: true,
     buds: hasAny('growsParts'),
   };
-  return NEED_ROWS.filter(row => row.need !== 'buds' || applies.buds).map(row => {
+  const isShown = row => (row.need !== 'buds' || applies.buds) && (!row.system || systems.includes(row.system));
+  return NEED_ROWS.filter(isShown).map(row => {
     const own = warnings.filter(warning => warning.need === row.need);
     let state = applies[row.need] ? 'ok' : 'none';
     if (own.some(warning => warning.level === 'problem')) state = 'missing';

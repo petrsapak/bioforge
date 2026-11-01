@@ -50,6 +50,19 @@ function levelUnlocks(level) {
   return { cells, neurons, hasVessels };
 }
 
+// the level that brings a cell type or neuron kind to the dock, or null for the Nucleus and the pieces no level
+// brings (they are in Free build and the Sandbox)
+function levelBringing(name) {
+  return LEVELS.find(level => level.unlocks.cells.includes(name) || level.unlocks.neurons.includes(name)) || null;
+}
+
+// whether the player has met a cell type or neuron kind: the level that brings it is earned, the last level is won,
+// or no level brings it
+function isPieceMet(results, name) {
+  const level = levelBringing(name);
+  return !level || isLastLevelWon(results) || isLevelEarned(results, LEVELS.indexOf(level));
+}
+
 // the limits with nothing locked, for a player who has won the last level
 function withEverythingUnlocked(limits) {
   return { ...limits, lockedCells: [], lockedNeurons: [], vesselsLocked: false };

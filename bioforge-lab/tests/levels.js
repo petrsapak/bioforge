@@ -8,7 +8,7 @@ const { check, done } = require('./check');
 const { X: sim } = load({}, ['LEVELS', 'TEMPLATES', 'runLevel', 'levelScore', 'levelLimits', 'buildCheck',
   'createDesignCell', 'createNeuron', 'isLevelLightOn', 'isLevelOpen', 'isLevelEarned', 'RULES', 'FLUID_OXYGEN',
   'linksFromList', 'CELLS', 'NEURONS', 'isCellLocked', 'isNeuronLocked',
-  'isLastLevelWon', 'withEverythingUnlocked']);
+  'isLastLevelWon', 'withEverythingUnlocked', 'levelBringing', 'isPieceMet']);
 
 const cell = (q, r, typeName, extra = {}) => sim.createDesignCell(q, r, typeName, extra);
 const fibre = (fromQ, fromR, toQ, toR) => ({ from: { q: fromQ, r: fromR }, to: { q: toQ, r: toR } });
@@ -354,6 +354,12 @@ check('every reference solution is built from what its level\'s dock has by then
   check('a later level keeps what the earlier ones unlocked, and Cold water opens the Vessels view',
     !sim.isCellLocked(coldWater, 'lighteye') && !sim.isNeuronLocked(coldWater, 'synapse') && !coldWater.vesselsLocked &&
     sim.isCellLocked(coldWater, 'shell'));
+  check('Shade brings Cilia and Dock the Ganglion; no level brings the Command (a key the player holds)',
+    sim.levelBringing('cilia') === levelById('shade') && sim.levelBringing('ganglion') === levelById('dock') &&
+    sim.levelBringing('command') === null);
+  check('a piece is met once the level that brings it is earned, or the last level is won',
+    sim.isPieceMet({}, 'siphon') && !sim.isPieceMet({}, 'muscle') && sim.isPieceMet({}, 'command') &&
+    sim.isPieceMet({ [lastLevel.id]: { stars: 1 } }, 'muscle'));
   const opened = sim.withEverythingUnlocked(firstLimits);
   check('winning the last level opens everything',
     !sim.isLastLevelWon({}) && sim.isLastLevelWon({ [lastLevel.id]: { stars: 1 } }) &&
@@ -413,6 +419,9 @@ byId('level-build').onclick();
 check('Build for it chooses the level and goes back to the builder with its limits',
   byId('levels-sheet').style.display === 'none' && byId('budget').innerHTML.includes('of 40') &&
   byId('show-levels').classList.contains('selected'));
+check('First stroke\'s Needs card has no Oxygen, Sugar, Waste or Blood rows, nor how long the sugar lasts',
+  byId('needs').innerHTML.includes('Signal') && !/Oxygen|Sugar|Waste|Blood/.test(byId('needs').innerHTML),
+  byId('needs').innerHTML.slice(0, 300));
 {
   const page = { byId };
   const siphonButton = dockButtonsOf(page).find(button => button.dataset.type === 'siphon');

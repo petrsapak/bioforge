@@ -29,10 +29,13 @@ const linked = [
 ];
 const broken = linked.filter(name => !sim.relatedGuideEntry(name));
 check('every "works well with" and related link opens an entry', broken.length === 0, broken.join(' '));
-const chapters = [...Object.values(sim.GUIDE_CELLS), ...Object.values(sim.GUIDE_NEURONS), ...sim.GUIDE_TOPICS]
-  .map(notes => notes.chapter);
+const chapters = [...sim.GUIDE_TOPICS.map(topic => topic.chapter),
+  ...entries.filter(entry => entry.kind === 'cell' || entry.kind === 'neuron').map(entry => entry.chapter)];
 check('every chapter named is one the game has (0: none yet)',
   chapters.every(chapter => chapter === 0 || sim.CHAPTER_NAMES[chapter]));
+check('a cell\'s chapter is that of the level that brings it, the Nucleus\'s the first',
+  sim.findGuideEntry('cell:muscle').chapter === 2 && sim.findGuideEntry('cell:eyespot').chapter === 5 &&
+  sim.findGuideEntry('cell:nucleus').chapter === 1 && sim.findGuideEntry('neuron:command').chapter === 0);
 check('every topic has words and an example',
   sim.GUIDE_TOPICS.every(topic => topic.paragraphs.length && topic.example && topic.title));
 check('the glossary has terms with meanings', sim.GUIDE_TERMS.length > 10 &&
@@ -90,11 +93,17 @@ check('Field guide on the main menu opens the guide at its first topic',
   byId('guide-sheet').style.display === 'flex' && byId('guide-title').textContent === 'You program, it acts');
 check('its list holds every entry', (byId('guide-list').innerHTML.match(/data-guide=/g) || []).length ===
   entries.length);
+const listHtml = byId('guide-list').innerHTML;
+check('with no level won, the Muscle is dimmed as not met yet, the Siphon and the Command are not',
+  /guide-link unmet" data-guide="cell:muscle" title="Not met yet: it comes with Tail"/.test(listHtml) &&
+  /guide-link" data-guide="cell:siphon"/.test(listHtml) && /guide-link" data-guide="neuron:command"/.test(listHtml));
 byId('guide-sheet').onclick({ target: { closest: () => ({ dataset: { guide: 'cell:photophore' } }) } });
 runFrames(5);
 check('a link opens its entry, with its facts and its example tank',
   byId('guide-title').textContent === 'Photophore' && byId('guide-body').innerHTML.includes('guide-facts') &&
   byId('guide-body').innerHTML.includes('guide-demo'));
+check('the page names the level that brings it', byId('guide-body').innerHTML.includes(
+  `Comes with level ${sim.LEVELS.findIndex(level => level.id === 'anglerfish') + 1}, Anglerfish, in chapter 5`));
 byId('guide-filter').value = 'gland';
 byId('guide-filter').oninput();
 const shown = byId('guide-list').innerHTML;
