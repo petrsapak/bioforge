@@ -7,6 +7,18 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.8 (2026-11-01)
+- Muscle swimming works: two rows of Muscles behind the head with a fin of Joints behind them swim head first at
+  about the speed of Siphons, and a Delay in the back row's Muscles sends a wave down to the fin that swims as fast
+  as Cilia.
+- A creature that is the same on both sides, with both sides wired the same, now swims straight. The Pacemaker used
+  to give one half of its beat a little more time than the other at some rates (1.6 Hz), which curved it.
+- The Delay neuron goes down to 0.05 s, in steps of 0.05 s, short enough to send a wave down a tail.
+- New Wiggler and Paddler: the same small fish, the Paddler wired in a wave. The Eel swims with a wave down its
+  tail. The Jelly's ring of bloaters pulses again (it was stuck swollen), and the Jelly and the Manta are the same
+  on both sides now.
+- The Muscle, Joint and Delay hints say how to build a swimming tail.
+
 ## 0.7.7 (2026-10-30)
 - Nothing is chosen in the dock when the builder opens. Pick a cell or a neuron first; Esc, or a click on the chosen
   one, puts it down again.

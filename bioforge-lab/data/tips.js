@@ -41,7 +41,8 @@ const TIPS = {
     },
   },
   joint: {
-    howToUse: 'Place it between the body and a tail or limb. Everything behind it can swing.',
+    howToUse: 'Place it between the body and a tail or limb. Everything behind it can swing. A fin of Joints ' +
+      'behind the muscles follows each stroke late and pushes the water back.',
     example: {
       cells: [
         [0, 0, 'nucleus'], [0, 1, 'joint'], [0, 2, 'tissue'], [0, 3, 'tissue'], [-1, 1, 'pacemaker'],
@@ -99,8 +100,9 @@ const TIPS = {
   },
   muscle: {
     howToUse: 'Needs a nerve signal and O₂ and sugar from the body. Muscles on one side of a limb bend it to ' +
-      'that side. To swim, line a long tail with muscles on both sides and make the sides take turns (a ' +
-      'Pacemaker, and an Inhibitor of it); a wave running down the tail swims faster.',
+      'that side. To swim, put rows of muscles on both sides behind the head and a fin of Joints behind them, ' +
+      'and make the sides take turns (a Pacemaker, and an Inhibitor of it). Short bodies beat fast, long ones ' +
+      'slower; a wave running down to the fin swims faster (the Wiggler and the Paddler in Templates).',
     example: {
       cells: [
         [0, 0, 'nucleus'], [0, 1, 'tissue'], [0, 2, 'tissue'], [0, 3, 'tissue'], [-1, 1, 'pacemaker'],
@@ -451,7 +453,7 @@ const NEURON_TIPS = {
   },
   delay: {
     howToUse: 'Put it between a signal and a second group of Muscles: that group moves after the first, which ' +
-      'sends a wave down a tail. Click the cell to set the delay.',
+      'sends a wave down a tail (about 0.1 s per row of Muscles). Click the cell to set the delay.',
     example: {
       cells: [...NEURON_EXAMPLE_BODY, [1, 0, 'tissue', 'command'], [-1, 1, 'tissue', 'delay']],
       fibres: [[1, 0, -1, 1], ...fibresToLeftMuscles(-1, 1)],

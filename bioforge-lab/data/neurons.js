@@ -30,7 +30,7 @@ const NEURONS = {
   }),
   delay: neuronType({
     name: 'Delay', symbol: '»', color: '#7fd18b',
-    setting: { name: 'Delay', unit: 's', start: 0.5, step: 0.25, min: 0.25, max: 3 },
+    setting: { name: 'Delay', unit: 's', start: 0.5, step: 0.05, min: 0.05, max: 3 },
     description: 'Passes its input on unchanged, but late by its delay. Use it to make one side act after the ' +
       'other, or to keep going for a moment after a sense goes quiet.',
   }),

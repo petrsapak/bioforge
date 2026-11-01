@@ -163,6 +163,7 @@ function createCell(typeName, q, r, creature) {
     health: type.health,
     maxHealth: type.health,
     signal: 0,                                            // nerve signal level
+    stepSignal: 0,                                        // share of the last game step the signal was on (0..1)
     nerveInput: 0,                                        // what the fibres and the cell's sense deliver this step
     senseOutput: 0,                                       // sense organs: what they feel this step
     neuron: null,                                         // the neuron inside the cell: { kind, setting }

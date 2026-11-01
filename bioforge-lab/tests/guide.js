@@ -50,7 +50,7 @@ check('a gland says which hormone it makes', factOf(sim.cellFacts('calmgland'), 
 check('every cell has facts with no blanks or undefined',
   Object.keys(sim.CELLS).every(typeName => sim.cellFacts(typeName).every(([label, value]) =>
     label && value && !value.includes('undefined') && !value.includes('NaN'))));
-check('a neuron\'s setting gives its range', factOf(sim.neuronFacts('delay'), 'Delay').includes('0.25–3 s'));
+check('a neuron\'s setting gives its range', factOf(sim.neuronFacts('delay'), 'Delay').includes('0.05–3 s'));
 
 // ---------- The pictures' data ----------
 const thornStats = sim.cellStats('thorn');

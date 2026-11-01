@@ -16,16 +16,25 @@ const fullCounts = () => title.groups.every(group => group.creatures.length === 
 check('every group starts at full strength', fullCounts());
 let lostAny = false;
 let mostDebrisCells = 0;
+// game s each group has been empty, and the longest any group was
+const emptyFor = title.groups.map(() => 0);
+let longestEmpty = { seconds: 0, design: '' };
 for (let i = 0; i < SCENE_SECONDS / STEP_SECONDS; i++) {
   sim.stepTitleScene(title, STEP_SECONDS);
   if (!fullCounts()) lostAny = true;
+  title.groups.forEach((group, index) => {
+    emptyFor[index] = group.creatures.length ? 0 : emptyFor[index] + STEP_SECONDS;
+    if (emptyFor[index] > longestEmpty.seconds) longestEmpty = { seconds: emptyFor[index], design: group.entry.design };
+  });
   const debrisCells = title.world.creatures.filter(creature => creature.debris)
     .reduce((sum, creature) => sum + creature.cells.length, 0);
   mostDebrisCells = Math.max(mostDebrisCells, debrisCells);
 }
 check(`in ${SCENE_SECONDS} s the hunters kill something`, lostAny);
-check('and every group is still there, refilled by newcomers', title.groups.every(group => group.creatures.length > 0),
-  title.groups.map(group => `${group.entry.design} ${group.creatures.length}`).join(', '));
+// watched the whole time, not at one moment: a group killed just before the end is still waiting out its delay
+check('and every group is refilled by newcomers: none is empty for longer than the respawn delay',
+  longestEmpty.seconds <= sim.TITLE_SCENE.respawnDelay + STEP_SECONDS,
+  `${longestEmpty.design} ${longestEmpty.seconds.toFixed(2)} s`);
 check('broken-off pieces never pile up past the limit (a piece adds at most its own cells)',
   mostDebrisCells <= sim.TITLE_SCENE.maxDebrisCells + 40, `${mostDebrisCells} cells`);
 check('the camera has the light and the other creatures to look at', sim.titleSubjects(title).length > 3);

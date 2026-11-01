@@ -13,6 +13,11 @@ const cell = (q, r, typeName, extras = {}) => sim.createDesignCell(q, r, typeNam
 const noInput = { swimX: 0, swimY: 0, ability: false, heldKeys: new Set() };
 const STEP = 1 / 40;                                      // game s per step
 const cellAt = (creature, q, r) => creature.cells.find(each => each.q === q && each.r === r);
+// holds a cell's signal by hand, as the nerve system would set it for a whole game step (these worlds run without it)
+function holdSignal(target, value) {
+  target.signal = value;
+  target.stepSignal = value;
+}
 
 // a creature of these design cells alone in the water, held by nobody
 function lone(cells, systems, fibres = []) {
@@ -112,7 +117,7 @@ function muscleBurn(fluid, systems = ['fluid', 'chemical']) {
   const creatureSugar = () => creature.cells.reduce((sum, each) => sum + each.fluids[sim.FLUID_SUGAR], 0);
   const startSugar = creatureSugar();
   runFor(world, 1, () => {
-    muscle.signal = 1;
+    holdSignal(muscle, 1);
     if (fluid !== null) muscle.fluids[fluid] = 1;
   });
   return startSugar - creatureSugar();
@@ -180,7 +185,7 @@ function contractedSize(isTanned) {
   const muscle = cellAt(creature, 0, 1);
   if (isTanned) muscle.resizeRateFactor = 0.5;
   runFor(world, 0.1, () => {
-    muscle.signal = 1;
+    holdSignal(muscle, 1);
   });
   return muscle.size;
 }
@@ -200,9 +205,9 @@ function resilinSnap(holdSeconds, systems = ['treatments']) {
   });
   gland.signal = 0;
   runFor(world, holdSeconds, () => {
-    muscle.signal = 1;
+    holdSignal(muscle, 1);
   });
-  muscle.signal = 0;
+  holdSignal(muscle, 0);
   const tissue = cellAt(creature, 0, 2);
   runFor(world, STEP);
   return { speed: Math.hypot(tissue.velocityX, tissue.velocityY), creature, muscle };
@@ -230,9 +235,9 @@ function strikeOnDummy(seconds) {
   const target = dummy.cells[0];
   const healthBefore = target.health;
   runFor(world, seconds, () => {
-    muscle.signal = 1;
+    holdSignal(muscle, 1);
   });
-  muscle.signal = 0;
+  holdSignal(muscle, 0);
   runFor(world, STEP);
   return healthBefore - Math.max(0, target.health);
 }

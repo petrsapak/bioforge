@@ -81,8 +81,35 @@ const jet = runCreature(sim.TEMPLATES.jet, true);
 check('the default Jet swims straight ahead on its own wiring',
   jet.forward > 50 && Math.abs(jet.heading) < TURNED_ANGLE,
   `${jet.forward.toFixed(1)} px, ${jet.heading.toFixed(2)} rad`);
+// The Wiggler: two rows of Muscles taking turns and a fin of Joints. Mirror-symmetric and wired so both sides are
+// the same number of fibres from the beat, so it swims head first and straight, at about the Jet's speed. The
+// Paddler is the same body with a Delay in each back-row Muscle: a wave runs down to the fin, and it swims faster.
+const wiggler = runCreature(sim.TEMPLATES.wiggler, true);
+check('the Wiggler swims head first and straight by muscle alone',
+  wiggler.forward > 80 && Math.abs(wiggler.heading) < TURNED_ANGLE,
+  `${wiggler.forward.toFixed(1)} px, ${wiggler.heading.toFixed(2)} rad`);
 const paddler = runCreature(sim.TEMPLATES.paddler, true);
-check('the Paddler swims forward by muscle alone', paddler.forward > 80, paddler.forward.toFixed(1) + ' px');
+check('the Paddler, wired in a wave, swims head first and straight, faster than the Wiggler',
+  paddler.forward > 1.2 * wiggler.forward && Math.abs(paddler.heading) < TURNED_ANGLE,
+  `${paddler.forward.toFixed(1)} px, ${paddler.heading.toFixed(2)} rad`);
+
+// The Jelly's Bloaters pulse with its Pacemaker: they swell and let go, never stuck swollen
+{
+  const world = sim.newWorld(2000, 2000, { seed: 1 });
+  const jelly = sim.spawn(world, sim.TEMPLATES.jelly, 1000, 1000, 0, 0);
+  jelly.aiControlled = false;
+  jelly.autonomous = true;
+  const bloater = jelly.cells.find(cell => cell.type.resize === 'swell');
+  let smallest = Infinity;
+  let largest = 0;
+  for (let i = 0; i < RUN_STEPS; i++) {
+    sim.step(world, 1 / 40, { swimX: 0, swimY: 0, ability: false });
+    smallest = Math.min(smallest, bloater.size);
+    largest = Math.max(largest, bloater.size);
+  }
+  check('the Jelly\'s Bloaters swell and let go', largest > 1.5 && smallest < 1.3,
+    `size ${smallest.toFixed(2)}–${largest.toFixed(2)}`);
+}
 
 // The Seeker's Light eyes are wired across to its siphons, so it turns toward the light and swims to it, wherever
 // the light is; with no light it holds still.

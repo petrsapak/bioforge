@@ -43,9 +43,10 @@ function updateActuators(world, dt) {
 }
 
 // Muscles contract and bloaters swell with their signal. Both snap into action; a muscle lets go as fast, so a tail can
-// beat, while a bloater shrinks back slowly.
+// beat, while a bloater shrinks back slowly. They act on the share of the game step their signal was on (nerve.js): a
+// game step holds 4 nerve steps, so reading only the last one would give one half of a beat an extra game step.
 function updateSize(cell, power, dt) {
-  const signal = clamp01(cell.signal);
+  const signal = cell.stepSignal;
   let targetSize = 1;
   const resize = cell.type.resize;
   if (resize === 'contract') targetSize = Math.max(MUSCLE_MIN_SIZE, 1 - MUSCLE_CONTRACTION * signal * power);

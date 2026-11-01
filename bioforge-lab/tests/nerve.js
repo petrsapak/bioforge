@@ -88,6 +88,25 @@ check('Inhibitor is NOT (of the sum)', truthTable(sim.createNeuron('inhibitor'))
   check('a 2 Hz Pacemaker flips about 8 times in 2 s', flips >= 7 && flips <= 9, `flips ${flips}`);
 }
 
+{ // Pacemaker halves: a Muscle on it is driven exactly half the time, even at 1.6 Hz, where a cycle is 25 game steps
+  // (the old sine test counted its zeros as off, and the Muscle read only a game step's last nerve step)
+  for (const rate of [1.4, 1.6, 2, 3.2]) {
+    const cells = [sim.createDesignCell(0, 0, 'nucleus', { neuron: { kind: 'pacemaker', setting: rate } }),
+      sim.createDesignCell(0, 1, 'muscle')];
+    const world = sim.newWorld(600, 600, { systems: ['nerve'] });
+    const creature = sim.spawn(world, { cells, fibres: [fibre(0, 0, 0, 1)] }, 300, 300, 0, 0);
+    const muscle = cellAt(creature, 0, 1);
+    let driven = 0;
+    const steps = 400;                                    // 10 game s: a whole number of cycles at each rate
+    for (let i = 0; i < steps; i++) {
+      sim.step(world, STEP, { swimX: 0, swimY: 0, ability: false });
+      driven += muscle.stepSignal;
+    }
+    check(`a Muscle on a ${rate} Hz Pacemaker is driven half the time`, Math.abs(driven / steps - 0.5) < 0.002,
+      `${(100 * driven / steps).toFixed(2)}%`);
+  }
+}
+
 { // one nerve step per fibre: a chain of 5 fibres from a Command
   const cells = [sim.createDesignCell(0, 0, 'nucleus', { neuron: sim.createNeuron('command') })];
   const fibres = [];
@@ -185,7 +204,9 @@ check('Inhibitor is NOT (of the sum)', truthTable(sim.createNeuron('inhibitor'))
 }
 
 { // designs from before the nerve layer are converted
-  const wiggler = sim.TEMPLATES.wiggler;
+  // a Pacemaker cell beside the Nucleus, touching a column of Muscles, in the old format
+  const wiggler = sim.upgradeToNerveLayer({ cells: [[0, 0, 'nucleus'], [1, 0, 'pacemaker'], [1, 1, 'muscle'],
+    [1, 2, 'muscle']].map(([q, r, typeName]) => sim.createDesignCell(q, r, typeName)) });
   check('built-in designs have no Pacemaker, Command, Ganglion or Nerve cells',
     Object.values(sim.TEMPLATES).every(design =>
       design.cells.every(cell => !['pacemaker', 'command', 'ganglion', 'nerve'].includes(cell.typeName))));
@@ -207,7 +228,7 @@ check('Inhibitor is NOT (of the sum)', truthTable(sim.createNeuron('inhibitor'))
     sim.step(world, STEP, { swimX: 0, swimY: 0, ability: false });
     if (creature.cells.some(cell => cell.typeName === 'muscle' && cell.signal > 0.5)) musclesFired = true;
   }
-  check("the converted wiggler's Pacemaker drives its muscles", musclesFired);
+  check("the converted design's Pacemaker drives its muscles", musclesFired);
 }
 
 { // each neuron tooltip's example, run as its demo runs it (Space held every other second), shows what the neuron

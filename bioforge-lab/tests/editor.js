@@ -160,7 +160,7 @@ fire('window', 'mousemove', { clientX: 10, clientY: 10, target: { closest: () =>
 runFrames(30);
 check('resting on a neuron in the dock shows a hint in the cell hint\'s format, with lanes under the example',
   byId('tooltip').style.display === 'block' && /<b>» Delay<\/b>/.test(byId('tooltip').innerHTML) &&
-  /Delay 0.25–3 s/.test(byId('tooltip').innerHTML) && /How to use/.test(byId('tooltip').innerHTML) &&
+  /Delay 0.05–3 s/.test(byId('tooltip').innerHTML) && /How to use/.test(byId('tooltip').innerHTML) &&
   /tooltip-traces/.test(byId('tooltip').innerHTML), byId('tooltip').innerHTML);
 moveMouseTo(0, 0);
 runFrames(1);

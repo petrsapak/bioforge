@@ -18,7 +18,8 @@ const GUIDE_CELLS = {
     watch: 'Heavy and stiff, so a shelled body swims slowly. Acid eats it fast: a shell is no answer to an Acid ' +
       'gland.' },
   joint: { chapter: 0, pairs: ['muscle'],
-    watch: 'A body with joints bends where they are: good for a tail, bad for a body that must stay straight.' },
+    watch: 'A body with joints bends where they are: good for a tail, bad for a body that must stay straight. A ' +
+      'fin of Joints behind the muscles must be two or three cells wide: a chain one cell wide just flops.' },
   cilia: { chapter: 0, pairs: ['heart', 'fat'],
     watch: 'They always beat, so they can\'t be switched off, and they burn fuel all the time.' },
   eyespot: { chapter: 1, pairs: ['nettle', 'acid', 'protease', 'siphon'],
@@ -32,8 +33,8 @@ const GUIDE_CELLS = {
   receptor: { chapter: 6, pairs: ['synapse', 'inhibitor', 'siphon'],
     watch: 'Hormones rise and fall slowly, so its signal does too. A Synapse after it makes a clean on and off.' },
   muscle: { chapter: 1, pairs: ['pacemaker', 'inhibitor', 'joint', 'resilin'],
-    watch: 'A muscle only bends the body. Swimming with muscles needs a wave along a tail, which is touchy: try the ' +
-      'rate in small steps.' },
+    watch: 'A muscle only bends the body. To swim, it needs a fin of Joints behind it, or it swims tail first. ' +
+      'Speed is touchy about the rate: try it in small steps (short bodies beat fast, long ones slower).' },
   bloater: { chapter: 0, pairs: ['eyespot', 'command'],
     watch: 'Burns fuel while swollen. Swelling shoves your own cells too.' },
   siphon: { chapter: 1, pairs: ['lighteye', 'nose', 'pacemaker', 'heart'],
@@ -90,14 +91,16 @@ const GUIDE_CELLS = {
 
 const GUIDE_NEURONS = {
   pacemaker: { chapter: 1, pairs: ['muscle', 'siphon', 'valve', 'resilin'],
-    watch: 'Calm slows it and adrenaline speeds it up, so a mood changes your rhythm.' },
+    watch: 'Calm slows it and adrenaline speeds it up, so a mood changes your rhythm. Every fibre on the way ' +
+      'is a nerve step late: wire both sides of a swimming tail the same number of fibres from it.' },
   command: { chapter: 1, pairs: ['nettle', 'bloater', 'spitter'],
     watch: 'It acts only while a key is held, so a creature that must act on its own needs a sense or a ' +
       'Pacemaker instead.' },
   ganglion: { chapter: 0, pairs: ['lighteye', 'siphon'],
     watch: 'Smoothing makes a signal late: a smoothed tail swims slower.' },
   delay: { chapter: 2, pairs: ['lighteye', 'inhibitor', 'muscle'],
-    watch: 'It delays the signal, not just its start: a long delay keeps acting on what has already stopped.' },
+    watch: 'It delays the signal, not just its start: a long delay keeps acting on what has already stopped. ' +
+      'For a wave down a tail, keep it short: about 0.1 s per row of Muscles.' },
   inhibitor: { chapter: 2, pairs: ['lighteye', 'siphon', 'photophore'],
     watch: 'With nothing wired into it, it is always on: the easy way to keep a gland or a Photophore working.' },
   synapse: { chapter: 2, pairs: ['lighteye', 'receptor', 'siphon'],
@@ -159,6 +162,22 @@ const GUIDE_TOPICS = [
     example: 'Light eyes into a Latch in the Nucleus, the Nucleus to both Siphons: wait still in the dark until the ' +
       'first flash, then swim for good.',
     related: ['inhibitor', 'synapse', 'latch', 'delay', 'pacemaker'],
+  },
+  {
+    id: 'swimming', title: 'Swimming by muscle', chapter: 2,
+    demo: 'muscle',
+    paragraphs: [
+      'A Muscle bends the body toward its side. Rows of Muscles down both sides, taking turns (a Pacemaker on one ' +
+        'side and an Inhibitor of it on the other), sweep the body left and right.',
+      'Sweeping alone barely moves it: each stroke pushes the water about as much one way as the next pushes it ' +
+        'back. A fin of Joints behind the Muscles follows each stroke late and pushes the water back, so the ' +
+        'creature swims head first, about as fast as Siphons.',
+      'A Delay in the back row of Muscles makes it beat a moment after the front: a wave runs down the body to the ' +
+        'fin, nearly as fast as Cilia. Keep both sides the same, cell for cell and fibre for fibre, or it curves.',
+    ],
+    example: 'The Wiggler in Templates: a Mouth, a Pore and two Gills at the head, two rows of Muscles, a fin of ' +
+      'five Joints. The Paddler is the same body with a 0.1 s Delay in each back-row Muscle.',
+    related: ['muscle', 'joint', 'pacemaker', 'inhibitor', 'delay'],
   },
   {
     id: 'fuel', title: 'Fuel: O₂, sugar and waste', chapter: 3,

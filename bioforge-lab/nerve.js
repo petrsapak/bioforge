@@ -12,9 +12,10 @@ const UNSURE_LIGHT = 0.5;                                 // signal of a Light e
 const NOSE_RANGE = 300;                                   // px a Nose smells food from
 const PHOTOPHORE_RANGE = 400;                             // px a lit Photophore reaches, like a light
 
-// What each neuron kind makes of its input sum. The cell's previous signal and neuronMemory are its state.
+// What each neuron kind makes of its input sum. The cell's previous signal and neuronMemory are its state. time is
+// the nerve step's own moment (s), between one game step's world.time and the next.
 const NEURON_RULES = {
-  pacemaker: (cell, input, world, stepTime) => pacemakerSignal(world, cell, stepTime),
+  pacemaker: (cell, input, world, stepTime, time) => pacemakerSignal(cell, stepTime, time),
   command: (cell, input, world) => commandOutput(world, cell),
   ganglion: (cell, input, world, stepTime) =>
     cell.signal + (clamp01(input) - cell.signal) * Math.min(1, GANGLION_RATE * stepTime),
@@ -30,11 +31,13 @@ const NEURON_RULES = {
 };
 
 // On and off at its rate. A mood (chemical.js) speeds the rate up or slows it down: the cycles gained or lost are
-// kept in clockShift, so a change of rate never makes it jump.
-function pacemakerSignal(world, cell, stepTime) {
+// kept in clockShift, so a change of rate never makes it jump. On for exactly the first half of each cycle: a sine's
+// sign would count its zeros as off, giving one half an extra nerve step at some rates.
+function pacemakerSignal(cell, stepTime, time) {
   const rate = cell.neuron.setting;
   cell.clockShift += rate * (cell.clockFactor - 1) * stepTime;
-  return sine(TAU * (rate * world.time + cell.clockShift)) > 0 ? 1 : 0;
+  const cycles = rate * time + cell.clockShift;
+  return cycles - Math.floor(cycles) < 0.5 ? 1 : 0;
 }
 
 // A Delay neuron's memory: its own clock (s) and the moments its input changed, oldest first. Only changes are kept,
@@ -147,24 +150,30 @@ function directionalSense(cell, x, y, range) {
 }
 
 // the signal a cell takes on, given the sum of its fibre inputs and its sense
-function decideSignal(world, cell, input, stepTime) {
+function decideSignal(world, cell, input, stepTime, time) {
   const neuron = cell.neuron;
   if (!neuron) return clamp01(input);
   const makesItsOwn = NEURONS[neuron.kind].ignoresInputs;
   if (makesItsOwn && !canMakeSignals(cell)) return 0;
-  return NEURON_RULES[neuron.kind](cell, input, world, stepTime);
+  return NEURON_RULES[neuron.kind](cell, input, world, stepTime, time);
 }
 
 // Each nerve step, every fibre first takes its start cell's signal, then all cells update at once from what arrived:
-// so a signal needs one nerve step per fibre, whatever order the cells and fibres are in.
+// so a signal needs one nerve step per fibre, whatever order the cells and fibres are in. stepSignal keeps the share
+// of the game step each cell was on, which muscles and bloaters act on.
 function updateNerves(world, dt) {
   for (const cell of world.cells) cell.senseOutput = senseOutput(world, cell);
   const stepTime = dt / NERVE_SUBSTEPS;
+  for (const cell of world.cells) cell.stepSignal = 0;
   for (let i = 0; i < NERVE_SUBSTEPS; i++) {
+    const time = world.time + i * stepTime;
     for (const fibre of world.fibres) fibre.value = fibre.from.signal;
     for (const cell of world.cells) cell.nerveInput = cell.senseOutput;
     for (const fibre of world.fibres) fibre.to.nerveInput += fibre.value;
-    for (const cell of world.cells) cell.signal = decideSignal(world, cell, cell.nerveInput, stepTime);
+    for (const cell of world.cells) {
+      cell.signal = decideSignal(world, cell, cell.nerveInput, stepTime, time);
+      cell.stepSignal += clamp01(cell.signal) / NERVE_SUBSTEPS;
+    }
   }
 }
 
