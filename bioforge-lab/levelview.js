@@ -6,7 +6,6 @@
 const ARENA_TOP_MARGIN = 84;                              // px of screen above the arena, for the HUD and the bar
 const ARENA_SIDE_MARGIN = 16;                             // px of screen left, right and below the arena
 const GOAL_COLOR = '127,224,160';                         // r,g,b of the goal rings
-const BURN_COLOR = '255,120,90';                          // r,g,b of a circle goal's inner ring, which loses
 const GOAL_PULSE_RATE = 2;                                // rad/s of the goal ring's breathing
 const DARK_LAMP_RADIUS = 9;                               // px in the arena: a light that is off
 const LEVEL_KEYS_HELP = '<b>Space</b> and bound keys: Commands &nbsp;<b>P</b> pause &nbsp;<b>.</b> one step ' +
@@ -41,7 +40,6 @@ function setUpLevels(app) {
   onSandboxButton('level-step', () => requestOneStep(app));
   onSandboxButton('level-speed', () => cycleSandboxSpeed(app));
   onSandboxButton('level-retry', () => retryLevel(app));
-  onSandboxButton('level-exit', () => enterBuilder(app));
   onSandboxButton('result-retry', () => retryLevel(app));
   onSandboxButton('result-builder', () => enterBuilder(app));
   showLevelButton(app);
@@ -314,19 +312,15 @@ function drawLevelMode(app) {
   showLevelHud(app, run);
 }
 
-// What the goal looks like: a breathing ring to swim into or rest in, one round the light to stay inside, or for a
-// circle goal that ring with a red one inside it to keep out of.
+// What the goal looks like: a breathing ring to swim into or rest in, or one round the light to stay inside.
 function drawLevelGoal(context, run) {
   const goal = run.level.goal;
   const pulse = 0.5 + 0.5 * Math.sin(run.world.time * GOAL_PULSE_RATE);
   if (goal.kind === 'reach' || goal.kind === 'restIn') {
     drawGoalRing(context, goal.x, goal.y, goal.radius, GOAL_COLOR, pulse);
   }
-  if ((goal.kind === 'stayNear' || goal.kind === 'circle') && run.world.light) {
+  if (goal.kind === 'stayNear' && run.world.light) {
     drawGoalRing(context, run.world.light.x, run.world.light.y, goal.radius, GOAL_COLOR, pulse);
-  }
-  if (goal.kind === 'circle' && run.world.light) {
-    drawGoalRing(context, run.world.light.x, run.world.light.y, goal.inner, BURN_COLOR, pulse);
   }
 }
 
@@ -386,7 +380,6 @@ function kitText(kit) {
 function goalProgress(run) {
   const goal = run.level.goal;
   if (goal.kind === 'stayNear') return `Near the light ${run.goalTime.toFixed(1)} / ${goal.seconds} s`;
-  if (goal.kind === 'circle') return `Circling the light ${run.goalTime.toFixed(1)} / ${goal.seconds} s`;
   if (goal.kind === 'restIn') return `At rest in the ring ${run.goalTime.toFixed(1)} / ${goal.seconds} s`;
   if (goal.kind === 'eat') return `Eaten ${run.player.foodEaten} / ${goal.count}`;
   if (goal.kind === 'survive') return `Alive ${Math.min(run.time, goal.seconds).toFixed(1)} / ${goal.seconds} s`;

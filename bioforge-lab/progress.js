@@ -135,7 +135,7 @@ function useCreatureFileText(app, text, fileName) {
     return;
   }
   if (app.mode === 'build') loadDesign(app, entry, entry.name, entry.name);
-  showMessage(`Loaded "${entry.name}" into the builder and My creatures.`);
+  showMessage(`Loaded "${entry.name}" into the Lab and My creatures.`);
 }
 
 // ---------- Quick save (F5) and quick load (F8) ----------

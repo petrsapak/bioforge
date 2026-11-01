@@ -1,7 +1,7 @@
 'use strict';
-// The Templates screen (browser only): a sheet over the builder, opened and closed like the field guide, with the
+// The Templates screen (browser only): a sheet over the Lab, opened and closed like the field guide, with the
 // tabs My creatures, My parts and Examples down the left and the open tab's cards, with pictures, on the right;
-// saving the builder's creature into My creatures; and the saved library, kept in storage.
+// saving the Lab's creature into My creatures; and the saved library, kept in storage.
 // Entries are { name, isCreature, cells, fibres } (see design.js); the editing rules for them are in
 // builder.js.
 
@@ -14,11 +14,11 @@ const THUMBNAIL_MAX_SCALE = 4;                            // thumbnail px per gr
 const LIBRARY_TABS = ['creatures', 'parts', 'examples'];
 const LIBRARY_TAB_TITLES = { creatures: 'My creatures', parts: 'My parts', examples: 'Examples' };
 const LIBRARY_TAB_HELP = {
-  creatures: 'Click a creature to load it into the builder (it replaces the design). Saving under a name that is ' +
-    'taken asks before it overwrites. Ctrl+S saves too, from the builder.',
-  parts: 'Ctrl+click cells in the builder, then right-click them to save a part. Click a part to stamp it onto your ' +
+  creatures: 'Click a creature to load it into the Lab (it replaces the design). Saving under a name that is ' +
+    'taken asks before it overwrites. Ctrl+S saves too, from the Lab.',
+  parts: 'Ctrl+click cells in the Lab, then right-click them to save a part. Click a part to stamp it onto your ' +
     'creature (Q/E turn it, Esc puts it away). With a Bud clicked, the part goes to the Bud, which grows it.',
-  examples: 'Click one to load it into the builder (it replaces the design).',
+  examples: 'Click one to load it into the Lab (it replaces the design).',
 };
 
 // the saved library, carried over from the old list the first time
@@ -65,7 +65,7 @@ function setUpLibrary(app) {
 
 const isLibraryOpen = app => byId('library-sheet').style.display === 'flex';
 
-// opens the Templates screen over the builder, at the tab it was left on
+// opens the Templates screen over the Lab, at the tab it was left on
 function openLibrary(app) {
   if (app.mode !== 'build') return;
   hideTooltip(app);
@@ -81,7 +81,7 @@ function closeLibrary(app) {
   byId('show-library').classList.remove('selected');
 }
 
-// the Templates button and T in the builder: opens the screen, or closes it
+// the Templates button and T in the Lab: opens the screen, or closes it
 function toggleLibrary(app) {
   if (isLibraryOpen(app)) closeLibrary(app);
   else openLibrary(app);
@@ -123,8 +123,8 @@ function showOwnCards(app, box, isCreature) {
   const entries = kept.filter(entry => matchesLibraryFilter(app, entry.name));
   if (!kept.length) {
     box.innerHTML = isCreature
-      ? '<div class="library-empty">No creatures yet. Save this creature keeps the one in the builder here.</div>'
-      : '<div class="library-empty">No parts yet. Ctrl+click cells in the builder, then right-click them.</div>';
+      ? '<div class="library-empty">No creatures yet. Save this creature keeps the one in the Lab here.</div>'
+      : '<div class="library-empty">No parts yet. Ctrl+click cells in the Lab, then right-click them.</div>';
   } else if (!entries.length) {
     box.innerHTML = '<div class="library-empty">Nothing by that name.</div>';
   }
@@ -249,7 +249,7 @@ function drawThumbnail(canvas, entry) {
 
 // ---------- Using the library ----------
 // A creature replaces the design. A part goes to the clicked Bud, or else is picked up as a stamp (clicking the stamp
-// in hand again puts it down). Either way the screen closes, to show the builder.
+// in hand again puts it down). Either way the screen closes, to show the Lab.
 function useLibraryEntry(app, entry) {
   closeLibrary(app);
   if (entry.isCreature) {
@@ -265,7 +265,7 @@ function useLibraryEntry(app, entry) {
   refreshPanel(app);
 }
 
-// Save this creature (the button, the builder's Esc menu, Ctrl+S): asks for a name, then keeps the builder's whole
+// Save this creature (the button, the Lab's Esc menu, Ctrl+S): asks for a name, then keeps the Lab's whole
 // design in My creatures. A name another saved creature has asks before overwriting it; the creature's own name
 // (the one it was loaded or saved as) just saves again.
 function saveBuilderCreature(app) {

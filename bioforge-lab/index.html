@@ -89,14 +89,14 @@
       <span><b>,</b></span><span>speed: fast or slow motion</span>
       <span><b>R</b></span><span>respawn</span>
       <span><b>T</b></span><span>signal traces on / off</span>
-      <span><b>Esc</b></span><span>the menu: pause, back to the builder</span>
+      <span><b>Esc</b></span><span>the menu: pause, back to the Lab</span>
     </div>
     <div class="keys-title">Level</div>
     <div class="keys-grid">
       <span><b>P</b> <b>.</b> <b>,</b></span><span>pause, one step, speed</span>
       <span><b>R</b></span><span>retry</span>
       <span><b>T</b></span><span>signal traces on / off</span>
-      <span><b>Esc</b></span><span>the menu: pause, retry, back to the builder</span>
+      <span><b>Esc</b></span><span>the menu: pause, retry, back to the Lab</span>
     </div>
     <div class="keys-version" id="game-version"></div>
   </div>
@@ -117,7 +117,7 @@
       <div id="level-card-hint"></div>
       <div id="level-card-buttons">
         <div class="row">
-          <button class="small" id="level-build" title="Back to the builder, with this level's limits">Build for it</button>
+          <button class="small" id="level-build" title="Back to the Lab, with this level's limits">Build for it</button>
           <button class="small" id="level-hint">Hint</button>
         </div>
         <button class="big" id="level-run" title="Run your design in this level">▶ Run level</button>
@@ -126,12 +126,16 @@
     </div>
   </div>
 </div>
+<div id="run-exit">
+  <button class="run-button lab" id="back-to-lab" title="Back to the Lab, where you build the creature">
+    <svg viewBox="0 0 24 24"><path d="M12 2.8l7.8 4.5v9.4L12 21.2l-7.8-4.5V7.3z" fill="#e6dcf5" fill-opacity=".25" stroke="#e6dcf5" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="12" r="3.2" fill="#e6dcf5"/></svg>
+    <span>Lab</span></button>
+</div>
 <div id="level-bar">
   <button class="small time" id="level-pause" title="Pause (P)">⏸</button>
   <button class="small time" id="level-step" title="One step (.)">⏭</button>
   <button class="small time" id="level-speed" title="Speed: normal, 2×, 4×, ½, ¼ (,)">1×</button>
   <button class="small" id="level-retry" title="Start over (R)">Retry</button>
-  <button class="small" id="level-exit" title="Back to the builder">Builder</button>
 </div>
 <div id="level-result">
   <div id="result-title"></div>
@@ -139,7 +143,7 @@
   <div id="result-text"></div>
   <div class="row">
     <button class="small" id="result-retry">Retry</button>
-    <button class="small" id="result-builder">Builder</button>
+    <button class="small" id="result-builder">Lab</button>
   </div>
 </div>
 <div id="sandbox-bar">
@@ -152,7 +156,6 @@
   <button class="small time" id="sandbox-pause" title="Pause (P)">⏸</button>
   <button class="small time" id="sandbox-step" title="One step (.)">⏭</button>
   <button class="small time" id="sandbox-speed" title="Speed: normal, 2×, 4×, ½, ¼ (,)">1×</button>
-  <button class="small" id="sandbox-exit">Builder</button>
 </div>
 <div id="dock"><div id="dock-inner">
   <div id="dock-head"><div id="dock-bar">Cells</div><div id="dock-tabs"></div></div>
@@ -183,7 +186,7 @@
       <div id="library-head">
         <span id="library-title"></span>
         <div id="library-actions">
-          <button class="small primary" id="library-save" title="Keep the creature in the builder in My creatures (Ctrl+S)">Save this creature</button>
+          <button class="small primary" id="library-save" title="Keep the creature in the Lab in My creatures (Ctrl+S)">Save this creature</button>
           <button class="small" id="library-import" title="Load a creature or part file someone shared, or one you exported">Import…</button>
         </div>
         <button id="library-close" title="Close (Esc)">✕</button>
@@ -242,10 +245,10 @@
       <button class="menu-button primary" id="menu-continue">Continue</button>
       <button class="menu-button primary" id="menu-resume">Resume</button>
       <button class="menu-button" id="menu-levels">Levels</button>
-      <button class="menu-button" id="menu-free-build" title="The builder with the usual limits, and the Sandbox">Free build</button>
+      <button class="menu-button" id="menu-free-build" title="The Lab with the usual limits, and the Sandbox">Free build</button>
       <button class="menu-button" id="menu-retry">Retry</button>
-      <button class="menu-button" id="menu-builder">Back to the builder</button>
-      <button class="menu-button" id="menu-save-creature" title="Keep the creature in the builder in My creatures, on the Templates screen (Ctrl+S)">Save creature</button>
+      <button class="menu-button" id="menu-builder">Back to the Lab</button>
+      <button class="menu-button" id="menu-save-creature" title="Keep the creature in the Lab in My creatures, on the Templates screen (Ctrl+S)">Save creature</button>
       <button class="menu-button" id="menu-templates" title="Your saved creatures and parts, and the examples">Templates</button>
       <button class="menu-button" id="menu-guide" title="What every cell and neuron does, and how the game works">Field guide</button>
       <button class="menu-button" id="menu-settings">Settings</button>

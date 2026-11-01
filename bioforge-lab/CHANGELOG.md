@@ -7,6 +7,15 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.17 (2026-11-01)
+- The builder is now called the Lab everywhere: the Lab button after a run or in the Sandbox, Back to the Lab in
+  the Esc menu, and the help texts.
+- The Sandbox and the levels have a big purple Lab button in the bottom left corner, where Templates, Levels and
+  Sandbox sit in the Lab. It replaces the small Lab button in their top bars; the Signals and vitals box starts
+  beside it.
+- Moth is gone: circling the lamp asked for too much wiring for the third level. Chapter 1 now has four levels, and
+  Shade follows Lighthouse.
+
 ## 0.7.16 (2026-11-01)
 - Templates has a screen of its own, like the field guide, instead of the window beside the builder. Open it with
   the Templates button (bottom left, above Levels), T, or Templates in the Esc menu; Esc, T or ✕ closes it. The

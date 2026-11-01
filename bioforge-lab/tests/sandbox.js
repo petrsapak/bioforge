@@ -102,6 +102,16 @@ check('Back to the builder goes back to the builder', byId('menu-sheet').style.d
 // '' hands the display back to style.css; 'block' broke the dock's centring (user, 2026-10-28)
 check('back in the builder, the dock and the tabs keep their own layout', byId('dock').style.display === '' &&
   byId('layer-tabs').style.display === '' && byId('builder-left').style.display === '');
+check('the Lab button shows only in the Sandbox and a level, in the corner of Levels and Sandbox',
+  byId('run-exit').style.display === 'none' && byId('run-buttons').style.display === '');
+byId('start-sandbox').onclick({});
+runFrames(5);
+check('in the Sandbox the big Lab button takes their place', byId('run-exit').style.display === 'flex' &&
+  byId('run-buttons').style.display === 'none');
+byId('back-to-lab').onclick({});
+runFrames(5);
+check('the Lab button goes back to the Lab', byId('sandbox-bar').style.display === 'none' &&
+  byId('hud').style.display === 'none' && byId('run-exit').style.display === 'none');
 templateButton('lancer').onclick();
 runFrames(5);
 byId('start-sandbox').onclick();

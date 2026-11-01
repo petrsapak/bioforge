@@ -178,7 +178,7 @@ const TIPS = {
     },
   },
   bud: {
-    howToUse: 'Put it on the surface, click it in the builder, then click a part on the Templates screen (T) to ' +
+    howToUse: 'Put it on the surface, click it in the Lab, then click a part on the Templates screen (T) to ' +
       'assign it. The body feeds it O₂ and sugar; fire it with a Command or Eyespot. The part grows facing away ' +
       'from the body; thorns on it hit hard.',
     example: {

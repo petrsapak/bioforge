@@ -288,6 +288,7 @@ function showModeWindows(app) {
   byId('hud').style.display = isBuilding ? 'none' : 'block';
   byId('sandbox-bar').style.display = app.mode === 'sandbox' ? 'flex' : 'none';
   byId('level-bar').style.display = app.mode === 'level' ? 'flex' : 'none';
+  byId('run-exit').style.display = isBuilding ? 'none' : 'flex';
   byId('level-result').style.display = 'none';
 }
 

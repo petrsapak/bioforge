@@ -182,11 +182,6 @@ fibres: [...CROSSED, ...(isWired ? [fibre(-1, 0, 0, -2), fibre(-1, 0, 1, -2), fi
 // Spit: the crossed Seeker with two always-on Spitters at the front and a Fat on each side
 const spitBuild = { cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(0, -2, 'spitter', lit()),
   cell(1, -2, 'spitter', lit()), cell(-1, 0, 'fat'), cell(1, 0, 'fat')], fibres: CROSSED };
-// Moth: both Light eyes into both Siphons, and a Pacemaker in the Nucleus into one Siphon (pacemakerSide 'left' or
-// 'right'): the light drives it forward and the Pacemaker side keeps it turning, round the light
-const mothBuild = (pacemakerSide = 'right') => ({ cells: [pacemakerNucleus(), ...eyesAndSiphons],
-  fibres: [fibre(0, -1, -1, 1), fibre(0, -1, 0, 1), fibre(1, -1, -1, 1), fibre(1, -1, 0, 1),
-    pacemakerSide === 'right' ? fibre(0, 0, 0, 1) : fibre(0, 0, -1, 1)] });
 // Hunt: the crossed Seeker with a Pacemaker in the Nucleus pulsing both Siphons, so it swims on until it sees the
 // light; or with Cilia on both sides of the Nucleus, which always beat
 const huntBuild = { cells: [pacemakerNucleus(), ...eyesAndSiphons],
@@ -197,7 +192,6 @@ const SOLUTIONS = {
   'first-stroke': { cells: [pacemakerNucleus(), cell(-1, 1, 'siphon'), cell(0, 1, 'siphon')],
     fibres: [fibre(0, 0, -1, 1), fibre(0, 0, 0, 1)] },
   lighthouse: { cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons], fibres: CROSSED },
-  moth: mothBuild(),
   shade: { cells: [pacemakerNucleus(), ...eyesAndSiphons],
     fibres: [...SAME_SIDE, fibre(0, 0, -1, 1), fibre(0, 0, 0, 1)] },
   hunt: huntBuild,
@@ -233,7 +227,6 @@ const SOLUTIONS = {
 // the wrong tool for each level: it must not win
 const WRONG_TOOLS = {
   lighthouse: sim.TEMPLATES.jet,
-  moth: SOLUTIONS.lighthouse,
   shade: SOLUTIONS.lighthouse,
   hunt: SOLUTIONS.lighthouse,
   freeze: SOLUTIONS.lighthouse,
@@ -321,19 +314,11 @@ const coldRuns = ['pacemaker', 'eyes']
 check('"Cold water": a Heart beating in pulses, or only while the eyes see the light, wins as well',
   coldRuns.every(run => run.outcome === 'won'),
   coldRuns.map(run => run.outcome + ' ' + run.time.toFixed(0)).join(', '));
-// Moth and Hunt must each need something the Lighthouse build doesn't have (user, 2026-10-30: "moth can be finished
-// with the same design as level 2 ... Level5 can be finished with the same design as levels 2,3")
-const mothRuns = [mothBuild('left'), sim.TEMPLATES.jet, SOLUTIONS.shade]
-  .map(build => sim.runLevel(levelById('moth'), build));
-check('"Moth": circling the other way wins too; the Jet and the Shade build never circle the lamp',
-  mothRuns[0].outcome === 'won' && mothRuns.slice(1).every(run => run.outcome === 'lost'),
-  mothRuns.map(run => `${run.outcome} ${run.goalTime.toFixed(0)} s`).join(', '));
-const mothSeeker = sim.runLevel(levelById('moth'), SOLUTIONS.lighthouse);
-check('"Moth": the Lighthouse build flies into the light', /flew into the light/.test(mothSeeker.reason || ''),
-  mothSeeker.reason);
-const huntRuns = [huntCiliaBuild, sim.TEMPLATES.jet, SOLUTIONS.shade, SOLUTIONS.moth]
+// Hunt must need something the Lighthouse build doesn't have (user, 2026-10-30: "Level5 can be finished with the
+// same design as levels 2,3"; Moth, level 3 then, was dropped on 2026-11-01)
+const huntRuns = [huntCiliaBuild, sim.TEMPLATES.jet, SOLUTIONS.shade]
   .map(build => sim.runLevel(levelById('hunt'), build));
-check('"Hunt": Cilia on the sides catch the Darter too; the Jet, the Shade and the Moth builds lose',
+check('"Hunt": Cilia on the sides catch the Darter too; the Jet and the Shade build lose',
   huntRuns[0].outcome === 'won' && huntRuns.slice(1).every(run => run.outcome === 'lost'),
   huntRuns.map(run => `${run.outcome} ${run.time.toFixed(0)} s`).join(', '));
 // Packed lunch was beaten by the Marathon build (user, 2026-10-30: "14 can be finished with the same vessel as 13")
@@ -510,6 +495,8 @@ const pausedClock = byId('hud-enemies').textContent;
 runFrames(3);
 check('P pauses the level',
   byId('hud-enemies').textContent === pausedClock && byId('level-pause').textContent === '▶');
+check('a level shows the big Lab button', byId('run-exit').style.display === 'flex' &&
+  typeof byId('back-to-lab').onclick === 'function');
 fire('window', 'keydown', { key: 'p' });
 runFrames(1150);                       // the Jet needs about 17.3 game s, at 16 ms of game time per frame
 check('the Jet swims into the ring: the result box shows a win with 1 star',

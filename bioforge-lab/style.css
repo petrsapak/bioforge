@@ -105,6 +105,9 @@ button.big:hover { background: #4a8044; }
 .run-button.sandbox { background: linear-gradient(#e6cf98, #c9a965); border-color: #f4e2b4; color: #3b2a12; }
 .run-button.library { background: linear-gradient(#3f7d96, #2a5a6e); border-color: #7cc4de; color: #fff; }
 .run-button.library.selected { box-shadow: 0 0 0 2px #e8c547, 0 0 16px #e8c54788; }
+.run-button.lab { background: linear-gradient(#7a5ba6, #573e7d); border-color: #b9a0e0; color: #fff; }
+/* in the Sandbox and a level, the Lab button takes the same corner */
+#run-exit { position: absolute; left: 14px; bottom: 14px; display: none; }
 #panel, #coach {
   padding: 8px 10px; background: #0e181dcc; border: 1px solid #23323a88; border-radius: 12px;
   backdrop-filter: blur(3px);
@@ -414,7 +417,7 @@ button.small.primary:hover { background: #3d6b38; }
 #hud-mode { color: #e8c547; font-size: 15px; }
 #hud-enemies { color: #ff8a7a; }
 #hud-vitals {
-  position: absolute; left: 14px; bottom: 14px; width: 270px; padding: 10px 12px 8px; background: #0e181dd9;
+  position: absolute; left: 104px; bottom: 14px; width: 270px; padding: 10px 12px 8px; background: #0e181dd9;
   border: 1px solid #2c4650; border-radius: 10px; box-shadow: 0 4px 18px #0009; pointer-events: auto; cursor: move;
 }
 .hud-bar {

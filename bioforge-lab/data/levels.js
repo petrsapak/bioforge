@@ -24,8 +24,6 @@
 //     arrives (left out: there from the start); anchored: fixed in place, nothing moves it
 //   goal: { kind: 'reach', x, y, radius } swim the creature's centre into the ring;
 //     { kind: 'stayNear', radius, seconds } stay that close to the light for that long in all;
-//     { kind: 'circle', inner, radius, seconds } stay between inner and radius (px) from the light for that long in
-//     all; coming within inner of it loses;
 //     { kind: 'eat', count } eat that many food specks;
 //     { kind: 'restIn', x, y, radius, speed, seconds } stay in the ring, slower than speed (px/s), that long without
 //     a break;
@@ -101,18 +99,6 @@ const LEVELS = [
     light: { x: 1100, y: 260, range: 650 },
     goal: { kind: 'reach', x: 1100, y: 260, radius: 60 },
     timeLimit: 45, par: { seconds: 25, biomass: 20 },
-  }),
-  createLevel({
-    id: 'moth', chapter: 1, name: 'Moth',
-    brief: 'Circle the lamp like a moth: 20 s in all inside the green ring. Flying into the red ring round the ' +
-      'lamp loses.',
-    hint: 'The Lighthouse build flies straight into it. Wire both Light eyes to both Siphons, so the light drives ' +
-      'you forward, and a Pacemaker in the Nucleus to one Siphon only: that side pushes harder, so you keep ' +
-      'turning, round and round the light.',
-    limits: { budget: 40 },
-    light: { x: 950, y: 350, range: 650 },
-    goal: { kind: 'circle', inner: 50, radius: 200, seconds: 20 },
-    timeLimit: 60, par: { seconds: 35, biomass: 14 },
   }),
   createLevel({
     id: 'shade', chapter: 1, name: 'Shade',
@@ -227,7 +213,7 @@ const LEVELS = [
   createLevel({
     id: 'long-haul', chapter: 3, name: 'Long haul',
     unlocks: { cells: ['fat', 'gill'] },
-    brief: 'The light drifts round the arena, as in Moth. Keep close to it for 150 s in all: longer than a bare ' +
+    brief: 'The light drifts round the arena. Keep close to it for 150 s in all: longer than a bare ' +
       'body\'s O₂, sugar and room for waste last. Speed the run up with the speed button (,).',
     hint: 'Watch the O₂, Sugar and Waste bars. Fat stores sugar, a Gill makes O₂ from the water, and a Pore on ' +
       'the surface dumps waste. A Seeker with a Fat on each side and a Gill at the back lasts. Keep the body even, ' +

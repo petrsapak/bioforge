@@ -31,7 +31,7 @@ function setUpSandboxBar(app) {
   onSandboxButton('sandbox-enemy-mode', () => toggleEnemiesIdle(app));
   onSandboxButton('sandbox-clear', () => removeEnemies(app));
   onSandboxButton('sandbox-respawn', () => spawnSandboxPlayer(app));
-  onSandboxButton('sandbox-exit', () => enterBuilder(app));
+  onSandboxButton('back-to-lab', () => enterBuilder(app));
   onSandboxButton('sandbox-pause', () => togglePause(app));
   onSandboxButton('sandbox-step', () => requestOneStep(app));
   onSandboxButton('sandbox-speed', () => cycleSandboxSpeed(app));
