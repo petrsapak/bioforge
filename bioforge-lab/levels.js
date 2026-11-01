@@ -90,12 +90,14 @@ function startLevel(level, design) {
 }
 
 // A 'wired' creature moves only by its own wiring, like the player's; a 'hunt' creature is steered by the AI
-// (ai.js) toward its nearest enemy. One with an arrival time (at) is spawned then (spawnArrivals), null until.
+// (ai.js) toward its nearest enemy, and a 'flee' one away from it (its wiring still works too). One with an arrival
+// time (at) is spawned then (spawnArrivals), null until.
 function spawnLevelCreature(world, entry) {
   const design = LEVEL_CREATURES[entry.design] || TEMPLATES[entry.design];
   const creature = spawn(world, design, entry.x, entry.y, entry.heading || 0, 1);
-  creature.aiControlled = entry.behaviour === 'hunt';
-  creature.autonomous = entry.behaviour !== 'hunt';
+  creature.aiControlled = entry.behaviour === 'hunt' || entry.behaviour === 'flee';
+  creature.aiBehaviour = entry.behaviour === 'flee' ? 'flee' : 'hunt';
+  creature.autonomous = !creature.aiControlled;
   creature.anchored = !!entry.anchored;
   return creature;
 }

@@ -1,7 +1,7 @@
 {
   "name": "bioforge-lab-desktop",
   "productName": "Bioforge Lab",
-  "version": "0.7.17",
+  "version": "0.7.18",
   "description": "Bioforge Lab as a desktop game: an Electron window around bioforge-lab/index.html.",
   "private": true,
   "main": "main.js",
@@ -10,7 +10,8 @@
     "start": "electron .",
     "test": "node tests/all.js",
     "pack": "node copy-game.js && electron-builder --dir",
-    "dist": "node copy-game.js && electron-builder"
+    "dist": "node copy-game.js && electron-builder",
+    "icon": "node make-icon.js"
   },
   "build": {
     "appId": "com.bioforge.lab",
@@ -26,6 +27,7 @@
       "game/**/*"
     ],
     "win": {
+      "icon": "icon.ico",
       "target": [
         "nsis",
         "portable"

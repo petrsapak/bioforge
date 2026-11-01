@@ -7,6 +7,23 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.18 (2026-11-01)
+- Bioforge Lab has an icon: the Nucleus in its Lab hex, drawn the way the game draws it. It shows on the desktop
+  window, the taskbar, the .exe and the browser tab.
+- The main menu is Continue, New game, Load game and Sandbox. Continue shows only when there is a game to go back
+  to. New game starts a fresh game at level 1, and your other games stay. Load game shows your games as cards, like
+  the Templates screen: the creature in the Lab, how far the levels got and when you last played; click one to play
+  it, or ✕ to delete it.
+- Sandbox is the Lab with just the Nucleus and every cell, to build anything. It doesn't touch your game: Continue
+  takes you back to where you were.
+- Profiles are gone: each profile is now a game in Load game. Reset level progress stays in Settings.
+- A new example on the Templates screen, the Lean paddler: the Paddler built from Muscles, Joints and Tissue
+  only, the cells Tail's dock has. Tail's hint points at it.
+- Hunt's Darter flees: it waits in open water, darts away when you come near, and tires after a few seconds.
+  Stay with it and you catch it while it rests; a slow, heavy hunter never closes in. 40 s instead of 50.
+- Cilia come with Hunt instead of Shade: they keep you swimming while you search for the Darter. Shade brings nothing
+  new: it asks for the Lighthouse pieces wired the other way.
+
 ## 0.7.17 (2026-11-01)
 - The builder is now called the Lab everywhere: the Lab button after a run or in the Sandbox, Back to the Lab in
   the Esc menu, and the help texts.

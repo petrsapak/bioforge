@@ -1,7 +1,8 @@
 'use strict';
 // The menus (full app, fake DOM): the main menu at the start, Esc in the builder (a sheet, then what is in hand, then
 // the menu), the Esc menu pausing a run, Continue picking up a level run after the game is closed and opened again,
-// Free build forgetting it, the desktop build's Quit and Fullscreen, and loading a creature file.
+// the desktop build's Quit and Fullscreen, loading a creature file, New game, Load game, deleting a game, and the
+// Sandbox keeping the game as it was.
 const { startApp, LEAVE_TITLE_FRAMES } = require('./dom');
 const { check, done } = require('./check');
 
@@ -16,7 +17,7 @@ const pressKeyIn = fire => (key, fields = {}) => {
 };
 const clockOf = byId => parseFloat(byId('hud-enemies').textContent);
 const cellCount = byId => +/Cells: (\d+)/.exec(byId('budget').innerHTML)[1];
-const savedState = storage => JSON.parse(storage.items['bioforge-lab-profile-1-continue'] || 'null');
+const savedState = storage => JSON.parse(storage.items['bioforge-lab-game-1-continue'] || 'null');
 // the number on the Templates window's My creatures tab
 const savedCreatureCount = byId => +/class="count">(\d+)</.exec(byId('library-tab-creatures').innerHTML)[1];
 // the card in the Templates window's open tab with the given name
@@ -32,9 +33,9 @@ async function main() {
     byId('menu-title').textContent === 'Bioforge');
   check('the loading screen is gone once the title is drawn', byId('loading-screen').classList.contains('done'));
   check('with nothing saved yet there is no Continue, and no Quit outside the desktop build',
-    !isShown(byId, 'menu-continue') && !isShown(byId, 'menu-quit') && isShown(byId, 'menu-levels') &&
-    isShown(byId, 'menu-free-build'));
-  check('the old save was upgraded and carries its version', storage.items['bioforge-lab-save-version'] === '2');
+    !isShown(byId, 'menu-continue') && !isShown(byId, 'menu-quit') && isShown(byId, 'menu-new-game') &&
+    isShown(byId, 'menu-load-game') && isShown(byId, 'menu-sandbox'));
+  check('the old save was upgraded and carries its version', storage.items['bioforge-lab-save-version'] === '3');
   pressKey('2');
   runFrames(1);
   check('the builder\'s keys wait while a menu is open', !byId('layer-nerve').classList.contains('selected'));
@@ -47,10 +48,10 @@ async function main() {
   pressKey('Escape');
   check('Esc leaves Settings for the buttons, and the main menu stays',
     isShown(byId, 'menu-buttons') && byId('menu-sheet').style.display === 'flex');
-  byId('menu-free-build').onclick({});
-  check('Free build first dims the screen, with the menu still up', byId('menu-sheet').style.display === 'flex');
+  byId('menu-continue').onclick({});                      // hidden, but it enters the current game all the same
+  check('Continue first dims the screen, with the menu still up', byId('menu-sheet').style.display === 'flex');
   runFrames(LEAVE_TITLE_FRAMES);
-  check('Free build closes the menu', byId('menu-sheet').style.display === 'none');
+  check('Continue closes the menu', byId('menu-sheet').style.display === 'none');
 
   // ---------- Esc in the builder: a sheet, then what is in hand, then the menu ----------
   pressKey('h');
@@ -97,7 +98,7 @@ async function main() {
   pressKey('F8');
   check('F8 with nothing quick saved says so', byId('message').textContent.includes('Nothing quick saved'));
   pressKey('F5');
-  const quickSaved = JSON.parse(storage.items['bioforge-lab-profile-1-quicksave'] || 'null');
+  const quickSaved = JSON.parse(storage.items['bioforge-lab-game-1-quicksave'] || 'null');
   check('F5 quick saves the creature', !!quickSaved && quickSaved.cells.length === starterCells);
   byId('clear-design').onclick({});
   check('Delete all asks first, in the game\'s own red box', byId('dialog-sheet').style.display === 'flex' &&
@@ -120,7 +121,7 @@ async function main() {
   first.templateButton('starter').onclick();
 
   // ---------- Saving into My creatures: Ctrl+S, the Esc menu and the Templates window ----------
-  const library = () => JSON.parse(storage.items['bioforge-lab-profile-1-library'] || '[]');
+  const library = () => JSON.parse(storage.items['bioforge-lab-game-1-library'] || '[]');
   pressKey('s', { ctrlKey: true });
   check('Ctrl+S asks for a name in the game\'s own box, with no file dialog',
     byId('dialog-sheet').style.display === 'flex' && byId('dialog-input').value === 'Creature 1');
@@ -174,8 +175,8 @@ async function main() {
   pressKey('Escape');
   byId('menu-main').onclick({});
   runFrames(LEAVE_TITLE_FRAMES);
-  check('Main menu from a run: Continue goes back to that level', byId('menu-title').textContent === 'Bioforge' &&
-    isShown(byId, 'menu-continue') && byId('menu-continue').textContent === 'Continue: First stroke');
+  check('Main menu from a run offers Continue', byId('menu-title').textContent === 'Bioforge' &&
+    isShown(byId, 'menu-continue'));
   const leftAt = clockOf(byId);
 
   // ---------- Closing the game and opening it again ----------
@@ -184,8 +185,7 @@ async function main() {
   second.runFrames(2);
   check('opened again, the design is back in the builder', cellCount(second.byId) === cellCount(byId) &&
     cellCount(byId) > 3, `${cellCount(byId)} cells`);
-  check('and Continue offers the level run', isShown(second.byId, 'menu-continue') &&
-    second.byId('menu-continue').textContent === 'Continue: First stroke');
+  check('and Continue is offered', isShown(second.byId, 'menu-continue'));
   second.byId('menu-continue').onclick({});
   second.runFrames(LEAVE_TITLE_FRAMES);
   const resumedClock = clockOf(second.byId);
@@ -195,13 +195,13 @@ async function main() {
   second.runFrames(30);
   check('and it runs on', clockOf(second.byId) > resumedClock);
 
-  // ---------- Free build forgets the run ----------
+  // ---------- A Sandbox leaves the saved run alone ----------
   const third = startApp({ ...second.storage.items }, { atMainMenu: true });
-  check('a third start offers the run too', third.byId('menu-continue').textContent === 'Continue: First stroke');
-  third.byId('menu-free-build').onclick({});
+  check('a third start offers Continue too', isShown(third.byId, 'menu-continue'));
+  third.byId('menu-sandbox').onclick({});
   third.runFrames(LEAVE_TITLE_FRAMES);
-  check('Free build drops the run and the level, and keeps the design', savedState(third.storage).run === null &&
-    savedState(third.storage).levelId === null && third.byId('budget').innerHTML.includes('Cells'));
+  check('a Sandbox from the main menu keeps the game\'s run and level', savedState(third.storage).run !== null &&
+    savedState(third.storage).levelId !== null && cellCount(third.byId) === 1);
 
   // ---------- The desktop build: Quit and Fullscreen ----------
   let quitCount = 0;
@@ -221,7 +221,8 @@ async function main() {
     desktop.byId('setting-fullscreen').textContent === 'On' && isShown(desktop.byId, 'setting-fullscreen-row'));
   desktop.byId('menu-back').onclick({});
   desktop.byId('menu-quit').onclick({});
-  check('Quit saves, then closes the game', quitCount === 1 && !!savedState(desktop.storage));
+  check('Quit closes the game; from the first main menu there is nothing to save',
+    quitCount === 1 && !savedState(desktop.storage));
 
   // ---------- Loading a creature file ----------
   const eelFile = JSON.stringify({ kind: 'bioforge-lab-creature', version: 1, gameVersion: '0.0.0',
@@ -255,38 +256,84 @@ async function main() {
   await new Promise(resolve => setImmediate(resolve));
   check('another file is refused, saying why', third.byId('message').innerHTML.includes("isn't a Bioforge Lab"));
 
-  // ---------- Profiles ----------
+  // ---------- Games: New game, Load game, deleting one ----------
+  const gamesIn = app => JSON.parse(app.storage.items['bioforge-lab-games']);
+  const startWithIn = app => JSON.parse(app.storage.items['bioforge-lab-start-with'] || 'null');
   const before = startApp({ ...third.storage.items }, { atMainMenu: true });
-  const profilesIn = app => JSON.parse(app.storage.items['bioforge-lab-profiles']);
-  check('the main menu shows the profile playing', isShown(before.byId, 'menu-profile') &&
-    before.byId('menu-profile').textContent === 'Profile: Player');
-  before.byId('menu-profile').onclick({});
-  check('Profile lists the profiles, with no Delete for the only one',
-    before.byId('menu-profiles-view').style.display === '' &&
-    before.byId('profile-list').children.length === 1 && before.byId('profile-list').children[0].children.length === 2);
-  before.byId('profile-new').onclick({});
-  before.byId('dialog-input').value = 'Ada';
-  before.byId('dialog-confirm').onclick();
-  check('New profile asks for a name, keeps it as the current profile and starts the game again',
-    profilesIn(before).list.length === 2 && profilesIn(before).current === 2 &&
-    before.readGlobal('Object.keys(localStorage.items)').every(key => !key.startsWith('bioforge-lab-profile-2-')));
-  const ada = startApp({ ...before.storage.items }, { atMainMenu: true });
-  check('the new profile starts afresh: nothing to continue, no creatures, the settings kept',
-    ada.byId('menu-profile').textContent === 'Profile: Ada' && !isShown(ada.byId, 'menu-continue') &&
-    savedCreatureCount(ada.byId) === 0 && ada.byId('setting-music').textContent === 'Off');
-  ada.byId('menu-profile').onclick({});
-  ada.byId('profile-list').children[0].children[0].onclick();
-  const back = startApp({ ...ada.storage.items }, { atMainMenu: true });
-  check('switching back brings the first profile\'s creatures and run back',
-    back.byId('menu-profile').textContent === 'Profile: Player' && isShown(back.byId, 'menu-continue') &&
+  check('the main menu offers Continue, New game, Load game and Sandbox',
+    ['menu-continue', 'menu-new-game', 'menu-load-game', 'menu-sandbox'].every(id => isShown(before.byId, id)));
+  before.byId('menu-load-game').onclick({});
+  check('Load game shows a card per saved game, the current one marked',
+    before.byId('games-sheet').style.display === 'flex' && before.byId('games-cards').children.length === 1 &&
+    before.byId('games-cards').children[0].children[1].textContent === 'Game 1 · last played');
+  pressKeyIn(before.fire)('Escape');
+  check('Esc closes Load game, back to the main menu', before.byId('games-sheet').style.display === 'none' &&
+    before.byId('menu-sheet').style.display === 'flex');
+  before.byId('menu-new-game').onclick({});
+  before.runFrames(LEAVE_TITLE_FRAMES);
+  check('New game adds a game and loads the page again into it, to start there',
+    gamesIn(before).list.length === 2 && gamesIn(before).current === 2 && startWithIn(before) === 'new-game' &&
+    before.readGlobal('Object.keys(localStorage.items)').every(key => !key.startsWith('bioforge-lab-game-2-')));
+  const fresh = startApp({ ...before.storage.items }, { atMainMenu: true });
+  fresh.runFrames(2);
+  const firstLevelId = fresh.readGlobal('LEVELS[0].id');
+  check('the new game starts at once at level 1, its card open, with no creatures and the settings kept',
+    fresh.byId('menu-sheet').style.display === 'none' && fresh.byId('levels-sheet').style.display === 'flex' &&
+    fresh.byId('show-levels').classList.contains('selected') && savedCreatureCount(fresh.byId) === 0 &&
+    fresh.storage.items['bioforge-lab-music-off'] === 'true' && startWithIn(fresh) === null &&
+    JSON.parse(fresh.storage.items['bioforge-lab-game-2-continue']).levelId === firstLevelId);
+  const pressInFresh = pressKeyIn(fresh.fire);
+  pressInFresh('Escape');
+  pressInFresh('Escape');
+  fresh.byId('menu-main').onclick({});
+  fresh.runFrames(LEAVE_TITLE_FRAMES);
+  fresh.byId('menu-load-game').onclick({});
+  const gameCards = fresh.byId('games-cards').children;
+  check('Load game lists the game played last first', gameCards.length === 2 &&
+    gameCards[0].children[1].textContent === 'Game 2 · last played' &&
+    gameCards[0].children[2].textContent === 'Chapter 1 · no levels won yet' &&
+    gameCards[1].children[1].textContent === 'Game 1');
+  gameCards[1].onclick();
+  fresh.runFrames(LEAVE_TITLE_FRAMES);
+  check('picking another game loads the page again into it', gamesIn(fresh).current === 1 &&
+    startWithIn(fresh) === 'continue');
+  const back = startApp({ ...fresh.storage.items }, { atMainMenu: true });
+  back.runFrames(2);
+  check('the game loaded is where it was left: in its level run, with its creatures',
+    back.byId('menu-sheet').style.display === 'none' && back.byId('level-bar').style.display === 'flex' &&
     savedCreatureCount(back.byId) > 0);
-  back.byId('menu-profile').onclick({});
-  back.byId('profile-list').children[1].children[2].onclick();
-  check('deleting a profile asks first, in red', back.byId('dialog-box').classList.contains('dangerous'));
+  const pressInBack = pressKeyIn(back.fire);
+  pressInBack('Escape');
+  back.byId('menu-main').onclick({});
+  back.runFrames(LEAVE_TITLE_FRAMES);
+  back.byId('menu-load-game').onclick({});
+  const otherCard = back.byId('games-cards').children[1];
+  otherCard.children[otherCard.children.length - 1].children[0].onclick({ stopPropagation() {} });
+  check('deleting a game asks first, in red', back.byId('dialog-box').classList.contains('dangerous'));
   back.byId('dialog-confirm').onclick();
-  check('deleting another profile keeps playing this one, and its saves are gone', profilesIn(back).list.length === 1 &&
-    profilesIn(back).current === 1 && back.byId('profile-list').children.length === 1 &&
-    [undefined, 'null'].includes(back.storage.items['bioforge-lab-profile-2-library']));
+  check('deleting another game keeps this one, and the other\'s saves are gone', gamesIn(back).list.length === 1 &&
+    gamesIn(back).current === 1 && back.byId('games-cards').children.length === 1 &&
+    [undefined, 'null'].includes(back.storage.items['bioforge-lab-game-2-continue']));
+  pressInBack('Escape');
+
+  // ---------- Sandbox: just the Nucleus, every cell, no levels, and the game kept as it was ----------
+  const keptPlace = back.storage.items['bioforge-lab-game-1-continue'];
+  back.byId('menu-sandbox').onclick({});
+  back.runFrames(LEAVE_TITLE_FRAMES);
+  check('Sandbox opens the Lab with just the Nucleus and no Levels button', cellCount(back.byId) === 1 &&
+    back.byId('menu-sheet').style.display === 'none' && back.byId('show-levels').style.display === 'none');
+  back.templateButton('starter').onclick();
+  back.runFrames(2 * FRAMES_PER_SECOND);
+  back.fire('window', 'pagehide', {});
+  check('the Sandbox saves nothing: the game\'s place is as it was',
+    back.storage.items['bioforge-lab-game-1-continue'] === keptPlace);
+  pressInBack('Escape');
+  back.byId('menu-main').onclick({});
+  back.runFrames(LEAVE_TITLE_FRAMES);
+  back.byId('menu-continue').onclick({});
+  back.runFrames(LEAVE_TITLE_FRAMES);
+  check('Continue after a Sandbox loads the page again into the game', startWithIn(back) === 'continue' &&
+    back.storage.items['bioforge-lab-game-1-continue'] === keptPlace);
 
   done();
 }

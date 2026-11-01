@@ -1,12 +1,13 @@
 'use strict';
 // The main menu, shown when the game starts over the living title scene, and the Esc menu over the builder or a run,
-// with their Settings view (browser only). The title scene and the dimming are in titleview.js; saving and picking up
-// where the player left off is in progress.js.
+// with their Settings view, and the games: Continue, New game, and a Sandbox that keeps no game's place (browser
+// only). The title scene and the dimming are in titleview.js, the Load game screen in gamesview.js, and saving and
+// picking up where the player left off in progress.js.
 
 // the buttons each menu shows, top to bottom; each is #menu-<name> in index.html. The Esc menu's set depends on the
 // mode it opened over.
 const MENU_BUTTONS = {
-  main: ['continue', 'levels', 'free-build', 'guide', 'settings', 'profile', 'quit'],
+  main: ['continue', 'new-game', 'load-game', 'sandbox', 'guide', 'settings', 'quit'],
   build: ['resume', 'save-creature', 'templates', 'guide', 'settings', 'main', 'quit'],
   level: ['resume', 'retry', 'builder', 'guide', 'settings', 'main', 'quit'],
   sandbox: ['resume', 'builder', 'guide', 'settings', 'main', 'quit'],
@@ -17,7 +18,7 @@ const ALL_MENU_BUTTONS = [...new Set(Object.values(MENU_BUTTONS).flat())];
 function createMenuState() {
   return {
     open: null,                                           // 'main' or 'pause' (the Esc menu); null: no menu
-    view: 'buttons',                                      // or 'settings' or 'profiles'
+    view: 'buttons',                                      // or 'settings'
     pausedBefore: false,                                  // whether the run was paused before the Esc menu paused it
   };
 }
@@ -27,9 +28,10 @@ const isMenuOpen = app => app.menu.open !== null;
 // the menu buttons and the Settings rows; the game starts at the main menu
 function setUpMenus(app) {
   const actions = {
-    continue: () => leaveTitle(app, () => continueGame(app)),
-    levels: () => leaveTitle(app, () => leaveForBuilder(app, () => toggleLevelsSheet(app))),
-    'free-build': () => leaveTitle(app, () => leaveForBuilder(app, () => chooseLevel(app, null))),
+    continue: () => leaveTitle(app, () => continueCurrentGame(app)),
+    'new-game': () => leaveTitle(app, () => startNewGame(app)),
+    'load-game': () => openGamesScreen(app),
+    sandbox: () => leaveTitle(app, () => enterSandboxSession(app)),
     resume: () => closeMenu(app),
     retry: () => {
       closeMenu(app);
@@ -49,7 +51,6 @@ function setUpMenus(app) {
     },
     guide: () => openGuide(app),
     settings: () => showMenuView(app, 'settings'),
-    profile: () => showMenuView(app, 'profiles'),
     main: () => enterTitle(app, () => {
       app.menu.open = 'main';
       showMenuView(app, 'buttons');
@@ -58,9 +59,14 @@ function setUpMenus(app) {
   };
   for (const name of ALL_MENU_BUTTONS) onSandboxButton('menu-' + name, actions[name]);
   setUpSettings(app);
-  setUpProfiles(app);
+  setUpGamesScreen();
   byId('menu-version').textContent = 'Version ' + GAME_VERSION;
-  openMainMenu(app);
+  const startWith = readSharedStorage('start-with', null);
+  writeSharedStorage('start-with', null);
+  if (startWith === 'continue') enterCurrentGame(app);
+  else if (startWith === 'new-game') beginNewGame(app);
+  else openMainMenu(app);
+  if (startWith) fadeInAtStart(app);
 }
 
 // the main menu over the title scene, coming up out of black
@@ -95,20 +101,53 @@ function closeMenu(app) {
   showTitleLayout(app);
 }
 
-// Continue: back to the run the menu opened over, or to the run left last time, or else to the builder
-function continueGame(app) {
+// Continue: back into the current game. After a Sandbox the page loads the game again, since the Sandbox changed
+// the Lab.
+function continueCurrentGame(app) {
+  if (app.progress.isSandboxSession) restartIntoGame(app, readGames(), 'continue', false);
+  else enterCurrentGame(app);
+}
+
+// Into the current game where it was left: the run the menu opened over, or the run left last time, or else the
+// Lab. From here on its place is saved.
+function enterCurrentGame(app) {
   closeMenu(app);
+  app.progress.isSaving = true;
+  markGamePlayed();
   if (app.mode === 'build') resumePendingRun(app);
 }
 
-// Levels and Free build: ends the run behind the menu and forgets the one left last time, does the rest in the
-// builder, and saves what that leaves
-function leaveForBuilder(app, then) {
+// New game: the current game if it has nothing saved yet, or else a new one, starting at level 1. The game left is
+// kept, to load again from Load game.
+function startNewGame(app) {
+  if (isCurrentGameUnplayed() && !app.progress.isSandboxSession) {
+    beginNewGame(app);
+    return;
+  }
+  const games = isCurrentGameUnplayed() ? readGames() : addGame(readGames(), Date.now());
+  restartIntoGame(app, games, 'new-game', !app.progress.isSandboxSession);
+}
+
+// A game with nothing saved begins: level 1 chosen, with its card open in the Levels sheet
+function beginNewGame(app) {
+  enterCurrentGame(app);
+  chooseLevel(app, LEVELS[0]);
+  toggleLevelsSheet(app);
+  saveProgress(app);
+}
+
+// Sandbox: the Lab with free building from just the Nucleus, every cell open and no levels. It saves nothing, so
+// the current game's place stays as it was; its creatures and parts are at hand, and new ones are kept in it.
+function enterSandboxSession(app) {
+  saveProgress(app);
+  app.progress.isSaving = false;
+  app.progress.isSandboxSession = true;
+  app.progress.pendingRun = null;
   closeMenu(app);
   if (app.mode !== 'build') enterBuilder(app);
-  app.progress.pendingRun = null;
-  then();
-  saveProgress(app);
+  chooseLevel(app, null);
+  loadDesign(app, bareDesign(), 'Sandbox', '');
+  showModeWindows(app);
 }
 
 // the desktop build's Quit, after saving where the player is
@@ -125,13 +164,9 @@ function showMenuView(app, view) {
   for (const name of ALL_MENU_BUTTONS) {
     byId('menu-' + name).style.display = shown.includes(name) && isMenuButtonUsable(app, name) ? '' : 'none';
   }
-  byId('menu-continue').textContent = continueLabel(app);
-  byId('menu-profile').textContent = `Profile: ${currentProfile(readProfiles()).name}`;
   byId('menu-title').textContent = isMain ? 'Bioforge' : app.mode === 'build' ? 'Menu' : 'Paused';
   byId('menu-buttons').style.display = view === 'buttons' ? '' : 'none';
   byId('menu-settings-view').style.display = view === 'settings' ? '' : 'none';
-  byId('menu-profiles-view').style.display = view === 'profiles' ? '' : 'none';
-  if (view === 'profiles') showProfiles(app);
   byId('menu-sheet').style.display = 'flex';
   showTitleLayout(app);
   showSettings(app);
@@ -140,111 +175,41 @@ function showMenuView(app, view) {
 // Quit only in the desktop build; Continue only when there is something to go back to
 function isMenuButtonUsable(app, name) {
   if (name === 'quit') return !!window.desktopWindow;
-  if (name === 'continue') return app.mode !== 'build' || !!app.progress.pendingRun || hasSavedProgress();
+  if (name === 'continue') return hasSavedProgress();
   return true;
 }
 
-// what Continue goes back to, in its label
-function continueLabel(app) {
-  const runMode = app.mode !== 'build' ? app.mode : app.progress.pendingRun && app.progress.pendingRun.mode;
-  if (runMode === 'level' && app.level) return `Continue: ${app.level.name}`;
-  if (runMode === 'sandbox') return 'Continue: Sandbox';
-  return 'Continue building';
-}
-
-// Esc in a menu: closes the keys sheet, leaves Settings, or closes the Esc menu. The main menu stays. (M and N
-// still switch the music and sounds, so Settings shows them again.)
+// Esc in a menu: closes the keys sheet or the Load game screen, leaves Settings, or closes the Esc menu. The main
+// menu stays. (M and N still switch the music and sounds, so Settings shows them again.)
 function handleMenuKey(app, key) {
   showSettings(app);
   if (key !== 'escape') return;
   if (byId('keys-sheet').style.display === 'flex') toggleKeysSheet();
+  else if (isGamesScreenOpen()) closeGamesScreen();
   else if (app.menu.view !== 'buttons') showMenuView(app, 'buttons');
   else if (app.menu.open === 'pause' && !isDimmingToAction(app)) closeMenu(app);
 }
 
-// ---------- Profiles ----------
-// the saved profile list (a save from before profiles has been upgraded to one at start)
-const readProfiles = () => readSharedStorage('profiles', null) || createProfiles();
+// ---------- Games ----------
+// the saved game list (a save from before games has been upgraded to one at start)
+const readGames = () => readSharedStorage('games', null) || createGames();
 
-// wires the Profiles view's buttons: new, rename, switch and delete
-function setUpProfiles(app) {
-  onSandboxButton('profile-new', () => askForName(
-    { title: 'New profile', text: 'A name for the new player. The game starts again in their profile.',
-      confirmLabel: 'Add' }, '', name => {
-      if (cleanName(name)) changeProfiles(app, addProfile(readProfiles(), cleanName(name)));
-    }));
-  onSandboxButton('profile-reset-levels', () => resetLevelProgressAsked(app));
-  onSandboxButton('profile-back', () => showMenuView(app, 'buttons'));
+// whether the current game has nothing saved yet: New game uses it instead of adding another
+const isCurrentGameUnplayed = () => isUnplayedGame(readStorage('continue', null), readStorage('level-results', null),
+  readStorage('library', null));
+
+// marks the current game as played now, for the Load game screen's order
+function markGamePlayed() {
+  const games = readGames();
+  writeSharedStorage('games', switchGame(games, games.current, Date.now()));
 }
 
-// a row per profile: its name (the current one marked; a click on another plays it), rename and delete
-function showProfiles(app) {
-  const profiles = readProfiles();
-  const list = byId('profile-list');
-  list.innerHTML = '';
-  for (const profile of profiles.list) {
-    const row = document.createElement('div');
-    row.className = 'profile-row';
-    const isCurrent = profile.id === profiles.current;
-    const name = profileButton('menu-button' + (isCurrent ? ' current' : ''), profile.name,
-      isCurrent ? 'Playing now' : 'Play as ' + profile.name,
-      () => !isCurrent && changeProfiles(app, switchProfile(readProfiles(), profile.id)));
-    row.appendChild(name);
-    row.appendChild(profileButton('small', '✎', 'Rename', () => renameProfileAsked(app, profile)));
-    if (profiles.list.length > 1) {
-      row.appendChild(profileButton('small', '✕', 'Delete', () => deleteProfileAsked(app, profile)));
-    }
-    list.appendChild(row);
-  }
-}
-
-// a button for the profiles list
-function profileButton(className, text, title, onClick) {
-  const button = document.createElement('button');
-  button.className = className;
-  button.textContent = text;
-  button.title = title;
-  button.onclick = onClick;
-  return button;
-}
-
-// asks for a new name for this profile, then renames it
-function renameProfileAsked(app, profile) {
-  askForName({ title: 'Rename profile', text: `A new name for ${profile.name}.`, confirmLabel: 'Rename' },
-    profile.name, name => {
-      if (!cleanName(name)) return;
-      writeSharedStorage('profiles', renameProfile(readProfiles(), profile.id, cleanName(name)));
-      showMenuView(app, 'profiles');
-    });
-}
-
-// asks first; the profile's creatures, results and saved run go with it
-function deleteProfileAsked(app, profile) {
-  askToConfirm({
-    title: 'Delete this profile?',
-    text: `${profile.name}'s creatures, level results and saved run go for good.`,
-    confirmLabel: 'Delete',
-    isDangerous: true,
-  }, () => {
-    for (const name of PROFILE_KEYS) writeSharedStorage(profileKey(profile.id, name), null);
-    const profiles = readProfiles();
-    const remaining = removeProfile(profiles, profile.id);
-    if (remaining.current === profiles.current) {
-      writeSharedStorage('profiles', remaining);
-      showMenuView(app, 'profiles');
-      return;
-    }
-    changeProfiles(app, remaining, false);
-  });
-}
-
-// asks first, then forgets the current profile's level results: the stars go and the levels lock again from the
-// second one; its creatures stay. A chosen level that is locked now is left. In Settings and in Profiles.
+// asks first, then forgets the current game's level results: the stars go and the levels lock again from the
+// second one; its creatures stay. A chosen level that is locked now is left. In Settings.
 function resetLevelProgressAsked(app) {
   askToConfirm({
     title: 'Reset level progress?',
-    text: `${currentProfile(readProfiles()).name}'s stars and best results go for good, and the levels lock ` +
-      'again from level 2. Creatures stay.',
+    text: "This game's stars and best results go for good, and the levels lock again from level 2. Creatures stay.",
     confirmLabel: 'Reset',
     isDangerous: true,
   }, () => {
@@ -256,16 +221,18 @@ function resetLevelProgressAsked(app) {
   });
 }
 
-// Keeps the new profile list and starts the game again in its current profile, after saving where this one is
-// (unless it was just deleted: shouldSave false).
-function changeProfiles(app, profiles, shouldSave = true) {
+// Keeps the game list and loads the page again into its current game, where startWith ('continue' or 'new-game')
+// runs at once instead of the main menu. The game playing now is saved first, unless it was just deleted (shouldSave
+// false); nothing is saved after that, so this game's Lab can't leak into the next one.
+function restartIntoGame(app, games, startWith, shouldSave = true) {
   if (shouldSave) saveProgress(app);
-  writeSharedStorage('profiles', profiles);
-  app.progress.isSwitchingProfile = true;
+  app.progress.isSaving = false;
+  writeSharedStorage('games', games);
+  writeSharedStorage('start-with', startWith);
   restartGame();
 }
 
-// the page loads again, at the main menu (in the tests' fake browser there is no reload)
+// the page loads again (in the tests' fake browser there is no reload)
 function restartGame() {
   if (typeof location !== 'undefined' && location.reload) location.reload();
 }
@@ -282,7 +249,7 @@ function setUpSettings(app) {
   });
   onSandboxButton('setting-fullscreen', () => toggleFullscreen(app));
   onSandboxButton('setting-keys', toggleKeysSheet);
-  onSandboxButton('setting-reset-levels', () => resetLevelProgressAsked(app));   // the same as in Profiles
+  onSandboxButton('setting-reset-levels', () => resetLevelProgressAsked(app));
   onSandboxButton('menu-back', () => showMenuView(app, 'buttons'));
   addEventListener('fullscreenchange', () => showSettings(app));
 }

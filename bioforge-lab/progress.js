@@ -13,7 +13,10 @@ function createProgressState() {
     savedKey: '',                                         // what was saved last, to skip saving it again
     lastSaveTime: 0,                                      // real s (performance.now) of the last check or save
     pendingRun: null,                                     // a run saved last time, until Continue resumes or drops it
-    isSwitchingProfile: false,                            // the page is reloading into another profile: no more saves
+    isSaving: false,                                      // true once the player is in a game (Continue, New game):
+                                                          // not at the first main menu, in a Sandbox, or while the
+                                                          // page reloads into another game
+    isSandboxSession: false,                              // the Lab was entered by the main menu's Sandbox
   };
 }
 
@@ -32,8 +35,8 @@ function setUpProgress(app) {
   byId('creature-file-input').addEventListener('change', event => loadCreatureFromFile(app, event.target));
 }
 
-// whether there is anything for Continue to pick up: a design or a run kept from an earlier visit
-const hasSavedProgress = () => readStorage('continue', null) !== null;
+// whether the current game has a place Continue can pick up: a design, and maybe a run, that can still be read
+const hasSavedProgress = () => readResumeState(readStorage('continue', null)) !== null;
 
 // Called every frame. In the builder, saves the design and the level when they have changed (checked once a second);
 // in a level, saves the run every few seconds (about 6 ms each). A busy Sandbox takes 25 ms or more to save, a
@@ -49,6 +52,7 @@ function keepProgress(app, now) {
 
 // saves the builder's design, level and run, but only when one of them has changed
 function saveDesignIfChanged(app) {
+  if (!app.progress.isSaving) return;
   const design = builderDesignEntry(app);
   const key = JSON.stringify([design, app.level && app.level.id, !!app.progress.pendingRun]);
   if (key === app.progress.savedKey) return;
@@ -58,7 +62,7 @@ function saveDesignIfChanged(app) {
 
 // Saves everything now: the design, the level, and the running level or Sandbox (or the run kept from last time).
 function saveProgress(app) {
-  if (app.progress.isSwitchingProfile) return;            // the page reloads into another profile: keep this one's
+  if (!app.progress.isSaving) return;
   app.progress.savedKey = '';                             // the builder saves again on its next check
   writeStorage('continue', createResumeState(builderDesignEntry(app), app.level ? app.level.id : null,
     currentRunToSave(app)));
@@ -146,7 +150,7 @@ function quickSave(app) {
   playSound(app, 'place');
 }
 
-// puts the quick saved design back in the builder, leaving a running level or Sandbox
+// puts the quick saved design back in the builder, leaving a running level or Sandbox, and the run kept from last time
 function quickLoad(app) {
   const saved = readStorage('quicksave', null);
   const design = saved && checkedDesign(saved);
@@ -154,6 +158,9 @@ function quickLoad(app) {
     showMessage('Nothing quick saved yet: F5 quick saves the creature.');
     return;
   }
-  leaveForBuilder(app, () => loadDesign(app, design, 'Quick load', design.name));
+  if (app.mode !== 'build') enterBuilder(app);
+  app.progress.pendingRun = null;                         // the run left is given up for the creature loaded
+  loadDesign(app, design, 'Quick load', design.name);
+  saveProgress(app);
   showMessage('Quick loaded.');
 }

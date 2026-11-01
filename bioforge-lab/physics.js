@@ -26,7 +26,7 @@ function applyInputs(world, dt, input) {
     if (creature.debris) continue;
     creature.resting = creature.team !== 0 && world.enemiesIdle;   // a sandbox target told to hold still
     if (creature.resting) holdStill(creature);
-    else if (creature.aiControlled) steerTowardNearestEnemy(world, creature);
+    else if (creature.aiControlled) steerAiCreature(world, creature, dt);
     else if (creature.autonomous) applyTriggerInput(creature, creature.team === 0 ? input : null);
     else if (input && 'forward' in input) applyCarStyleInput(creature, input, dt);
     else if (input) applyDirectionInput(creature, input);

@@ -1,11 +1,10 @@
 'use strict';
-// What the game keeps beyond its settings: the save's version and the steps that upgrade older saves, the players'
-// profiles, the state Continue picks up (the builder's design, the chosen level, a running level or Sandbox), and
-// creature files (pure).
+// What the game keeps beyond its settings: the save's version and the steps that upgrade older saves, the games
+// (each with its own creatures, level results and saved run), the state Continue picks up (the builder's design,
+// the chosen level, a running level or Sandbox), and creature files (pure).
 
-const SAVE_VERSION = 2;                                   // the save's format; a new one adds a step to SAVE_UPGRADES
-const PROFILE_KEYS = ['continue', 'level-results', 'library', 'quicksave'];   // kept per profile; the rest is shared
-const FIRST_PROFILE_NAME = 'Player';                      // the profile an older save moves into
+const SAVE_VERSION = 3;                                   // the save's format; a new one adds a step to SAVE_UPGRADES
+const GAME_KEYS = ['continue', 'level-results', 'library', 'quicksave'];   // kept per game; the rest is shared
 const CREATURE_FILE_KIND = 'bioforge-lab-creature';       // marks a JSON file as a creature saved by this game
 const CREATURE_FILE_VERSION = 1;                          // the creature file's format
 const CREATURE_FILE_EXTENSION = '.bioforge.json';
@@ -19,15 +18,31 @@ const SAVE_UPGRADES = [
     const library = read('library', null);
     if (Array.isArray(library)) write('library', library.map(migrateLibraryEntry));
   },
-  // 1 → 2 (2026-10-30): the save became profiles; what there was moves into the first one
+  // 1 → 2 (2026-10-30): the save became profiles; what there was moves into the first one, "Player"
   (read, write) => {
-    for (const name of PROFILE_KEYS) {
+    for (const name of GAME_KEYS) {
       const value = read(name, null);
       if (value === null) continue;
-      write(profileKey(1, name), value);
+      write(`profile-1-${name}`, value);
       write(name, null);
     }
-    write('profiles', createProfiles());
+    write('profiles', { list: [{ id: 1, name: 'Player' }], current: 1, nextId: 2 });
+  },
+  // 2 → 3 (2026-11-01): profiles became games, numbered instead of named; each keeps its id and its values
+  (read, write) => {
+    const profiles = read('profiles', null);
+    if (!profiles) return;
+    for (const profile of profiles.list) {
+      for (const name of GAME_KEYS) {
+        const value = read(`profile-${profile.id}-${name}`, null);
+        if (value === null) continue;
+        write(gameKey(profile.id, name), value);
+        write(`profile-${profile.id}-${name}`, null);
+      }
+    }
+    write('games', { list: profiles.list.map(profile => ({ id: profile.id, playedAt: 0 })),
+      current: profiles.current, nextId: profiles.nextId });
+    write('profiles', null);
   },
 ];
 
@@ -40,46 +55,76 @@ function upgradeStoredSave(read, write) {
   return version;
 }
 
-// ---------- Profiles ----------
-// The one place the profile list is built: one profile, the first player's. list: [{ id, name }] in the order they
-// were added; current: the id of the profile playing; nextId: the id the next new profile gets (ids are never reused,
-// so a deleted profile's saves can't come back under a new one).
-function createProfiles() {
-  return { list: [{ id: 1, name: FIRST_PROFILE_NAME }], current: 1, nextId: 2 };
+// ---------- Games ----------
+// The one place the game list is built: one game, not played yet. list: [{ id, playedAt }] in the order they were
+// started, playedAt in ms since 1970 (0: not yet); current: the id of the game playing; nextId: the id the next new
+// game gets (ids are never reused, so a deleted game's saves can't come back under a new one).
+function createGames() {
+  return { list: [{ id: 1, playedAt: 0 }], current: 1, nextId: 2 };
 }
 
-// the storage name a profile's value is kept under
-const profileKey = (id, name) => `profile-${id}-${name}`;
+// the storage name a game's value is kept under
+const gameKey = (id, name) => `game-${id}-${name}`;
 
-// the storage name a value is kept under: the current profile's own for PROFILE_KEYS, the shared one otherwise
-function storageName(profiles, name) {
-  return profiles && PROFILE_KEYS.includes(name) ? profileKey(profiles.current, name) : name;
+// the storage name a value is kept under: the current game's own for GAME_KEYS, the shared one otherwise
+function storageName(games, name) {
+  return games && GAME_KEYS.includes(name) ? gameKey(games.current, name) : name;
 }
 
-const currentProfile = profiles => profiles.list.find(profile => profile.id === profiles.current);
+const currentGame = games => games.list.find(game => game.id === games.current);
 
-// the profiles with a new one added and made current
-function addProfile(profiles, name) {
-  const id = profiles.nextId;
-  return { list: [...profiles.list, { id, name }], current: id, nextId: id + 1 };
+// what the Load game screen calls a game
+const gameName = game => `Game ${game.id}`;
+
+// the games with a new one added and made current, played at playedAt
+function addGame(games, playedAt) {
+  const id = games.nextId;
+  return { list: [...games.list, { id, playedAt }], current: id, nextId: id + 1 };
 }
 
-// the profiles with this one renamed
-function renameProfile(profiles, id, name) {
-  return { ...profiles, list: profiles.list.map(profile => (profile.id === id ? { ...profile, name } : profile)) };
+// the games with this one current and played at playedAt; an unknown id changes nothing
+function switchGame(games, id, playedAt) {
+  if (!games.list.some(game => game.id === id)) return games;
+  return { ...games, current: id, list: games.list.map(game => (game.id === id ? { ...game, playedAt } : game)) };
 }
 
-// the profiles with this one current; an unknown id changes nothing
-function switchProfile(profiles, id) {
-  return profiles.list.some(profile => profile.id === id) ? { ...profiles, current: id } : profiles;
+// The games without this one. Deleting the current game makes the one played last current; deleting the last one
+// leaves a new game, not played yet, so there is always a game to keep the Lab in.
+function removeGame(games, id) {
+  const list = games.list.filter(game => game.id !== id);
+  if (!list.length) return addGame({ ...games, list }, 0);
+  if (games.current !== id) return { ...games, list };
+  const latest = list.reduce((best, game) => (game.playedAt > best.playedAt ? game : best));
+  return { ...games, list, current: latest.id };
 }
 
-// The profiles without this one; the last one can't go. Deleting the current profile makes the first one current.
-function removeProfile(profiles, id) {
-  if (profiles.list.length <= 1) return profiles;
-  const list = profiles.list.filter(profile => profile.id !== id);
-  return { ...profiles, list, current: profiles.current === id ? list[0].id : profiles.current };
+// the games, the one played last first (ties: the newer game first)
+function gamesByLastPlayed(games) {
+  return [...games.list].sort((first, second) => second.playedAt - first.playedAt || second.id - first.id);
 }
+
+// What the Load game screen says about one game, from its saved values: levelsWon and stars over all levels; chapter:
+// the chapter of the first level not won yet (null once all are won); creatures: how many it keeps; leftIn: the name
+// of the level it was left in, or null (the Lab with no level); design: the creature left in the Lab, or null.
+function gameSummary(resumeState, levelResults, library) {
+  const results = levelResults || {};
+  const won = LEVELS.filter(level => results[level.id]);
+  const nextLevel = LEVELS.find(level => !results[level.id]);
+  const state = readResumeState(resumeState);
+  const leftInLevel = state && LEVELS.find(level => level.id === state.levelId);
+  return {
+    levelsWon: won.length,
+    stars: won.reduce((sum, level) => sum + (results[level.id].stars || 0), 0),
+    chapter: nextLevel ? nextLevel.chapter : null,
+    creatures: Array.isArray(library) ? library.filter(entry => entry.isCreature).length : 0,
+    leftIn: leftInLevel ? leftInLevel.name : null,
+    design: state ? state.design : null,
+  };
+}
+
+// whether a game has nothing saved yet, so New game can use it instead of adding another
+const isUnplayedGame = (resumeState, levelResults, library) => !resumeState &&
+  !Object.keys(levelResults || {}).length && !(Array.isArray(library) && library.length);
 
 // ---------- Continue ----------
 // The one place the state Continue picks up is built. design: the builder's design as a library entry; levelId: the

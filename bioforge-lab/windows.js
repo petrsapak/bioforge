@@ -15,18 +15,18 @@ const escapeHtml = text => String(text).replace(/[&<>"]/g, character => HTML_ESC
 // getItem and setItem), or the browser's localStorage.
 const savedStore = () => window.desktopSaves || localStorage;
 
-// A value saved with writeStorage, or fallback if there is none (or storage is blocked). The current profile's own
-// values (PROFILE_KEYS in savegame.js: creatures, level results, Continue, quick save) are kept apart per profile.
+// A value saved with writeStorage, or fallback if there is none (or storage is blocked). The current game's own
+// values (GAME_KEYS in savegame.js: creatures, level results, Continue, quick save) are kept apart per game.
 function readStorage(name, fallback) {
-  return readSharedStorage(storageName(readSharedStorage('profiles', null), name), fallback);
+  return readSharedStorage(storageName(readSharedStorage('games', null), name), fallback);
 }
 
 // keeps a value under name, read back with readStorage
 function writeStorage(name, value) {
-  writeSharedStorage(storageName(readSharedStorage('profiles', null), name), value);
+  writeSharedStorage(storageName(readSharedStorage('games', null), name), value);
 }
 
-// a value under exactly this name, for every profile, or fallback if there is none (null counts as none: the desktop
+// a value under exactly this name, for every game, or fallback if there is none (null counts as none: the desktop
 // save file can't remove a value, so a removed one is kept as null)
 function readSharedStorage(name, fallback) {
   try {
@@ -38,7 +38,7 @@ function readSharedStorage(name, fallback) {
   }
 }
 
-// writes a value under a key that every profile shares
+// writes a value under a key that every game shares
 function writeSharedStorage(name, value) {
   try {
     savedStore().setItem(STORAGE_PREFIX + name, JSON.stringify(value));

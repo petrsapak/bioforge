@@ -6,8 +6,8 @@ const { check, done } = require('./check');
 const { X: sim } = load({}, ['LEVELS', 'TEMPLATES', 'CELLS', 'GAME_VERSION', 'SAVE_VERSION', 'startLevel',
   'stepLevel', 'newWorld', 'spawn', 'step', 'takeSnapshot', 'restoreSnapshot', 'indexDataObjects', 'savedRun',
   'restoredRun', 'runDataIndex', 'createResumeState', 'readResumeState', 'creatureFileText', 'creatureFileName',
-  'readCreatureFile', 'upgradeStoredSave', 'createProfiles', 'storageName', 'addProfile', 'renameProfile',
-  'switchProfile', 'removeProfile', 'currentProfile']);
+  'readCreatureFile', 'upgradeStoredSave', 'createGames', 'storageName', 'addGame', 'switchGame', 'removeGame',
+  'currentGame', 'gameName', 'gamesByLastPlayed', 'gameSummary', 'isUnplayedGame']);
 
 const STEP_SECONDS = 1 / 40;                              // game s per step
 const STEPS_BEFORE_SAVE = 160;                            // 4 game s
@@ -128,9 +128,9 @@ for (const level of sim.LEVELS) {
     stored[name] = value;
   };
   check('a save without a version is upgraded from version 0', sim.upgradeStoredSave(read, write) === 0);
-  const [upgraded] = stored['profile-1-library'];
-  check('the upgrade moves the save into the first profile, named Player',
-    stored.library === null && stored.profiles.current === 1 && stored.profiles.list[0].name === 'Player');
+  const [upgraded] = stored['game-1-library'];
+  check('the upgrade moves the save into the first game',
+    stored.library === null && stored.games.current === 1 && stored.games.list[0].id === 1 && stored.profiles === null);
   check('the upgrade stores the library in the current format',
     upgraded.isCreature && upgraded.cells[1].typeName === 'tissue' && upgraded.cells[1].neuron.kind === 'pacemaker' &&
     Array.isArray(upgraded.fibres));
@@ -142,21 +142,61 @@ for (const level of sim.LEVELS) {
     stored.library === 'from the future' && stored['save-version'] === sim.SAVE_VERSION + 1);
 }
 
-// ---------- Profiles ----------
+// ---------- Upgrading profiles to games (save version 3) ----------
 {
-  const first = sim.createProfiles();
-  check('a profile\'s own values get its own storage name; settings stay shared',
-    sim.storageName(first, 'library') === 'profile-1-library' && sim.storageName(first, 'music-off') === 'music-off' &&
+  const stored = { 'save-version': 2, 'profiles': { list: [{ id: 1, name: 'Player' }, { id: 3, name: 'Ada' }],
+    current: 3, nextId: 4 }, 'profile-3-library': [{ name: 'Kept', isCreature: true, cells: [], fibres: [] }],
+  'profile-1-level-results': { [sim.LEVELS[0].id]: { stars: 2 } } };
+  const read = (name, fallback) => (name in stored && stored[name] !== null ? stored[name] : fallback);
+  const write = (name, value) => {
+    stored[name] = value;
+  };
+  sim.upgradeStoredSave(read, write);
+  check('profiles become games with the same ids, values and current one, and the profile keys are emptied',
+    stored.games.current === 3 && stored.games.nextId === 4 &&
+    stored.games.list.map(game => game.id).join() === '1,3' && stored['game-3-library'][0].name === 'Kept' &&
+    stored['game-1-level-results'][sim.LEVELS[0].id].stars === 2 &&
+    stored['profile-3-library'] === null && stored.profiles === null);
+}
+
+// ---------- Games ----------
+{
+  const first = sim.createGames();
+  check('a game\'s own values get its own storage name; settings stay shared',
+    sim.storageName(first, 'library') === 'game-1-library' && sim.storageName(first, 'music-off') === 'music-off' &&
     sim.storageName(null, 'library') === 'library');
-  const two = sim.addProfile(first, 'Ada');
-  check('a new profile gets the next id and becomes current', two.current === 2 &&
-    sim.currentProfile(two).name === 'Ada' && sim.storageName(two, 'continue') === 'profile-2-continue');
-  check('renaming and switching keep the rest', sim.renameProfile(two, 1, 'Bo').list[0].name === 'Bo' &&
-    sim.switchProfile(two, 1).current === 1 && sim.switchProfile(two, 9).current === 2);
-  const removed = sim.removeProfile(two, 2);
-  check('deleting the current profile makes the first one current; ids are never reused',
-    removed.list.length === 1 && removed.current === 1 && sim.addProfile(removed, 'Cy').current === 3);
-  check('the last profile can\'t be deleted', sim.removeProfile(first, 1) === first);
+  const two = sim.addGame(first, 500);
+  check('a new game gets the next id, its time and becomes current', two.current === 2 &&
+    sim.currentGame(two).playedAt === 500 && sim.storageName(two, 'continue') === 'game-2-continue' &&
+    sim.gameName(sim.currentGame(two)) === 'Game 2');
+  const switched = sim.switchGame(two, 1, 900);
+  check('switching makes the game current and dates it; an unknown id changes nothing',
+    switched.current === 1 && sim.currentGame(switched).playedAt === 900 && sim.switchGame(two, 9, 1) === two);
+  check('the Load game screen lists the one played last first', sim.gamesByLastPlayed(switched)[0].id === 1 &&
+    sim.gamesByLastPlayed(two)[0].id === 2);
+  const removed = sim.removeGame(switched, 1);
+  check('deleting the current game makes the one played last current; ids are never reused',
+    removed.list.length === 1 && removed.current === 2 && sim.addGame(removed, 0).current === 3);
+  const none = sim.removeGame(first, 1);
+  check('deleting the last game leaves a new one, not played yet', none.list.length === 1 && none.current === 2 &&
+    none.list[0].playedAt === 0);
+}
+
+// ---------- What the Load game screen says about a game ----------
+{
+  const [firstLevel, secondLevel] = sim.LEVELS;
+  const design = { name: '', isCreature: true, cells: [{ q: 0, r: 0, typeName: 'nucleus' }], fibres: [] };
+  const resume = sim.createResumeState(design, secondLevel.id);
+  const summary = sim.gameSummary(resume, { [firstLevel.id]: { stars: 3 } },
+    [{ isCreature: true }, { isCreature: false }]);
+  check('a game\'s summary: levels won, stars, the next chapter, its creatures and the level it was left in',
+    summary.levelsWon === 1 && summary.stars === 3 && summary.chapter === secondLevel.chapter &&
+    summary.creatures === 1 && summary.leftIn === secondLevel.name && summary.design.cells.length === 1);
+  const allWon = Object.fromEntries(sim.LEVELS.map(level => [level.id, { stars: 1 }]));
+  check('once every level is won there is no next chapter', sim.gameSummary(null, allWon, null).chapter === null);
+  check('a game is unplayed only with nothing saved', sim.isUnplayedGame(null, {}, []) &&
+    !sim.isUnplayedGame(resume, null, null) && !sim.isUnplayedGame(null, { [firstLevel.id]: { stars: 1 } }, null) &&
+    !sim.isUnplayedGame(null, null, [{ isCreature: true }]));
 }
 
 done();

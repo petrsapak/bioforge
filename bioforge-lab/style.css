@@ -247,11 +247,11 @@ button.big:hover { background: #4a8044; }
   border-radius: 4px; cursor: pointer; font: inherit;
 }
 /* the Templates screen (library.js): a sheet like the field guide, the tabs down the left, the cards on the right */
-#library-sheet {
+#library-sheet, #games-sheet {
   position: absolute; inset: 0; display: none; align-items: center; justify-content: center; z-index: 32;
   background: #000a; backdrop-filter: blur(2px);
 }
-#library-inner {
+#library-inner, #games-inner {
   display: flex; width: min(1080px, calc(100vw - 32px)); height: min(740px, calc(100vh - 32px)); overflow: hidden;
   background: #0d1519f5; border: 1px solid #2c4650; border-radius: 12px; font-size: 13px; color: #b9c3cd;
   box-shadow: 0 18px 50px #000c;
@@ -276,19 +276,19 @@ button.big:hover { background: #4a8044; }
 .library-tab .count { color: #6f7f8a; font-size: 11px; }
 #library-help { margin: auto 0 0; padding: 12px 14px; line-height: 1.45; }
 #library-page { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-#library-head {
+#library-head, #games-head {
   display: flex; align-items: center; gap: 12px; padding: 12px 16px 8px; border-bottom: 1px solid #23323a;
 }
-#library-title { flex: 1; color: #e8ecef; font-size: 20px; font-weight: 700; }
+#library-title, #games-title { flex: 1; color: #e8ecef; font-size: 20px; font-weight: 700; }
 #library-actions { display: flex; gap: 6px; }
-#library-close {
+#library-close, #games-close {
   width: 28px; height: 28px; background: none; border: 1px solid #2c4650; border-radius: 6px; color: #b9c3cd;
   cursor: pointer;
 }
-#library-close:hover { background: #1a2a31; color: #fff; }
+#library-close:hover, #games-close:hover { background: #1a2a31; color: #fff; }
 button.small.primary { background: #2f5a2c; border-color: #3d6b38; color: #fff; }
 button.small.primary:hover { background: #3d6b38; }
-#library-cards {
+#library-cards, #games-cards {
   flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
   grid-auto-rows: min-content; gap: 10px; padding: 12px 16px 20px;
 }
@@ -317,6 +317,10 @@ button.small.primary:hover { background: #3d6b38; }
 .library-card:hover .card-buttons { opacity: 1; }
 .card-buttons button.small { flex: none; width: 22px; height: 20px; padding: 0; background: #0e181de6; }
 .card-buttons button.small:hover { border-color: #8a96a3; }
+/* the Load game screen (gamesview.js): one column of the Templates screen's look, wider cards */
+#games-sheet { z-index: 33; }
+#games-inner { flex-direction: column; width: min(900px, calc(100vw - 32px)); }
+#games-cards { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
 
 /* ---------- Save menu (right-click on a selection) ---------- */
 /* the Symmetry dial: six axis buttons turned around one centre */
@@ -746,13 +750,7 @@ button.small.run:hover { background: #4a8044; }
   color: #b9c3cd;
 }
 #menu-title { margin-bottom: 16px; color: #e8c547; font-size: 22px; font-weight: 600; text-align: center; }
-#menu-buttons, #menu-settings-view, #menu-profiles-view { display: flex; flex-direction: column; gap: 6px; }
-.menu-hint { color: #8a98a3; font-size: 12px; line-height: 1.4; margin-bottom: 4px; }
-#profile-list { display: flex; flex-direction: column; gap: 4px; }
-.profile-row { display: flex; gap: 4px; }
-.profile-row .menu-button { flex: 1; text-align: left; }
-.profile-row .menu-button.current { border-color: #e8c547; color: #f2e39b; }
-.profile-row button.small { flex: 0 0 34px; }
+#menu-buttons, #menu-settings-view { display: flex; flex-direction: column; gap: 6px; }
 .menu-button {
   padding: 9px 12px; background: #1c2a31; color: #dfe4ea; border: 1px solid #2c3f48; border-radius: 6px;
   cursor: pointer; font: inherit; font-size: 15px;
@@ -817,7 +815,7 @@ button.small.run:hover { background: #4a8044; }
   text-align: left; text-shadow: 0 0 18px #f2d36b66, 0 0 42px #f2d36b33;
 }
 #menu-sheet.leaving #menu-box { opacity: 0; transform: translateX(-16px); }
-body.title-shown > :not(#game):not(#menu-sheet):not(#screen-fade):not(#loading-screen):not(#keys-sheet):not(#dialog-sheet):not(#guide-sheet):not(audio):not(script) {
+body.title-shown > :not(#game):not(#menu-sheet):not(#screen-fade):not(#loading-screen):not(#keys-sheet):not(#dialog-sheet):not(#guide-sheet):not(#games-sheet):not(audio):not(script) {
   visibility: hidden;
 }
 /* Covers the page from its first paint until the title's first frame is drawn, so the lab never shows first. */

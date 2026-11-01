@@ -39,7 +39,7 @@ function setUpDesignButtons(app) {
 
 // Delete all: starts over with just the Nucleus, after asking if there is anything else to lose
 function clearDesign(app) {
-  const startOver = () => loadDesign(app, { cells: [createDesignCell(0, 0, 'nucleus')], fibres: [] }, 'Delete all', '');
+  const startOver = () => loadDesign(app, bareDesign(), 'Delete all', '');
   if (app.edited.cells.size <= 1) {
     startOver();
     return;

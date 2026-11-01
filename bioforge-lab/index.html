@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>Bioforge Lab</title>
+<link rel="icon" href="icon.png">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -244,15 +245,15 @@
     <div id="menu-buttons">
       <button class="menu-button primary" id="menu-continue">Continue</button>
       <button class="menu-button primary" id="menu-resume">Resume</button>
-      <button class="menu-button" id="menu-levels">Levels</button>
-      <button class="menu-button" id="menu-free-build" title="The Lab with the usual limits, and the Sandbox">Free build</button>
+      <button class="menu-button" id="menu-new-game" title="A new game from level 1; the others stay in Load game">New game</button>
+      <button class="menu-button" id="menu-load-game" title="Pick a saved game">Load game</button>
+      <button class="menu-button" id="menu-sandbox" title="Build freely from just the Nucleus, with every cell; your game stays where it was">Sandbox</button>
       <button class="menu-button" id="menu-retry">Retry</button>
       <button class="menu-button" id="menu-builder">Back to the Lab</button>
       <button class="menu-button" id="menu-save-creature" title="Keep the creature in the Lab in My creatures, on the Templates screen (Ctrl+S)">Save creature</button>
       <button class="menu-button" id="menu-templates" title="Your saved creatures and parts, and the examples">Templates</button>
       <button class="menu-button" id="menu-guide" title="What every cell and neuron does, and how the game works">Field guide</button>
       <button class="menu-button" id="menu-settings">Settings</button>
-      <button class="menu-button" id="menu-profile" title="Each player keeps their own creatures, level results and saved run">Profile</button>
       <button class="menu-button" id="menu-main">Main menu</button>
       <button class="menu-button" id="menu-quit">Quit</button>
     </div>
@@ -262,18 +263,19 @@
       <div class="menu-setting"><span>Sounds <kbd>N</kbd></span><button class="small" id="setting-sounds">On</button></div>
       <div class="menu-setting" id="setting-fullscreen-row"><span>Fullscreen</span><button class="small" id="setting-fullscreen">Off</button></div>
       <button class="menu-button" id="setting-keys">Keys and mouse</button>
-      <button class="menu-button danger" id="setting-reset-levels" title="Forget this profile's stars and best results; the levels lock again">Reset level progress</button>
+      <button class="menu-button danger" id="setting-reset-levels" title="Forget this game's stars and best results; the levels lock again">Reset level progress</button>
       <button class="menu-button" id="menu-back">Back</button>
     </div>
-    <div id="menu-profiles-view">
-      <div class="keys-title">Profiles</div>
-      <div class="menu-hint">Each player keeps their own creatures, level results and saved run. Settings are shared.</div>
-      <div id="profile-list"></div>
-      <button class="menu-button" id="profile-new">New profile</button>
-      <button class="menu-button danger" id="profile-reset-levels" title="Forget this profile's stars and best results; the levels lock again">Reset level progress</button>
-      <button class="menu-button" id="profile-back">Back</button>
-    </div>
     <div class="keys-version" id="menu-version"></div>
+  </div>
+</div>
+<div id="games-sheet">
+  <div id="games-inner">
+    <div id="games-head">
+      <span id="games-title">Load game</span>
+      <button id="games-close" title="Close (Esc)">✕</button>
+    </div>
+    <div id="games-cards"></div>
   </div>
 </div>
 <div id="screen-fade"></div>
@@ -338,6 +340,7 @@
 <script src="levelview.js"></script>
 <script src="progress.js"></script>
 <script src="titleview.js"></script>
+<script src="gamesview.js"></script>
 <script src="menus.js"></script>
 <script src="music.js"></script>
 <script src="sound.js"></script>

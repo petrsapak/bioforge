@@ -99,16 +99,19 @@ function pulsedByNucleus(design, rate) {
 // the sides take turns and both are the same number of fibres from the beat. The Muscles bend the front, and the
 // floppy fin follows late and pushes the water back: head first at about the Jet's speed (2.2 Hz). backDelay (s): a
 // Delay neuron in each back-row Muscle, so a wave runs down the body to the fin, which swims about as fast as Cilia.
-function muscleFish(rate, backDelay) {
-  const body = [[0, -1, 'mouth'], [1, -1, 'pore'], [-1, 0, 'gill'], [-1, 1, 'muscle'], [0, 1, 'muscle'],
-    [-2, 2, 'muscle'], [-1, 2, 'heart'], [0, 2, 'muscle'], [-2, 3, 'joint'], [-1, 3, 'joint'], [-3, 4, 'joint'],
-    [-2, 4, 'joint'], [-1, 4, 'joint']];
+// isLean: Tissue in place of the Mouth, Pore, Gills and Heart, which only matter where it must eat and breathe, so
+// it is built from Muscles, Joints and Tissue alone (Tail's dock).
+function muscleFish(rate, backDelay, isLean = false) {
+  const feeding = typeName => (isLean ? 'tissue' : typeName);
+  const body = [[0, -1, feeding('mouth')], [1, -1, feeding('pore')], [-1, 0, feeding('gill')], [-1, 1, 'muscle'],
+    [0, 1, 'muscle'], [-2, 2, 'muscle'], [-1, 2, feeding('heart')], [0, 2, 'muscle'], [-2, 3, 'joint'],
+    [-1, 3, 'joint'], [-3, 4, 'joint'], [-2, 4, 'joint'], [-1, 4, 'joint']];
   const backRow = backDelay ? { neuron: { ...createNeuron('delay'), setting: backDelay } } : {};
   const isBackRowMuscle = (q, r) => r === 2 && (q === -2 || q === 0);
   return {
     cells: [
       createDesignCell(0, 0, 'nucleus', { neuron: { ...createNeuron('pacemaker'), setting: rate } }),
-      createDesignCell(1, 0, 'gill', { neuron: createNeuron('inhibitor') }),
+      createDesignCell(1, 0, feeding('gill'), { neuron: createNeuron('inhibitor') }),
       ...body.map(([q, r, typeName]) => createDesignCell(q, r, typeName, isBackRowMuscle(q, r) ? backRow : {})),
     ],
     fibres: linksFromList([[0, 0, -1, 0], [-1, 0, -1, 1], [-1, 1, -2, 2], [0, 0, 1, 0], [1, 0, 0, 1], [0, 1, 0, 2]]),
@@ -132,6 +135,7 @@ const TEMPLATES = {
     fibres: [{ from: { q: 0, r: 0 }, to: { q: -1, r: 1 } }, { from: { q: 0, r: 0 }, to: { q: 0, r: 1 } }],
   },
   paddler: muscleFish(2.2, 0.1),
+  leanPaddler: muscleFish(2.2, 0.1, true),
   // Follows the light (in the Sandbox, the mouse): each Light eye is wired across to the Siphon on the far side, so
   // the eye nearer the light drives the far siphon harder and turns the creature toward it (Braitenberg's vehicle).
   seeker: {
@@ -249,6 +253,8 @@ const EXAMPLE_GROUPS = [
         about: 'The starting creature: a Pacemaker pulses two siphons, so it swims on its own' },
       { template: 'paddler', name: 'Paddler',
         about: 'Muscle swimmer: the Wiggler with a Delay in each back Muscle, so a wave runs down to its fin' },
+      { template: 'leanPaddler', name: 'Lean paddler',
+        about: 'The Paddler with Tissue for its Mouth, Pore, Gills and Heart: Muscles, Joints and Tissue only' },
       { template: 'seeker', name: 'Seeker',
         about: 'Follows the mouse in the Sandbox: two Light eyes, each wired across to the far siphon' },
       { template: 'lancer', name: 'Lancer',

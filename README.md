@@ -24,6 +24,7 @@ There is no build step and there are no dependencies. Open `index.html` from any
 cd desktop
 npm install           # once: Electron and electron-builder
 npm start             # runs the live bioforge-lab folder in the desktop window
+npm run icon          # redraws the icon (icon.ico, bioforge-lab/icon.png) from icon.html in headless Edge
 npm run dist          # builds dist/Bioforge Lab Setup <version>.exe and a portable .exe
 ```
 

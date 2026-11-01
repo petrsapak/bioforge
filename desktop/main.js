@@ -17,6 +17,8 @@ const BACKGROUND_COLOR = '#0b1418';                       // the page's backgrou
 const GAME_PAGE = app.isPackaged
   ? path.join(__dirname, 'game', 'index.html')
   : path.join(__dirname, '..', 'bioforge-lab', 'index.html');
+// the window's and the taskbar's icon, beside the page (make-icon.js draws it; the .exe's own is icon.ico)
+const WINDOW_ICON = path.join(path.dirname(GAME_PAGE), 'icon.png');
 
 // The app-data folder is named after the game in both cases, so a built and a repository run share one save.
 app.setName(GAME_NAME);
@@ -29,6 +31,7 @@ let saves = null;
 function createGameWindow() {
   const gameWindow = new BrowserWindow({
     title: GAME_NAME,
+    icon: WINDOW_ICON,
     minWidth: MIN_WINDOW_WIDTH,
     minHeight: MIN_WINDOW_HEIGHT,
     backgroundColor: BACKGROUND_COLOR,

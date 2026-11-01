@@ -113,8 +113,9 @@ function createStorage(items) {
 
 // Starts the whole app in the fake browser (game.js boots it, since the fake has a `window`).
 // storedItems: what localStorage holds.
-// The game starts at the main menu, and Free build closes it (after the screen dims, LEAVE_TITLE_FRAMES) unless
-// options.atMainMenu keeps it open.
+// The game starts at the main menu, and Continue closes it into the current game (after the screen dims,
+// LEAVE_TITLE_FRAMES; with nothing saved, the Lab with its start design and no level) unless options.atMainMenu keeps
+// it open.
 // options.window: more fields of window, such as the desktop build's desktopWindow.
 function startApp(storedItems = {}, options = {}) {
   const storage = createStorage(storedItems);
@@ -159,7 +160,7 @@ function startApp(storedItems = {}, options = {}) {
   // a top-level name of the game's scripts (consts aren't properties of the global scope, so they are evaluated)
   const readGlobal = name => vm.runInContext(name, scope);
   if (!options.atMainMenu) {
-    byId('menu-free-build').onclick({});
+    byId('menu-continue').onclick({});
     runFrames(LEAVE_TITLE_FRAMES);
   }
   return { byId, fire, runFrames, templateButton, readGlobal, storage };

@@ -55,7 +55,7 @@ check('the main menu sits on the title scene', byId('menu-sheet').classList.cont
 check('the game comes up out of black', +byId('screen-fade').style.opacity > 0.5);
 runFrames(120);
 check('then the title is clear', byId('screen-fade').style.display === 'none');
-byId('menu-free-build').onclick({});
+byId('menu-sandbox').onclick({});
 runFrames(15);
 check('leaving dims the screen while the menu slides away', +byId('screen-fade').style.opacity > 0.2 &&
   byId('menu-sheet').classList.contains('leaving') && byId('menu-sheet').style.display === 'flex');

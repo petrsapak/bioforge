@@ -239,8 +239,8 @@ const partRow = byId('library-cards').children[0];
 check('the selection is saved as a part, and My parts opens', !!partRow &&
   byId('library-tab-parts').classList.contains('selected') && /Saved "Front"/.test(byId('message').textContent),
   byId('message').textContent);
-// each profile keeps its own library (0.7.1)
-check('the library is kept in storage', JSON.parse(storage.items['bioforge-lab-profile-1-library']).length === 2);
+// each game keeps its own library (0.7.1; profiles until 0.7.18)
+check('the library is kept in storage', JSON.parse(storage.items['bioforge-lab-game-1-library']).length === 2);
 
 partRow.onclick();
 check('clicking the part picks it up as a stamp, its card marked', /Placing "Front"/.test(info()) &&

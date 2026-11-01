@@ -162,15 +162,9 @@ function creviceWormBuild(rate = 1.5, muscleRows = 3, backTypeName = 'bloater') 
     ...inhibitorRow, ...back],
   fibres: [...wire({ q: 0, r: 0 }, [...front, ...muscles, inhibitorRow[0]]), ...wire(inhibitorRow[0], back)] };
 }
-// Tail: the Paddler with Tissue for its Mouth, Pore, Gills and Heart (without the Heart's Inhibitor), which do
-// nothing in chapter 2, so it uses only the cells the dock has by then
-const FEEDING_CELLS = ['mouth', 'pore', 'gill', 'heart'];
-const asTailCell = ({ neuron, ...bodyCell }) => {
-  const keepsNeuron = neuron && bodyCell.typeName !== 'heart';
-  const typeName = FEEDING_CELLS.includes(bodyCell.typeName) ? 'tissue' : bodyCell.typeName;
-  return { ...bodyCell, typeName, ...(keepsNeuron ? { neuron } : {}) };
-};
-const tailFish = { cells: sim.TEMPLATES.paddler.cells.map(asTailCell), fibres: sim.TEMPLATES.paddler.fibres };
+// Tail: the Lean paddler, the Paddler with Tissue for its Mouth, Pore, Gills and Heart, which do nothing in
+// chapter 2, so it uses only the cells the dock has by then
+const tailFish = sim.TEMPLATES.leanPaddler;
 // Tail: the Wiggler with its Inhibitor taken out, so both sides of the tail contract together and only pulse
 const wigglerWithoutInhibitor = { ...sim.TEMPLATES.wiggler, cells: sim.TEMPLATES.wiggler.cells.map(bodyCell =>
   (bodyCell.neuron && bodyCell.neuron.kind === 'inhibitor' ? { ...bodyCell, neuron: null } : bodyCell)) };
@@ -260,8 +254,21 @@ const WRONG_TOOLS = {
   moods: moodsBuild('tissue'),
 };
 
+// the cells and neurons in a design that the level's dock doesn't have yet (buildCheck lets them run, but the
+// player can't build them; user, 2026-11-01, of Tail: "this is what I have available for that level")
+function piecesNotInDock(design, level) {
+  const limits = sim.levelLimits(level);
+  const cells = design.cells.filter(bodyCell => sim.isCellLocked(limits, bodyCell.typeName))
+    .map(bodyCell => bodyCell.typeName);
+  const neurons = design.cells.filter(bodyCell => bodyCell.neuron && sim.isNeuronLocked(limits, bodyCell.neuron.kind))
+    .map(bodyCell => bodyCell.neuron.kind);
+  return [...new Set([...cells, ...neurons])];
+}
+
 for (const level of sim.LEVELS) {
   const solution = SOLUTIONS[level.id];
+  const missing = piecesNotInDock(solution, level);
+  check(`"${level.name}": the reference solution uses only pieces the dock has`, !missing.length, missing.join(', '));
   const problem = sim.buildCheck(solution, sim.levelLimits(level));
   const run = sim.runLevel(level, solution);
   check(`"${level.name}": the reference solution fits and wins with 3 stars`,
@@ -321,6 +328,13 @@ const huntRuns = [huntCiliaBuild, sim.TEMPLATES.jet, SOLUTIONS.shade]
 check('"Hunt": Cilia on the sides catch the Darter too; the Jet and the Shade build lose',
   huntRuns[0].outcome === 'won' && huntRuns.slice(1).every(run => run.outcome === 'lost'),
   huntRuns.map(run => `${run.outcome} ${run.time.toFixed(0)} s`).join(', '));
+// The Darter flees in sprints that tire it (user, 2026-11-01: "improve the hunted organism so that it actually has a
+// chance to avoid the player's organism if it is slow"): the reference with two Tissue cells more swims 31 px/s
+// instead of 45 and never closes in
+const heavyHunter = { ...huntBuild, cells: [...huntBuild.cells, cell(-1, 0, 'tissue'), cell(1, 0, 'tissue')] };
+const heavyHunt = sim.runLevel(levelById('hunt'), heavyHunter);
+check('"Hunt": the Darter outruns a heavier hunter', heavyHunt.outcome === 'lost',
+  `${heavyHunt.outcome} ${heavyHunt.time.toFixed(0)} s`);
 // Packed lunch was beaten by the Marathon build (user, 2026-10-30: "14 can be finished with the same vessel as 13")
 const lunchProblem = sim.buildCheck(SOLUTIONS.marathon, sim.levelLimits(levelById('packed-lunch')));
 check('"Packed lunch": the Marathon build doesn\'t fit its kit', /Not enough protein/.test(lunchProblem), lunchProblem);
@@ -395,8 +409,8 @@ check('every reference solution is built from what its level\'s dock has by then
   check('a later level keeps what the earlier ones unlocked, and Cold water brings the Heart',
     !sim.isCellLocked(coldWater, 'lighteye') && !sim.isNeuronLocked(coldWater, 'synapse') &&
     !sim.isCellLocked(coldWater, 'heart') && sim.isCellLocked(coldWater, 'shell'));
-  check('Shade brings Cilia and Dock the Ganglion; no level brings the Command (a key the player holds)',
-    sim.levelBringing('cilia') === levelById('shade') && sim.levelBringing('ganglion') === levelById('dock') &&
+  check('Hunt brings Cilia and Dock the Ganglion; no level brings the Command (a key the player holds)',
+    sim.levelBringing('cilia') === levelById('hunt') && sim.levelBringing('ganglion') === levelById('dock') &&
     sim.levelBringing('command') === null);
   check('a piece is met once the level that brings it is earned, or the last level is won',
     sim.isPieceMet({}, 'siphon') && !sim.isPieceMet({}, 'muscle') && sim.isPieceMet({}, 'command') &&
@@ -502,7 +516,7 @@ runFrames(1150);                       // the Jet needs about 17.3 game s, at 16
 check('the Jet swims into the ring: the result box shows a win with 1 star',
   byId('level-result').style.display === 'block' && byId('result-title').textContent === 'Level done' &&
   (byId('result-stars').innerHTML.match(/class="lit"/g) || []).length === 1, byId('result-text').textContent);
-const kept = JSON.parse(storage.items['bioforge-lab-profile-1-level-results'] || '{}');
+const kept = JSON.parse(storage.items['bioforge-lab-game-1-level-results'] || '{}');
 check('the win is kept as the best result', kept['first-stroke'] && kept['first-stroke'].stars === 1,
   JSON.stringify(kept));
 check('the result box offers Retry and Builder only (Next level was the same as Builder; user, 2026-10-30)',
@@ -532,20 +546,20 @@ check('Run level is shut while the design does not fit the level, and says why',
   /doesn't fit: (Over budget|Too many)/.test(byId('level-run-note').textContent), byId('level-run-note').textContent);
 byId('levels-close').onclick();
 
-// Reset level progress (main menu > Profile): asks first, then the stars go and the levels lock again
-byId('profile-reset-levels').onclick();
+// Reset level progress (Settings): asks first, then the stars go and the levels lock again
+byId('setting-reset-levels').onclick();
 check('Reset level progress asks first, in red', byId('dialog-sheet').style.display === 'flex' &&
   byId('dialog-box').classList.contains('dangerous'));
 byId('dialog-confirm').onclick();
 byId('show-levels').onclick();
 const rowsAfterReset = byId('levels-list').children.filter(child => child.className.startsWith('level-tile'));
 check('after it, no level has a result and level 2 is locked again',
-  JSON.stringify(JSON.parse(storage.items['bioforge-lab-profile-1-level-results'])) === '{}' &&
+  JSON.stringify(JSON.parse(storage.items['bioforge-lab-game-1-level-results'])) === '{}' &&
   rowsAfterReset[1].className.includes('locked') && !rowsAfterReset[0].className.includes('locked'));
 
 // once the last level is won, every level's dock has everything
 {
-  const finished = startApp({ 'bioforge-lab-profile-1-level-results': JSON.stringify({ [lastLevel.id]: { stars: 1,
+  const finished = startApp({ 'bioforge-lab-game-1-level-results': JSON.stringify({ [lastLevel.id]: { stars: 1,
     seconds: 1, biomass: 1 } }) });
   finished.runFrames(3);
   finished.byId('show-levels').onclick();
@@ -557,8 +571,8 @@ check('after it, no level has a result and level 2 is locked again',
   finished.byId('setting-reset-levels').onclick();
   finished.byId('dialog-confirm').onclick();
   check('Reset level progress in Settings forgets the results, and First stroke\'s dock locks again',
-    finished.storage.items['bioforge-lab-profile-1-level-results'] === '{}' &&
+    finished.storage.items['bioforge-lab-game-1-level-results'] === '{}' &&
     dockButtonsOf(finished).some(button => button.style.display === 'none'),
-    finished.storage.items['bioforge-lab-profile-1-level-results']);
+    finished.storage.items['bioforge-lab-game-1-level-results']);
 }
 done();

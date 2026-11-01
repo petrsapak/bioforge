@@ -20,8 +20,9 @@
 //     it has blink: { on, off } (game s on, then off, repeating from the start) or flash: { at, length } (once, at
 //     that game s, for that long)
 //   creatures: others in the arena: { design (a LEVEL_CREATURES or TEMPLATES name), x, y, heading, behaviour }.
-//     behaviour 'wired': it moves only by its own wiring; 'hunt': the AI steers it at the player; at: game s it
-//     arrives (left out: there from the start); anchored: fixed in place, nothing moves it
+//     behaviour 'wired': it moves only by its own wiring; 'hunt': the AI steers it at the player; 'flee': the AI
+//     steers it away from the player once near, in sprints that tire it (ai.js); at: game s it arrives (left out:
+//     there from the start); anchored: fixed in place, nothing moves it
 //   goal: { kind: 'reach', x, y, radius } swim the creature's centre into the ring;
 //     { kind: 'stayNear', radius, seconds } stay that close to the light for that long in all;
 //     { kind: 'eat', count } eat that many food specks;
@@ -102,7 +103,6 @@ const LEVELS = [
   }),
   createLevel({
     id: 'shade', chapter: 1, name: 'Shade',
-    unlocks: { cells: ['cilia'] },
     brief: 'The light is in your eyes. Turn away from it and swim to the dark ring.',
     hint: 'Wire each Light eye to the Siphon on its own side: the eye nearer the light drives that side harder, ' +
       'which turns you away from it. Eyes alone slow down once the light is behind them; a Pacemaker on the ' +
@@ -115,17 +115,19 @@ const LEVELS = [
   }),
   createLevel({
     id: 'hunt', chapter: 1, name: 'Hunt',
+    unlocks: { cells: ['cilia'] },
     brief: 'The glowing Darter is prey, far across the arena, too far for your eyes to see it at first. Catch it: ' +
-      'get into the ring round it.',
+      'get into the ring round it. It darts away when you come near, but tires after a few seconds: stay with it.',
     hint: 'The Lighthouse build sits still until it sees a light, and this one is out of sight. Keep swimming ' +
       'until you see it, then turn toward it: a Pacemaker in the Nucleus pulsing both Siphons, with the eyes ' +
-      'crossed to them as in Lighthouse. Cilia on the sides, which always beat, work too.',
+      'crossed to them as in Lighthouse. Cilia on the sides, which always beat, work too. Keep it small: every ' +
+      'cell you add slows you, and a slow hunter never closes in before the Darter has its breath back.',
     limits: { budget: 50 },
     start: { x: 150, y: 700, heading: 1.1 },
     light: { carriedBy: 0, range: 700 },
-    creatures: [{ design: 'darter', x: 1250, y: 150, heading: 0, behaviour: 'wired' }],
+    creatures: [{ design: 'skittishDarter', x: 1000, y: 300, heading: 0, behaviour: 'flee' }],
     goal: { kind: 'stayNear', radius: 80, seconds: 0.5 },
-    timeLimit: 50, par: { seconds: 40, biomass: 14 },
+    timeLimit: 40, par: { seconds: 33, biomass: 14 },
   }),
   createLevel({
     id: 'freeze', chapter: 2, name: 'Freeze',
@@ -187,7 +189,7 @@ const LEVELS = [
     hint: 'A tail beating side to side swims. Two rows of Muscles behind the Nucleus, the left side on a Pacemaker ' +
       'and the right side on an Inhibitor of it, so the sides take turns, and a fin of Joints behind them. About ' +
       '2 Hz. A Delay of 0.1 s in the back row sends a wave down the tail, which is faster. Keep the body even, or ' +
-      'it turns.',
+      'it turns. The Lean paddler on the Templates screen is one.',
     limits: { budget: 50, bannedCells: NO_JETS },
     start: { x: 150, y: 400, heading: Math.PI / 2 },
     goal: { kind: 'reach', x: 1150, y: 400, radius: 90 },
@@ -545,18 +547,24 @@ const LEVELS = [
   }),
 ];
 
+// the Darter's body: a Nucleus, an Eyespot in front and two Siphons behind
+const darterCells = () => [
+  createDesignCell(0, 0, 'nucleus'),
+  createDesignCell(0, -1, 'eyespot'),
+  createDesignCell(-1, 1, 'siphon'),
+  createDesignCell(0, 1, 'siphon'),
+];
+
 // Creatures that live in levels. The Darter holds still until its Eyespot sees an enemy within reach (120 px), then
-// jets straight ahead on both Siphons. The Clam is a Nucleus inside two rings of Shell, and does nothing.
+// jets straight ahead on both Siphons. The skittish Darter has no nerves: the AI makes it flee (behaviour 'flee',
+// ai.js), so its Siphons' bursts can't add to its sprint. The Clam is a Nucleus inside two rings of Shell, and does
+// nothing.
 const LEVEL_CREATURES = {
   darter: {
-    cells: [
-      createDesignCell(0, 0, 'nucleus'),
-      createDesignCell(0, -1, 'eyespot'),
-      createDesignCell(-1, 1, 'siphon'),
-      createDesignCell(0, 1, 'siphon'),
-    ],
+    cells: darterCells(),
     fibres: [{ from: { q: 0, r: -1 }, to: { q: -1, r: 1 } }, { from: { q: 0, r: -1 }, to: { q: 0, r: 1 } }],
   },
+  skittishDarter: { cells: darterCells(), fibres: [] },
   // an urchin: its Eyespot (on the far side, away from the light's approach) holds a Synapse wired to four Nettles,
   // so Calm in the water, which raises the threshold, puts it to sleep
   urchin: {

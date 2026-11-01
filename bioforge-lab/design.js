@@ -322,6 +322,9 @@ function createDesignCell(q, r, typeName, extras = {}) {
   return { q, r, typeName, ...extras };
 }
 
+// a design of just the Nucleus: Delete all, and the main menu's Sandbox
+const bareDesign = () => ({ cells: [createDesignCell(0, 0, 'nucleus')], fibres: [] });
+
 // Saves made before 2026-10-28 (and by Bioforge Moba) used short field names.
 const OLD_DESIGN_FIELD_NAMES = {
   t: 'typeName', tpl: 'budPart', bind: 'boundKey', rot: 'partRotation', off: 'partOffset', aim: 'partAim',

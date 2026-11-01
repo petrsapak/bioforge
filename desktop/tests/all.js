@@ -6,8 +6,8 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const TEXT_FILES = ['main.js', 'preload.js', 'saves.js', 'copy-game.js', 'package.json', 'tests/all.js',
-  'tests/saves.js'];
+const TEXT_FILES = ['main.js', 'preload.js', 'saves.js', 'copy-game.js', 'make-icon.js', 'icon.html', 'icon.js',
+  'package.json', 'tests/all.js', 'tests/saves.js'];
 
 let failed = false;
 for (const file of TEXT_FILES) {
