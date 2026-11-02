@@ -128,23 +128,13 @@ function isFueled(creature) {
   return creature.cells.some(cell => cell.type.fuelBurn) && carries(FLUID_OXYGEN) && carries(FLUID_SUGAR);
 }
 
-// Fluids seep between touching cells from the fuller one to the emptier one (by fill level); a valve without a signal
-// lets nothing through. (A beating Heart pumps the links in its reach on top of this: vascular.js.)
-// The world's seepFactor slows it all down (a level's cold water).
+// Fluids seep between touching cells from the fuller one to the emptier one (by fill level). (A beating Heart pumps
+// the links in its reach on top of this: vascular.js.) The world's seepFactor slows it all down (a level's cold water).
 function updateFluidFlow(world, dt) {
-  for (const link of world.fluidLinks) link.open = isLinkOpen(link);
   const substep = dt / FLOW_SUBSTEPS;
   for (let i = 0; i < FLOW_SUBSTEPS; i++) {
-    for (const link of world.fluidLinks) {
-      if (link.open) flowAlongLink(link, link.conductance * world.seepFactor, substep);
-    }
+    for (const link of world.fluidLinks) flowAlongLink(link, link.conductance * world.seepFactor, substep);
   }
-}
-
-// whether fluid may pass between the link's two cells: a Valve without a signal lets nothing through
-function isLinkOpen(link) {
-  const valveOpen = cell => !cell.type.gatesFlow || cell.signal > SIGNAL_ON;
-  return valveOpen(link.first) && valveOpen(link.second);
 }
 
 // moves each fluid between the link's two cells by their difference in fill level (conductance: flow per unit)

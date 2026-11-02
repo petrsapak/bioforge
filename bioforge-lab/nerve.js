@@ -1,7 +1,7 @@
 'use strict';
-// Nerve system: signals travel only along fibres (fibres.js), one nerve step per fibre. Every nerve step each cell
-// adds up what its incoming fibres deliver, plus its own sense; a plain cell passes the sum on (clamped to 0..1), and
-// a cell with a neuron (data/neurons.js) lets the neuron decide its signal. Pure: no DOM.
+// Nerve system: signals travel only along fibres (fibres.js), across the whole wiring in one nerve step. Every nerve
+// step each cell adds up what its incoming fibres deliver, plus its own sense; a plain cell passes the sum on (clamped
+// to 0..1), and a cell with a neuron (data/neurons.js) lets the neuron decide its signal. Pure: no DOM.
 
 const NERVE_SUBSTEPS = 4;                                 // nerve steps per game step
 const EYESPOT_RANGE = 120;                                // px from an eyespot to an enemy cell it notices
@@ -158,19 +158,44 @@ function decideSignal(world, cell, input, stepTime, time) {
   return NEURON_RULES[neuron.kind](cell, input, world, stepTime, time);
 }
 
-// Each nerve step, every fibre first takes its start cell's signal, then all cells update at once from what arrived:
-// so a signal needs one nerve step per fibre, whatever order the cells and fibres are in. stepSignal keeps the share
-// of the game step each cell was on, which muscles and bloaters act on.
+// The order the cells settle in each nerve step: every cell after the cells its fibres come from, so a signal
+// crosses any number of fibres in the same nerve step. A fibre that closes a loop comes from a cell settled later, so
+// it delivers that cell's signal from the nerve step before: a loop is the only wiring that takes time. Depth first
+// over the incoming fibres, in the world's cell and fibre order, so the order is the same on every run.
+function settleOrder(world) {
+  const incoming = new Map(world.cells.map(cell => [cell, []]));
+  for (const fibre of world.fibres) incoming.get(fibre.to).push(fibre);
+  const visited = new Set();
+  const order = [];
+  const visit = cell => {
+    visited.add(cell);
+    for (const fibre of incoming.get(cell)) {
+      if (!visited.has(fibre.from)) visit(fibre.from);
+    }
+    order.push({ cell, fibres: incoming.get(cell) });
+  };
+  for (const cell of world.cells) {
+    if (!visited.has(cell)) visit(cell);
+  }
+  return order;
+}
+
+// Each nerve step the cells settle in order (settleOrder), each taking what its fibres carry now: a pulse reaches
+// every cell wired to it at once, and only a Delay, a Ganglion or a loop makes it late. stepSignal keeps the share of
+// the game step each cell was on, which muscles and bloaters act on.
 function updateNerves(world, dt) {
   for (const cell of world.cells) cell.senseOutput = senseOutput(world, cell);
   const stepTime = dt / NERVE_SUBSTEPS;
+  const order = settleOrder(world);
   for (const cell of world.cells) cell.stepSignal = 0;
   for (let i = 0; i < NERVE_SUBSTEPS; i++) {
     const time = world.time + i * stepTime;
-    for (const fibre of world.fibres) fibre.value = fibre.from.signal;
-    for (const cell of world.cells) cell.nerveInput = cell.senseOutput;
-    for (const fibre of world.fibres) fibre.to.nerveInput += fibre.value;
-    for (const cell of world.cells) {
+    for (const { cell, fibres } of order) {
+      cell.nerveInput = cell.senseOutput;
+      for (const fibre of fibres) {
+        fibre.value = fibre.from.signal;
+        cell.nerveInput += fibre.value;
+      }
       cell.signal = decideSignal(world, cell, cell.nerveInput, stepTime, time);
       cell.stepSignal += clamp01(cell.signal) / NERVE_SUBSTEPS;
     }

@@ -13,7 +13,7 @@ const linksFromList = list => list.map(([fromQ, fromR, toQ, toR]) =>
 const ART_CELL_CODES = {
   N: 'nucleus', t: 'tissue', S: 'shell', j: 'joint', c: 'cilia', n: 'nerve', g: 'ganglion', p: 'pacemaker',
   k: 'command', e: 'eyespot', m: 'muscle', b: 'bloater', s: 'siphon', x: 'nettle', T: 'thorn', G: 'gill', M: 'mouth',
-  h: 'heart', v: 'valve', a: 'airsac', f: 'fat', o: 'pore', r: 'mender', d: 'adrenal', H: 'snare', P: 'spitter',
+  h: 'heart', a: 'airsac', f: 'fat', o: 'pore', r: 'mender', d: 'adrenal', H: 'snare', P: 'spitter',
 };
 
 // a design from hex art: rows of letters (ART_CELL_CODES), placed around the N
@@ -118,6 +118,64 @@ function muscleFish(rate, backDelay, isLean = false) {
   };
 }
 
+// The Light eel: rests in the dark and swims to a light. Its Light eyes sit on the sides of its body, where a light to
+// one side reaches one eye far more than the other. Each eye does three things:
+// - it opens both tail gates (Synapses at threshold 1.5 in the Tissue beside the Nucleus), which pass the beat
+//   (the Nucleus's Pacemaker on the left, its Inhibitor on the right) only while the eyes see enough light;
+// - it fires the Siphon on the far side of the head, which turns the head toward the light;
+// - it holds its own side's first Muscle partly shut, which bends the body toward the light.
+// A long body turns slowly in the water, so it needs both the push and the bend: with the Siphons alone it misses a
+// light to its side. Like the Seeker, it doesn't turn round for a light straight behind it.
+function lightEel(rate) {
+  const cells = [];
+  const fibres = [];
+  const add = (x, r, typeName, neuron = null) => {
+    const { q } = hexFromMidline(x, r);
+    cells.push(createDesignCell(q, r, typeName, neuron ? { neuron } : {}));
+    return { q, r };
+  };
+  const wire = (from, to) => fibres.push({ from, to });
+  const gate = () => ({ ...createNeuron('synapse'), setting: 1.5 });
+  const nucleus = add(0, 0, 'nucleus', { ...createNeuron('pacemaker'), setting: rate });
+  const leftGate = add(-1, 0, 'tissue', gate());
+  const rightGate = add(1, 0, 'tissue', gate());
+  const leftSiphon = add(-2, 0, 'siphon');
+  const rightSiphon = add(2, 0, 'siphon');
+  const leftEye = add(-1.5, 1, 'lighteye');
+  add(-0.5, 1, 'tissue');
+  const inverse = add(0.5, 1, 'tissue', createNeuron('inhibitor'));
+  const rightEye = add(1.5, 1, 'lighteye');
+  wire(nucleus, leftGate);
+  wire(nucleus, inverse);
+  wire(inverse, rightGate);
+  for (const eye of [leftEye, rightEye]) {
+    wire(eye, leftGate);
+    wire(eye, rightGate);
+  }
+  wire(leftEye, rightSiphon);
+  wire(rightEye, leftSiphon);
+  let left = leftGate;
+  let right = rightGate;
+  for (let r = 2; r <= 4; r++) {
+    const sideX = r % 2 === 0 ? 1 : 0.5;
+    const leftMuscle = add(-sideX, r, 'muscle');
+    const rightMuscle = add(sideX, r, 'muscle');
+    if (r % 2 === 0) add(0, r, 'tissue');
+    wire(left, leftMuscle);
+    wire(right, rightMuscle);
+    if (r === 2) {
+      wire(leftEye, leftMuscle);
+      wire(rightEye, rightMuscle);
+    }
+    left = leftMuscle;
+    right = rightMuscle;
+  }
+  [2, 3, 2].forEach((width, index) => {
+    for (let i = 0; i < width; i++) add(i - (width - 1) / 2, 5 + index, 'joint');
+  });
+  return { cells, fibres };
+}
+
 const TEMPLATES = {
   // The default design: a Pacemaker in the Nucleus pulses two Siphons at the back, so it swims forward in pulses on
   // its own. Mouth, gill and heart feed the siphons, the Heart pumping blood between them all; the pore
@@ -152,6 +210,7 @@ const TEMPLATES = {
     ],
     fibres: [{ from: { q: 0, r: -1 }, to: { q: 0, r: 1 } }, { from: { q: 1, r: -1 }, to: { q: -1, r: 1 } }],
   },
+  lightEel: lightEel(1.8),
   wiggler: muscleFish(2.2, 0),
   squirter: designFromList([
     [0, 0, 'nucleus'], [0, -1, 'thorn'], [1, -1, 'mouth'], [-1, 0, 'shell'], [1, 0, 'shell'],
@@ -257,6 +316,9 @@ const EXAMPLE_GROUPS = [
         about: 'The Paddler with Tissue for its Mouth, Pore, Gills and Heart: Muscles, Joints and Tissue only' },
       { template: 'seeker', name: 'Seeker',
         about: 'Follows the mouse in the Sandbox: two Light eyes, each wired across to the far siphon' },
+      { template: 'lightEel', name: 'Light eel',
+        about: 'Rests in the dark and swims to the light (the mouse in the Sandbox): its Light eyes open its tail, ' +
+          'push the far siphon and bend their own side' },
       { template: 'lancer', name: 'Lancer',
         about: 'Thorn bruiser: Space fires the siphons for a dash into its thorns' },
       { template: 'stinger', name: 'Stinger', about: 'Nettle burst: its eyespot stings everything that comes close' },

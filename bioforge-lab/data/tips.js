@@ -231,18 +231,6 @@ const TIPS = {
       fluidView: 1,
     },
   },
-  valve: {
-    howToUse: 'Fluid cannot pass through it without a nerve signal. Make a reservoir touch the body only through ' +
-      'Valves, then signal them to release it.',
-    example: {
-      cells: [
-        [0, 0, 'nucleus'], [0, 1, 'command'], [1, 1, 'valve'], [2, 0, 'fat'], [-1, 2, 'siphon'], [0, 2, 'siphon'],
-      ],
-      spaceLabel: 'Space held',
-      fluidView: 2,
-      startsEmpty: ['siphon'],
-    },
-  },
   airsac: {
     howToUse: 'Put it near Gills and the cells that need lots of O₂. It fills while you are calm and drains ' +
       'during heavy work.',

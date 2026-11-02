@@ -82,6 +82,8 @@ function createApp(canvas) {
     tooltip: createTooltipState(),
     builderTraces: createProbes(),                        // the Traces window's lanes: the test tank's signals
     isTracesCollapsed: () => false,
+    reference: null,                                      // the creature in the Reference window (reference.js)
+    isReferenceCollapsed: () => false,
     coach: createCoach(),                                 // the How to box
     menu: createMenuState(),                              // the main menu and the Esc menu (menus.js)
     guide: createGuideState(),                            // the field guide sheet (guideview.js)
@@ -143,24 +145,30 @@ function setUpWindows(app) {
   app.isTracesCollapsed = makeCollapsible(byId('traces'), byId('traces-bar'), byId('traces-toggle'), 'traces');
   makeFloating(byId('hud-vitals'), byId('hud-vitals'), 'hud-vitals');
   showTracesWindow(app);
+  setUpReference(app);
 }
 
 // ---------- The design ----------
 // Rebuilds the test tank from the design: a hidden sim that drives the live signals and fluids on the grid and in the
 // preview. Called after every change to the design, so it also drops selections of cells that are gone.
 function rebuildTank(app) {
-  const body = bodyDesign(app.edited);
-  const reach = Math.max(0, ...body.cells.map(cell => vectorLength(...hexToPixel(cell.q, cell.r))));
-  const size = 2 * reach + 2 * CELL_RADIUS + TANK_MARGIN;
-  app.tank = newTestTank(size, size);
-  app.tank.time = performance.now() / 1000;
-  spawn(app.tank, body, size / 2, size / 2, 0, 0);
+  app.tank = createTestTankFor(bodyDesign(app.edited));
   resetBuilderTraces(app);
   for (const key of app.selection) {
     if (!app.edited.cells.has(key)) app.selection.delete(key);
   }
   if (app.focusKey && !app.edited.cells.has(app.focusKey)) app.focusKey = null;
   refreshPanel(app);
+}
+
+// a test tank with this body spawned in its middle, facing up, with TANK_MARGIN of water round it
+function createTestTankFor(body) {
+  const reach = Math.max(0, ...body.cells.map(cell => vectorLength(...hexToPixel(cell.q, cell.r))));
+  const size = 2 * reach + 2 * CELL_RADIUS + TANK_MARGIN;
+  const tank = newTestTank(size, size);
+  tank.time = performance.now() / 1000;
+  spawn(tank, body, size / 2, size / 2, 0, 0);
+  return tank;
 }
 
 // shows why an edit couldn't be made, after redrawing the panel (which would overwrite it)
@@ -285,6 +293,7 @@ function showModeWindows(app) {
   }
   byId('dock').style.display = isBuilding ? '' : 'none';
   showTracesWindow(app);
+  showReferenceWindow(app);
   byId('hud').style.display = isBuilding ? 'none' : 'block';
   byId('sandbox-bar').style.display = app.mode === 'sandbox' ? 'flex' : 'none';
   byId('level-bar').style.display = app.mode === 'level' ? 'flex' : 'none';
@@ -749,26 +758,29 @@ function runFrame(app, now) {
   requestAnimationFrame(time => runFrame(app, time));
 }
 
-// The test tank runs in real time with its creature held facing up in the middle; Space and the number keys fire
-// its signal sources.
-function runBuilderFrame(app, dt, now) {
-  const tank = app.tank;
+// Steps a test tank in real time, its creature held facing up in the middle. input: what step() takes.
+function stepTestTank(tank, dt, input) {
   for (const creature of tank.creatures) {
     if (!creature.debris) creature.targetHeading = 0;
   }
-  stepInPieces(tank, dt, { swimX: 0, swimY: 0, ability: app.keysHeld.has(' '), heldKeys: app.commandKeysHeld });
+  stepInPieces(tank, dt, input);
   const creature = tank.creatures.find(other => !other.debris);
-  if (creature) {
-    const shiftX = (tank.width / 2 - creature.centerX) * TANK_CENTER_PULL;
-    const shiftY = (tank.height / 2 - creature.centerY) * TANK_CENTER_PULL;
-    for (const cell of tank.cells) {
-      cell.x += shiftX;
-      cell.y += shiftY;
-    }
+  if (!creature) return;
+  const shiftX = (tank.width / 2 - creature.centerX) * TANK_CENTER_PULL;
+  const shiftY = (tank.height / 2 - creature.centerY) * TANK_CENTER_PULL;
+  for (const cell of tank.cells) {
+    cell.x += shiftX;
+    cell.y += shiftY;
   }
+}
+
+// The test tank runs with its creature held in the middle; Space and the number keys fire its signal sources.
+function runBuilderFrame(app, dt, now) {
+  stepTestTank(app.tank, dt, { swimX: 0, swimY: 0, ability: app.keysHeld.has(' '), heldKeys: app.commandKeysHeld });
   followFocusedCell(app, dt);
   drawBuilder(app);
   drawPreview(app);
+  runReference(app, dt);
   updateTooltip(app, now);
   if (!isGuideOpen(app)) runDemo(dt);                     // the tooltip's; the guide's runs in runFrame
   runBuilderTraces(app);

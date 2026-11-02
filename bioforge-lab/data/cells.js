@@ -20,8 +20,7 @@
 //   product (fluid): what its burned fuel turns into: 'repair', 'hormone' or 'budPart'; hormone: which hormone
 //     (a chemical fluid's id, data/fluids.js)
 //   breathes: makes O2 from the water; dumpsWaste: dumps waste into the water from the surface
-//   pumps: while signalled, pumps blood between the cells in its reach (Heart, vascular.js); gatesFlow: lets fluid
-//     through to its neighbours only while signalled, seeping and pumped alike (Valve)
+//   pumps: while signalled, pumps blood between the cells in its reach (Heart, vascular.js)
 //   eatsFood: takes in food specks; bites: bites cells it touches; spiked: damages enemy cells it hits
 //   beats: pushes the creature forward, always (Cilia); jets: pushes the creature forward while signalled (Siphon)
 //   resize: 'contract' or 'swell' with its signal; trigger: what a signal fires: 'nettle', 'snare' or 'spit'
@@ -176,12 +175,6 @@ const CELLS = {
     description: 'Beats on a nerve signal, as hard as the signal, and pumps blood between every cell within ' +
       `${HEART_REACH} steps of it: about ${Math.round(HEART_PUMP_CONDUCTANCE / FLOW_CONDUCTANCE)}x faster than ` +
       'fluids seep. Burns fuel as it beats.',
-  }),
-  valve: cellType({
-    category: 'Fluid', name: 'Valve', cost: 2, health: 25, color: '#7d97a8', gatesFlow: true,
-    needsSignal: true,
-    description: 'Lets no fluid through to its neighbours unless it gets a nerve signal, not even blood a Heart ' +
-      'pumps. Wall off a reservoir with Valves to release it on command.',
   }),
   airsac: cellType({
     category: 'Fluid', name: 'Air sac', cost: 2, health: 25, oxygenCapacity: 10, color: '#e8a0a8',

@@ -222,8 +222,8 @@ button.big:hover { background: #4a8044; }
 .keys-version { margin-top: 4px; color: #6f7f8a; font-size: 11px; text-align: right; }
 .keys-grid > span:nth-child(odd) { text-align: right; white-space: nowrap; }
 
-/* ---------- Preview and traces: floating windows that fold to their title bar ---------- */
-#preview, #traces {
+/* ---------- Preview, traces and reference: floating windows that fold to their title bar ---------- */
+#preview, #traces, #reference {
   position: absolute; right: 10px; display: flex; flex-direction: column; background: #0e181dcc;
   border: 1px solid #23323a88; border-radius: 10px; backdrop-filter: blur(3px); resize: both; overflow: hidden;
 }
@@ -236,13 +236,23 @@ button.big:hover { background: #4a8044; }
 #traces.collapsed #traces-canvas, #traces.collapsed #traces-note { display: none; }
 #traces-canvas { width: calc(100% - 20px); margin: 0 10px; }
 #traces-note { padding: 2px 10px 8px; color: #6f7b88; font-size: 11px; }
-#preview-bar, #traces-bar {
+/* the Reference window (reference.js): a creature to study, below the Preview */
+#reference { top: 380px; width: 340px; height: 320px; min-width: 200px; min-height: 120px; }
+#reference.collapsed { height: auto !important; min-height: 0; resize: none; }
+#reference.collapsed #reference-canvas, #reference.collapsed #reference-note { display: none; }
+#reference-canvas { flex: 1 1 auto; min-height: 0; width: 100%; }
+#reference-note { flex: none; padding: 3px 10px 7px; color: #8a96a3; font-size: 11px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; }
+#reference-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#reference-bar button { flex: none; margin-left: 3px; }
+#reference-bar #reference-view { width: auto; padding: 0 6px; }
+#preview-bar, #traces-bar, #reference-bar {
   display: flex; align-items: center; padding: 5px 6px 5px 10px; cursor: move; color: #8a96a3; font-size: 11px;
   text-transform: uppercase; letter-spacing: 1px;
 }
-#preview-bar:hover, #traces-bar:hover { color: #dfe4ea; }
-#preview-bar span, #traces-bar span { flex: 1; }
-#preview-toggle, #traces-toggle {
+#preview-bar:hover, #traces-bar:hover, #reference-bar:hover { color: #dfe4ea; }
+#preview-bar span, #traces-bar span, #reference-bar span { flex: 1; }
+#preview-toggle, #traces-toggle, #reference-bar button {
   width: 22px; height: 20px; padding: 0; background: #1c2a31; color: inherit; border: 1px solid #2c3f48;
   border-radius: 4px; cursor: pointer; font: inherit;
 }
@@ -317,6 +327,7 @@ button.small.primary:hover { background: #3d6b38; }
 .library-card:hover .card-buttons { opacity: 1; }
 .card-buttons button.small { flex: none; width: 22px; height: 20px; padding: 0; background: #0e181de6; }
 .card-buttons button.small:hover { border-color: #8a96a3; }
+.card-buttons button.small.study { width: auto; padding: 0 6px; }
 /* the Load game screen (gamesview.js): one column of the Templates screen's look, wider cards */
 #games-sheet { z-index: 33; }
 #games-inner { flex-direction: column; width: min(900px, calc(100vw - 32px)); }

@@ -1,6 +1,6 @@
 'use strict';
-// The nerve layer (sim only): neuron truth tables, one nerve step of delay per fibre, fibre routing and units, fibres
-// cut with their cells, old designs converted to neurons and fibres, and the neuron tooltips' examples.
+// The nerve layer (sim only): neuron truth tables, a pulse crossing all its fibres at once, fibre routing and units,
+// fibres cut with their cells, old designs converted to neurons and fibres, and the neuron tooltips' examples.
 const { load } = require('./load');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['newWorld', 'spawn', 'step', 'createNeuron', 'createDesignCell', 'createRouteArea',
@@ -107,19 +107,36 @@ check('Inhibitor is NOT (of the sum)', truthTable(sim.createNeuron('inhibitor'))
   }
 }
 
-{ // one nerve step per fibre: a chain of 5 fibres from a Command
+{ // a pulse reaches every wired cell at once: a chain of 5 fibres from a Command, laid end first so the fibre order
+  // doesn't help, and two branches of different lengths
   const cells = [sim.createDesignCell(0, 0, 'nucleus', { neuron: sim.createNeuron('command') })];
   const fibres = [];
-  for (let i = 1; i <= 5; i++) {
+  for (let i = 5; i >= 1; i--) {
     cells.push(sim.createDesignCell(i, 0, 'tissue'));
     fibres.push(fibre(i - 1, 0, i, 0));
   }
+  cells.push(sim.createDesignCell(0, 1, 'tissue'));
+  fibres.push(fibre(0, 0, 0, 1));
   const world = sim.newWorld(600, 600, { systems: ['nerve'] });
   const creature = sim.spawn(world, { cells, fibres }, 300, 300, 0, 0);
+  const signals = () => creature.cells.map(cell => cell.signal);
   sim.step(world, STEP, { swimX: 0, swimY: 0, ability: true });
-  const reached = creature.cells.filter(cell => cell.signal === 1).length;
-  check(`a signal crosses one fibre per nerve step (${sim.NERVE_SUBSTEPS} per game step)`,
-    reached === sim.NERVE_SUBSTEPS, `cells on after one step: ${reached} (the Command and the first 3 fibres)`);
+  const firstStep = creature.cells.map(cell => cell.stepSignal);
+  check('a pulse reaches every wired cell in the same nerve step, however many fibres away',
+    firstStep.every(share => share === 1), firstStep.join(' '));
+  sim.step(world, STEP, { swimX: 0, swimY: 0, ability: false });
+  check('and leaves them all at once', signals().every(signal => signal === 0), signals().join(' '));
+}
+
+{ // a loop is the only wiring that takes time: a plain cell feeding an Inhibitor that feeds it back flips every
+  // nerve step
+  const cells = [sim.createDesignCell(0, 0, 'nucleus', { neuron: sim.createNeuron('inhibitor') }),
+    sim.createDesignCell(1, 0, 'tissue')];
+  const world = sim.newWorld(600, 600, { systems: ['nerve'] });
+  const creature = sim.spawn(world, { cells, fibres: [fibre(0, 0, 1, 0), fibre(1, 0, 0, 0)] }, 300, 300, 0, 0);
+  sim.step(world, STEP, { swimX: 0, swimY: 0, ability: false });
+  const share = creature.cells[0].stepSignal;
+  check('a loop through an Inhibitor flips each nerve step (on half the game step)', share === 0.5, `${share}`);
 }
 
 { // routing and units: centre to centre, through the cells between

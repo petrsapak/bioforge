@@ -56,11 +56,9 @@ const GUIDE_CELLS = {
     watch: 'It makes O₂ only; sugar has to come from your kit, Fat or food.' },
   mouth: { pairs: ['nose', 'fat', 'photophore'],
     watch: 'It eats only what touches it, so put it where the body meets food first: usually the front.' },
-  heart: { pairs: ['gill', 'fat', 'siphon', 'valve'],
+  heart: { pairs: ['gill', 'fat', 'siphon'],
     watch: 'It beats only while it gets a signal, and burns fuel as it beats: a Heart left on all the time ' +
       'eats into a long swim.' },
-  valve: { pairs: ['heart', 'pacemaker'],
-    watch: 'Shut by default: a Valve without a signal is a wall.' },
   airsac: { pairs: ['heart', 'gill'],
     watch: 'It only stores O₂: it doesn\'t make any.' },
   fat: { pairs: ['heart', 'fedgland', 'starvedgland', 'mouth'],
@@ -91,9 +89,9 @@ const GUIDE_CELLS = {
 };
 
 const GUIDE_NEURONS = {
-  pacemaker: { pairs: ['muscle', 'siphon', 'valve', 'resilin'],
-    watch: 'Calm slows it and adrenaline speeds it up, so a mood changes your rhythm. Every fibre on the way ' +
-      'is a nerve step late: wire both sides of a swimming tail the same number of fibres from it.' },
+  pacemaker: { pairs: ['muscle', 'siphon', 'resilin'],
+    watch: 'Calm slows it and adrenaline speeds it up, so a mood changes your rhythm. Its beat reaches every ' +
+      'cell wired to it at the same moment, however long the fibres.' },
   command: { pairs: ['nettle', 'bloater', 'spitter'],
     watch: 'It acts only while a key is held, so a creature that must act on its own needs a sense or a ' +
       'Pacemaker instead.' },
@@ -131,7 +129,7 @@ const GUIDE_TOPICS = [
       'A signal is a number from 0 (off) to 1 (on). Senses make signals, fibres carry them from cell centre to ' +
         'cell centre, and actions (Siphons, Muscles, glands) do their thing while their signal is on.',
       'A cell adds up every fibre coming into it. A plain cell passes the sum on; a cell with a neuron lets the ' +
-        'neuron decide. Each fibre takes one nerve step, so long chains are a little late.',
+        'neuron decide. A signal crosses all its fibres at once: only a Delay (or a Ganglion) makes it late.',
       'Fibres cost units, and a level may give you few: put the neuron where its fibres stay short.',
     ],
     example: 'Light eye → Siphon on the far side, for both eyes: the eye nearer the light pushes the far side ' +
@@ -202,12 +200,12 @@ const GUIDE_TOPICS = [
     paragraphs: [
       `Seeping is slow. A beating Heart pumps every fluid between the cells within ${HEART_REACH} steps of it, ` +
         'many times faster. It beats only while it gets a signal, as hard as the signal, and burns fuel as it ' +
-        'beats. A Valve shuts the blood out as it shuts out seeping, until it gets a signal.',
+        'beats.',
       'Hormones ride in the blood too, so a Heart spreads a mood evenly through the body.',
     ],
     example: 'A Heart wired to the Light eyes beats only while the Siphons work, which is when they need the ' +
       'blood: on a long swim it burns less than a Heart that never stops.',
-    related: ['heart', 'valve', 'gill', 'siphon'],
+    related: ['heart', 'gill', 'siphon'],
   },
   {
     id: 'materials', title: 'Materials and kits', chapter: 4,

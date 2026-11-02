@@ -31,8 +31,8 @@ function addHeartPumping(world) {
 }
 
 // Every PUMP_INTERVAL each touching pair of cells that both lie in a beating Heart's reach is pumped: blood flows
-// between them by their difference in fill level, as in seeping (fluid.js) but much faster. A shut Valve stops it as
-// it stops seeping. The world's seepFactor (a level's cold water) doesn't slow a Heart.
+// between them by their difference in fill level, as in seeping (fluid.js) but much faster. The
+// world's seepFactor (a level's cold water) doesn't slow a Heart.
 function updateVascular(world, dt) {
   world.pumpTimer += dt;
   if (world.pumpTimer < PUMP_INTERVAL) return;
@@ -50,7 +50,7 @@ function pumpBlood(world, dt) {
   const substep = dt / PUMP_SUBSTEPS;
   for (let i = 0; i < PUMP_SUBSTEPS; i++) {
     for (const link of world.fluidLinks) {
-      if (link.pumpConductance > 0 && isLinkOpen(link)) flowAlongLink(link, link.pumpConductance, substep);
+      if (link.pumpConductance > 0) flowAlongLink(link, link.pumpConductance, substep);
     }
   }
 }

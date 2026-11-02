@@ -276,7 +276,7 @@ function addBond(world, first, second) {
 
 // an open fluid link between two touching cells of a creature
 function addFluidLink(world, first, second) {
-  world.fluidLinks.push({ first, second, open: true, conductance: FLOW_CONDUCTANCE, pumpConductance: 0 });
+  world.fluidLinks.push({ first, second, conductance: FLOW_CONDUCTANCE, pumpConductance: 0 });
 }
 
 // an angle spring at pivot for every pair of its neighbours

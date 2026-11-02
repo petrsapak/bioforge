@@ -18,11 +18,13 @@ const THUMBNAIL_CELL_SCALE = 0.8;                         // the cell's size in 
 const LIBRARY_TABS = ['creatures', 'parts', 'examples'];
 const LIBRARY_TAB_TITLES = { creatures: 'My creatures', parts: 'My parts', examples: 'Examples' };
 const LIBRARY_TAB_HELP = {
-  creatures: 'Click a creature to load it into the Lab (it replaces the design). Saving under a name that is ' +
-    'taken asks before it overwrites. Ctrl+S saves too, from the Lab.',
+  creatures: 'Click a creature to load it into the Lab (it replaces the design), or its Study button to show it in ' +
+    'a window beside your own. Saving under a name that is taken asks before it overwrites. Ctrl+S saves too, ' +
+    'from the Lab.',
   parts: 'Ctrl+click cells in the Lab, then right-click them to save a part. Click a part to stamp it onto your ' +
     'creature (Q/E turn it, Esc puts it away). With a Bud clicked, the part goes to the Bud, which grows it.',
-  examples: 'Click one to load it into the Lab (it replaces the design).',
+  examples: 'Click one to load it into the Lab (it replaces the design), or its Study button to show it in a ' +
+    'window beside your own, to study while you build.',
 };
 
 // the saved library, carried over from the old list the first time
@@ -121,7 +123,8 @@ function matchesLibraryFilter(app, name) {
   return !words || name.toLowerCase().includes(words);
 }
 
-// the player's own creatures or parts, each with Rename, Export and Delete; a note when there are none
+// the player's own creatures or parts, each with Rename, Export and Delete (and Study, for a creature); a note when
+// there are none
 function showOwnCards(app, box, isCreature) {
   const kept = app.library.filter(entry => entry.isCreature === isCreature);
   const entries = kept.filter(entry => matchesLibraryFilter(app, entry.name));
@@ -137,6 +140,7 @@ function showOwnCards(app, box, isCreature) {
       : 'Click to stamp this part onto your creature, or, with a Bud clicked, to make the Bud grow it');
     const buttons = document.createElement('div');
     buttons.className = 'card-buttons';
+    if (isCreature) buttons.appendChild(makeStudyButton(app, entry, entry.name));
     buttons.appendChild(makeCardButton('✎', 'Rename', () => renameLibraryEntry(app, entry)));
     buttons.appendChild(makeCardButton('⤓', 'Export to a file, to back it up or share it',
       () => exportLibraryEntry(entry)));
@@ -149,7 +153,7 @@ function showOwnCards(app, box, isCreature) {
 }
 
 // the built-in designs (EXAMPLE_GROUPS in data/templates.js), under their group titles, each with its line under
-// its name
+// its name and a Study button
 function showExampleCards(app, box) {
   const cards = EXAMPLE_GROUPS.flatMap(group => {
     const examples = group.examples.filter(example => matchesLibraryFilter(app, example.name));
@@ -165,6 +169,10 @@ function showExampleCards(app, box) {
       about.textContent = example.about;
       card.element.appendChild(about);
       card.element.dataset.template = example.template;
+      const buttons = document.createElement('div');
+      buttons.className = 'card-buttons';
+      buttons.appendChild(makeStudyButton(app, TEMPLATES[example.template], example.name));
+      card.element.appendChild(buttons);
       card.element.onclick = () => {
         loadDesign(app, TEMPLATES[example.template], example.name, '');
         closeLibrary(app);
@@ -199,6 +207,17 @@ function makeLibraryCard(entry, name, title) {
   badge.textContent = 'Over the limits';
   for (const child of [thumbnail, label, size, badge]) element.appendChild(child);
   return { entry, element, badge };
+}
+
+// the card button that shows a creature in the Reference window beside the Lab, keeping the Lab's design
+function makeStudyButton(app, entry, name) {
+  const button = makeCardButton('Study', 'Show it in a window beside your own creature, to study while you build',
+    () => {
+      closeLibrary(app);
+      openReference(app, entry, name);
+    });
+  button.classList.add('study');
+  return button;
 }
 
 // a small button on a card; its click doesn't reach the card

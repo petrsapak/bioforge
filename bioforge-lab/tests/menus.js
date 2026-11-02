@@ -22,6 +22,9 @@ const savedState = storage => JSON.parse(storage.items['bioforge-lab-game-1-cont
 const savedCreatureCount = byId => +/class="count">(\d+)</.exec(byId('library-tab-creatures').innerHTML)[1];
 // the card in the Templates window's open tab with the given name
 const cardNamed = (byId, name) => byId('library-cards').children.find(card => card.children[1].textContent === name);
+// the button on a Templates card with this symbol (✎ rename, ⤓ export, ✕ delete, Study)
+const cardButton = (card, symbol) => card.children.find(child => child.className === 'card-buttons').children
+  .find(button => button.textContent === symbol);
 
 async function main() {
   // ---------- The main menu on a first start ----------
@@ -236,7 +239,7 @@ async function main() {
   // renaming it asks in the game's own box, with the old name in a field: Enter there renames, Esc keeps it
   const renameButton = () => cardNamed(third.byId, 'Long eel') || cardNamed(third.byId, 'Shared eel');
   const nameField = third.byId('dialog-input');
-  renameButton().children[4].children[0].onclick({ stopPropagation() {} });
+  cardButton(renameButton(), '✎').onclick({ stopPropagation() {} });
   check('renaming asks in the game\'s own box, the old name ready to edit',
     third.byId('dialog-sheet').style.display === 'flex' && nameField.style.display === '' &&
     nameField.value === 'Shared eel');
@@ -244,7 +247,7 @@ async function main() {
   third.fire('dialog-input', 'keydown', { key: 'Enter' });
   check('Enter in the name field renames it', third.byId('dialog-sheet').style.display === 'none' &&
     !!cardNamed(third.byId, 'Long eel'));
-  renameButton().children[4].children[0].onclick({ stopPropagation() {} });
+  cardButton(renameButton(), '✎').onclick({ stopPropagation() {} });
   nameField.value = 'Short eel';
   third.fire('dialog-input', 'keydown', { key: 'Escape' });
   check('Esc in the name field keeps the name', third.byId('dialog-sheet').style.display === 'none' &&

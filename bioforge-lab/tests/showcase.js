@@ -1,13 +1,13 @@
 'use strict';
 // Built-in designs (full app, fake DOM): the small builds fit the budget; the showcase builds load, run in the
 // builder's test tank, and say why they are over the budget; the Templates window's Examples tab shows every example,
-// badging those over the limits.
+// badging those over the limits; a card's Study button shows it in the Reference window beside the Lab.
 const { startApp } = require('./dom');
 const { check, done } = require('./check');
 
 const SMALL_BUILDS = ['lancer', 'stinger', 'spitter', 'snarer'];
 const SHOWCASE_BUILDS = ['eel', 'jelly', 'manta', 'crab'];
-const { byId, fire, runFrames, templateButton, readGlobal } = startApp();
+const { byId, fire, runFrames, templateButton, readGlobal, storage } = startApp();
 
 const cellCount = () => +/Cells: (\d+)/.exec(byId('budget').innerHTML)[1];
 const isOverLimit = () => /Over budget|Too many/.test(byId('budget').innerHTML);
@@ -45,8 +45,38 @@ check('with Unlimited biomass the showcase cards lose the badge, unless they bre
   !isBadged('crab') || !/Over budget/.test(templateButton('crab').children[3].title));
 byId('unlimited-biomass').onclick();
 
+// Study on a card: the Reference window shows that creature live in its own tank, and the Lab keeps its design
+const isReferenceShown = elements => elements('reference').style.display !== 'none';
+const studyButton = card => card.children.find(child => child.className === 'card-buttons').children
+  .find(button => button.textContent === 'Study');
+check('the Reference window is closed at first', !isReferenceShown(byId));
+templateButton('jet').onclick();
+runFrames(5);
+const labCells = cellCount();
+studyButton(templateButton('lightEel')).onclick({ stopPropagation() {} });
+runFrames(30);
+check('Study opens the Reference window on that creature, closing the Templates screen',
+  isReferenceShown(byId) && byId('reference-name').textContent === 'Light eel' &&
+  byId('library-sheet').style.display !== 'flex', byId('reference-name').textContent);
+check('the Lab keeps its own design while the Reference window shows another', cellCount() === labCells,
+  `cells ${cellCount()}, was ${labCells}`);
+byId('reference-view').onclick();
+runFrames(10);
+check('the Reference window switches to the creature swimming and back', byId('reference-view').textContent === 'Grid');
+byId('reference-view').onclick();
+const reopened = startApp({ ...storage.items });
+reopened.runFrames(10);
+check('the Reference window comes back with its creature after a restart',
+  isReferenceShown(reopened.byId) && reopened.byId('reference-name').textContent === 'Light eel');
+reopened.byId('reference-close').onclick();
+check('✕ closes the Reference window', !isReferenceShown(reopened.byId));
+const closed = startApp({ ...reopened.storage.items });
+closed.runFrames(10);
+check('a closed Reference window stays closed after a restart', !isReferenceShown(closed.byId));
+
 byId('start-sandbox').onclick();
 runFrames(60);
 check('the sandbox starts with it', byId('hud').style.display === 'block' && byId('hud-mode').textContent === 'Sandbox',
   byId('hud-mode').textContent);
+check('the Reference window hides outside the Lab', !isReferenceShown(byId));
 done();

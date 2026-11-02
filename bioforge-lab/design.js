@@ -164,7 +164,7 @@ function checkSignals(body, warn) {
   const driven = body.cells.filter(needsSignal);
   if (driven.length && !sources.length) {
     warn('signal', 'problem', 'add a Pacemaker',
-      'Muscles, Bloaters, Siphons, Nettles, Snares, Spitters, Adrenals, Valves and Buds need a nerve signal: ' +
+      'Muscles, Bloaters, Siphons, Nettles, Snares, Spitters, Adrenals and Buds need a nerve signal: ' +
       'a Pacemaker or Command neuron, or an Eyespot, with fibres to them (Nerves, 2).', keysOf(driven));
   }
   const reached = new Set(keysOf(sources));
@@ -223,7 +223,7 @@ function checkBuds(bodyCells, warn) {
   }
 }
 
-// fluids spread through the whole joined body (valves counted as open)
+// fluids spread through the whole joined body
 function checkFluids(typeAt, countWith, warn) {
   const keysWith = behaviour => [...typeAt].filter(([, typeName]) => CELLS[typeName][behaviour]).map(([key]) => key);
   const fueled = keysWith('fuelBurn');
@@ -330,6 +330,11 @@ const OLD_DESIGN_FIELD_NAMES = {
   t: 'typeName', tpl: 'budPart', bind: 'boundKey', rot: 'partRotation', off: 'partOffset', aim: 'partAim',
 };
 
+// Cell types taken out of the game, and the type a saved one becomes. It keeps its neuron and fibres.
+const REMOVED_CELL_TYPES = {
+  valve: 'tissue',                                        // 2026-11-02: no level used it
+};
+
 // a saved design cell in the current format, whichever format it was saved in
 function migrateDesignCell(savedCell) {
   const cell = {};
@@ -338,6 +343,7 @@ function migrateDesignCell(savedCell) {
     const name = OLD_DESIGN_FIELD_NAMES[field] || field;
     cell[name] = name === 'budPart' ? migrateBudPart(value) : value;
   }
+  if (Object.hasOwn(REMOVED_CELL_TYPES, cell.typeName)) cell.typeName = REMOVED_CELL_TYPES[cell.typeName];
   return cell;
 }
 
@@ -395,7 +401,7 @@ const OLD_NERVE_CELL_NEURONS = { nerve: null, ganglion: 'ganglion', pacemaker: '
 const OLD_SIGNAL_SOURCES = new Set(['pacemaker', 'command', 'eyespot']);
 const OLD_SIGNAL_CARRIERS = new Set([
   'nerve', 'ganglion', 'pacemaker', 'command', 'eyespot', 'muscle', 'bloater', 'siphon', 'nettle', 'snare', 'spitter',
-  'bud', 'valve', 'adrenal',
+  'bud', 'adrenal',
 ]);
 
 // the design in the current format; a current design is returned as it is

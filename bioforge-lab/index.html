@@ -166,6 +166,11 @@
   <div id="preview-bar" title="Drag to move · drag the bottom-right corner to resize"><span>Preview</span><button id="preview-toggle" title="Hide / show">–</button></div>
   <canvas id="preview-canvas"></canvas>
 </div>
+<div id="reference" style="display: none">
+  <div id="reference-bar" title="A creature to study beside your own · drag to move · drag the bottom-right corner to resize"><span id="reference-name">Reference</span><button id="reference-view" title="Show it on the grid, or swimming">Swim</button><button id="reference-toggle" title="Hide / show">–</button><button id="reference-close" title="Close">✕</button></div>
+  <canvas id="reference-canvas"></canvas>
+  <div id="reference-note"></div>
+</div>
 <div id="traces">
   <div id="traces-bar" title="Drag to move · drag the bottom-right corner to resize"><span>Traces</span><button id="traces-toggle" title="Hide / show">–</button></div>
   <canvas id="traces-canvas" width="300" height="24"></canvas>
@@ -333,6 +338,7 @@
 <script src="panel.js"></script>
 <script src="toolbar.js"></script>
 <script src="builderview.js"></script>
+<script src="reference.js"></script>
 <script src="tooltip.js"></script>
 <script src="guideview.js"></script>
 <script src="probes.js"></script>

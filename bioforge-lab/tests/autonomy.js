@@ -111,11 +111,11 @@ check('the Paddler, wired in a wave, swims head first and straight, faster than 
     `size ${smallest.toFixed(2)}–${largest.toFixed(2)}`);
 }
 
-// The Seeker's Light eyes are wired across to its siphons, so it turns toward the light and swims to it, wherever
-// the light is; with no light it holds still.
-function runSeeker(lightOffsetX, lightOffsetY, seconds = 10) {
+// runs a template for some game s with a light at this offset from where it starts (none for null); returns how far
+// it ends from the light (or from its start, in the dark) and how far it turned
+function runToLight(template, lightOffsetX, lightOffsetY, seconds = 10) {
   const world = sim.newWorld(2000, 2000, { seed: 1 });
-  const creature = sim.spawn(world, sim.TEMPLATES.seeker, 1000, 1000, 0, 0);
+  const creature = sim.spawn(world, sim.TEMPLATES[template], 1000, 1000, 0, 0);
   creature.aiControlled = false;
   creature.autonomous = true;
   world.light = lightOffsetX === null ? null : sim.createLight(1000 + lightOffsetX, 1000 + lightOffsetY);
@@ -128,6 +128,10 @@ function runSeeker(lightOffsetX, lightOffsetY, seconds = 10) {
   }
   return { distance: Math.hypot(creature.centerX - target.x, creature.centerY - target.y), turned };
 }
+
+// The Seeker's Light eyes are wired across to its siphons, so it turns toward the light and swims to it, wherever
+// the light is; with no light it holds still.
+const runSeeker = (lightOffsetX, lightOffsetY, seconds) => runToLight('seeker', lightOffsetX, lightOffsetY, seconds);
 const toLeft = runSeeker(-200, -100);
 check('the Seeker turns left and swims to a light on its left', toLeft.turned < -TURNED_ANGLE && toLeft.distance < 60,
   `${toLeft.turned.toFixed(2)} rad, ${toLeft.distance.toFixed(0)} px from it after 10 s`);
@@ -144,4 +148,19 @@ check('the Seeker doesn\'t see a light beyond its range', outOfReach.distance > 
 const inTheDark = runSeeker(null, null);
 check('the Seeker holds still with no light', inTheDark.distance < STILL_DISTANCE,
   inTheDark.distance.toFixed(2) + ' px');
+
+// The Light eel: its eyes open the gates of its Muscle tail, fire the far Siphon and bend their own side, so it swims
+// to a light ahead or to either side and stays there; in the dark its tail rests. (A light behind it it doesn't
+// turn round for.) It is slower than the Seeker: a long body turns slowly.
+const EEL_LIGHT_DISTANCE = 250;                           // px from its start
+const EEL_SECONDS = 30;                                   // game s
+for (const [where, offsetX, offsetY] of [['ahead of it', 0, -EEL_LIGHT_DISTANCE],
+  ['on its left', -EEL_LIGHT_DISTANCE, 0], ['on its right', EEL_LIGHT_DISTANCE, 0]]) {
+  const eel = runToLight('lightEel', offsetX, offsetY, EEL_SECONDS);
+  check(`the Light eel swims to a light ${where} and stays there`, eel.distance < 60,
+    `${eel.distance.toFixed(0)} px from it after ${EEL_SECONDS} s`);
+}
+const eelInTheDark = runToLight('lightEel', null, null);
+check('the Light eel rests with no light', eelInTheDark.distance < STILL_DISTANCE,
+  eelInTheDark.distance.toFixed(2) + ' px');
 done();

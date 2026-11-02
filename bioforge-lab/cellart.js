@@ -412,15 +412,6 @@ const CELL_SYMBOLS = {
     traceHeart(context, 0.42 + 0.12 * (cell.beat || 0) * beat);
     fillIn(context, palette.light);
   },
-  // two flaps, light while open
-  valve(context, cell, palette) {
-    context.fillStyle = cell.signal > SIGNAL_ON ? '#e8f4ff' : palette.ink;
-    for (const side of [-1, 1]) {
-      tracePolyline(context, [[side * 0.55, -0.45], [side * 0.08, 0], [side * 0.55, 0.45]]);
-      context.closePath();
-      context.fill();
-    }
-  },
   // a disc of O₂ that shrinks as it empties, with bubbles
   airsac(context, cell, palette) {
     drawReservoirDisc(context, cell, FLUID_OXYGEN);

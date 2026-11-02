@@ -261,7 +261,8 @@ function cellCursor(app) {
 
 // Each cell is drawn as a still copy of its live test tank cell, at its grid slot, without what it puts out into the
 // water (a Siphon's puff would cover the cell behind it; the preview window shows it). Planned cells (not joined to
-// the body) are washed out, with a dashed outline.
+// the body) are washed out, with a dashed outline. This and drawNerveLayer read only context, edited, tank, layer,
+// fluidView and the hover fields from app, so the Reference window (reference.js) draws with them too.
 function drawDesignCells(app) {
   const context = app.context;
   const liveCells = new Map(app.tank.cells.map(cell => [keyOfCell(cell), cell]));
@@ -624,14 +625,10 @@ function drawGridLabels(app) {
 // the test tank drawn into the floating preview window, scaled to fit
 function drawPreview(app) {
   const canvas = byId('preview-canvas');
-  const width = canvas.clientWidth;
-  const height = canvas.clientHeight;
-  if (app.isPreviewCollapsed() || !width || !height) return;
-  if (canvas.width !== width || canvas.height !== height) {
-    canvas.width = width;
-    canvas.height = height;
-  }
-  const context = canvas.getContext('2d');
+  const context = app.isPreviewCollapsed() ? null : fitWindowCanvas(canvas);
+  if (!context) return;
+  const width = canvas.width;
+  const height = canvas.height;
   const tank = app.tank;
   const scale = Math.min(width / tank.width, height / tank.height);
   context.fillStyle = BUILDER_BACKGROUND;
@@ -642,4 +639,16 @@ function drawPreview(app) {
   drawWater(context, tank, tank.width, tank.height);
   drawWorld(context, tank, app.fluidView);
   context.restore();
+}
+
+// sizes a window's canvas to how big it shows, and returns its 2D context, or null while it shows no area
+function fitWindowCanvas(canvas) {
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
+  if (!width || !height) return null;
+  if (canvas.width !== width || canvas.height !== height) {
+    canvas.width = width;
+    canvas.height = height;
+  }
+  return canvas.getContext('2d');
 }

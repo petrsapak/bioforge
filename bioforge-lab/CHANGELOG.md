@@ -7,6 +7,18 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.20 (2026-11-02)
+- A nerve signal reaches every cell wired to it at the same moment, however many fibres away. Only a Delay or a
+  Ganglion makes it late. A swimming tail no longer turns because one side is wired a fibre further from the
+  Pacemaker.
+- The Valve is gone. A saved creature with a Valve gets Tissue in its place, keeping the Valve's neuron and fibres.
+- Study a creature while you build your own: the Study button on a Templates card (an example or one of My
+  creatures) shows it in a window over the Lab, live, with its wiring as the Lab's layer tab shows it. Point at a
+  cell to see what it is. The window moves, resizes, folds, switches to the creature swimming, and stays until you
+  close it, even after a restart.
+- A new example, the Light eel: it rests in the dark and swims to a light (the mouse in the Sandbox). Its Light
+  eyes open its Muscle tail, push the Siphon on the far side and bend their own side toward the light.
+
 ## 0.7.19 (2026-11-02)
 - The pictures on the Templates and Load game cards show each cell in its hex, edged in the cell's colour, with
   the cell drawn as in the Lab, instead of a coloured dot per cell.
