@@ -9,10 +9,12 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 
-// the script files index.html loads, in order
+// The script files index.html loads, in order. The sound bank in audio/ is left out: it is 4 MB of WAV data that
+// only the browser plays (tests/soundbank.js checks it).
 function scripts() {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  return [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map(match => match[1]);
+  return [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map(match => match[1])
+    .filter(file => !file.startsWith('audio/'));
 }
 
 // runs the game's scripts in a new vm context with these globals; the named ones are copied to its X

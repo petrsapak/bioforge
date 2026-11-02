@@ -87,4 +87,29 @@ check('switched off stays off on the next visit, and Settings says so',
   second.byId('setting-sounds').textContent === 'Off');
 second.byId('setting-sounds').onclick({});
 check('Settings switches them back on', second.byId('setting-sounds').textContent === 'On');
+
+// a button clicks on the press (the release came about 0.1 s late); not a disabled one, nor a right press
+const pressed = startApp();
+const pressedHeard = recordSounds(pressed);
+const clicks = () => pressedHeard().filter(name => name === 'click').length;
+const pressOn = (button, mouseButton = 0) => {
+  pressed.runFrames(10);                                  // longer than the click's shortest gap
+  pressed.fire('window', 'pointerdown', { button: mouseButton, target: { closest: () => button } });
+};
+pressOn({ disabled: false });
+const clicksOnPress = clicks();
+pressOn({ disabled: true });
+pressOn({ disabled: false }, 2);
+pressOn(null);
+check('pressing a button clicks at once, but not a disabled button, a right press or the water',
+  clicksOnPress === 1 && clicks() === 1, `${clicksOnPress}, then ${clicks()}`);
+const clickOn = detail => {
+  pressed.runFrames(10);
+  pressed.fire('window', 'click', { detail, target: { closest: () => ({ disabled: false }) } });
+};
+clickOn(1);
+const clicksAfterRelease = clicks();
+clickOn(0);
+check('the mouse\'s release doesn\'t click again, but Enter or Space on a button does',
+  clicksAfterRelease === 1 && clicks() === 2, `${clicksAfterRelease}, then ${clicks()}`);
 done();

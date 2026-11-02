@@ -11,6 +11,10 @@ const OLD_LIBRARY_STORAGE_KEY = 'bioforge-templates';
 const THUMBNAIL_WIDTH = 200;                              // px drawn (the card scales it to its width)
 const THUMBNAIL_HEIGHT = 140;                             // px drawn
 const THUMBNAIL_MAX_SCALE = 4;                            // thumbnail px per grid px, so tiny parts aren't blown up
+const THUMBNAIL_HEX_COLOR = '#132228';                    // the hex under each cell, as on the Lab's grid
+const THUMBNAIL_HEX_TINT = 0.16;                          // opacity of the cell's colour inside its hex
+const THUMBNAIL_HEX_BORDER = 1.2;                         // grid px: the hex's edge, in the cell's colour
+const THUMBNAIL_CELL_SCALE = 0.8;                         // the cell's size in its hex, against its size in the Lab
 const LIBRARY_TABS = ['creatures', 'parts', 'examples'];
 const LIBRARY_TAB_TITLES = { creatures: 'My creatures', parts: 'My parts', examples: 'Examples' };
 const LIBRARY_TAB_HELP = {
@@ -223,7 +227,7 @@ function showLibraryMarks(app) {
   }
 }
 
-// a small picture of an entry: one dot per cell, in the cell's colour
+// a small picture of an entry as the Lab's grid shows it: each cell's hex, with the cell drawn on it
 function drawThumbnail(canvas, entry) {
   const context = canvas.getContext('2d');
   const points = entry.cells.map(cell => hexToPixel(cell.q, cell.r));
@@ -240,11 +244,28 @@ function drawThumbnail(canvas, entry) {
   context.translate(canvas.width / 2, canvas.height / 2);
   context.scale(scale, scale);
   context.translate(-(left + right) / 2, -(top + bottom) / 2);
+  const atRest = { centerX: 0, centerY: 0, heading: 0 };  // thorns and mouths face away from the nucleus
   entry.cells.forEach((cell, i) => {
-    context.fillStyle = CELLS[cell.typeName].color;
-    fillCircle(context, points[i][0], points[i][1], CELL_RADIUS * 0.9);
+    const [x, y] = points[i];
+    drawThumbnailHex(context, x, y, CELLS[cell.typeName].color);
+    const shown = { ...makeDisplayCell(cell.typeName, x, y, atRest), isOnGrid: true };
+    shown.radius = CELL_RADIUS * THUMBNAIL_CELL_SCALE;
+    drawCell(context, shown, 0, false);
   });
   context.restore();
+}
+
+// a cell's hex on a thumbnail, as the icon draws the Nucleus: dark, tinted with the cell's colour, edged in it
+function drawThumbnailHex(context, x, y, color) {
+  traceHex(context, x, y, HEX_OUTLINE_SIZE);
+  context.fillStyle = THUMBNAIL_HEX_COLOR;
+  context.fill();
+  context.fillStyle = translucent(color, THUMBNAIL_HEX_TINT);
+  context.fill();
+  context.strokeStyle = color;
+  context.lineWidth = THUMBNAIL_HEX_BORDER;
+  context.lineJoin = 'round';
+  context.stroke();
 }
 
 // ---------- Using the library ----------

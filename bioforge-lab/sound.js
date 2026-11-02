@@ -1,6 +1,7 @@
 'use strict';
-// Sound effects: playing them (a few voices each, so quick repeats overlap), the Settings switch and N key that turn
-// them off and on, and the creatures' sounds, heard by watching their world change from frame to frame (browser only).
+// Sound effects: playing them (Web Audio from the decoded sound bank, else a few <audio> voices each, so quick repeats
+// overlap), the Settings switch and N key that turn them off and on, and the creatures' sounds, heard by watching
+// their world change from frame to frame (browser only).
 
 const SOUND_VOICES = 3;                                   // copies of each sound file that may play at once
 const SOUND_VARIATION = 0.06;                             // most a varied sound's pitch (and volume) moves, as a share
@@ -10,16 +11,53 @@ const OTHER_LOUDNESS = 0.63;                              // share of volume for
 const OTHER_DEATH_LOUDNESS = 0.4;                         // share of volume for cells of other creatures dying
 const EAT_SUGAR_JUMP = 0.4;                               // share of a speck's sugar a Mouth gains in a frame on eating
 
-// Reads whether sounds are off (Settings and N switch them). Any button click makes the soft click sound.
+// Reads whether sounds are off (Settings and N switch them), and readies Web Audio. Pressing any button makes the
+// soft click sound: on the press, as placing a cell does, not on the release that clicks it (user, 2026-11-02:
+// "the delay comes from clicking on buttons").
 function setUpSounds(app) {
   app.soundsOff = readStorage('sounds-off', false);
   app.soundVoices = {};
   app.soundPlayedAt = {};
   app.soundWatch = null;
   app.cellSounds = new WeakMap();                         // cell -> what its sounds compare with (cellSoundEvents)
-  addEventListener('click', event => {
-    if (event.target?.closest?.('button')) playSound(app, 'click');
+  app.soundBuffers = new Map();                           // file -> its decoded sound, once ready
+  app.audioContext = createAudioContext();
+  if (app.audioContext) decodeSoundBank(app);
+  addEventListener('pointerdown', event => {
+    const button = event.target?.closest?.('button');
+    if (button && !button.disabled && event.button === 0) playSound(app, 'click');
   });
+  addEventListener('click', event => {                    // Enter or Space on a button: a click with no press
+    if (event.detail === 0 && event.target?.closest?.('button')) playSound(app, 'click');
+  });
+}
+
+// Web Audio, if the browser has it. It plays within a few ms; an <audio> element took up to half a second from
+// play() to sound (user, 2026-11-02: "the SFX have a slight delay like 0,5 seconds after I click").
+function createAudioContext() {
+  const AudioContextType = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextType) return null;
+  const context = new AudioContextType({ latencyHint: 'interactive' });
+  // The browser starts it paused until the player presses something. Pressing (before the click that follows)
+  // wakes it, so the first click is heard.
+  const wake = () => {
+    if (context.state === 'suspended') context.resume().catch(() => {});
+  };
+  addEventListener('pointerdown', wake, true);
+  addEventListener('keydown', wake, true);
+  return context;
+}
+
+// Decodes every file in SOUND_BANK (audio/sfx/bank.js) in the background. A file not decoded yet, or that fails,
+// plays through an <audio> element instead.
+function decodeSoundBank(app) {
+  if (typeof SOUND_BANK === 'undefined') return;
+  for (const [file, base64] of Object.entries(SOUND_BANK)) {
+    const bytes = Uint8Array.from(atob(base64), character => character.charCodeAt(0));
+    app.audioContext.decodeAudioData(bytes.buffer)
+      .then(buffer => app.soundBuffers.set(file, buffer))
+      .catch(() => {});
+  }
 }
 
 // Plays a sound from SOUND_EFFECTS (one of its variants, at random), unless sounds are off, it played less than its
@@ -31,13 +69,32 @@ function playSound(app, name, loudness = 1, gapKey = name) {
   if (!effect || app.soundsOff || now - (app.soundPlayedAt[gapKey] ?? -Infinity) < effect.minGap) return;
   app.soundPlayedAt[gapKey] = now;
   const variant = effect.variants[Math.floor(Math.random() * effect.variants.length)];
-  const voice = nextVoice(app, variant.file);
   const variation = effect.vary ? 1 + (Math.random() * 2 - 1) * SOUND_VARIATION : 1;
-  voice.volume = Math.min(1, Math.pow(10, (effect.level - variant.loudness) / 20) * loudness / variation);
+  const volume = Math.min(1, Math.pow(10, (effect.level - variant.loudness) / 20) * loudness / variation);
+  const buffer = app.soundBuffers?.get(variant.file);
+  if (buffer) {
+    playBuffer(app.audioContext, buffer, volume, variation);
+    return;
+  }
+  const voice = nextVoice(app, variant.file);
+  voice.volume = volume;
   voice.preservesPitch = false;                           // so a faster play sounds higher
   voice.playbackRate = variation;
   voice.currentTime = 0;
   voice.play?.()?.catch?.(() => {});                      // refused before the first click: that one stays silent
+}
+
+// Plays a decoded sound at this volume and speed (faster sounds higher). While the browser still holds the audio
+// paused (no press yet), nothing plays: the sound would come all at once on waking.
+function playBuffer(context, buffer, volume, rate) {
+  if (context.state !== 'running') return;
+  const source = context.createBufferSource();
+  source.buffer = buffer;
+  source.playbackRate.value = rate;
+  const gain = context.createGain();
+  gain.gain.value = volume;
+  source.connect(gain).connect(context.destination);
+  source.start();
 }
 
 // the voice of a sound file that was used longest ago, made on first use

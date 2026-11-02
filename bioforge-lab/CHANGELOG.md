@@ -7,6 +7,11 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.19 (2026-11-02)
+- The pictures on the Templates and Load game cards show each cell in its hex, edged in the cell's colour, with
+  the cell drawn as in the Lab, instead of a coloured dot per cell.
+- Sound effects play with less delay, and a button clicks as you press it, not when you let go.
+
 ## 0.7.18 (2026-11-01)
 - Bioforge Lab has an icon: the Nucleus in its Lab hex, drawn the way the game draws it. It shows on the desktop
   window, the taskbar, the .exe and the browser tab.
