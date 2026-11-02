@@ -205,6 +205,10 @@ function createCell(typeName, q, r, creature) {
     tanned: false,                                        // crosslinked by a Tanner (treatments.js)
     resilient: false,                                     // a muscle made springy by a Resilin gland
     springCharge: 0,                                      // resilin muscle: share of a full charge, 0..1
+    heldPull: 0,                                          // muscle: the pull it held for the last 1-2 s (actuators.js)
+    weakestPull: 0,                                       // muscle: its weakest pull in this hold window
+    weakestPullBefore: 0,                                 // muscle: its weakest pull in the hold window before
+    holdWindow: 0,                                        // muscle: which hold window weakestPull is for
     treatProgress: 0,                                     // treatment gland: share of the way to the next cell
     treatedDamageFactor: 1,                               // share of damage it takes for its treatments
     resizeRateFactor: 1,                                  // share of the usual speed it contracts or swells at

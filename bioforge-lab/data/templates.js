@@ -118,15 +118,15 @@ function muscleFish(rate, backDelay, isLean = false) {
   };
 }
 
-// The Light eel: rests in the dark and swims to a light. Its Light eyes sit on the sides of its body, where a light to
-// one side reaches one eye far more than the other. Each eye does three things:
+// The Light eel: rests in the dark and swims to a light, on Muscles alone. Its Light eyes sit on the sides of its
+// body, where a light to one side reaches one eye far more than the other. Each eye does two things:
 // - it opens both tail gates (Synapses at threshold 1.5 in the Tissue beside the Nucleus), which pass the beat
-//   (the Nucleus's Pacemaker on the left, its Inhibitor on the right) only while the eyes see enough light;
-// - it fires the Siphon on the far side of the head, which turns the head toward the light;
-// - it holds its own side's first Muscle partly shut, which bends the body toward the light.
-// A long body turns slowly in the water, so it needs both the push and the bend: with the Siphons alone it misses a
-// light to its side. Like the Seeker, it doesn't turn round for a light straight behind it.
-function lightEel(rate) {
+//   (the Nucleus's Pacemaker on the left, its Inhibitor on the right) only while the eyes see enough light; each
+//   tail row after the first beats rowDelay (s) after the row in front (Delay neurons), so a wave runs down it;
+// - it holds the steering Muscle on its own side of the head shut, as hard as it sees, and a body turns toward the
+//   side whose Muscles are held shut. The tail's Muscles let go on every beat, so they don't steer.
+// Like the Seeker, it doesn't turn round for a light straight behind it.
+function lightEel(rate, rowDelay) {
   const cells = [];
   const fibres = [];
   const add = (x, r, typeName, neuron = null) => {
@@ -139,8 +139,8 @@ function lightEel(rate) {
   const nucleus = add(0, 0, 'nucleus', { ...createNeuron('pacemaker'), setting: rate });
   const leftGate = add(-1, 0, 'tissue', gate());
   const rightGate = add(1, 0, 'tissue', gate());
-  const leftSiphon = add(-2, 0, 'siphon');
-  const rightSiphon = add(2, 0, 'siphon');
+  const leftSteer = add(-2, 0, 'muscle');
+  const rightSteer = add(2, 0, 'muscle');
   const leftEye = add(-1.5, 1, 'lighteye');
   add(-0.5, 1, 'tissue');
   const inverse = add(0.5, 1, 'tissue', createNeuron('inhibitor'));
@@ -152,21 +152,18 @@ function lightEel(rate) {
     wire(eye, leftGate);
     wire(eye, rightGate);
   }
-  wire(leftEye, rightSiphon);
-  wire(rightEye, leftSiphon);
+  wire(leftEye, leftSteer);
+  wire(rightEye, rightSteer);
   let left = leftGate;
   let right = rightGate;
   for (let r = 2; r <= 4; r++) {
     const sideX = r % 2 === 0 ? 1 : 0.5;
-    const leftMuscle = add(-sideX, r, 'muscle');
-    const rightMuscle = add(sideX, r, 'muscle');
+    const delay = r > 2 ? { ...createNeuron('delay'), setting: rowDelay } : null;
+    const leftMuscle = add(-sideX, r, 'muscle', delay);
+    const rightMuscle = add(sideX, r, 'muscle', delay);
     if (r % 2 === 0) add(0, r, 'tissue');
     wire(left, leftMuscle);
     wire(right, rightMuscle);
-    if (r === 2) {
-      wire(leftEye, leftMuscle);
-      wire(rightEye, rightMuscle);
-    }
     left = leftMuscle;
     right = rightMuscle;
   }
@@ -210,7 +207,7 @@ const TEMPLATES = {
     ],
     fibres: [{ from: { q: 0, r: -1 }, to: { q: 0, r: 1 } }, { from: { q: 1, r: -1 }, to: { q: -1, r: 1 } }],
   },
-  lightEel: lightEel(1.8),
+  lightEel: lightEel(1.8, 0.1),
   wiggler: muscleFish(2.2, 0),
   squirter: designFromList([
     [0, 0, 'nucleus'], [0, -1, 'thorn'], [1, -1, 'mouth'], [-1, 0, 'shell'], [1, 0, 'shell'],
@@ -317,8 +314,8 @@ const EXAMPLE_GROUPS = [
       { template: 'seeker', name: 'Seeker',
         about: 'Follows the mouse in the Sandbox: two Light eyes, each wired across to the far siphon' },
       { template: 'lightEel', name: 'Light eel',
-        about: 'Rests in the dark and swims to the light (the mouse in the Sandbox): its Light eyes open its tail, ' +
-          'push the far siphon and bend their own side' },
+        about: 'Rests in the dark and swims to the light (the mouse in the Sandbox): its Light eyes open its tail ' +
+          'and hold the Muscle on their own side of the head shut, which turns it' },
       { template: 'lancer', name: 'Lancer',
         about: 'Thorn bruiser: Space fires the siphons for a dash into its thorns' },
       { template: 'stinger', name: 'Stinger', about: 'Nettle burst: its eyespot stings everything that comes close' },

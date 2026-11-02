@@ -14,6 +14,7 @@ const SWIM_FORCE = 200;                                   // force per unit of s
 const CILIA_SWIM_POWER = 2.5;                             // extra swim power of a fed cilia cell
 const TURN_STIFFNESS = 10;                                // turning torque per radian of heading error
 const TURN_DAMPING = 5;                                   // turning torque per rad/s of spin
+const MUSCLE_TURN_TORQUE = 10;                            // turning torque when only one side's Muscles pull
 const SIPHON_FORCE = 600;                                 // thrust of a fully signalled siphon
 const TURN_RATE = 2.5;                                    // rad/s, car-style steering
 const WALL_BOUNCE = 0.3;                                  // share of speed kept when a cell hits the world's edge
@@ -129,7 +130,8 @@ function applySteering(creature) {
   }
   // an autonomous creature is not held to a heading: only its own cells turn it
   const isTurned = !isLaunchedPart && !creature.autonomous;
-  const turnTorque = isTurned ? TURN_STIFFNESS * headingError - TURN_DAMPING * angularVelocity : 0;
+  const headingTorque = isTurned ? TURN_STIFFNESS * headingError - TURN_DAMPING * angularVelocity : 0;
+  const turnTorque = headingTorque + (isLaunchedPart ? 0 : MUSCLE_TURN_TORQUE * pullImbalance(creature));
   for (const cell of creature.cells) {
     const offsetX = cell.x - centerX;
     const offsetY = cell.y - centerY;

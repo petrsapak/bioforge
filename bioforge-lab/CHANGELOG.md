@@ -7,6 +7,11 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.22 (2026-11-02)
+- A Muscle held shut turns the body toward its side. The Light eel no longer needs Siphons: its Light eyes open its
+  Muscle tail and hold a steering Muscle on their own side of the head shut, so it turns to the light.
+- A weak signal pulls a Muscle harder than before: a quarter signal pulls at half strength.
+
 ## 0.7.21 (2026-11-02)
 - Fixed: spawning enemies on top of each other in the Sandbox (with Crabs, Eels or Starters, often around 10 to 25
   of them) could fling one so hard that the whole world broke and every creature vanished. Now a thrown creature
