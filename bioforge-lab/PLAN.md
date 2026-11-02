@@ -360,8 +360,8 @@ gamesview.js    the Load game screen: a card per saved game, playing or deleting
 menus.js        the main menu (Continue, New game, Sandbox), the Esc menu (pausing a run), their Settings view
 ui.js           the app state, the controls, mouse and keyboard input, the frame loop
 game.js         the entry point: starts the app in a browser, not when the tests load the scripts
-tests/*.js      headless checks: node tests/all.js (autonomy, builder, chemical, design, determinism, editor, golden,
-                guide, levels, line-endings, menus, metabolism, music, nerve, probes, sandbox, savegame, scent,
+tests/*.js      headless checks: node tests/all.js (autonomy, builder, chemical, crowd, design, determinism, editor,
+                golden, guide, levels, line-endings, menus, metabolism, music, nerve, probes, sandbox, savegame, scent,
                 secretions, showcase, sound, soundbank, style, systems, terrain, title, vascular, version, weapons);
                 helpers: load.js, dom.js (fake browser), check.js
 ```
@@ -502,6 +502,9 @@ tests/          the save file test, and a CRLF check of these files
 - **Is Protein-only in chapter 1 too abstract?** Decide after trying it.
 
 ## Known limits
+- **Big Sandbox crowds (2026-11-02):** 30 Crabs (1364 cells) cost 10.9 ms of sim and 7.4 ms of drawing per frame
+  in headless Edge, which showed 21 fps there (its software painting adds the rest); 40 Jets (273 cells) stay at
+  60 fps. The collision check tests every pair of creatures whose boxes overlap.
 - **The guide's Calm cloud (2026-10-30):** in the Calm gland's example tank the cloud is faint, since Calm is a dark
   blue and the example signals the gland only every other second.
 - **Hormones in the water (2026-10-30):** the scent system costs about 2.8 ms of sim per game second on a 1600 × 1200 px Sandbox with one hormone in the water (1200 patches), nothing when no creature holds a hormone; the whole showcase scene went from about 152 to 161 ms per game s. A cloud falls off over about 100 px: four Calm glands put 0.2 Calm into a cell 180 px away after 45 s, two glands only 0.14 at 90 px. A creature's own Calm tops out near 0.5–0.9, so a guard whose Synapse sits near its input (Lullaby's 0.9 for an Eyespot's 1) is calmed, and one with a big margin is not.

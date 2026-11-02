@@ -76,7 +76,7 @@ function updatePhysics(world, dt) {
     applyBondForces(world);
     applyAngleSpringForces(world);
     applyWaterDrag(world);
-    applySkinDrag(world);
+    applySkinDrag(world, substep);
     applySnarePull(world);
     resolveCollisions(world);
     applyRockForces(world);
@@ -175,8 +175,9 @@ function applyBondForces(world) {
 // faster it moves. That is what makes swimming work: a tail swept sideways shoves water back and the body forward,
 // and a quick stroke pushes more than the slow return. The skin's direction at a cell runs from one skin neighbour
 // to the other, which smooths out the zig-zag of the hexes; a cell with no clear direction (a tail tip, a lone cell)
-// is pushed on like a round blob.
-function applySkinDrag(world) {
+// is pushed on like a round blob. Drag can at most stop a cell within the step (dt), never throw it back: above about
+// 1000 px/s (a creature spawned into another) the square drag would overshoot, grow each step and blow up to NaN.
+function applySkinDrag(world, dt) {
   for (const cell of world.cells) {
     if (!cell.onSurface) continue;
     const neighbours = cell.skinNeighbours;
@@ -184,7 +185,7 @@ function applySkinDrag(world) {
     const velocityY = cell.velocityY - cell.waterVelocityY;
     const speed = vectorLength(velocityX, velocityY);
     if (neighbours.length !== 2) {
-      const roundDrag = SKIN_FACE_DRAG + SKIN_FACE_SQUARE_DRAG * speed;
+      const roundDrag = Math.min(SKIN_FACE_DRAG + SKIN_FACE_SQUARE_DRAG * speed, cell.type.mass / dt);
       cell.forceX -= roundDrag * velocityX;
       cell.forceY -= roundDrag * velocityY;
       continue;
@@ -197,8 +198,11 @@ function applySkinDrag(world) {
     const skinShare = chord / (4 * CELL_RADIUS);           // this cell's share of the skin, about 1
     const faceSpeed = velocityY * directionX - velocityX * directionY;
     const edgeSpeed = velocityX * directionX + velocityY * directionY;
-    const faceDrag = SKIN_FACE_DRAG * faceSpeed + SKIN_FACE_SQUARE_DRAG * faceSpeed * Math.abs(faceSpeed);
-    const edgeDrag = SKIN_EDGE_DRAG * edgeSpeed;
+    const stoppingDrag = cell.type.mass / dt / skinShare;   // drag per px/s that stops the cell in this step
+    const isFaceDragCapped = SKIN_FACE_DRAG + SKIN_FACE_SQUARE_DRAG * Math.abs(faceSpeed) > stoppingDrag;
+    const faceDrag = isFaceDragCapped ? stoppingDrag * faceSpeed
+      : SKIN_FACE_DRAG * faceSpeed + SKIN_FACE_SQUARE_DRAG * faceSpeed * Math.abs(faceSpeed);
+    const edgeDrag = edgeSpeed * Math.min(SKIN_EDGE_DRAG, stoppingDrag);
     // the face direction is the normal (-directionY, directionX)
     cell.forceX -= skinShare * (faceDrag * -directionY + edgeDrag * directionX);
     cell.forceY -= skinShare * (faceDrag * directionX + edgeDrag * directionY);

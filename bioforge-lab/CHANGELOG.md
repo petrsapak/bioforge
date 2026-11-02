@@ -7,6 +7,11 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.21 (2026-11-02)
+- Fixed: spawning enemies on top of each other in the Sandbox (with Crabs, Eels or Starters, often around 10 to 25
+  of them) could fling one so hard that the whole world broke and every creature vanished. Now a thrown creature
+  just slows down in the water.
+
 ## 0.7.20 (2026-11-02)
 - A nerve signal reaches every cell wired to it at the same moment, however many fibres away. Only a Delay or a
   Ganglion makes it late. A swimming tail no longer turns because one side is wired a fibre further from the
