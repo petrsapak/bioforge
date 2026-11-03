@@ -75,9 +75,10 @@ button.big:hover { background: #4a8044; }
 .limit-meter { height: 5px; margin-top: 3px; background: #1c2a31; border-radius: 3px; overflow: hidden; }
 .limit-meter i { display: block; height: 100%; background: #5fbf7a; border-radius: 3px; }
 .limit.full .limit-meter i { background: #e8875a; }
+/* on its own line under the panel, as wide as its words */
 .limits-problem {
-  margin-top: 6px; padding: 4px 12px; color: #ffb08a; font-size: 13px; background: #3a1f16dd;
-  border: 1px solid #e8875a66; border-radius: 8px; display: inline-block;
+  display: table; margin: 6px auto 0; padding: 4px 12px; color: #ffb08a; font-size: 13px; background: #3a1f16dd;
+  border: 1px solid #e8875a66; border-radius: 8px;
 }
 
 /* Unlimited biomass, Symmetry and the red Delete all, at the right end of the tabs */

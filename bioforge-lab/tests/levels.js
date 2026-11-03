@@ -593,4 +593,19 @@ check('after it, Run level points at level 1 again', byId('run-next-label').text
     dockButtonsOf(finished).some(button => button.style.display === 'none'),
     finished.storage.items['bioforge-lab-game-1-level-results']);
 }
+
+// Run level: a level skipped among won ones comes first, and once every level is won it stays on the last
+{
+  const resultsWithout = skippedId => JSON.stringify(Object.fromEntries(sim.LEVELS.filter(level => level.id !==
+    skippedId).map(level => [level.id, { stars: 1, seconds: 1, biomass: 1 }])));
+  const skipping = startApp({ 'bioforge-lab-game-1-level-results': resultsWithout(sim.LEVELS[2].id) });
+  skipping.runFrames(3);
+  check('Run level points at the first level not won, even with later ones won',
+    skipping.byId('run-next-label').textContent === 'Run level 3', skipping.byId('run-next-label').textContent);
+  const allWon = startApp({ 'bioforge-lab-game-1-level-results': resultsWithout(null) });
+  allWon.runFrames(3);
+  check('once every level is won, Run level points at the last level',
+    allWon.byId('run-next-label').textContent === `Run level ${sim.LEVELS.length}` &&
+    allWon.byId('run-next-name').textContent === lastLevel.name, allWon.byId('run-next-label').textContent);
+}
 done();

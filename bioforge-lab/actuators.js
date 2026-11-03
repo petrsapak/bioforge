@@ -56,7 +56,9 @@ function updateSize(cell, power, dt, time) {
   let targetSize = 1;
   const resize = cell.type.resize;
   if (resize === 'contract') {
-    targetSize = Math.max(MUSCLE_MIN_SIZE, 1 - MUSCLE_CONTRACTION * musclePull(cell, power, time));
+    const pull = musclePull(cell, power);
+    updateHeldPull(cell, pull, time);
+    targetSize = Math.max(MUSCLE_MIN_SIZE, 1 - MUSCLE_CONTRACTION * pull);
   } else if (resize === 'swell') {
     targetSize = Math.min(BLOATER_MAX_SIZE, 1 + BLOATER_SWELL * signal * power);
   }
@@ -68,11 +70,15 @@ function updateSize(cell, power, dt, time) {
 }
 
 // How hard a muscle pulls now: by the square root of its signal, so a weak signal still pulls (a quarter signal at
-// half strength), times its power. Also keeps its held pull for pullImbalance: the weakest it pulled in this hold
-// window and the one before (MUSCLE_HOLD_WINDOW, counted in game time), so a muscle that lets go on every beat holds
-// nothing, and one kept partly shut holds that much. time: the world's game s.
-function musclePull(cell, power, time) {
-  const pull = Math.sqrt(cell.stepSignal) * power;
+// half strength), times its power.
+function musclePull(cell, power) {
+  return Math.sqrt(cell.stepSignal) * power;
+}
+
+// Keeps a muscle's held pull for pullImbalance: the weakest it pulled in this hold window and the one before
+// (MUSCLE_HOLD_WINDOW, counted in game time), so a muscle that lets go on every beat holds nothing, and one kept
+// partly shut holds that much. time: the world's game s.
+function updateHeldPull(cell, pull, time) {
   const windowIndex = Math.floor(time / MUSCLE_HOLD_WINDOW);
   if (windowIndex !== cell.holdWindow) {
     cell.weakestPullBefore = windowIndex === cell.holdWindow + 1 ? cell.weakestPull : 0;
@@ -81,13 +87,13 @@ function musclePull(cell, power, time) {
   }
   cell.weakestPull = Math.min(cell.weakestPull, pull);
   cell.heldPull = Math.min(cell.weakestPull, cell.weakestPullBefore);
-  return pull;
 }
 
-// How much harder the right side's muscles hold than the left side's (heldPull), from -1 (only the left holds) to 1
-// (only the right): a creature turns toward the side held shut (physics.js), so two eyes each holding their own side's
-// muscles partly shut steer it. A tail beating on a Pacemaker lets go every beat and holds nothing, so it swims
-// straight. Sides are left and right of the Nucleus's column in the design; muscles on that column count for neither.
+// How much harder the right side's muscles hold than the left side's (heldPull): -1 when only the left half of an
+// even body holds fully, 1 when only the right half does. A creature turns toward the side held shut (physics.js), so
+// two eyes each holding their own side's muscles partly shut steer it. A tail beating on a Pacemaker lets go every
+// beat and holds nothing, so it swims straight. Sides are left and right of the Nucleus's column in the design;
+// muscles on that column count for neither.
 function pullImbalance(creature) {
   let left = 0;
   let right = 0;

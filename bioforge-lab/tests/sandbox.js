@@ -86,8 +86,12 @@ ENEMY_DESIGNS.forEach((name, i) => {
   chooseEnemy(name);
   clickWater(200 + i * 140, 120 + (i % 3) * 80);
 });
-runFrames(600);
-check('9 enemy types brawl for 10 s without an error', true, byId('hud-enemies').textContent);
+runFrames(1);
+const spawnedCount = enemyCount();
+runFrames(599);
+// the brawl used to throw creatures so hard that every one vanished (tests/crowd.js has the cause)
+check('9 enemy types brawl for 10 s, and creatures are still there', spawnedCount === ENEMY_DESIGNS.length &&
+  enemyCount() > 0, `${spawnedCount} spawned, ${byId('hud-enemies').textContent}`);
 
 // Esc opens the menu (since 2026-10-30; before, it went straight back to the builder), and the menu leaves
 pressKey('Escape');

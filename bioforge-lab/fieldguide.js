@@ -220,6 +220,7 @@ const EXAMPLE_TARGET_OFFSETS = [[-80, 65], [80, 65]];
 const EXAMPLE_TARGET_REACHED = 20;                        // px from the creature's centre: the target moves on
 const EXAMPLE_ENEMY_GAP = 30;                             // px from the creature's front to the enemy
 const EXAMPLE_ENEMY_TOUCHING_GAP = 34;                    // px: its nearest cell just within a gland's reach
+const EXAMPLE_HURT_HEALTH = 0.1;                          // share of full health a startsHurt cell starts with
 
 // a running example: its world and creature, the enemy while it is there, the time (game s) and the view's middle
 function createExampleRun(example) {
@@ -229,7 +230,8 @@ function createExampleRun(example) {
   const creature = spawn(world, exampleDesign(example), middle, middle, 0, 0);
   creature.autonomous = true;                             // as in a level: only its own cells move and turn it
   for (const cell of creature.cells) {
-    if (example.startsHurt && example.startsHurt.includes(cell.typeName)) cell.health = cell.maxHealth * 0.1;
+    const startsHurt = example.startsHurt && example.startsHurt.includes(cell.typeName);
+    if (startsHurt) cell.health = cell.maxHealth * EXAMPLE_HURT_HEALTH;
   }
   const run = { example, world, creature, enemy: null, time: 0, targetCount: 0, cameraX: middle, cameraY: middle };
   placeExampleStimulus(run);
@@ -275,10 +277,14 @@ function placeExampleTarget(run, stimulus) {
   else run.world.food = [{ x, y }];
 }
 
+// the unit vector [x, y] the creature faces
+function forwardOf(creature) {
+  return [sine(creature.heading), -cosine(creature.heading)];
+}
+
 // the world point that lies right px to the creature's right and ahead px in front of its centre
 function pointInCreatureFrame(creature, right, ahead) {
-  const forwardX = sine(creature.heading);
-  const forwardY = -cosine(creature.heading);
+  const [forwardX, forwardY] = forwardOf(creature);
   const x = creature.centerX - forwardY * right + forwardX * ahead;
   const y = creature.centerY + forwardX * right + forwardY * ahead;
   return [x, y];
@@ -296,8 +302,7 @@ function placeExampleEnemy(run, isThere) {
   const { example, creature } = run;
   const dummyType = example.dummyType || 'tissue';
   const dummyDesign = { cells: blueprintFromList([[0, 0, dummyType], [1, 0, dummyType], [0, 1, dummyType]]) };
-  const forwardX = sine(creature.heading);
-  const forwardY = -cosine(creature.heading);
+  const [forwardX, forwardY] = forwardOf(creature);
   const front = Math.max(...creature.cells.map(cell =>
     (cell.x - creature.centerX) * forwardX + (cell.y - creature.centerY) * forwardY));
   const gap = example.dummyTouches ? EXAMPLE_ENEMY_TOUCHING_GAP : EXAMPLE_ENEMY_GAP;

@@ -27,14 +27,14 @@ function setUpSandboxBar(app) {
   }
   byId('sandbox-player').value = OWN_DESIGN;
   byId('sandbox-enemy').value = SANDBOX_DESIGNS[0];
-  onSandboxButton('start-sandbox', () => startSandbox(app));
-  onSandboxButton('sandbox-enemy-mode', () => toggleEnemiesIdle(app));
-  onSandboxButton('sandbox-clear', () => removeEnemies(app));
-  onSandboxButton('sandbox-respawn', () => spawnSandboxPlayer(app));
-  onSandboxButton('back-to-lab', () => enterBuilder(app));
-  onSandboxButton('sandbox-pause', () => togglePause(app));
-  onSandboxButton('sandbox-step', () => requestOneStep(app));
-  onSandboxButton('sandbox-speed', () => cycleSandboxSpeed(app));
+  onButton('start-sandbox', () => startSandbox(app));
+  onButton('sandbox-enemy-mode', () => toggleEnemiesIdle(app));
+  onButton('sandbox-clear', () => removeEnemies(app));
+  onButton('sandbox-respawn', () => spawnSandboxPlayer(app));
+  onButton('back-to-lab', () => enterBuilder(app));
+  onButton('sandbox-pause', () => togglePause(app));
+  onButton('sandbox-step', () => requestOneStep(app));
+  onButton('sandbox-speed', () => cycleSandboxSpeed(app));
   byId('sandbox-player').onchange = event => {
     spawnSandboxPlayer(app);
     event?.target?.blur?.();
@@ -43,14 +43,6 @@ function setUpSandboxBar(app) {
 }
 
 const capitalize = text => text[0].toUpperCase() + text.slice(1);
-
-// a button that lets go of the keyboard focus after a click, so Space doesn't press it again
-function onSandboxButton(id, action) {
-  byId(id).onclick = event => {
-    action();
-    event?.currentTarget?.blur?.();
-  };
-}
 
 const sandboxDesign = (app, designName) => designName === OWN_DESIGN ? bodyDesign(app.edited) : TEMPLATES[designName];
 

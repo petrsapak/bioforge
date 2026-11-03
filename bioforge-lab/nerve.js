@@ -88,7 +88,7 @@ function senseOutput(world, cell) {
 function commandOutput(world, cell) {
   const creature = cell.creature;
   const keyHeld = !!cell.boundKey && !!creature.heldKeys && creature.heldKeys.has(cell.boundKey);
-  const playerBound = cell.boundKey && !creature.aiControlled &&!world.spaceFiresAllSources;
+  const playerBound = cell.boundKey && !creature.aiControlled && !world.spaceFiresAllSources;
   return (playerBound ? keyHeld : creature.abilityHeld || keyHeld) ? 1 : 0;
 }
 

@@ -99,7 +99,7 @@ function showLimits(app) {
     limitHtml('nerve', app.layer, 'Fibre', `Fibre: ${nerve.units} of ${limits.maxFibreUnits} units`,
       `${nerve.units} / ${limits.maxFibreUnits}`, nerve.units >= limits.maxFibreUnits,
       nerve.units / limits.maxFibreUnits) +
-    '</div>' + (problem ? `<br><div class="limits-problem">⚠ ${problem}</div>` : '');
+    '</div>' + (problem ? `<div class="limits-problem">⚠ ${problem}</div>` : '');
 }
 
 // A level's kit in the Body view: each material cells are built from, used against the kit, then the reserves the

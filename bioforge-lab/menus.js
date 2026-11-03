@@ -57,7 +57,7 @@ function setUpMenus(app) {
     }),
     quit: () => quitGame(app),
   };
-  for (const name of ALL_MENU_BUTTONS) onSandboxButton('menu-' + name, actions[name]);
+  for (const name of ALL_MENU_BUTTONS) onButton('menu-' + name, actions[name]);
   setUpSettings(app);
   setUpGamesScreen();
   byId('menu-version').textContent = 'Version ' + GAME_VERSION;
@@ -219,8 +219,8 @@ function resetLevelProgressAsked(app) {
     app.levelResults = {};
     writeStorage('level-results', app.levelResults);
     if (app.level && !isLevelOpen(app.levelResults, LEVELS.indexOf(app.level))) chooseLevel(app, null);
-    showLevelButton(app);                                 // Run level goes back to level 1
-    refreshPanel(app);                                   // the dock locks again what the last level's win opened
+    showLevelButtons(app);                                // Run level goes back to level 1
+    refreshPanel(app);                                    // the dock locks again what the last level's win opened
     showMessage('Level progress reset.');
   });
 }
@@ -244,18 +244,18 @@ function restartGame() {
 
 // ---------- Settings ----------
 function setUpSettings(app) {
-  onSandboxButton('setting-music', () => {
+  onButton('setting-music', () => {
     toggleMusic(app);
     showSettings(app);
   });
-  onSandboxButton('setting-sounds', () => {
+  onButton('setting-sounds', () => {
     toggleSounds(app);
     showSettings(app);
   });
-  onSandboxButton('setting-fullscreen', () => toggleFullscreen(app));
-  onSandboxButton('setting-keys', toggleKeysSheet);
-  onSandboxButton('setting-reset-levels', () => resetLevelProgressAsked(app));
-  onSandboxButton('menu-back', () => showMenuView(app, 'buttons'));
+  onButton('setting-fullscreen', () => toggleFullscreen(app));
+  onButton('setting-keys', toggleKeysSheet);
+  onButton('setting-reset-levels', () => resetLevelProgressAsked(app));
+  onButton('menu-back', () => showMenuView(app, 'buttons'));
   addEventListener('fullscreenchange', () => showSettings(app));
 }
 

@@ -3,9 +3,9 @@
 // (createExampleRun in fieldguide.js, drawn by tipdemo.js). Example fields:
 //   cells: [q, r, typeName, neuronKind, setting] for each cell, neuronKind and setting optional;
 //   fibres: [fromQ, fromR, toQ, toR] for each fibre;
-//   stimulus: what the water holds for its senses: 'light' (a light going round the creature), 'food' (a speck
-//   going round it), 'enemy' (a dummy enemy just in front, there every other 2 s), 'key' (Space held every other
-//   2 s, for a Command); left out: nothing;
+//   stimulus: what the water holds for its senses: 'light' (a light ahead to one side, put on the other side once
+//   reached), 'food' (a speck placed the same way), 'enemy' (a dummy enemy just in front, there every other 2 s),
+//   'key' (Space held every other 2 s, for a Command); left out: nothing;
 //   dummyType: the enemy's cell type (default Tissue); dummyTouches: the enemy is held touching the creature;
 //   fluidView: the fluid shown (1 + its index in FLUIDS: 1 = O2 .. 5 = adrenaline, 6 = calm,
 //   7 = fed, 8 = starved); startsHurt: cell types that start damaged; budPart: the part a Bud grows;

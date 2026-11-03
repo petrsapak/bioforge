@@ -16,29 +16,7 @@ const DOCK_NEURON_CELL_RADIUS = CELL_RADIUS * 0.9 * MEMBRANE_RADIUS / NEURON_BAD
 // by type name and by neuron kind, showLayer(layer), which shows the tabs and sections of 'body' or 'nerve', and
 // showPieces(limits, newPieces), which hides the limits' locked pieces and marks newPieces ({ cells, neurons }).
 function buildDock(onPickCell, onPickNeuron) {
-  const sections = [];
-  const cellButtons = new Map();
-  const neuronButtons = new Map();
-  for (const [typeName, cellType] of Object.entries(CELLS)) {
-    if (cellType.isNucleus) continue;                     // every creature has exactly one, placed for you
-    let section = sections[sections.length - 1];
-    if (!section || section.category !== cellType.category) {
-      section = makeDockSection(cellType.category, 'body');
-      sections.push(section);
-    }
-    const button = makeDockButton(typeName);
-    button.onclick = () => onPickCell(typeName);
-    addToSection(section, button);
-    cellButtons.set(typeName, button);
-  }
-  const neuronSection = makeDockSection('Neurons', 'nerve');
-  sections.push(neuronSection);
-  for (const kind of Object.keys(NEURONS)) {
-    const button = makeNeuronButton(kind);
-    button.onclick = () => onPickNeuron(kind);
-    addToSection(neuronSection, button);
-    neuronButtons.set(kind, button);
-  }
+  const { sections, cellButtons, neuronButtons } = makeDockSections(onPickCell, onPickNeuron);
   const bodySections = sections.filter(section => section.layer === 'body');
   const tabs = makeDockTabs(bodySections);
   let layer = 'body';
@@ -100,6 +78,35 @@ function buildDock(onPickCell, onPickNeuron) {
   layOutDock(sections);
   setUpDockToggle();
   return { cellButtons, neuronButtons, showLayer, showPieces };
+}
+
+// A dock section per cell category, in the order of CELLS, and one of neurons, each button calling onPickCell(typeName)
+// or onPickNeuron(kind). Returns the sections and the buttons by type name and by neuron kind.
+function makeDockSections(onPickCell, onPickNeuron) {
+  const sections = [];
+  const cellButtons = new Map();
+  const neuronButtons = new Map();
+  for (const [typeName, cellType] of Object.entries(CELLS)) {
+    if (cellType.isNucleus) continue;                     // every creature has exactly one, placed for you
+    let section = sections[sections.length - 1];
+    if (!section || section.category !== cellType.category) {
+      section = makeDockSection(cellType.category, 'body');
+      sections.push(section);
+    }
+    const button = makeDockButton(typeName);
+    button.onclick = () => onPickCell(typeName);
+    addToSection(section, button);
+    cellButtons.set(typeName, button);
+  }
+  const neuronSection = makeDockSection('Neurons', 'nerve');
+  sections.push(neuronSection);
+  for (const kind of Object.keys(NEURONS)) {
+    const button = makeNeuronButton(kind);
+    button.onclick = () => onPickNeuron(kind);
+    addToSection(neuronSection, button);
+    neuronButtons.set(kind, button);
+  }
+  return { sections, cellButtons, neuronButtons };
 }
 
 // a dock button shown or hidden, with the mark of a piece the chosen level brings

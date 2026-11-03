@@ -264,100 +264,99 @@ core.js         constants, hex and math helpers, world (newWorld, newTestTank, r
                 factories, spawn, death and splitting, the system registry, step() and the cell-death hooks (pure);
                 systems: clock 30, cleanup 110, particles 120
 fibres.js       nerve fibre routing from cell centre to cell centre, along drawn routes or the shortest way, units,
-                side-by-side lanes and colours for drawing, the curved line fibres are drawn along, adding fibres
-                to a creature and cutting broken ones (pure)
+                side-by-side lanes and colours for drawing, the curved line fibres are drawn along, adding fibres to a
+                creature and cutting broken ones (pure)
 terrain.js      a level's rock (hex tiles on the cells' grid, pushing cells out and gripping them) and currents (pure)
-physics.js      input, steering, springs, drag, collisions, integration (anchored creatures stay put) (pure);
-                systems: input 10, physics 20
+physics.js      input, steering, springs, drag, collisions, integration (anchored creatures stay put) (pure); systems:
+                input 10, physics 20
 nerve.js        signals along fibres, senses, the neuron rules (pure); system: nerve 40 (switchable)
-fluid.js        work levels, fuel burning, products, fluids seeping between touching cells (pure); system: fluid
-                50 (switchable)
-vascular.js     the Heart's beat and blood pumped between the touching cells within its reach
-                (pure); system: vascular 55 (switchable)
-chemical.js     moods: each cell's hormones set its Synapse threshold, Pacemaker speed, fuel burn and Fat store
-                points (pure); system: chemical 52 (switchable)
+fluid.js        work levels, fuel burning, products, fluids seeping between touching cells (pure); system: fluid 50
+                (switchable)
+vascular.js     the Heart's beat and blood pumped between the touching cells within its reach (pure); system: vascular
+                55 (switchable)
+chemical.js     moods: each cell's hormones set its Synapse threshold, Pacemaker speed, fuel burn and Fat store points
+                (pure); system: chemical 52 (switchable)
 scent.js        hormones in the water: a grid of patches each cell scents and takes in from, spreading and fading
                 (pure); system: scent 51 (switchable)
-metabolism.js   Fat cells storing spare sugar as fat and turning it back; filling a new creature's stores from a
-                kit's leftovers (pure); system: metabolism 57 (switchable)
-actuators.js    resizing, weapon triggers, timers, debris rot (pure); system: actuators 60
-secretions.js   hard cells; acid and protease glands on touching enemy cells, the Mineralizer hardening its own
-                cells (pure); system: secretions 62 (switchable)
-treatments.js   Tanner and Resilin glands treating their own cells; tanned bonds; resilin muscles charging and
-                snapping open (pure); system: treatments 64 (switchable)
-combat.js       damage (armour, hardening), contact hits (hard cells blunt thorns and stings), aiming, snare
-                lines, globs (pure); system: projectiles 70
+metabolism.js   Fat cells storing spare sugar as fat and turning it back; filling a new creature's stores from a kit's
+                leftovers (pure); system: metabolism 57 (switchable)
+actuators.js    resizing, a Muscle's pull and the held pull that steers (physics.js turns the body), weapon
+                triggers, timers, debris rot (pure); system: actuators 60
+secretions.js   hard cells; acid and protease glands on touching enemy cells, the Mineralizer hardening its own cells
+                (pure); system: secretions 62 (switchable)
+treatments.js   Tanner and Resilin glands treating their own cells; tanned bonds; resilin muscles charging and snapping
+                open (pure); system: treatments 64 (switchable)
+combat.js       damage (armour, hardening), contact hits (hard cells blunt thorns and stings), aiming, snare lines,
+                globs (pure); system: projectiles 70
 growth.js       Bud parts and Mender regrowth (pure); systems: buds 80, regrow 90 (switchable)
-food.js         the food supply (how many specks, how often, where: anywhere, near the light, a fixed trail; until
-                when; mineral specks), eating and counting it, specks left by dead cells (pure); system: food 100
-                (switchable)
+food.js         the food supply (how many specks, how often, where: anywhere, near the light, a fixed trail; until when;
+                mineral specks), eating and counting it, specks left by dead cells (pure); system: food 100 (switchable)
 ai.js           AI steering: sandbox enemies and hunters at the nearest enemy, prey away from it in tiring sprints
                 (pure)
-levels.js       levels: building a level's world, its light, its food and the kit's reserves, creatures arriving
-                later, stepping it, the goal checks, the score, a headless run (pure)
-design.js       hex lookup, buildCheck (cells, biomass or the kit, neurons, fibre units), material kits
-                (a design's materials, the kit's leftovers and reserves), design warnings and the
-                Needs rows they fill, the sugar supply, the saved design format, and the conversion of old saves and of designs from before the nerve layer and the Heart's areas (pure; loaded
-                before data/templates.js, which uses the conversion)
-snapshot.js     any web of objects as plain JSON data and back, shared objects and loops kept, the game's data by
-                path (pure)
-savegame.js     the save's version and upgrade steps, the games (adding, switching, deleting, what a game's card
-                says), the resume state Continue reads, a run's snapshot, creature files (pure)
-titlescene.js   the title screen's living scene: building it, newcomers for lost creatures, clearing old debris,
-                the drifting light, what the camera may follow (pure)
-builder.js      the edited design and every editing rule: cells, neurons and fibres (mirrored across
-                symmetry axes), painting strokes,
-                Bud parts and aim, Command keys, fibres drawn along a route, stamps, saving a selection,
-                the library list (pure)
+levels.js       levels: building a level's world, its light, its food and the kit's reserves, creatures arriving later,
+                stepping it, the goal checks, the score, a headless run (pure)
+design.js       hex lookup, buildCheck (cells, biomass or the kit, neurons, fibre units), material kits (a design's
+                materials, the kit's leftovers and reserves), design warnings and the Needs rows they fill, the sugar
+                supply, the saved design format, and the conversion of old saves and of designs from before the nerve
+                layer and the Heart's areas (pure; loaded before data/templates.js, which uses the conversion)
+snapshot.js     any web of objects as plain JSON data and back, shared objects and loops kept, the game's data by path
+                (pure)
+savegame.js     the save's version and upgrade steps, the games (adding, switching, deleting, what a game's card says),
+                the resume state Continue reads, a run's snapshot, creature files (pure)
+titlescene.js   the title screen's living scene: building it, newcomers for lost creatures, clearing old debris, the
+                drifting light, what the camera may follow (pure)
+builder.js      the edited design and every editing rule: cells, neurons and fibres (mirrored across symmetry axes),
+                painting strokes, Bud parts and aim, Command keys, fibres drawn along a route, stamps, saving a
+                selection, the library list (pure)
 fieldguide.js   the field guide's sections and entries, each cell's and neuron's facts and stats read from the game's
-                data, and an example build as a design, as its wiring (what feeds what), and running in open water
-                with what its senses need (createExampleRun)
-                and constants (pure)
-data/*.js       cells (stats, recipes and behaviour fields), materials, neurons, fluids, templates (incl. the small builds), tips,
-                levels and the creatures that live in them, sound effects, the title scene, the field guide's words
+                data; an example build as a design, as its wiring (what feeds what), and running in open water with
+                what its senses need (createExampleRun) (pure)
+data/*.js       cells (stats, recipes and behaviour fields), materials, neurons, fluids, templates (incl. the small
+                builds), tips, levels and the creatures that live in them, sound effects, the title scene, the field
+                guide's words
 cellart.js      how each cell and neuron badge looks (Microscope style): see-through body, membrane, a symbol per type
 render.js       canvas drawing of a world: bonds, cells (through cellart.js), overlays, Photophore glows, fibres in
                 lanes, food
 lens.js         the chemical lens (C): dimmed bodies, a cloud per hormone round each cell, the water's clouds
-windows.js      DOM and storage helpers (localStorage, or the desktop save file), floating windows, remembered
-                menu branches
-dialog.js       the game's own question box (askToConfirm) in place of confirm(): Delete all, deleting a
-                saved creature or template; Enter confirms, Esc cancels
+windows.js      DOM and storage helpers (localStorage, or the desktop save file), floating windows, remembered menu
+                branches
+dialog.js       the game's own question box (askToConfirm) in place of confirm(): Delete all, deleting a saved creature
+                or template; Enter confirms, Esc cancels
 tipdemo.js      draws the live example in the cell and neuron tooltips and the field guide, the view following the
                 creature, with signal lanes under a neuron's example
 hud.js          HUD bars and vitals
 dock.js         the cell dock: a tab per category, two rows of hexagons; the neurons in the Nerve view
-library.js      the Templates screen (a sheet like the field guide; T): tabs My creatures, My parts and Examples,
-                a name filter, cards with pictures, Save this creature; the library, saved in localStorage
-toolbar.js      the Body / Nerves tabs at the top, with Unlimited, Symmetry (its dial of axes) and
-                the red Delete all beside them; the keys sheet (H); Shift+1–6 fluid views
-panel.js        the limits line under the tabs (biomass, or the kit's materials and reserves), a message line, the card of the clicked cell or the stamp, and the
-                Needs card (sugar time, a row per need, a fluid's row clicked to show its fluid view, the next fix)
+library.js      the Templates screen (a sheet like the field guide; T): tabs My creatures, My parts and Examples, a name
+                filter, cards with pictures, Save this creature; the library, saved in localStorage
+toolbar.js      the Body / Nerves tabs at the top, with Unlimited, Symmetry (its dial of axes) and the red Delete all
+                beside them; the keys sheet (H); Shift+1–6 fluid views
+panel.js        the limits line under the tabs (biomass, or the kit's materials and reserves), a message line, the card
+                of the clicked cell or the stamp, and the Needs card (sugar time, a row per need, a fluid's row clicked
+                to show its fluid view, the next fix)
 coach.js        the How to box: small looping animations of each step, ticked off as the design does them
-builderview.js  drawing the builder grid (with the symmetry axes, the Shift highlight and the reach of the Heart
-                under the mouse) and the preview window;
-                zoom and pan; the builder's cursor
-reference.js    the Reference window: a creature from the Templates screen (Study) beside the Lab, live in its own
-                test tank, drawn as the grid draws a design (or swimming); kept per game
+builderview.js  drawing the builder grid (with the symmetry axes, the Shift highlight and the reach of the Heart under
+                the mouse) and the preview window; zoom and pan; the builder's cursor
+reference.js    the Reference window: a creature from the Templates screen (Study) beside the Lab, live in its own test
+                tank, drawn as the grid draws a design (or swimming); kept per game
 tooltip.js      the hover hint: name, cost, description, how to use, live example
-guideview.js    the field guide sheet: the list with each entry's picture, an entry's page told in pictures (the
-                example tank, cost pips, health and fuel bars, a setting slider, wiring with moving fibres, picture
-                tiles); opened from the menus, G and the card
-probes.js       signal probes: a live 6 s trace per sense, neuron and signalled cell; in runs for the player (or the cells the player clicked), in the builder's Traces window
-                (Nerve view) for the test tank's creature
+guideview.js    the field guide sheet: the list with each entry's picture, an entry's page told in pictures (the example
+                tank, cost pips, health and fuel bars, a setting slider, wiring with moving fibres, picture tiles);
+                opened from the menus, G and the card
+probes.js       signal probes: a live 6 s trace per sense, neuron and signalled cell; in runs for the player (or the
+                cells the player clicked), in the builder's Traces window (Nerve view) for the test tank's creature
 sandbox.js      sandbox mode: its bar, steps, drawing and HUD; the time controls and vitals HUD it shares with levels
-levelview.js    levels in the app: the Run level and Levels buttons, the levels sheet (level tiles, and the chosen level's card beside them), a
-                level run with its bar, arena, HUD and result box, the best results
-music.js        the background music: starts at once where allowed (desktop), else on the first click or key, loops by crossfading two copies; the
-                Settings and M switch it
+levelview.js    levels in the app: the Run level and Levels buttons, the levels sheet (level tiles, and the chosen
+                level's card beside them), a level run with its bar, arena, HUD and result box, the best results
+music.js        the background music: starts at once where allowed (desktop), else on the first click or key, loops by
+                crossfading two copies; the Settings and M switch it
 sound.js        sound effects: playing them, Settings and N, the creature's sounds from world changes
 fonts/          Megrim (the title screen's font) and its licence, OFL.txt
-audio/          the music track (mp3) and the sound effects in audio/sfx/ (wav), with audio/sfx/bank.js: the same
-                WAVs as base64 for Web Audio (node tests/soundbank.js --update writes it; the tests' load() skips it)
-titleview.js    the title screen: the scene drawn behind the main menu, the drifting camera, dimming the screen
-                between the title and the lab
-progress.js     Continue: saving the design, the level and a running level or Sandbox as they change, picking
-                them up again; quick save and load; exporting a library entry to a file and importing one
+audio/          the music track (mp3) and the sound effects in audio/sfx/ (wav), with audio/sfx/bank.js: the same WAVs
+                as base64 for Web Audio (node tests/soundbank.js --update writes it; the tests' load() skips it)
+titleview.js    the title screen: the scene drawn behind the main menu, the drifting camera, dimming the screen between
+                the title and the lab
+progress.js     Continue: saving the design, the level and a running level or Sandbox as they change, picking them up
+                again; quick save and load; exporting a library entry to a file and importing one
 gamesview.js    the Load game screen: a card per saved game, playing or deleting one
 menus.js        the main menu (Continue, New game, Sandbox), the Esc menu (pausing a run), their Settings view
 ui.js           the app state, the controls, mouse and keyboard input, the frame loop
@@ -365,8 +364,7 @@ game.js         the entry point: starts the app in a browser, not when the tests
 tests/*.js      headless checks: node tests/all.js (autonomy, builder, chemical, crowd, design, determinism, editor,
                 golden, guide, levels, line-endings, menus, metabolism, music, nerve, probes, sandbox, savegame, scent,
                 secretions, showcase, sound, soundbank, style, systems, terrain, tips, title, vascular, version,
-                weapons);
-                helpers: load.js, dom.js (fake browser), check.js
+                weapons); helpers: load.js, dom.js (fake browser), check.js
 ```
 
 **The saved design format** (2026-10-28): a design is `{ cells, fibres }` (`vessels` too until 2026-11-01); fibres are `{ from: { q, r }, to: { q, r } }`. A design cell is `{ q, r, typeName }`, plus on a Bud `budPart`, `partRotation`, `partOffset` and `partAim`, on a Command `boundKey`, and on a Receptor `sensedHormone` (left out for Adrenaline). A library entry is `{ name, isCreature, cells, fibres }`; one saved with vessels gets an Inhibitor in each Heart without a neuron and loses the vessels (see "The Heart pumps an area"). `migrateLibraryEntry()` in `design.js` reads the old short names (`t`, `tpl`, `bind`, `rot`, `off`, `aim`, `full`). The library lives under `bioforge-lab-library`; the first time, Lab copies Bioforge Moba's `bioforge-templates` list from it, and it never writes to that key, because pages opened from disk can share storage and Moba still uses it. Every Lab storage key starts with `bioforge-lab-`.

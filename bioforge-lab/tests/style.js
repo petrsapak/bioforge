@@ -37,6 +37,20 @@ checkEveryLine('every function declaration has a comment above it', lines =>
 checkEveryLine('every numeric constant has a trailing comment with its unit', lines =>
   lines.flatMap((line, i) => (/^const [A-Z][A-Z0-9_]* = [-\d.(]/.test(line) && !line.includes('//') ? [i + 1] : [])));
 
+// ---------- Dead code ----------
+// every top-level function and constant of the game is named again somewhere: in the game, index.html or a test
+const withoutComments = file => readLines(file).filter(line => !/^\s*\/\//.test(line)).join('\n');
+const everyText = [...allScripts.map(withoutComments), fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')]
+  .join('\n');
+const gameAndData = [...gameScripts, ...scriptsIn('data')];
+const unusedNames = gameAndData.flatMap(file => readLines(file)
+  .map(line => /^(?:function|const|let) +([A-Za-z_$][\w$]*)/.exec(line))
+  .filter(Boolean)
+  .map(match => match[1])
+  .filter(name => (everyText.match(new RegExp(`\\b${name.replace(/\$/g, '\\$')}\\b`, 'g')) || []).length < 2)
+  .map(name => `${file}: ${name}`));
+check('every top-level function and constant is used', !unusedNames.length, unusedNames.join(', '));
+
 // ---------- File lists ----------
 // the backticked .js names in a piece of text
 const namedScripts = text => [...text.matchAll(/`([\w/]+\.js)`/g)].map(match => match[1]);

@@ -11,6 +11,14 @@ const byId = id => document.getElementById(id);
 const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
 const escapeHtml = text => String(text).replace(/[&<>"]/g, character => HTML_ESCAPES[character]);
 
+// a button that lets go of the keyboard focus after a click, so Space doesn't press it again
+function onButton(id, action) {
+  byId(id).onclick = event => {
+    action();
+    event?.currentTarget?.blur?.();
+  };
+}
+
 // Where settings and progress are kept: the desktop build's save file (desktop/preload.js gives it localStorage's
 // getItem and setItem), or the browser's localStorage.
 const savedStore = () => window.desktopSaves || localStorage;

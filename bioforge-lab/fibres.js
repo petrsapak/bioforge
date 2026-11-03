@@ -60,7 +60,7 @@ function routeAlong(area, points) {
   return { hexes, units: hexes.length - 1 };
 }
 
-// a fibre or vessel with every hex it names ({ q, r }: its ends, and a fibre's via cells) moved by place
+// a fibre with every hex it names ({ q, r }: its ends, and a fibre's via cells) moved by place
 function moveLink(link, place) {
   const moved = { from: place(link.from), to: place(link.to) };
   if (link.via) moved.via = link.via.map(place);
@@ -79,15 +79,6 @@ function fibreUnits(design) {
   const area = createRouteArea(design.cells);
   return (design.fibres || []).reduce((sum, fibre) => {
     const route = fibreRoute(area, fibre);
-    return sum + (route ? route.units : 0);
-  }, 0);
-}
-
-// total units of links ({ from, to }: fibres or vessels) routed through these cells; unroutable links count nothing
-function routedUnits(cells, links) {
-  const area = createRouteArea(cells);
-  return links.reduce((sum, link) => {
-    const route = routeFibre(area, link.from, link.to);
     return sum + (route ? route.units : 0);
   }, 0);
 }
@@ -199,7 +190,7 @@ function offsetPolyline(path, offset) {
   });
 }
 
-// The line a fibre or vessel is drawn along, from its points ([x, y]: its cells' centres, or its lane beside them).
+// The line a fibre is drawn along, from its points ([x, y]: its cells' centres, or its lane beside them).
 // It runs straight across the border between two cells and bends in a curve inside each cell it passes through,
 // instead of turning a sharp corner at the cell's centre. Its ends stop `gap` px short of the end cells' centres, so
 // they show beside the neuron or the cell's symbol instead of under it. Returns [x, y] points.

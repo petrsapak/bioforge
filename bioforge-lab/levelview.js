@@ -15,35 +15,35 @@ const LEVEL_KEYS_HELP = '<b>Space</b> and bound keys: Commands &nbsp;<b>P</b> pa
 function setUpLevels(app) {
   app.levelResults = readStorage('level-results', {});
   byId('show-levels').onclick = () => toggleLevelsSheet(app);
-  onSandboxButton('run-next-level', () => runNextLevel(app));
+  onButton('run-next-level', () => runNextLevel(app));
   byId('levels-sheet').onclick = event => {
     if (event.target === byId('levels-sheet')) closeLevelsSheet();
   };
   byId('levels-close').onclick = closeLevelsSheet;
-  onSandboxButton('level-run', () => {
+  onButton('level-run', () => {
     chooseLevel(app, app.sheetLevel);
     closeLevelsSheet();
     startLevelRun(app);
   });
-  onSandboxButton('level-build', () => {
+  onButton('level-build', () => {
     chooseLevel(app, app.sheetLevel);
     closeLevelsSheet();
   });
-  onSandboxButton('level-hint', () => {
+  onButton('level-hint', () => {
     app.isHintShown = !app.isHintShown;
     showLevelCard(app);
   });
-  onSandboxButton('level-leave', () => {
+  onButton('level-leave', () => {
     chooseLevel(app, null);
     showLevelTiles(app);
   });
-  onSandboxButton('level-pause', () => togglePause(app));
-  onSandboxButton('level-step', () => requestOneStep(app));
-  onSandboxButton('level-speed', () => cycleSandboxSpeed(app));
-  onSandboxButton('level-retry', () => retryLevel(app));
-  onSandboxButton('result-retry', () => retryLevel(app));
-  onSandboxButton('result-builder', () => enterBuilder(app));
-  showLevelButton(app);
+  onButton('level-pause', () => togglePause(app));
+  onButton('level-step', () => requestOneStep(app));
+  onButton('level-speed', () => cycleSandboxSpeed(app));
+  onButton('level-retry', () => retryLevel(app));
+  onButton('result-retry', () => retryLevel(app));
+  onButton('result-builder', () => enterBuilder(app));
+  showLevelButtons(app);
 }
 
 // ---------- Choosing a level ----------
@@ -120,13 +120,13 @@ function chooseLevel(app, level) {
   app.edited.kit = limits.kit || null;
   if (app.selectedType && isCellLocked(limits, app.selectedType)) app.selectedType = null;
   if (app.selectedNeuron && isNeuronLocked(limits, app.selectedNeuron)) app.selectedNeuron = null;
-  showLevelButton(app);
+  showLevelButtons(app);
   refreshPanel(app);
 }
 
 // The bottom-right buttons: Run level names the next level not won yet, and the Levels button lights up while a
 // level is chosen, its tooltip naming it.
-function showLevelButton(app) {
+function showLevelButtons(app) {
   const level = app.level;
   byId('show-levels').classList.toggle('selected', !!level);
   byId('show-levels').title = level ? `All levels (building for level ${LEVELS.indexOf(level) + 1}: ${level.name})`
@@ -271,7 +271,7 @@ function keepLevelResult(app, level, score) {
   if (!isBetter) return false;
   app.levelResults[level.id] = { stars: score.stars, seconds: score.seconds, biomass: score.biomass };
   writeStorage('level-results', app.levelResults);
-  showLevelButton(app);                                   // a first win moves Run level on to the next level
+  showLevelButtons(app);                                  // a first win moves Run level on to the next level
   return true;
 }
 

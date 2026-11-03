@@ -6,7 +6,7 @@ Games about soft-body creatures built from cells. You design a creature on a hex
 
 | Folder | What it is | Status |
 |---|---|---|
-| [`bioforge-lab/`](bioforge-lab/) | **Bioforge Lab**: single player. Program a creature through its nerve, vessel and hormone layers, then watch it solve challenges on its own. | **Active.** See [`PLAN.md`](bioforge-lab/PLAN.md). |
+| [`bioforge-lab/`](bioforge-lab/) | **Bioforge Lab**: single player. Program a creature through its body, nerve, blood and hormone layers, then watch it solve challenges on its own. | **Active.** See [`PLAN.md`](bioforge-lab/PLAN.md). |
 | [`bioforge-moba/`](bioforge-moba/) | Bioforge Arena: a 5v5 MOBA against bots. Two lanes, towers, minion waves, one core per team. | Dropped on 2026-10-28, kept as it was. |
 | [`bioforge-online/`](bioforge-online/) | Bioforge Online: an open-world MMORPG slice (Tidepool biome, levels, unlocks). | Dropped on 2026-10-27, kept as it was. |
 | [`bioforge-v3/`](bioforge-v3/) | Single-file prototype: the full builder and a wave arena. The later versions are built from it. | Frozen. |
