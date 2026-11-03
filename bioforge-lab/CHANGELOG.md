@@ -7,6 +7,20 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.24 (2026-11-03)
+- The live examples in the hover hints and the field guide are rebuilt. Their creatures now act on their own, as in
+  a level: Light eyes and Noses turn toward a light or a food speck and swim to it, Eyespots fire when an enemy
+  comes near and stop when it leaves, and the view follows the creature through open water. Before, Space stood in
+  for every sense, and the creatures couldn't turn.
+- No example is driven by a Command any more, except the Command's own. Glands, Hearts and Photophores are kept on
+  by an Inhibitor or a Pacemaker in them, and Latches remember an enemy that came and went.
+- The bodies in the examples are even, so they swim straight, and the neuron examples have Muscles on both sides.
+- The hints are brought up to date: a Muscle held shut turns the body toward its side, a weak signal still pulls a
+  Muscle, the Command is a Sandbox piece, and First stroke's hint tells you how to build the swimmer, since a new
+  game no longer starts with the Jet.
+- The How to box in the Lab shows a Siphon (level 1's mover) instead of a Muscle, has a new step for painting a row
+  of cells by dragging, and its "make it move" picture is a Pacemaker in the Nucleus pulsing two Siphons at once.
+
 ## 0.7.23 (2026-11-03)
 - Desktop: New game, Load game and Continue after a Sandbox work again. Before, the screen faded out and came back to
   the same menu.

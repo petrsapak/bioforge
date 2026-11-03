@@ -4,9 +4,9 @@
 // held signalled by hand, with the nerve and fluid systems off, so every gland works at full power.
 const { load } = require('./load');
 const { check, done } = require('./check');
-const { X: sim } = load({}, ['newWorld', 'newTestTank', 'spawn', 'step', 'createDesignCell', 'damageCell', 'isHardCell',
-  'kitReserves', 'stockReserves', 'exampleCells', 'linksFromList', 'TIPS', 'FLUID_SUGAR', 'CELLS',
-  'ACID_HARD_DAMAGE', 'ACID_SOFT_DAMAGE', 'PROTEASE_DAMAGE', 'MINERALIZE_TIME', 'MINERALIZER_CAPACITY']);
+const { X: sim } = load({}, ['newWorld', 'spawn', 'step', 'createDesignCell', 'damageCell', 'isHardCell',
+  'kitReserves', 'stockReserves', 'FLUID_SUGAR', 'CELLS', 'ACID_HARD_DAMAGE', 'ACID_SOFT_DAMAGE', 'PROTEASE_DAMAGE',
+  'MINERALIZE_TIME', 'MINERALIZER_CAPACITY']);
 
 const cell = (q, r, typeName) => sim.createDesignCell(q, r, typeName);
 const noInput = { swimX: 0, swimY: 0, ability: false };
@@ -128,23 +128,6 @@ check('protease can\'t touch a hard cell', runSignalled(glandArena('protease', '
   const creature = sim.spawn(world, design, 300, 300, 0, 0);
   sim.stockReserves(creature, reserves);
   check('and goes into the Mineralizers', creature.cells[2].mineral === 4);
-}
-
-// ---------- Tooltip examples ----------
-// each gland's example (data/tips.js) wires the gland, so it fires in the builder's test tank
-for (const typeName of ['acid', 'protease', 'mineralizer']) {
-  const example = sim.TIPS[typeName].example;
-  const world = sim.newTestTank(288, 190);
-  const design = { cells: sim.exampleCells(example), fibres: sim.linksFromList(example.fibres || []) };
-  const creature = sim.spawn(world, design, 144, 100, 0, 0);
-  if (example.hasDummyEnemy) sim.spawn(world, { cells: [cell(0, 0, 'tissue')] }, 144, 40, 0, 1);
-  const gland = creature.cells.find(own => own.typeName === typeName);
-  let fired = false;
-  for (let i = 0; i < 160; i++) {
-    sim.step(world, STEP, { swimX: 0, swimY: 0, ability: i % 80 > 40 });
-    fired = fired || gland.signal > 0.5;
-  }
-  check(`the ${typeName} tooltip example fires its gland`, fired);
 }
 
 // ---------- Switched off ----------

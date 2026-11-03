@@ -196,17 +196,115 @@ function exampleCells(example) {
   });
 }
 
-// An example build from TIPS or NEURON_TIPS as a design. Examples are in the format from before the nerve layer,
-// unless they list their own fibres as [fromQ, fromR, toQ, toR].
+// an example build from TIPS or NEURON_TIPS as a design, with its fibres ([fromQ, fromR, toQ, toR]) and a Bud's part
 function exampleDesign(example) {
-  const cells = exampleCells(example);
-  const fibres = example.fibres && linksFromList(example.fibres);
-  const design = upgradeToNerveLayer(fibres ? { cells, fibres } : { cells });
-  // after the upgrade: an old example lists its neurons as cell types (command, pacemaker) that CELLS no longer has
+  const design = { cells: exampleCells(example), fibres: linksFromList(example.fibres || []) };
   if (example.budPart) {
     for (const cell of design.cells) if (CELLS[cell.typeName].growsParts) cell.budPart = example.budPart;
   }
   return design;
+}
+
+// ---------- Running an example ----------
+// An example runs in open water of its own, with what its senses need: a light or a food speck ahead (moved on once
+// the creature reaches it), an enemy that comes and goes, or the Space key pressed and let go (a Command). Its senses
+// read the real thing, not Space, and the creature moves only by its own cells, as in a level, so a Light eye's
+// example turns to the light. The view follows the creature (cameraX, cameraY).
+const EXAMPLE_TANK_WIDTH = 288;                           // px of the view
+const EXAMPLE_TANK_HEIGHT = 190;                          // px of the view
+const EXAMPLE_WORLD_SIZE = 4000;                          // px: open water, far bigger than a demo swims
+const EXAMPLE_CAMERA_EASE = 0.05;                         // share of the view's lag behind the creature closed per step
+const EXAMPLE_CYCLE = 4;                                  // game s: an enemy or a key press is on for the second half
+// where the light or speck goes, from the creature, in its own frame: px to its right and px ahead
+const EXAMPLE_TARGET_OFFSETS = [[-80, 65], [80, 65]];
+const EXAMPLE_TARGET_REACHED = 20;                        // px from the creature's centre: the target moves on
+const EXAMPLE_ENEMY_GAP = 30;                             // px from the creature's front to the enemy
+const EXAMPLE_ENEMY_TOUCHING_GAP = 34;                    // px: its nearest cell just within a gland's reach
+
+// a running example: its world and creature, the enemy while it is there, the time (game s) and the view's middle
+function createExampleRun(example) {
+  const world = newTestTank(EXAMPLE_WORLD_SIZE, EXAMPLE_WORLD_SIZE);
+  world.spaceFiresAllSources = false;
+  const middle = EXAMPLE_WORLD_SIZE / 2;
+  const creature = spawn(world, exampleDesign(example), middle, middle, 0, 0);
+  creature.autonomous = true;                             // as in a level: only its own cells move and turn it
+  for (const cell of creature.cells) {
+    if (example.startsHurt && example.startsHurt.includes(cell.typeName)) cell.health = cell.maxHealth * 0.1;
+  }
+  const run = { example, world, creature, enemy: null, time: 0, targetCount: 0, cameraX: middle, cameraY: middle };
+  placeExampleStimulus(run);
+  return run;
+}
+
+// whether the example's enemy is there or its key held now: the second half of each cycle
+function isExampleStimulusOn(run) {
+  return run.time % EXAMPLE_CYCLE >= EXAMPLE_CYCLE / 2;
+}
+
+// Moves the example on by dt: its target moves on once reached, its enemy comes or goes, Space is held for a
+// Command, and the view eases after the creature.
+function stepExampleRun(run, dt) {
+  run.time += dt;
+  placeExampleStimulus(run);
+  const isKeyHeld = run.example.stimulus === 'key' && isExampleStimulusOn(run);
+  stepInPieces(run.world, dt, { swimX: 0, swimY: 0, ability: isKeyHeld, heldKeys: new Set() });
+  if (!run.creature.alive) return;
+  run.cameraX += (run.creature.centerX - run.cameraX) * EXAMPLE_CAMERA_EASE;
+  run.cameraY += (run.creature.centerY - run.cameraY) * EXAMPLE_CAMERA_EASE;
+}
+
+// puts the example's light, speck or enemy where it is now
+function placeExampleStimulus(run) {
+  const stimulus = run.example.stimulus;
+  if (stimulus === 'light' || stimulus === 'food') placeExampleTarget(run, stimulus);
+  if (stimulus === 'enemy') placeExampleEnemy(run, isExampleStimulusOn(run));
+}
+
+// The light or speck: placed ahead of the creature, to one side, and placed again on the other side once the
+// creature reaches it.
+function placeExampleTarget(run, stimulus) {
+  const target = stimulus === 'light' ? run.world.light : run.world.food[0];
+  const { centerX, centerY } = run.creature;
+  const isReached = target && distanceSquared(centerX, centerY, target.x, target.y) <
+    EXAMPLE_TARGET_REACHED * EXAMPLE_TARGET_REACHED;
+  if (target && !isReached) return;
+  const [right, ahead] = EXAMPLE_TARGET_OFFSETS[run.targetCount % EXAMPLE_TARGET_OFFSETS.length];
+  run.targetCount++;
+  const [x, y] = pointInCreatureFrame(run.creature, right, ahead);
+  if (stimulus === 'light') run.world.light = createLight(x, y);
+  else run.world.food = [{ x, y }];
+}
+
+// the world point that lies right px to the creature's right and ahead px in front of its centre
+function pointInCreatureFrame(creature, right, ahead) {
+  const forwardX = sine(creature.heading);
+  const forwardY = -cosine(creature.heading);
+  const x = creature.centerX - forwardY * right + forwardX * ahead;
+  const y = creature.centerY + forwardX * right + forwardY * ahead;
+  return [x, y];
+}
+
+// Brings the example's enemy, three dummy cells, in just in front of the creature, or takes it away. A gland's
+// example holds it anchored, touching the glands.
+function placeExampleEnemy(run, isThere) {
+  if (!isThere) {
+    if (run.enemy) removeCreature(run.world, run.enemy);
+    run.enemy = null;
+    return;
+  }
+  if (run.enemy) return;
+  const { example, creature } = run;
+  const dummyType = example.dummyType || 'tissue';
+  const dummyDesign = { cells: blueprintFromList([[0, 0, dummyType], [1, 0, dummyType], [0, 1, dummyType]]) };
+  const forwardX = sine(creature.heading);
+  const forwardY = -cosine(creature.heading);
+  const front = Math.max(...creature.cells.map(cell =>
+    (cell.x - creature.centerX) * forwardX + (cell.y - creature.centerY) * forwardY));
+  const gap = example.dummyTouches ? EXAMPLE_ENEMY_TOUCHING_GAP : EXAMPLE_ENEMY_GAP;
+  const [x, y] = pointInCreatureFrame(creature, 0, front + gap);
+  run.enemy = spawn(run.world, dummyDesign, x, y, creature.heading, 1);
+  run.enemy.aiControlled = false;
+  run.enemy.anchored = !!example.dummyTouches;
 }
 
 // What an example wires to what, for the guide's wiring pictures: [{ from, to, link }], each end named by the

@@ -10,6 +10,7 @@ const COACH_PIXEL_RATIO = 2;                              // canvas pixels per C
 const COACH_SCENE_SCALE = 1.35;                           // CSS px per grid px in the animations
 const COACH_FIBRE_WIDTH = 1.2;                            // grid px: thicker than in the builder, for small pictures
 const COACH_STEP_X = HEX_SPACING_X;                       // grid px between neighbouring cells in a row
+const COACH_ROW_Y = HEX_SPACING_Y;                        // grid px between two rows of cells
 const RIGHT_CLICK_COLOR = '#ff7a6a';
 
 // The steps of each view. isDone(app) ticks a step off once the design shows it was done.
@@ -20,6 +21,7 @@ const COACH_STEPS = {
       drawScene: drawAddCellScene,
       isDone: app => bodyCells(app.edited).length > 1,
     },
+    { caption: 'Hold and drag: a row of cells', drawScene: drawPaintCellsScene },
     { caption: 'Right-click: remove it', drawScene: drawRemoveCellScene },
     { caption: 'Nerves (2): make it move', drawScene: drawSwitchToNervesScene },
   ],
@@ -195,7 +197,7 @@ const pressAt = (time, start, end, button = 'left') => (time >= start && time < 
 // ---------- Scenes: each draws one moment of its loop, centred on 0, 0 in grid px ----------
 const COACH_REST_POINT = [30, 3];                         // where the pointer starts and returns to
 const COACH_SHADE_ALPHA = 0.6;                            // the Nerve view's shade, lighter for the small pictures
-const COACH_EXAMPLE_CELL = 'muscle';                      // cell type shown while none is chosen
+const COACH_EXAMPLE_CELL = 'siphon';                      // cell type shown while none is chosen: level 1's mover
 const COACH_EXAMPLE_NEURON = 'pacemaker';                 // neuron shown while none is chosen
 
 // the Nucleus with a free hex beside it; the pointer clicks the free hex and the chosen cell type pops in
@@ -220,31 +222,51 @@ function drawRemoveCellScene(context, time) {
   drawCursor(context, pointer, pressAt(time, 1.05, 1.3, 'right'));
 }
 
-// the cells fade back, a neuron pops into one, and a fibre lights up to a muscle that glows with its signal
+// The pointer presses on the free hex beside the Nucleus and drags to the right: the chosen cell type pops into
+// each hex it passes.
+function drawPaintCellsScene(context, time, app) {
+  const typeName = app.selectedType || COACH_EXAMPLE_CELL;
+  const nucleus = [-COACH_STEP_X, 0];
+  const first = [0, 0];
+  const second = [COACH_STEP_X, 0];
+  drawSceneCell(context, 'nucleus', ...nucleus);
+  drawEmptyHex(context, ...first);
+  drawEmptyHex(context, ...second);
+  drawSceneCell(context, typeName, ...first, { scale: popScale(time, 0.75) });
+  drawSceneCell(context, typeName, ...second, { scale: popScale(time, 1.5) });
+  const pointer = time < 0.7 ? movePoint(time, 0.1, 0.6, COACH_REST_POINT, first)
+    : time < 2.0 ? movePoint(time, 0.8, 1.5, first, second)
+      : movePoint(time, 2.2, 2.9, second, COACH_REST_POINT);
+  drawCursor(context, pointer, pressAt(time, 0.7, 1.7));
+}
+
+// The cells fade back as in the Nerves view, a Pacemaker pops into the Nucleus, and fibres reach the two Siphons
+// behind it, which pulse with it, both at the same moment.
 function drawSwitchToNervesScene(context, time) {
   const shade = progressBetween(time, 0.2, 0.6);
-  const left = [-COACH_STEP_X, 0];
-  const right = [COACH_STEP_X, 0];
+  const nucleus = [0, -COACH_ROW_Y / 2];
+  const siphons = [[-COACH_STEP_X / 2, COACH_ROW_Y / 2], [COACH_STEP_X / 2, COACH_ROW_Y / 2]];
   const isLit = time > 1.6 && time % 0.8 < 0.4;
-  drawSceneCell(context, 'tissue', ...left);
-  drawSceneCell(context, 'tissue', 0, 0);
-  drawSceneCell(context, 'muscle', ...right, { signal: isLit ? 1 : 0 });
-  for (const point of [left, [0, 0], right]) {
+  drawSceneCell(context, 'nucleus', ...nucleus);
+  for (const siphon of siphons) drawSceneCell(context, 'siphon', ...siphon, { signal: isLit ? 1 : 0 });
+  for (const point of [nucleus, ...siphons]) {
     traceHex(context, ...point, HEX_FILL_SIZE);
     context.globalAlpha = shade * COACH_SHADE_ALPHA;
     context.fillStyle = NERVE_VIEW_SHADE;
     context.fill();
     context.globalAlpha = 1;
   }
-  drawSceneNeuron(context, 'pacemaker', ...left, popScale(time, 0.7), isLit ? 1 : 0);
-  if (time > 1.1) drawFibre(context, [left, [0, 0], right], isLit ? 1 : 0, { width: COACH_FIBRE_WIDTH });
+  drawSceneNeuron(context, 'pacemaker', ...nucleus, popScale(time, 0.7), isLit ? 1 : 0);
+  if (time <= 1.1) return;
+  for (const siphon of siphons) drawFibre(context, [nucleus, siphon], isLit ? 1 : 0, { width: COACH_FIBRE_WIDTH });
 }
 
-// a small dock of three neurons; the pointer clicks the chosen one, which lights up
+// a small dock of three neurons; the pointer clicks the chosen one, which lights up. The Command, a Sandbox piece,
+// isn't one of the others.
 function drawPickNeuronScene(context, time, app) {
   const kinds = Object.keys(NEURONS);
   const chosen = app.selectedNeuron || COACH_EXAMPLE_NEURON;
-  const others = kinds.filter(kind => kind !== chosen);
+  const others = kinds.filter(kind => kind !== chosen && kind !== 'command');
   const row = [others[0], chosen, others[1]];
   const isPicked = time > 1.15;
   row.forEach((kind, i) => {
@@ -265,25 +287,25 @@ function drawPickNeuronScene(context, time, app) {
 // shaded cells as in the Nerve view; the pointer clicks one and the chosen neuron pops in
 function drawPlaceNeuronScene(context, time, app) {
   const target = [-COACH_STEP_X / 2, 0];
-  drawSceneCell(context, 'tissue', ...target, { shaded: true });
-  drawSceneCell(context, 'muscle', COACH_STEP_X / 2, 0, { shaded: true });
+  drawSceneCell(context, 'nucleus', ...target, { shaded: true });
+  drawSceneCell(context, 'siphon', COACH_STEP_X / 2, 0, { shaded: true });
   drawSceneNeuron(context, app.selectedNeuron || COACH_EXAMPLE_NEURON, ...target, popScale(time, 1.2));
   const pointer = time < 1.6 ? movePoint(time, 0.2, 1.0, COACH_REST_POINT, target)
     : movePoint(time, 2.0, 2.8, target, COACH_REST_POINT);
   drawCursor(context, pointer, pressAt(time, 1.05, 1.3));
 }
 
-// The pointer presses on a neuron's cell, drags to a muscle two cells away and lets go: the fibre runs through the
-// middle cell, then carries the neuron's pulses and the muscle glows with them.
+// The pointer presses on the Nucleus with its neuron, drags to a Siphon two cells away and lets go: the fibre runs
+// through the middle cell, then carries the neuron's pulses and the Siphon glows with them.
 function drawLayFibreScene(context, time) {
   const start = [-COACH_STEP_X, 0];
   const middle = [0, 0];
   const end = [COACH_STEP_X, 0];
   const isLaid = time > 1.75;
   const isLit = isLaid && time > 2.0 && time % 0.6 < 0.3;
-  drawSceneCell(context, 'tissue', ...start, { shaded: true });
+  drawSceneCell(context, 'nucleus', ...start, { shaded: true });
   drawSceneCell(context, 'tissue', ...middle, { shaded: true });
-  drawSceneCell(context, 'muscle', ...end, { shaded: true, signal: isLit ? 1 : 0 });
+  drawSceneCell(context, 'siphon', ...end, { shaded: true, signal: isLit ? 1 : 0 });
   drawSceneNeuron(context, 'pacemaker', ...start, 1, isLit ? 1 : 0);
   const pointer = time < 0.6 ? movePoint(time, 0, 0.5, COACH_REST_POINT, start)
     : time < 2.2 ? movePoint(time, 0.7, 1.6, start, end)
@@ -304,8 +326,8 @@ function drawRemoveScene(context, time) {
   const start = [-COACH_STEP_X / 2, 0];
   const end = [COACH_STEP_X / 2, 0];
   const onFibre = [0, 0];
-  drawSceneCell(context, 'tissue', ...start, { shaded: true });
-  drawSceneCell(context, 'muscle', ...end, { shaded: true });
+  drawSceneCell(context, 'nucleus', ...start, { shaded: true });
+  drawSceneCell(context, 'siphon', ...end, { shaded: true });
   const pointer = time < 1.4 ? movePoint(time, 0.1, 0.7, COACH_REST_POINT, onFibre)
     : time < 2.7 ? movePoint(time, 1.4, 1.8, onFibre, start)
       : movePoint(time, 2.7, 3.1, start, COACH_REST_POINT);

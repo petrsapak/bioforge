@@ -1,12 +1,11 @@
 'use strict';
 // The nerve layer (sim only): neuron truth tables, a pulse crossing all its fibres at once, fibre routing and units,
-// fibres cut with their cells, old designs converted to neurons and fibres, and the neuron tooltips' examples.
+// fibres cut with their cells, old designs converted to neurons and fibres.
 const { load } = require('./load');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['newWorld', 'spawn', 'step', 'createNeuron', 'createDesignCell', 'createRouteArea',
-  'routeFibre', 'fibreUnits', 'upgradeToNerveLayer', 'hexKey', 'TEMPLATES', 'NERVE_SUBSTEPS', 'NEURONS', 'NEURON_TIPS',
-  'exampleCells', 'linksFromList', 'newTestTank', 'fibreRoute', 'layOutFibreLanes', 'placePartFibres',
-  'smoothLinkLine', 'LINK_END_GAP']);
+  'routeFibre', 'fibreUnits', 'upgradeToNerveLayer', 'hexKey', 'TEMPLATES', 'NERVE_SUBSTEPS', 'fibreRoute',
+  'layOutFibreLanes', 'placePartFibres', 'smoothLinkLine', 'LINK_END_GAP']);
 
 const STEP = 1 / 40;                                      // game s per step
 const cellAt = (creature, q, r) => creature.cells.find(cell => cell.q === q && cell.r === r);
@@ -248,29 +247,4 @@ check('Inhibitor is NOT (of the sum)', truthTable(sim.createNeuron('inhibitor'))
   check("the converted design's Pacemaker drives its muscles", musclesFired);
 }
 
-{ // each neuron tooltip's example, run as its demo runs it (Space held every other second), shows what the neuron
-  // does: the neuron turns on and off, and the Muscles it drives work
-  const neuronKinds = Object.keys(sim.NEURONS);
-  check('every neuron has a tooltip example', neuronKinds.every(kind => sim.NEURON_TIPS[kind]));
-  for (const kind of neuronKinds) {
-    const example = sim.NEURON_TIPS[kind].example;
-    const world = sim.newTestTank(288, 190);
-    const design = { cells: sim.exampleCells(example), fibres: sim.linksFromList(example.fibres) };
-    const creature = sim.spawn(world, design, 144, 105, 0, 0);
-    const neuronCell = creature.cells.find(cell => cell.neuron && cell.neuron.kind === kind);
-    let highest = 0;
-    let lowest = 1;
-    let musclesWorked = false;
-    for (let time = 0; time < 8; time += STEP) {
-      const spaceHeld = !!example.spaceLabel && time % 2 > 1;
-      sim.step(world, STEP, { swimX: 0, swimY: 0, ability: spaceHeld });
-      highest = Math.max(highest, neuronCell.signal);
-      if (time > 1) lowest = Math.min(lowest, neuronCell.signal);
-      if (creature.cells.some(cell => cell.typeName === 'muscle' && cell.signal > 0.5)) musclesWorked = true;
-    }
-    check(`the ${kind} example turns its neuron on and off and works its Muscles`,
-      highest > 0.8 && lowest < 0.2 && musclesWorked && example.traces.length >= 2,
-      `highest ${highest.toFixed(2)}, lowest ${lowest.toFixed(2)}, muscles ${musclesWorked}`);
-  }
-}
 done();

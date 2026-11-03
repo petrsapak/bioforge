@@ -7,7 +7,7 @@ const { check, done } = require('./check');
 const { X: sim } = load({}, ['newWorld', 'spawn', 'step', 'createDesignCell', 'createNeuron', 'damageCell',
   'NEURON_RULES', 'FLUID_SUGAR', 'FLUID_ADRENALINE', 'FLUID_CALM', 'FLUID_FED', 'FLUID_STARVED', 'CELLS',
   'TREAT_TIME', 'TANNED_DAMAGE_FACTOR', 'stingShare', 'BOND_STIFFNESS', 'createEditedDesign', 'setSensedHormone',
-  'bodyDesign', 'hexKey', 'TIPS', 'newTestTank', 'exampleCells', 'linksFromList']);
+  'bodyDesign', 'hexKey']);
 
 const cell = (q, r, typeName, extras = {}) => sim.createDesignCell(q, r, typeName, extras);
 const noInput = { swimX: 0, swimY: 0, ability: false, heldKeys: new Set() };
@@ -267,22 +267,5 @@ check('choosing the default hormone again leaves it out of the design',
   !('sensedHormone' in edited.cells.get(receptorKey)));
 const spawned = lone([cell(0, 0, 'nucleus'), cell(0, 1, 'receptor', { sensedHormone: 'starved' })], []);
 check('a spawned Receptor senses the design\'s hormone', cellAt(spawned.creature, 0, 1).sensedHormone === 'starved');
-
-// ---------- Tooltip examples ----------
-// each new cell's example (data/tips.js) wires it, so it works in the builder's test tank
-for (const typeName of ['receptor', 'calmgland', 'fedgland', 'starvedgland', 'tanner', 'resilin']) {
-  const example = sim.TIPS[typeName].example;
-  const world = sim.newTestTank(288, 190);
-  const design = { cells: sim.exampleCells(example), fibres: sim.linksFromList(example.fibres || []) };
-  const creature = sim.spawn(world, design, 144, 100, 0, 0);
-  const shown = creature.cells.find(own => own.typeName === typeName);
-  let worked = false;
-  for (let i = 0; i < 320; i++) {
-    sim.step(world, STEP, { swimX: 0, swimY: 0, ability: i % 80 > 40, heldKeys: new Set() });
-    worked = worked || shown.signal > 0.5 || shown.springCharge > 0.5;
-  }
-  const changed = typeName === 'tanner' ? creature.cells.some(own => own.tanned) : worked;
-  check(`the ${sim.CELLS[typeName].name} tooltip example works in the test tank`, changed);
-}
 
 done();

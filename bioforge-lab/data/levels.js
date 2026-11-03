@@ -85,7 +85,8 @@ const LEVELS = [
     id: 'first-stroke', chapter: 1, name: 'First stroke',
     unlocks: { cells: ['tissue', 'siphon'], neurons: ['pacemaker'] },
     brief: 'Swim into the ring ahead.',
-    hint: 'A Pacemaker in the Nucleus, wired to two Siphons at the back, pulses them both: the Jet does this.',
+    hint: 'Put two Siphons at the back of the Nucleus. In the Nerves view (2), put a Pacemaker in the Nucleus and ' +
+      'drag a fibre from it to each Siphon: it pulses them both at once, and you swim straight ahead.',
     limits: { budget: 40 },
     goal: { kind: 'reach', x: 700, y: 220, radius: 70 },
     timeLimit: 40, par: { seconds: 12, biomass: 12 },

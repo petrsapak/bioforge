@@ -107,8 +107,9 @@ const CELLS = {
   muscle: cellType({
     category: 'Action', name: 'Muscle', cost: 3, health: 30, mass: 1.2, stiffness: 0.05, fuelBurn: 0.1,
     color: '#d9544f', work: 'graded', resize: 'contract', needsSignal: true,
-    description: 'Contracts to 30% size on a nerve signal, bending the body. A tail swept fast through the water ' +
-      'pushes the creature along. Burns fuel.',
+    description: 'Contracts to 30% size on a nerve signal, bending the body; a weak signal still pulls (a quarter ' +
+      'signal at half strength). A tail swept fast through the water pushes the creature along, and a Muscle held ' +
+      'shut for a second or more turns the body toward its side. Burns fuel.',
   }),
   bloater: cellType({
     category: 'Action', name: 'Bloater', cost: 3, health: 30, fuelBurn: 0.1, color: '#b77ee0',

@@ -33,7 +33,8 @@ const GUIDE_CELLS = {
     watch: 'Hormones rise and fall slowly, so its signal does too. A Synapse after it makes a clean on and off.' },
   muscle: { pairs: ['pacemaker', 'inhibitor', 'joint', 'resilin'],
     watch: 'A muscle only bends the body. To swim, it needs a fin of Joints behind it, or it swims tail first. ' +
-      'Speed is touchy about the rate: try it in small steps (short bodies beat fast, long ones slower).' },
+      'Speed is touchy about the rate: try it in small steps (short bodies beat fast, long ones slower). Only a ' +
+      'Muscle held shut steers: one beating on a Pacemaker lets go too often to turn the body.' },
   bloater: { pairs: ['eyespot', 'command'],
     watch: 'Burns fuel while swollen. Swelling shoves your own cells too. It lets go a little slower than it ' +
       'swells, so a gripping Bloater needs a slow beat to let go of the rock.' },
@@ -93,8 +94,8 @@ const GUIDE_NEURONS = {
     watch: 'Calm slows it and adrenaline speeds it up, so a mood changes your rhythm. Its beat reaches every ' +
       'cell wired to it at the same moment, however long the fibres.' },
   command: { pairs: ['nettle', 'bloater', 'spitter'],
-    watch: 'It acts only while a key is held, so a creature that must act on its own needs a sense or a ' +
-      'Pacemaker instead.' },
+    watch: 'A Sandbox piece: it acts only while a key is held, and levels don\'t have it. A creature that must act ' +
+      'on its own needs a sense or a Pacemaker instead.' },
   ganglion: { pairs: ['lighteye', 'siphon'],
     watch: 'Smoothing makes a signal late: a smoothed tail swims slower.' },
   delay: { pairs: ['lighteye', 'inhibitor', 'muscle'],
@@ -116,7 +117,7 @@ const GUIDE_TOPICS = [
       'You don\'t steer your creature. You build it, wire it, and let it go: it acts on its senses and its nerves ' +
         'alone. A level is won by the design, not by your reflexes.',
       'Build in two views: Body (1) for the cells, and Nerves (2) for neurons and fibres. ' +
-        'The test tank under the grid runs the design while you build, so every change shows at once.',
+        'The Preview runs the design while you build, so every change shows at once.',
     ],
     example: 'A Nucleus with two Siphons behind it and a Pacemaker in the Nucleus wired to both swims in a straight ' +
       'line, pulse by pulse.',
@@ -173,6 +174,9 @@ const GUIDE_TOPICS = [
         'creature swims head first, about as fast as Siphons.',
       'A Delay in the back row of Muscles makes it beat a moment after the front: a wave runs down the body to the ' +
         'fin, nearly as fast as Cilia. Keep both sides the same, cell for cell and fibre for fibre, or it curves.',
+      'To steer, hold a Muscle shut: a body turns toward the side whose Muscles stay contracted for a second or ' +
+        'more, harder the stronger their signal. A beating tail lets go on every stroke, so it doesn\'t steer. The ' +
+        'Light eel wires each Light eye to a steering Muscle on its own side of the head, and turns to the light.',
       'In a crevice there is no room to beat a tail, so crawl like a worm: a pair of Bloaters at each end, ' +
         'Muscles between. The front pair grips while the Muscles pull the back up after it, the back pair grips ' +
         'while they let go and stretch the body forward.',
@@ -290,7 +294,7 @@ const GUIDE_TERMS = [
   ['Biomass', 'What a cell costs to build. Chapters 1–3 give a budget of it; later a kit of materials.', 'tissue'],
   ['Kit', 'The materials a level gives you. What you don\'t build with becomes your starting reserves.', 'fat'],
   ['Signal', 'A number from 0 (off) to 1 (on) that a cell carries on the nerve layer. Above a half counts as on.',
-    'command'],
+    'pacemaker'],
   ['Fibre', 'A nerve line from one cell to another, carrying the first cell\'s signal. Each step costs a unit.',
     'lighteye'],
   ['Neuron', 'The logic one cell can hold: Pacemaker, Command, Ganglion, Delay, Inhibitor, Synapse or Latch.', 'latch'],

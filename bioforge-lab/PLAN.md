@@ -140,7 +140,7 @@ The layer split is a proposal, to try in play first. The creature has 4 layers o
   - The pieces a level brings are marked new (a green rim) in its dock, and their dock tabs open the first time the level is chosen. Chosen without asking: "new" means new in this level, not "not placed yet" as first planned, so nothing has to be stored.
   - Everything is shown in Free build and the Sandbox, and in every level once the last level is won. Requiring every level would lock a stuck player out.
   - The dock's category tabs with nothing unlocked in them are hidden, since an empty tab confuses more than a missing one. The Nerves tab is there from First stroke (the Pacemaker).
-  - Locked pieces only stay out of the dock. Chosen without asking: an example or a saved creature that has them still loads and runs, because a new player starts with the Jet (Mouth, Gill, Heart and Pore) and First stroke's hint points at it. A level's `bannedCells` stay a rule: a design with one can't run.
+  - Locked pieces only stay out of the dock. Chosen without asking: an example or a saved creature that has them still loads and runs, because the examples use them. (Until 2026-11-03 a new game started with the Jet in the builder, and First stroke's hint points at it; a new game now starts with just the Nucleus.) A level's `bannedCells` stay a rule: a design with one can't run.
   - The field guide dims the cells and neurons not met yet (see the field guide above).
 - **Building faster** (2026-10-29, user: "Right now you have to add one cell per click. which sucks"). A click still places one cell; holding the left button and dragging paints the chosen cell on every hex the mouse passes over (hexes between two mouse moves too), and holding the right button removes along the way. Hexes that can't take the cell are passed over quietly. **Symmetry:** the Symmetry button (beside the layer tabs since 2026-10-30) opens a dial of six axes through the Nucleus, every 30°, the only angles that map hexes onto hexes; any number can be on, and they combine (two crossing axes give four copies). Cells placed or removed, by click or drag, are mirrored across them: a mirror image on another cell or a Bud part's hex is skipped, removal takes only images of the same type, and the whole group must fit the budget or kit, or nothing is placed. The hover tint shows every hex a click would fill. The axes are remembered (`bioforge-lab-mirror-axes`). The Nerves and Vessels views follow them too (2026-10-30, user: "I want the nerve fibres, functions and vessels to follow symetry as well"; until then they weren't mirrored): a neuron goes into each mirror cell that has none, a setting or a Receptor's hormone is copied onto the mirrored neurons of the same kind, removal takes the same kind only, and a fibre or vessel laid, rerouted or removed is done on every mirror image whose cells are there (a via cell without a cell drops the image's route to the shortest one). A fibre between two mirror cells gets no copy back the other way (a loop). Command keys are not copied, so mirrored Commands can steer the two sides apart. Faint copies show where a drag will be copied. Stamps are not mirrored. **Shift** held in the Body view outlines every cell of the chosen type, shades the rest and counts them. **The cursor** in the Body view is a small hex filled with the chosen cell's colour, red with a minus while a right-drag removes.
 - **The hover hint** shows after 200 ms (it was 1 s until 2026-10-28) and starts with the name and the biomass cost (◆). Over a dock button it sits above the button, centred on it; over a cell on the grid it sits beside the mouse, on the side towards the middle of the screen. Placed cells give a hint only in the Body view (user, 2026-10-28: "in nerves and fluids we don't need to show so agressive hints about the cells already on the creature"); in the Nerve and Vessels views only the dock's buttons do. Neuron buttons get a hint in the same format as the cells (user, 2026-10-28: "I would like them to follow the same format as the hints in the body layer"): symbol, name and cost (◆ 0), a facts line (makes its own signal or reads the fibres coming in; the setting and its range), the description, How to use, and a live example tank with the neuron's cells ringed and numbered, and a signal lane per numbered cell under it. Until then a neuron's hint was only its name and description.
@@ -310,7 +310,8 @@ builder.js      the edited design and every editing rule: cells, neurons and fib
                 Bud parts and aim, Command keys, fibres drawn along a route, stamps, saving a selection,
                 the library list (pure)
 fieldguide.js   the field guide's sections and entries, each cell's and neuron's facts and stats read from the game's
-                data, and an example build as a design and as its wiring (what feeds what)
+                data, and an example build as a design, as its wiring (what feeds what), and running in open water
+                with what its senses need (createExampleRun)
                 and constants (pure)
 data/*.js       cells (stats, recipes and behaviour fields), materials, neurons, fluids, templates (incl. the small builds), tips,
                 levels and the creatures that live in them, sound effects, the title scene, the field guide's words
@@ -322,7 +323,8 @@ windows.js      DOM and storage helpers (localStorage, or the desktop save file)
                 menu branches
 dialog.js       the game's own question box (askToConfirm) in place of confirm(): Delete all, deleting a
                 saved creature or template; Enter confirms, Esc cancels
-tipdemo.js      live example tank in the cell and neuron tooltips, with signal lanes under a neuron's example
+tipdemo.js      draws the live example in the cell and neuron tooltips and the field guide, the view following the
+                creature, with signal lanes under a neuron's example
 hud.js          HUD bars and vitals
 dock.js         the cell dock: a tab per category, two rows of hexagons; the neurons in the Nerve view
 library.js      the Templates screen (a sheet like the field guide; T): tabs My creatures, My parts and Examples,
@@ -362,7 +364,8 @@ ui.js           the app state, the controls, mouse and keyboard input, the frame
 game.js         the entry point: starts the app in a browser, not when the tests load the scripts
 tests/*.js      headless checks: node tests/all.js (autonomy, builder, chemical, crowd, design, determinism, editor,
                 golden, guide, levels, line-endings, menus, metabolism, music, nerve, probes, sandbox, savegame, scent,
-                secretions, showcase, sound, soundbank, style, systems, terrain, title, vascular, version, weapons);
+                secretions, showcase, sound, soundbank, style, systems, terrain, tips, title, vascular, version,
+                weapons);
                 helpers: load.js, dom.js (fake browser), check.js
 ```
 
@@ -492,6 +495,11 @@ tests/          the save file test, and a CRLF check of these files
    - **Guard cells** (2026-10-30, user: "The guard cell checks that the other body cells are healthy and of the same type (size and outer shell materian I guess)"). A guard compares each cell it inspects with the host's **self pattern**, which the level sets: health (`health`, `starving`, `poisoned`), material (the recipe, `mineralized`) and `size`. A cell that doesn't match raises the alarm. The check reads cell state the sim already has and never a type name, so camouflage comes from the design: build from the host's materials, keep still near a guard (Muscles shrink and Bloaters swell, which changes `size`), and don't get hurt. An Eyespot and an Inhibitor can make a "freeze when a guard is near" circuit. Still to build: the host body (anchored, not hostile), guards patrolling and inspecting (on top of `ai.js`), the alarm (a chemical, milestone 7) and conversion (milestone 9).
    - Open: how the host's signals reach the creature (the Receptor proposal), what a guard does once alarmed, how the host is drawn, the level list and the boss, and how the jam build gets this chapter before milestones 7–9 are done.
 11. **Arena.** Two or more players submit creatures and only one survives (2026-10-30, see "Late-game ideas" under Decisions). Open questions are listed there.
+12. **Hints, animations and a tutorial** (2026-11-03, user: "Hints contain old information, the animations are old this all needs to be redesigned. Also we need to add tutorial."). The help texts and their animations no longer match the game after the changes to movement, nerves and the removed Valve, and a new player has no guided start.
+   - ✅ **Redesign the hints** (2026-11-03): the level hints (`hint` in `data/levels.js`), the hover hints and their texts (`data/cells.js`, `data/tips.js`) and the field guide (`data/guide.js`) describe the game as it is now: held Muscles steer, a weak signal still pulls a Muscle, the Command is a Sandbox piece, First stroke no longer points at the Jet.
+   - ✅ **Redesign the animations** (2026-11-03): every hover hint example is written with its own neurons and fibres (no more wiring by touch) and runs in open water with what its senses need, the creature autonomous as in a level and the view following it (`createExampleRun` in `fieldguide.js`, drawn by `tipdemo.js`). Only the Command's own example uses a key. The How to box (`coach.js`) shows Siphons, a drag-to-paint step, and a Pacemaker pulsing two Siphons at once. Test: `tests/tips.js`.
+   - **Add a tutorial.**
+   - Open: what the tutorial is (steps over the first levels, a separate level, or the How to box grown into one); how much it shows and how much the player finds out alone; whether the How to box stays once there is a tutorial; how a test keeps hints from going out of date again (for example, by checking that every cell and neuron named in a hint still exists and is open by that level).
 
 ## Open questions
 - **Movement redesign (2026-11-02), still open:** M3, making the water forgiving about the beat rate (a fish's speed still swings with the Pacemaker's rate); whether a body one cell heavier on one side should still swim in circles (6.4 rad in 10 s for a two-row fish with one extra cell at the head); and how a Heart keeps beating once neurons sit only in Tissue and the Nucleus. Muscles keep their timing from the wiring (see Decisions).
@@ -502,6 +510,10 @@ tests/          the save file test, and a CRLF check of these files
 - **Is Protein-only in chapter 1 too abstract?** Decide after trying it.
 
 ## Known limits
+- **The Preview and the Reference window hold the creature's heading (2026-11-03):** their creatures are not
+  `autonomous`, so the tank turns them back to face up, and a design that steers itself (crossed Light eyes, a held
+  Muscle) hardly turns there: the crossed Seeker turned 0.08 rad in 27 s toward a light 45° off, against reaching it
+  within 6 s when autonomous. Levels, the Sandbox and the hover hint examples run autonomous creatures.
 - **Big Sandbox crowds (2026-11-02):** 30 Crabs (1364 cells) cost 10.9 ms of sim and 7.4 ms of drawing per frame
   in headless Edge, which showed 21 fps there (its software painting adds the rest); 40 Jets (273 cells) stay at
   60 fps. The collision check tests every pair of creatures whose boxes overlap.
