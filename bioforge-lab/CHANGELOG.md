@@ -7,6 +7,14 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.23 (2026-11-03)
+- Desktop: New game, Load game and Continue after a Sandbox work again. Before, the screen faded out and came back to
+  the same menu.
+- Desktop: starting the game always opens the main menu.
+- A new game starts with just the Nucleus. Before, it started with the Jet example, which already solved level 1 and
+  used cells that level 1 hasn't opened yet.
+- Deleting the game you are in keeps you on the Load game screen, instead of going back to the main menu.
+
 ## 0.7.22 (2026-11-02)
 - A Muscle held shut turns the body toward its side. The Light eel no longer needs Siphons: its Light eyes open its
   Muscle tail and hold a steering Muscle on their own side of the head shut, so it turns to the light.

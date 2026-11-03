@@ -66,6 +66,7 @@ function setUpMenus(app) {
   if (startWith === 'continue') enterCurrentGame(app);
   else if (startWith === 'new-game') beginNewGame(app);
   else openMainMenu(app);
+  if (startWith === 'load-game') openGamesScreen(app);     // after deleting the current game there
   if (startWith) fadeInAtStart(app);
 }
 
@@ -128,10 +129,12 @@ function startNewGame(app) {
   restartIntoGame(app, games, 'new-game', !app.progress.isSandboxSession);
 }
 
-// A game with nothing saved begins: level 1 chosen, with its card open in the Levels sheet
+// A game with nothing saved begins: level 1 chosen, with its card open in the Levels sheet, and just the Nucleus to
+// build on (the Jet the Lab starts with would already solve level 1, with cells it hasn't opened yet)
 function beginNewGame(app) {
   enterCurrentGame(app);
   chooseLevel(app, LEVELS[0]);
+  loadDesign(app, bareDesign(), 'New game', '');
   toggleLevelsSheet(app);
   saveProgress(app);
 }
@@ -222,8 +225,9 @@ function resetLevelProgressAsked(app) {
 }
 
 // Keeps the game list and loads the page again into its current game, where startWith ('continue' or 'new-game')
-// runs at once instead of the main menu. The game playing now is saved first, unless it was just deleted (shouldSave
-// false); nothing is saved after that, so this game's Lab can't leak into the next one.
+// runs at once instead of the main menu ('load-game' opens the Load game screen over it). The game playing now is
+// saved first, unless it was just deleted (shouldSave false); nothing is saved after that, so this game's Lab can't
+// leak into the next one.
 function restartIntoGame(app, games, startWith, shouldSave = true) {
   if (shouldSave) saveProgress(app);
   app.progress.isSaving = false;

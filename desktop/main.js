@@ -9,6 +9,7 @@ const { createSaveStore } = require('./saves');
 const GAME_NAME = 'Bioforge Lab';                         // the window's title and the app-data folder's name
 const SAVE_FILE_NAME = 'save.json';
 const FULLSCREEN_KEY = 'bioforge-lab-desktop-fullscreen'; // in the save file, beside the game's own keys
+const START_WITH_KEY = 'bioforge-lab-start-with';         // the game's own key: what to do after it reloads itself
 const MIN_WINDOW_WIDTH = 1024;                            // px
 const MIN_WINDOW_HEIGHT = 640;                            // px
 const BACKGROUND_COLOR = '#0b1418';                       // the page's background, shown before it has drawn
@@ -50,6 +51,9 @@ function createGameWindow() {
     gameWindow.show();
     if (saves.items[FULLSCREEN_KEY] === true) gameWindow.setFullScreen(true);
   });
+  // What the game should do right after reloading itself (New game, Load game) is only for that reload. A wish left
+  // from before would open the game somewhere other than the main menu.
+  saves.set(START_WITH_KEY, null);
   lockToGamePage(gameWindow.webContents);
   gameWindow.webContents.on('before-input-event', (event, input) => handleWindowKeys(gameWindow, event, input));
   gameWindow.loadFile(GAME_PAGE);
@@ -57,8 +61,12 @@ function createGameWindow() {
 }
 
 // The window shows only the game: links don't navigate, nothing opens new windows, and the page can't be zoomed.
+// The page may reload itself (location.reload() also fires will-navigate): New game, Load game and Continue after a
+// Sandbox switch games that way.
 function lockToGamePage(contents) {
-  contents.on('will-navigate', event => event.preventDefault());
+  contents.on('will-navigate', (event, url) => {
+    if (url !== contents.getURL()) event.preventDefault();
+  });
   contents.setWindowOpenHandler(() => ({ action: 'deny' }));
   contents.on('zoom-changed', () => contents.setZoomLevel(0));
   contents.on('did-finish-load', () => contents.setVisualZoomLevelLimits(1, 1));

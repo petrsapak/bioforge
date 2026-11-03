@@ -285,6 +285,10 @@ async function main() {
     fresh.byId('show-levels').classList.contains('selected') && savedCreatureCount(fresh.byId) === 0 &&
     fresh.storage.items['bioforge-lab-music-off'] === 'true' && startWithIn(fresh) === null &&
     JSON.parse(fresh.storage.items['bioforge-lab-game-2-continue']).levelId === firstLevelId);
+  check("the new game's creature is just the Nucleus, not the last game's or the Jet the Lab starts with",
+    JSON.parse(before.storage.items['bioforge-lab-game-1-continue']).design.cells.length > 1 &&
+    JSON.parse(fresh.storage.items['bioforge-lab-game-2-continue']).design.cells.length === 1 &&
+    cellCount(fresh.byId) === 1);
   const pressInFresh = pressKeyIn(fresh.fire);
   pressInFresh('Escape');
   pressInFresh('Escape');
@@ -337,6 +341,21 @@ async function main() {
   back.runFrames(LEAVE_TITLE_FRAMES);
   check('Continue after a Sandbox loads the page again into the game', startWithIn(back) === 'continue' &&
     back.storage.items['bioforge-lab-game-1-continue'] === keptPlace);
+
+  // ---------- Deleting the current game: the page loads again, back on the Load game screen ----------
+  const deleting = startApp({ ...back.storage.items }, { atMainMenu: true });
+  deleting.byId('menu-load-game').onclick({});
+  const currentCard = deleting.byId('games-cards').children[0];
+  currentCard.children[currentCard.children.length - 1].children[0].onclick({ stopPropagation() {} });
+  deleting.byId('dialog-confirm').onclick();
+  check('deleting the current game loads the page again, to come back to Load game',
+    startWithIn(deleting) === 'load-game' &&
+    [undefined, 'null'].includes(deleting.storage.items['bioforge-lab-game-1-continue']));
+  const afterDelete = startApp({ ...deleting.storage.items }, { atMainMenu: true });
+  afterDelete.runFrames(2);
+  check('after the reload the Load game screen is open again, over the main menu',
+    afterDelete.byId('games-sheet').style.display === 'flex' &&
+    afterDelete.byId('menu-sheet').style.display === 'flex' && startWithIn(afterDelete) === null);
 
   done();
 }

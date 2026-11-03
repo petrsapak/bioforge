@@ -102,7 +102,7 @@ function loadGame(app, game) {
 }
 
 // asks first; the game's creatures, level results and saved place go with it. Deleting the current game loads the
-// page again, at the main menu, into the game played before it.
+// page again into the game played before it, back on this screen.
 function deleteGameAsked(app, game) {
   askToConfirm({
     title: `Delete ${gameName(game)}?`,
@@ -114,7 +114,7 @@ function deleteGameAsked(app, game) {
     const games = readGames();
     const remaining = removeGame(games, game.id);
     if (game.id === games.current) {
-      restartIntoGame(app, remaining, null, false);
+      restartIntoGame(app, remaining, 'load-game', false);
       return;
     }
     writeSharedStorage('games', remaining);
