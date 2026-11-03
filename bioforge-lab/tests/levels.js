@@ -447,6 +447,8 @@ const { byId, fire, runFrames, readGlobal, storage, templateButton } = startApp(
 readGlobal('RULES.allLevelsOpen = false');
 runFrames(3);
 check('no level is chosen at first', !byId('show-levels').classList.contains('selected'));
+check('Run level (bottom right) points at level 1 while nothing is won',
+  byId('run-next-label').textContent === 'Run level 1' && byId('run-next-name').textContent === 'First stroke');
 check('in free build the dock has every cell and neuron',
   dockButtonsOf({ byId }).every(button => button.style.display !== 'none'));
 byId('show-levels').onclick();
@@ -524,6 +526,8 @@ check('the result box offers Retry and Builder only (Next level was the same as 
 byId('result-builder').onclick();
 check('back in the builder from a level, the Body view is shown', byId('layer-body').classList.contains('selected') &&
   !byId('layer-nerve').classList.contains('selected'));
+check('after the win, Run level points at level 2', byId('run-next-label').textContent === 'Run level 2' &&
+  byId('run-next-name').textContent === 'Lighthouse', byId('run-next-label').textContent);
 byId('show-levels').onclick();
 const rowsAfterWin = byId('levels-list').children.filter(child => child.className.startsWith('level-tile'));
 check('the win opens level 2, and only level 2', !rowsAfterWin[1].className.includes('locked') &&
@@ -540,7 +544,20 @@ byId('show-levels').onclick();
 check('Run level is open while the design fits', !byId('level-run').disabled &&
   byId('level-run-note').textContent === '');
 byId('levels-close').onclick();
+byId('run-next-level').onclick();
+check('Run level chooses the next unfinished level and runs the creature in it, from free build too',
+  byId('level-bar').style.display === 'flex' && byId('hud').style.display === 'block' &&
+  byId('level-buttons').style.display === 'none', byId('hud-mode').textContent);
+runFrames(2);
+check('the run is level 2', byId('hud-mode').textContent === '2. Lighthouse', byId('hud-mode').textContent);
+byId('back-to-lab').onclick();
+check('back in the Lab, Run level shows again and level 2 is chosen',
+  byId('level-buttons').style.display === '' && byId('show-levels').classList.contains('selected'));
 templateButton('eel').onclick();
+byId('run-next-level').onclick();
+check('Run level refuses a design that doesn\'t fit the level, and stays in the Lab',
+  byId('hud').style.display === 'none' && /doesn't fit this level/.test(byId('message').textContent),
+  byId('message').textContent);
 byId('show-levels').onclick();
 check('Run level is shut while the design does not fit the level, and says why', byId('level-run').disabled === true &&
   /doesn't fit: (Over budget|Too many)/.test(byId('level-run-note').textContent), byId('level-run-note').textContent);
@@ -556,6 +573,7 @@ const rowsAfterReset = byId('levels-list').children.filter(child => child.classN
 check('after it, no level has a result and level 2 is locked again',
   JSON.stringify(JSON.parse(storage.items['bioforge-lab-game-1-level-results'])) === '{}' &&
   rowsAfterReset[1].className.includes('locked') && !rowsAfterReset[0].className.includes('locked'));
+check('after it, Run level points at level 1 again', byId('run-next-label').textContent === 'Run level 1');
 
 // once the last level is won, every level's dock has everything
 {

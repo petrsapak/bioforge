@@ -327,8 +327,8 @@ async function main() {
   const keptPlace = back.storage.items['bioforge-lab-game-1-continue'];
   back.byId('menu-sandbox').onclick({});
   back.runFrames(LEAVE_TITLE_FRAMES);
-  check('Sandbox opens the Lab with just the Nucleus and no Levels button', cellCount(back.byId) === 1 &&
-    back.byId('menu-sheet').style.display === 'none' && back.byId('show-levels').style.display === 'none');
+  check('Sandbox opens the Lab with just the Nucleus and no Run level or Levels button', cellCount(back.byId) === 1 &&
+    back.byId('menu-sheet').style.display === 'none' && back.byId('level-buttons').style.display === 'none');
   back.templateButton('starter').onclick();
   back.runFrames(2 * FRAMES_PER_SECOND);
   back.fire('window', 'pagehide', {});

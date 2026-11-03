@@ -56,17 +56,29 @@ button.big:hover { background: #4a8044; }
 .layer-tab.selected { background: #2b2a1f; color: #f2e39b; border-color: #e8c547; }
 .layer-tab.selected svg { opacity: 1; }
 .layer-tab.selected kbd { border-color: #e8c54788; color: #e8c547; }
-/* the current tab's limits in words, just under the tabs */
+/* the current tab's limits just under the tabs: a large number and a meter each, so a new player sees them */
 #budget {
-  position: absolute; top: 62px; left: 50%; transform: translateX(-50%); text-align: center; pointer-events: none;
+  position: absolute; top: 66px; left: 50%; transform: translateX(-50%); text-align: center; pointer-events: none;
   white-space: nowrap;
 }
-.limits { display: flex; justify-content: center; gap: 18px; font-size: 13px; color: #8a96a3; }
-.limit { pointer-events: auto; }
+.limits {
+  display: inline-flex; justify-content: center; gap: 4px; padding: 6px 6px 8px; background: #0e181dcc;
+  border: 1px solid #23323a88; border-radius: 12px; backdrop-filter: blur(3px);
+}
+.limit { display: flex; flex-direction: column; min-width: 104px; padding: 0 12px; pointer-events: auto; }
+.limit + .limit { border-left: 1px solid #23323a; }
 .limit[hidden] { display: none; }
-.limit b { color: #dfe4ea; font-variant-numeric: tabular-nums; }
+.limit-name { color: #8a96a3; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+.limit b { color: #dfe4ea; font-size: 21px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.limit b .dim { font-size: 12px; font-weight: 600; }
 .limit.full b { color: #e8875a; }
-.limits-problem { margin-top: 2px; color: #e8875a; font-size: 12px; }
+.limit-meter { height: 5px; margin-top: 3px; background: #1c2a31; border-radius: 3px; overflow: hidden; }
+.limit-meter i { display: block; height: 100%; background: #5fbf7a; border-radius: 3px; }
+.limit.full .limit-meter i { background: #e8875a; }
+.limits-problem {
+  margin-top: 6px; padding: 4px 12px; color: #ffb08a; font-size: 13px; background: #3a1f16dd;
+  border: 1px solid #e8875a66; border-radius: 8px; display: inline-block;
+}
 
 /* Unlimited biomass, Symmetry and the red Delete all, at the right end of the tabs */
 .tabs-gap { width: 1px; margin: 4px 6px; background: #2a3b44; }
@@ -87,27 +99,43 @@ button.big:hover { background: #4a8044; }
   display: flex; flex-direction: column; gap: 8px; width: 264px; max-height: calc(100vh - 272px); overflow-y: auto;
 }
 
-/* ---------- Bottom-left corner: Levels and the Sandbox, big and coloured ---------- */
+/* ---------- Bottom-left corner: Templates and the Sandbox, as panels like the rest of the Lab ---------- */
 #run-buttons {
-  position: absolute; left: 14px; bottom: 14px; display: flex; flex-direction: column; gap: 10px;
+  position: absolute; left: 14px; bottom: 14px; display: flex; flex-direction: column; gap: 8px;
 }
 .run-button {
-  width: 76px; height: 72px; padding: 6px 0 4px; display: flex; flex-direction: column; align-items: center;
-  justify-content: center; gap: 3px; border: 2px solid; border-radius: 14px; cursor: pointer; font: inherit;
-  font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
-  box-shadow: 0 4px 14px #0008; transition: transform .1s, filter .1s;
+  width: 76px; height: 68px; padding: 6px 0 5px; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 5px; background: #0e181dcc; color: #b9c3cd; border: 1px solid #2c3f48;
+  border-radius: 12px; backdrop-filter: blur(3px); box-shadow: 0 4px 14px #0006; cursor: pointer; font: inherit;
+  font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
 }
-.run-button svg { width: 34px; height: 34px; }
-.run-button:hover { transform: translateY(-2px); filter: brightness(1.12); }
-.run-button:active { transform: translateY(0); }
-.run-button.levels { background: linear-gradient(#4f9a48, #357031); border-color: #7fd07a; color: #fff; }
-.run-button.levels.selected { box-shadow: 0 0 0 2px #e8c547, 0 0 16px #e8c54788; }
-.run-button.sandbox { background: linear-gradient(#e6cf98, #c9a965); border-color: #f4e2b4; color: #3b2a12; }
-.run-button.library { background: linear-gradient(#3f7d96, #2a5a6e); border-color: #7cc4de; color: #fff; }
-.run-button.library.selected { box-shadow: 0 0 0 2px #e8c547, 0 0 16px #e8c54788; }
-.run-button.lab { background: linear-gradient(#7a5ba6, #573e7d); border-color: #b9a0e0; color: #fff; }
+.run-button svg { width: 28px; height: 28px; }
+.run-button:hover { background: #1c2a31; border-color: #5d6b77; color: #dfe4ea; }
+.run-button.selected { background: #2b2a1f; border-color: #e8c547; color: #f2e39b; box-shadow: 0 0 10px #e8c54755; }
 /* in the Sandbox and a level, the Lab button takes the same corner */
 #run-exit { position: absolute; left: 14px; bottom: 14px; display: none; }
+
+/* ---------- Bottom-right corner: Run level (the next level not won yet) and the list of levels ---------- */
+#level-buttons {
+  position: absolute; right: 14px; bottom: 14px; width: 156px; display: flex; flex-direction: column; gap: 8px;
+}
+#show-levels {
+  height: 34px; display: flex; align-items: center; justify-content: center; gap: 7px; background: #0e181dcc;
+  color: #b9c3cd; border: 1px solid #2c3f48; border-radius: 9px; backdrop-filter: blur(3px); cursor: pointer;
+  font: inherit; font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
+}
+#show-levels svg { width: 18px; height: 18px; }
+#show-levels:hover { background: #1c2a31; border-color: #5d6b77; color: #dfe4ea; }
+#run-next-level {
+  min-height: 64px; display: flex; align-items: center; gap: 10px; padding: 8px 12px; text-align: left;
+  background: linear-gradient(#4a8044, #3d6b38); color: #fff; border: 1px solid #7fd07a99; border-radius: 12px;
+  box-shadow: 0 4px 16px #0008; cursor: pointer; font: inherit;
+}
+#run-next-level:hover { background: linear-gradient(#559650, #4a8044); border-color: #9fe0b0; }
+#run-next-level svg { flex: none; width: 24px; height: 24px; }
+.run-next-text { min-width: 0; display: flex; flex-direction: column; }
+#run-next-label { font-size: 16px; font-weight: 800; white-space: nowrap; }
+#run-next-name { color: #d6f0d0; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #panel, #coach {
   padding: 8px 10px; background: #0e181dcc; border: 1px solid #23323a88; border-radius: 12px;
   backdrop-filter: blur(3px);
@@ -231,7 +259,7 @@ button.big:hover { background: #4a8044; }
 #preview.collapsed { height: auto !important; min-height: 0; resize: none; }
 #preview.collapsed #preview-canvas { display: none; }
 #preview-canvas { flex: 1 1 auto; min-height: 0; width: 100%; }
-#traces { top: 96px; right: 360px; width: 320px; min-width: 200px; min-height: 0; }
+#traces { top: 140px; right: 360px; width: 320px; min-width: 200px; min-height: 0; }
 #traces.collapsed { height: auto !important; resize: none; }
 #traces.collapsed #traces-canvas, #traces.collapsed #traces-note { display: none; }
 #traces-canvas { width: calc(100% - 20px); margin: 0 10px; }
@@ -372,7 +400,9 @@ button.small.primary:hover { background: #3d6b38; }
   pointer-events: none;
 }
 #dock-inner {
-  pointer-events: auto; width: 75vw; max-width: 100%; padding: 4px 12px 10px; background: #0e181dcc;
+  /* the corners beside it keep room for Templates and the Sandbox on the left, Run level on the right */
+  pointer-events: auto; width: 75vw; max-width: calc(100% - 2 * 168px); padding: 4px 12px 10px;
+  background: #0e181dcc;
   border: 1px solid #23323a88; border-radius: 10px; backdrop-filter: blur(3px);
 }
 #dock-head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; margin-bottom: 4px; }
@@ -637,7 +667,7 @@ button.small.primary:hover { background: #3d6b38; }
 
 /* ---------- Chemical lens (lens.js) ---------- */
 #lens-legend {
-  display: none; position: absolute; left: 50%; top: 100px; transform: translateX(-50%); z-index: 5; gap: 12px;
+  display: none; position: absolute; left: 50%; top: 140px; transform: translateX(-50%); z-index: 5; gap: 12px;
   align-items: center; padding: 5px 12px; background: #0e181dcc; border: 1px solid #23323a; border-radius: 8px;
   font-size: 12px; color: #c7d0d8; pointer-events: none;
 }

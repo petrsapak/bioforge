@@ -7,6 +7,14 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.25 (2026-11-03)
+- Biomass, Cells, Neurons and Fibre under the Body and Nerves tabs are much bigger: each has a large number and a
+  bar that fills as you use it up, and a design over a limit says so in an orange box.
+- A big green **Run level** button in the bottom-right corner runs your creature in the next level you haven't won,
+  in one click, and names it. The Levels button above it opens the list of levels.
+- Templates and Sandbox (bottom left) and the Lab button in a level or the Sandbox now look like the rest of the
+  Lab.
+
 ## 0.7.24 (2026-11-03)
 - The live examples in the hover hints and the field guide are rebuilt. Their creatures now act on their own, as in
   a level: Light eyes and Noses turn toward a light or a food speck and swim to it, Eyespots fire when an enemy

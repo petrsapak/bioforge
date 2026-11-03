@@ -31,15 +31,20 @@
 <div id="budget"></div>
 <div id="lens-legend"></div>
 <div id="run-buttons">
-  <button class="run-button library" id="show-library" title="Templates: your creatures and parts, and examples (T)">
-    <svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.6" fill="#cfe9f5"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.6" fill="#cfe9f5" fill-opacity=".7"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.6" fill="#cfe9f5" fill-opacity=".7"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.6" fill="#cfe9f5" fill-opacity=".45"/></svg>
+  <button class="run-button" id="show-library" title="Templates: your creatures and parts, and examples (T)">
+    <svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.6" fill="#7cc4de"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.6" fill="#7cc4de" fill-opacity=".7"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.6" fill="#7cc4de" fill-opacity=".7"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.6" fill="#7cc4de" fill-opacity=".45"/></svg>
     <span>Templates</span></button>
-  <button class="run-button levels" id="show-levels" title="Levels: pick a challenge">
-    <svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z" fill="#fff" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>
-    <span>Levels</span></button>
-  <button class="run-button sandbox" id="start-sandbox" title="Sandbox: try the creature out, no budget">
-    <svg viewBox="0 0 24 24"><path d="M9 3h6M10 3v6.5L4.6 18.4A1.7 1.7 0 006 21h12a1.7 1.7 0 001.4-2.6L14 9.5V3" fill="none" stroke="#3b2a12" stroke-width="1.8" stroke-linejoin="round"/><path d="M7.2 15h9.6l2 3.4a.8.8 0 01-.7 1.3H5.9a.8.8 0 01-.7-1.3z" fill="#3b2a12"/><circle cx="10.5" cy="12.5" r="1" fill="#3b2a12"/><circle cx="13" cy="11" r=".7" fill="#3b2a12"/></svg>
+  <button class="run-button" id="start-sandbox" title="Sandbox: try the creature out, no budget">
+    <svg viewBox="0 0 24 24"><path d="M9 3h6M10 3v6.5L4.6 18.4A1.7 1.7 0 006 21h12a1.7 1.7 0 001.4-2.6L14 9.5V3" fill="none" stroke="#e6cf98" stroke-width="1.8" stroke-linejoin="round"/><path d="M7.2 15h9.6l2 3.4a.8.8 0 01-.7 1.3H5.9a.8.8 0 01-.7-1.3z" fill="#e6cf98"/><circle cx="10.5" cy="12.5" r="1" fill="#e6cf98"/><circle cx="13" cy="11" r=".7" fill="#e6cf98"/></svg>
     <span>Sandbox</span></button>
+</div>
+<div id="level-buttons">
+  <button id="show-levels" title="All levels: pick one, see its rules and your best result">
+    <svg viewBox="0 0 24 24"><path d="M9 6.5h11M9 12h11M9 17.5h11" stroke="#b9c3cd" stroke-width="1.8" stroke-linecap="round"/><circle cx="4.5" cy="6.5" r="1.5" fill="#b9c3cd"/><circle cx="4.5" cy="12" r="1.5" fill="#b9c3cd"/><circle cx="4.5" cy="17.5" r="1.5" fill="#b9c3cd"/></svg>
+    <span>Levels</span></button>
+  <button id="run-next-level">
+    <svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z" fill="#fff" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>
+    <span class="run-next-text"><span id="run-next-label"></span><span id="run-next-name"></span></span></button>
 </div>
 <div id="builder-left">
 <div id="side-column">
@@ -128,8 +133,8 @@
   </div>
 </div>
 <div id="run-exit">
-  <button class="run-button lab" id="back-to-lab" title="Back to the Lab, where you build the creature">
-    <svg viewBox="0 0 24 24"><path d="M12 2.8l7.8 4.5v9.4L12 21.2l-7.8-4.5V7.3z" fill="#e6dcf5" fill-opacity=".25" stroke="#e6dcf5" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="12" r="3.2" fill="#e6dcf5"/></svg>
+  <button class="run-button" id="back-to-lab" title="Back to the Lab, where you build the creature">
+    <svg viewBox="0 0 24 24"><path d="M12 2.8l7.8 4.5v9.4L12 21.2l-7.8-4.5V7.3z" fill="#9fe0b0" fill-opacity=".25" stroke="#9fe0b0" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="12" r="3.2" fill="#9fe0b0"/></svg>
     <span>Lab</span></button>
 </div>
 <div id="level-bar">

@@ -88,15 +88,18 @@ function showLimits(app) {
   const biomassTitle = `Biomass used: ${formatBiomass(used)} of ${limits.budget}` +
     (isUnlimited ? ' (unlimited: the Sandbox takes any size)' : '');
   const materialsHtml = usesKit(app.edited) ? kitLimitsHtml(app, bodyDesign(app.edited))
-    : limitHtml('body', app.layer, 'Biomass', biomassTitle, biomassText, !isUnlimited && used >= limits.budget);
+    : limitHtml('body', app.layer, 'Biomass', biomassTitle, biomassText, !isUnlimited && used >= limits.budget,
+      isUnlimited ? null : used / limits.budget);
   byId('budget').innerHTML = '<div class="limits">' + materialsHtml +
     limitHtml('body', app.layer, 'Cells', `Cells: ${cellCount} of ${limits.maxCells}`,
-      `${cellCount} / ${limits.maxCells}`, cellCount >= limits.maxCells) +
+      `${cellCount} / ${limits.maxCells}`, cellCount >= limits.maxCells, cellCount / limits.maxCells) +
     limitHtml('nerve', app.layer, 'Neurons', `Neurons: ${nerve.neurons} of ${limits.maxNeurons}`,
-      `${nerve.neurons} / ${limits.maxNeurons}`, nerve.neurons >= limits.maxNeurons) +
+      `${nerve.neurons} / ${limits.maxNeurons}`, nerve.neurons >= limits.maxNeurons,
+      nerve.neurons / limits.maxNeurons) +
     limitHtml('nerve', app.layer, 'Fibre', `Fibre: ${nerve.units} of ${limits.maxFibreUnits} units`,
-      `${nerve.units} / ${limits.maxFibreUnits}`, nerve.units >= limits.maxFibreUnits) +
-    '</div>' + (problem ? `<div class="limits-problem">⚠ ${problem}</div>` : '');
+      `${nerve.units} / ${limits.maxFibreUnits}`, nerve.units >= limits.maxFibreUnits,
+      nerve.units / limits.maxFibreUnits) +
+    '</div>' + (problem ? `<br><div class="limits-problem">⚠ ${problem}</div>` : '');
 }
 
 // A level's kit in the Body view: each material cells are built from, used against the kit, then the reserves the
@@ -110,7 +113,7 @@ function kitLimitsHtml(app, body) {
     const name = material.name;
     const has = kit[material.id] || 0;
     return limitHtml('body', app.layer, name, `${name} used: ${formatBiomass(used[material.id])} of the kit's ${has}`,
-      `${formatBiomass(used[material.id])} / ${has}`, used[material.id] >= has);
+      `${formatBiomass(used[material.id])} / ${has}`, used[material.id] >= has, has > 0 ? used[material.id] / has : 1);
   });
   const reserves = kitReserves(body, kit);
   const room = reserveRoom(body.cells.map(cell => CELLS[cell.typeName]));
@@ -128,10 +131,14 @@ function kitLimitsHtml(app, body) {
   return materialSpans.join('') + limitHtml('body', app.layer, 'Reserves', reservesTitle, reservesText, lost > 0);
 }
 
-// one limit: its name and value, hidden outside its view; the full wording is its tooltip
-function limitHtml(layer, shownLayer, name, title, valueHtml, isFull) {
+// One limit: its name over its value, and a meter of how much is used when share (used / limit) is given; hidden
+// outside its view. The full wording is its tooltip.
+function limitHtml(layer, shownLayer, name, title, valueHtml, isFull, share = null) {
   const hidden = layer === shownLayer ? '' : ' hidden';
-  return `<span class="limit${isFull ? ' full' : ''}" title="${title}"${hidden}>${name} <b>${valueHtml}</b></span>`;
+  const meter = share === null ? ''
+    : `<span class="limit-meter"><i style="width: ${Math.round(Math.min(1, share) * 100)}%"></i></span>`;
+  return `<span class="limit${isFull ? ' full' : ''}" title="${title}"${hidden}>` +
+    `<span class="limit-name">${name}</span> <b>${valueHtml}</b>${meter}</span>`;
 }
 
 // ---------- The card ----------
@@ -265,12 +272,15 @@ function showNeeds(app) {
   app.needRows = designNeeds(body, app.warnings, systems);
   const planned = app.warnings.find(warning => warning.need === 'planned');
   const next = nextNeed(app.needRows);
+  const fitsLevel = !app.progress.isSandboxSession && !buildCheck(body, chosenLimits(app));
+  const ready = fitsLevel ? 'Ready: run the level (bottom right), or try it in the Sandbox (bottom left).'
+    : 'Ready: try it in the Sandbox (bottom left).';
   const needs = byId('needs');
   const sugar = systems.includes('fluid') ? sugarHtml(sugarSupply(body)) : '';
   needs.innerHTML = '<div class="needs-title">Creature</div>' + sugar +
     '<div class="need-rows">' + app.needRows.map(row => needRowHtml(row, isNeedViewShown(app, row))).join('') +
     '</div>' +
-    `<div class="need-next">${next ? '<b>Next:</b> ' + next : 'Ready: try it in the Sandbox (bottom left).'}</div>` +
+    `<div class="need-next">${next ? '<b>Next:</b> ' + next : ready}</div>` +
     (planned ? `<div class="need-planned" data-need="planned">${planned.text}</div>` : '');
   needs.onmouseover = event => {
     const row = event.target.closest && event.target.closest('[data-need]');

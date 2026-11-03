@@ -11,10 +11,11 @@ const DARK_LAMP_RADIUS = 9;                               // px in the arena: a 
 const LEVEL_KEYS_HELP = '<b>Space</b> and bound keys: Commands &nbsp;<b>P</b> pause &nbsp;<b>.</b> one step ' +
   '&nbsp;<b>,</b> speed<br><b>T</b> signals &nbsp;<b>C</b> hormones &nbsp;<b>R</b> retry &nbsp;<b>Esc</b> menu';
 
-// the Levels button, the levels sheet, the level card's buttons, the level bar and the result box
+// the Run level and Levels buttons, the levels sheet, the level card's buttons, the level bar and the result box
 function setUpLevels(app) {
   app.levelResults = readStorage('level-results', {});
   byId('show-levels').onclick = () => toggleLevelsSheet(app);
+  onSandboxButton('run-next-level', () => runNextLevel(app));
   byId('levels-sheet').onclick = event => {
     if (event.target === byId('levels-sheet')) closeLevelsSheet();
   };
@@ -123,12 +124,30 @@ function chooseLevel(app, level) {
   refreshPanel(app);
 }
 
-// the Levels button (bottom left) lights up while a level is chosen, and its tooltip names it
+// The bottom-right buttons: Run level names the next level not won yet, and the Levels button lights up while a
+// level is chosen, its tooltip naming it.
 function showLevelButton(app) {
   const level = app.level;
   byId('show-levels').classList.toggle('selected', !!level);
-  byId('show-levels').title = level ? `Level ${LEVELS.indexOf(level) + 1}: ${level.name}: see it, run it`
-    : 'Levels: pick a challenge';
+  byId('show-levels').title = level ? `All levels (building for level ${LEVELS.indexOf(level) + 1}: ${level.name})`
+    : 'All levels: pick one, see its rules and your best result';
+  const next = nextUnfinishedLevel(app);
+  byId('run-next-label').textContent = `Run level ${LEVELS.indexOf(next) + 1}`;
+  byId('run-next-name').textContent = next.name;
+  byId('run-next-level').title = `Run your creature in level ${LEVELS.indexOf(next) + 1}: ${next.brief}`;
+}
+
+// The level the Run level button runs: the first open level not won yet, or, once every open level is won, the last
+// one.
+function nextUnfinishedLevel(app) {
+  const unfinished = LEVELS.find((level, i) => isLevelOpen(app.levelResults, i) && !bestResult(app, level));
+  return unfinished || latestOpenLevel(app);
+}
+
+// Run level: chooses the next unfinished level, so the Lab shows its limits, and runs the creature in it if it fits
+function runNextLevel(app) {
+  chooseLevel(app, nextUnfinishedLevel(app));
+  startLevelRun(app);
 }
 
 const bestResult = (app, level) => app.levelResults[level.id] || null;
@@ -252,6 +271,7 @@ function keepLevelResult(app, level, score) {
   if (!isBetter) return false;
   app.levelResults[level.id] = { stars: score.stars, seconds: score.seconds, biomass: score.biomass };
   writeStorage('level-results', app.levelResults);
+  showLevelButton(app);                                   // a first win moves Run level on to the next level
   return true;
 }
 

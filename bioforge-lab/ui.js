@@ -298,7 +298,8 @@ function showModeWindows(app) {
   byId('sandbox-bar').style.display = app.mode === 'sandbox' ? 'flex' : 'none';
   byId('level-bar').style.display = app.mode === 'level' ? 'flex' : 'none';
   byId('run-exit').style.display = isBuilding ? 'none' : 'flex';
-  byId('show-levels').style.display = app.progress.isSandboxSession ? 'none' : '';   // the main menu's Sandbox
+  const hasLevels = isBuilding && !app.progress.isSandboxSession;   // the main menu's Sandbox has no levels
+  byId('level-buttons').style.display = hasLevels ? '' : 'none';
   byId('level-result').style.display = 'none';
 }
 
