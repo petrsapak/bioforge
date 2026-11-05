@@ -38,6 +38,47 @@ const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
   store.flush();
   check('flush writes a waiting change at once', readSaveFile(savePath)['bioforge-lab-music-off'] === false);
 
+  // Windows: a virus scanner or the search indexer holding the save makes the rename fail with EPERM for a moment
+  const realRename = fs.renameSync;
+  const failRenames = count => {
+    fs.renameSync = (...names) => {
+      if (count-- > 0) throw Object.assign(new Error('operation not permitted'), { code: 'EPERM' });
+      return realRename(...names);
+    };
+  };
+  failRenames(2);
+  store.set('bioforge-lab-music-off', true);
+  store.flush();
+  check('a rename refused for a moment is tried again', readSaveFile(savePath)['bioforge-lab-music-off'] === true);
+
+  const quietWarn = console.warn;
+  console.warn = () => {};
+  const retryStore = createSaveStore(savePath, TEST_DELAY, TEST_DELAY);
+  failRenames(100);
+  retryStore.set('bioforge-lab-music-off', false);
+  let crashed = false;
+  try {
+    await wait(TEST_DELAY * 3);
+  } catch (error) {
+    crashed = true;
+  }
+  check('a save still refused does not crash, and keeps the change', !crashed &&
+    readSaveFile(savePath)['bioforge-lab-music-off'] === true && retryStore.items['bioforge-lab-music-off'] === false);
+  fs.renameSync = realRename;
+  await wait(TEST_DELAY * 10);
+  check('it is written once the file is free again', readSaveFile(savePath)['bioforge-lab-music-off'] === false);
+  failRenames(100);
+  retryStore.set('bioforge-lab-music-off', true);
+  let quitThrew = false;
+  try {
+    retryStore.flush();
+  } catch (error) {
+    quitThrew = true;
+  }
+  fs.renameSync = realRename;
+  console.warn = quietWarn;
+  check('flushing on quit with the file held does not throw', !quitThrew);
+
   fs.writeFileSync(savePath, '{ "format": 1, "items": { broken');
   const afterBreak = createSaveStore(savePath, TEST_DELAY);
   check('a broken file starts an empty save', Object.keys(afterBreak.items).length === 0);

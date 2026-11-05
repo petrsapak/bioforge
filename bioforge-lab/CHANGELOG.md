@@ -7,6 +7,10 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.34 (2026-11-05)
+- Desktop: saving no longer crashes the game with an "EPERM: operation not permitted" error when Windows briefly
+  holds the save file (a virus scan, the search indexer, a cloud sync). The save is tried again until it goes in.
+
 ## 0.7.33 (2026-11-05)
 - After you win a level for the first time, going back to the Lab moves you on to the next level: its new cells
   are open in the dock and its limits apply. Replaying a won level for more stars keeps you on it.
