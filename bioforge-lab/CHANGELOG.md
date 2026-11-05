@@ -7,6 +7,10 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.32 (2026-11-05)
+- A level runs only creatures built from pieces its dock has open. A creature loaded from the Templates screen
+  with a cell or neuron from a later level is refused, and the level card says which piece to take out.
+
 ## 0.7.31 (2026-11-05)
 - In the Lab's Body view the cells and fibres hold still: no blinking while you build. The preview window still
   shows the creature live, and the Nerve view still lights up with its signals.

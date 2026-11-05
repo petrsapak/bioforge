@@ -83,7 +83,10 @@ pressKey('t');
 pressKey('escape');
 runFrames(2);
 byId('show-levels').onclick();
-byId('levels-list').children.find(child => child.className.startsWith('level-tile')).onclick();
+// the first level whose dock has every piece the Seeker is built from (Grazing), opened for the test
+readGlobal('RULES.allLevelsOpen = true');
+const grazingIndex = readGlobal('LEVELS.findIndex(level => level.id === "grazing")');
+byId('levels-list').children.filter(child => child.className.startsWith('level-tile'))[grazingIndex].onclick();
 const resetsBefore = readGlobal('probeResets');
 byId('level-run').onclick();
 runFrames(5);

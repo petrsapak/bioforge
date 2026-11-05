@@ -73,6 +73,11 @@ function hexesReachableFromNucleus(isOpen) {
 function buildCheck(design, limits = RULES) {
   const bannedCell = design.cells.find(cell => isCellBanned(limits, cell.typeName));
   if (bannedCell) return `No ${CELLS[bannedCell.typeName].name} allowed here`;
+  // a design loaded from the Templates screen can hold pieces no level so far has brought
+  const lockedCell = design.cells.find(cell => isCellLocked(limits, cell.typeName));
+  if (lockedCell) return `Take out the ${CELLS[lockedCell.typeName].name}: a later level brings it`;
+  const lockedNeuron = design.cells.find(cell => cell.neuron && isNeuronLocked(limits, cell.neuron.kind));
+  if (lockedNeuron) return `Take out the ${NEURONS[lockedNeuron.neuron.kind].name}: a later level brings it`;
   if (design.cells.length > limits.maxCells) return `Too many cells: ${design.cells.length} / ${limits.maxCells}`;
   if (limits.kit) {
     const shortfall = kitShortfall(design, limits.kit);

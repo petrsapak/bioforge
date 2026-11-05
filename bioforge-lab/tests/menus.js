@@ -158,7 +158,9 @@ async function main() {
   cardNamed(byId, 'Ada').onclick();
   check('clicking a creature loads it and closes the screen', byId('library-sheet').style.display === 'none' &&
     cellCount(byId) !== starterCells);
-  first.templateButton('starter').onclick();
+  // a creature built from the first level's pieces only, so it runs there
+  const firstLevelRows = '[[0, 0, "nucleus"], [-1, 1, "siphon"], [0, 1, "siphon"], [1, 0, "tissue"]]';
+  first.loadTestDesign(first.readGlobal(`designFromList(${firstLevelRows})`));
 
   // ---------- The Esc menu over a level run ----------
   byId('show-levels').onclick();

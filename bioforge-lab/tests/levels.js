@@ -445,7 +445,7 @@ check('with every level open, any level can be chosen, and the builder takes its
   /\/ 38/.test(allOpen.byId('budget').innerHTML), allOpen.byId('budget').innerHTML.slice(0, 200));
 
 // the rest runs with levels opening in order, as a player will have them
-const { byId, fire, runFrames, readGlobal, storage, templateButton } = startApp();
+const { byId, fire, runFrames, readGlobal, loadTestDesign, storage, templateButton } = startApp();
 readGlobal('RULES.allLevelsOpen = false');
 runFrames(3);
 check('no level is chosen at first', !byId('show-levels').classList.contains('selected'));
@@ -504,8 +504,16 @@ byId('show-levels').onclick();
 check('while a level is chosen, the sheet offers to leave it',
   byId('level-leave').style.display === 'block' && /Leave “First stroke”/.test(byId('level-leave').textContent));
 
+// the starting design is the Jet: a creature from later levels can't run in level 1 (user, 2026-11-05)
+check('Run level is shut while the design holds a piece no level so far brings, and says which',
+  byId('level-run').disabled === true &&
+  /doesn't fit: Take out the Mouth: a later level brings it/.test(byId('level-run-note').textContent),
+  byId('level-run-note').textContent);
+byId('levels-close').onclick();
+loadTestDesign(SOLUTIONS['first-stroke'], 'First stroke');
+byId('show-levels').onclick();
 byId('layer-nerve').onclick();        // left in the Nerve view: the builder comes back in Body
-byId('level-run').onclick();          // the starting design is the Jet
+byId('level-run').onclick();
 check('Run level closes the sheet and starts the level with its bar and HUD',
   byId('levels-sheet').style.display === 'none' && byId('level-bar').style.display === 'flex' &&
   byId('hud').style.display === 'block' && byId('dock').style.display === 'none');
@@ -521,12 +529,13 @@ check('P pauses the level',
 check('a level shows the big Lab button', byId('run-exit').style.display === 'flex' &&
   typeof byId('back-to-lab').onclick === 'function');
 fire('window', 'keydown', { key: 'p' });
-runFrames(1150);                       // the Jet needs about 17.3 game s, at 16 ms of game time per frame
-check('the Jet swims into the ring: the result box shows a win with 1 star',
+const firstStars = sim.levelScore(sim.runLevel(firstLevel, SOLUTIONS['first-stroke']), SOLUTIONS['first-stroke']).stars;
+runFrames(Math.ceil(firstTime / 0.016) + 60);   // 16 ms of game time per frame
+check('the creature swims into the ring: the result box shows the win and its stars',
   byId('level-result').style.display === 'block' && byId('result-title').textContent === 'Level done' &&
-  (byId('result-stars').innerHTML.match(/class="lit"/g) || []).length === 1, byId('result-text').textContent);
+  (byId('result-stars').innerHTML.match(/class="lit"/g) || []).length === firstStars, byId('result-text').textContent);
 const kept = JSON.parse(storage.items['bioforge-lab-game-1-level-results'] || '{}');
-check('the win is kept as the best result', kept['first-stroke'] && kept['first-stroke'].stars === 1,
+check('the win is kept as the best result', kept['first-stroke'] && kept['first-stroke'].stars === firstStars,
   JSON.stringify(kept));
 check('the result box offers Retry and Builder only (Next level was the same as Builder; user, 2026-10-30)',
   !byId('result-next').onclick && byId('result-retry').onclick && byId('result-builder').onclick);
@@ -567,7 +576,8 @@ check('Run level refuses a design that doesn\'t fit the level, and stays in the 
   byId('message').textContent);
 byId('show-levels').onclick();
 check('Run level is shut while the design does not fit the level, and says why', byId('level-run').disabled === true &&
-  /doesn't fit: (Over budget|Too many)/.test(byId('level-run-note').textContent), byId('level-run-note').textContent);
+  /doesn't fit: (Take out|Over budget|Too many)/.test(byId('level-run-note').textContent),
+  byId('level-run-note').textContent);
 byId('levels-close').onclick();
 
 // Reset level progress (Settings): asks first, then the stars go and the levels lock again

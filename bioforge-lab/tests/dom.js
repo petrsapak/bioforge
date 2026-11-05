@@ -159,11 +159,20 @@ function startApp(storedItems = {}, options = {}) {
   };
   // a top-level name of the game's scripts (consts aren't properties of the global scope, so they are evaluated)
   const readGlobal = name => vm.runInContext(name, scope);
+  // each frame keeps the page's app where loadTestDesign finds it
+  readGlobal('const runFrameBefore = runFrame; runFrame = (app, now) => { globalThis.testApp = app; ' +
+    'return runFrameBefore(app, now); }; 0');
+  // Loads a design into the Lab as a card on the Templates screen would: for checks that need a creature no
+  // built-in design is, such as one with only the first level's pieces. Needs a frame run before.
+  const loadTestDesign = (design, name = 'Test design') => {
+    scope.designForTest = design;
+    readGlobal(`loadDesign(globalThis.testApp, designForTest, ${JSON.stringify(name)}, '')`);
+  };
   if (!options.atMainMenu) {
     byId('menu-continue').onclick({});
     runFrames(LEAVE_TITLE_FRAMES);
   }
-  return { byId, fire, runFrames, templateButton, readGlobal, storage };
+  return { byId, fire, runFrames, templateButton, readGlobal, loadTestDesign, storage };
 }
 
 

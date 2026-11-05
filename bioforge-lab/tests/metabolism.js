@@ -51,6 +51,8 @@ for (let i = 0; i < 40; i++) sim.step(switchedOff.world, 1 / 40, noInput);
 check('with metabolism off, fat stays fat', switchedOff.fat.fat === 5);
 
 // ---------- Kits ----------
+// the first level with the Fat cell in its dock
+const longHaul = sim.LEVELS.find(level => level.id === 'long-haul');
 const fatBody = { cells: [cell(0, 0, 'nucleus'), cell(1, 0, 'fat'), cell(-1, 0, 'fat'), cell(0, 1, 'tissue')] };
 const materials = sim.designMaterials(fatBody);
 check('a design\'s materials add up its cells\' recipes: a Fat takes one protein and one fat',
@@ -59,7 +61,7 @@ check('a kit short of a material says which, and by how much',
   sim.kitShortfall(fatBody, { protein: 10, sugar: 5, fat: 1 }) === 'Not enough fat: it needs 2, the kit has 1',
   sim.kitShortfall(fatBody, { protein: 10, sugar: 5, fat: 1 }));
 check('with a kit, the budget no longer counts: only the kit and the other limits do',
-  sim.buildCheck(fatBody, { ...sim.levelLimits(sim.LEVELS[0]), budget: 0, kit: { protein: 3, fat: 2 } }) === '');
+  sim.buildCheck(fatBody, { ...sim.levelLimits(longHaul), budget: 0, kit: { protein: 3, fat: 2 } }) === '');
 const reserves = sim.kitReserves(fatBody, { protein: 10, sugar: 4, fat: 7 });
 check('a kit\'s leftover sugar and fat become reserves; leftover protein does not',
   reserves.sugar === 4 && reserves.fat === 5, JSON.stringify(reserves));
