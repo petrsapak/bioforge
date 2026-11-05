@@ -7,6 +7,9 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.28 (2026-11-05)
+- Levels fill the whole screen with water: the frame round the arena is gone.
+
 ## 0.7.27 (2026-11-05)
 - The tutorial speaks: every step is read out by a calm, young voice. Tutorial voice in the settings switches it
   off.

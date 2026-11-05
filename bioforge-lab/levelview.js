@@ -304,30 +304,27 @@ function arenaView(app, world) {
   };
 }
 
-// the arena scaled to the screen, clipped to its walls: water, goal, light and creatures; then the HUD
+// the arena scaled to the screen: water over the whole screen (no frame round the arena), goal, light and
+// creatures; then the HUD
 function drawLevelMode(app) {
   const context = app.context;
   const run = app.levelRun;
   const world = run.world;
   const view = arenaView(app, world);
-  context.fillStyle = '#071014';
-  context.fillRect(0, 0, app.canvas.width, app.canvas.height);
+  const screenLeft = -view.offsetX / view.scale;
+  const screenTop = -view.offsetY / view.scale;
   context.save();
   context.translate(view.offsetX, view.offsetY);
   context.scale(view.scale, view.scale);
-  context.beginPath();
-  context.rect(0, 0, world.width, world.height);
-  context.clip();
-  drawWater(context, world, world.width, world.height);
+  context.translate(screenLeft, screenTop);
+  drawWater(context, world, app.canvas.width / view.scale, app.canvas.height / view.scale);
+  context.translate(-screenLeft, -screenTop);
   drawLevelGoal(context, run);
   drawDarkLamp(context, run);
   drawLight(context, world.light);
   drawWorld(context, world, app.fluidView);
   if (app.isLensOn) drawChemicalLens(context, world);
   context.restore();
-  context.strokeStyle = '#2c4650';
-  context.lineWidth = 2;
-  context.strokeRect(view.offsetX, view.offsetY, world.width * view.scale, world.height * view.scale);
   drawProbes(app, world);
   showLevelHud(app, run);
 }
