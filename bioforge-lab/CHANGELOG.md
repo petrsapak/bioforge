@@ -7,6 +7,10 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.30 (2026-11-05)
+- Nerve fibres cross each side between two cells square to it, at its middle. Fibres crossing the same side line
+  up next to each other, spread evenly round the middle, and fibres running together no longer cross.
+
 ## 0.7.29 (2026-11-05)
 - Level hints name only the cells you have in that level: Long haul's points to Fat and the Gill, Bulwark's to
   Shell.

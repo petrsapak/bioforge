@@ -186,12 +186,13 @@ const editedFrom = (cells, biomassLimit) => sim.createEditedDesign({ cells, fibr
   sim.toggleFibre(edited, sim.hexKey(2, -1), sim.hexKey(2, 0), []);
   sim.toggleFibre(edited, sim.hexKey(3, 0), sim.hexKey(1, 0));
   const laidOut = sim.laidOutBodyFibres(edited, 8);
-  const lanes = laidOut.map(entry => entry.lane);
-  check('fibres through one cell get different lanes', new Set(lanes).size === 3, lanes.join(' '));
-  check('and different colours', new Set(laidOut.map(entry => entry.colorIndex)).size === 3);
+  check('fibres through one cell get different colours', new Set(laidOut.map(entry => entry.colorIndex)).size === 3);
   const [there, , back] = laidOut;
-  const apart = Math.abs(there.points[1][1] - back.points[1][1]);
-  check('two fibres along the same cells run apart, not on top of each other', apart > 1.5, apart.toFixed(2) + " px");
+  const sideX = (sim.hexToPixel(1, 0)[0] + sim.hexToPixel(2, 0)[0]) / 2;
+  const crossingAt = entry => entry.line.find(point => Math.abs(point[0] - sideX) < 1e-9)[1];
+  const apart = Math.abs(crossingAt(there) - crossingAt(back));
+  check('two fibres along the same cells cross their sides apart, not on top of each other', apart > 1.5,
+    apart.toFixed(2) + ' px');
 }
 
 { // fibres travel with saved parts: saving a selection, stamping it, and growing it on a Bud

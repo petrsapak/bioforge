@@ -200,21 +200,19 @@ function drawSparks(context, world) {
   context.globalAlpha = 1;
 }
 
-// The world's fibres in lanes (see layOutFibreLanes), so that fibres sharing a cell lie side by side: one { points,
-// lane, colorIndex } per world fibre, in their order.
+// The world's fibres in lanes (see layOutFibreLanes), so that fibres sharing a side lie side by side: one { line,
+// colorIndex } per world fibre, in their order.
 function layOutWorldFibres(world) {
   const pathOf = link => link.path.map(cell => ({ node: cell, x: cell.x, y: cell.y }));
   return layOutFibreLanes(world.fibres.map(pathOf), FIBRE_COLORS.length);
 }
 
 // ---------- Nerve fibres ----------
-// A fibre as a thin line along its points ([x, y]: its cells' centres, or its lane beside them), curved through the
-// cells between its ends (see smoothLinkLine), with a dot where it starts and an arrowhead where it ends. It brightens
-// with the signal it carries (value), and shows a white core while the signal is on. style: { color, alpha, width
-// (px), gap (px from an end cell's centre to the line's end) }.
-function drawFibre(context, points, value, style = {}) {
-  const { color = FIBRE_COLOR, alpha = 1, width = FIBRE_WIDTH, gap = LINK_END_GAP } = style;
-  const line = smoothLinkLine(points, gap);
+// A fibre as a thin line along its drawn line ([x, y] points: its lanes from layOutFibreLanes, or smoothLinkLine for
+// one being laid), with a dot where it starts and an arrowhead where it ends. It brightens with the signal it carries
+// (value), and shows a white core while the signal is on. style: { color, alpha, width (px) }.
+function drawFibre(context, line, value, style = {}) {
+  const { color = FIBRE_COLOR, alpha = 1, width = FIBRE_WIDTH } = style;
   context.globalAlpha = alpha * (0.6 + 0.4 * clamp01(value));
   context.strokeStyle = color;
   context.fillStyle = color;
@@ -260,7 +258,7 @@ function drawFibreArrow(context, [fromX, fromY], [toX, toY], width) {
 function drawWorldFibres(context, world) {
   const lanes = layOutWorldFibres(world);
   world.fibres.forEach((fibre, i) => {
-    drawFibre(context, lanes[i].points, fibre.value, { color: FIBRE_COLORS[lanes[i].colorIndex], alpha: 0.85 });
+    drawFibre(context, lanes[i].line, fibre.value, { color: FIBRE_COLORS[lanes[i].colorIndex], alpha: 0.85 });
   });
 }
 

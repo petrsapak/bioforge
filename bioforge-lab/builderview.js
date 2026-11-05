@@ -300,10 +300,10 @@ function drawNerveLayer(app, laidOut) {
   const valueOf = fibre => liveValues.get(fibreStartKey(fibre) + '>' + fibreEndKey(fibre)) || 0;
   const highlighted = isNerveView ? highlightedFibre(app) : null;
   const width = isNerveView ? FIBRE_NERVE_VIEW_WIDTH : FIBRE_BODY_VIEW_WIDTH;
-  for (const { fibre, points, colorIndex } of laidOut) {
+  for (const { fibre, line, colorIndex } of laidOut) {
     if (fibre === highlighted) continue;
     const alpha = !isNerveView ? FIBRE_BODY_VIEW_ALPHA : highlighted ? FIBRE_DIMMED_ALPHA : 1;
-    drawFibre(context, points, valueOf(fibre), { color: FIBRE_COLORS[colorIndex], alpha, width });
+    drawFibre(context, line, valueOf(fibre), { color: FIBRE_COLORS[colorIndex], alpha, width });
   }
   const shown = laidOut.find(({ fibre }) => fibre === highlighted);
   if (shown) drawHighlightedFibre(app, shown, valueOf(shown.fibre));
@@ -320,10 +320,10 @@ function highlightedFibre(app) {
 
 // a highlighted fibre: bold in its colour from start to end, with a ring round the cell it starts in and the cell it
 // ends in
-function drawHighlightedFibre(app, { fibre, points, colorIndex }, value) {
+function drawHighlightedFibre(app, { fibre, line, colorIndex }, value) {
   const context = app.context;
   const color = FIBRE_COLORS[colorIndex];
-  drawFibre(context, points, Math.max(value, 0.6), { color, width: FIBRE_HIGHLIGHT_WIDTH });
+  drawFibre(context, line, Math.max(value, 0.6), { color, width: FIBRE_HIGHLIGHT_WIDTH });
   context.strokeStyle = color;
   context.lineWidth = 1;
   for (const key of [fibreStartKey(fibre), fibreEndKey(fibre)]) {
@@ -440,11 +440,14 @@ function drawFibreDrag(app) {
   const endKey = pathKeys[pathKeys.length - 1];
   const isOnEnd = pathKeys.length > 1 && !!app.hoverHex && hexKey(...app.hoverHex) === endKey;
   if (points.length > 1) {
-    drawMirroredDrags(app, pathKeys, (mirrored, alpha) =>
-      drawFibre(context, mirrored, 1, { color: FIBRE_ACTIVE_COLOR, width: FIBRE_HIGHLIGHT_WIDTH, alpha }));
+    const style = { color: FIBRE_ACTIVE_COLOR, width: FIBRE_HIGHLIGHT_WIDTH };
+    drawMirroredDrags(app, pathKeys, (mirrored, alpha) => drawFibre(context, smoothLinkLine(mirrored), 1, { ...style,
+      alpha }));
   }
   if (!isOnEnd) {
-    if (points.length > 1) drawFibre(context, points, 1, { color: FIBRE_ACTIVE_COLOR, width: FIBRE_HIGHLIGHT_WIDTH });
+    if (points.length > 1) {
+      drawFibre(context, smoothLinkLine(points), 1, { color: FIBRE_ACTIVE_COLOR, width: FIBRE_HIGHLIGHT_WIDTH });
+    }
     const [lastX, lastY] = points[points.length - 1];
     context.globalAlpha = 0.9;
     context.strokeStyle = FIBRE_COLOR;
@@ -462,7 +465,7 @@ function drawFibreDrag(app) {
   context.strokeStyle = color;
   context.lineWidth = 1.2;
   strokeCircle(context, endX, endY, CELL_RADIUS);
-  drawFibre(context, points, isRemoval ? 0 : 1, { color, width: FIBRE_HIGHLIGHT_WIDTH });
+  drawFibre(context, smoothLinkLine(points), isRemoval ? 0 : 1, { color, width: FIBRE_HIGHLIGHT_WIDTH });
   context.font = 'bold 7px system-ui';
   context.textAlign = 'left';
   context.fillStyle = color;

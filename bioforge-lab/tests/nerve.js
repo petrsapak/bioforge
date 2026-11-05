@@ -5,7 +5,7 @@ const { load } = require('./load');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['newWorld', 'spawn', 'step', 'createNeuron', 'createDesignCell', 'createRouteArea',
   'routeFibre', 'fibreUnits', 'upgradeToNerveLayer', 'hexKey', 'TEMPLATES', 'NERVE_SUBSTEPS', 'fibreRoute',
-  'layOutFibreLanes', 'placePartFibres', 'smoothLinkLine', 'LINK_END_GAP']);
+  'layOutFibreLanes', 'placePartFibres', 'smoothLinkLine', 'LINK_END_GAP', 'FIBRE_LANE_GAP', 'FIBRE_SIDE_SPREAD']);
 
 const STEP = 1 / 40;                                      // game s per step
 const cellAt = (creature, q, r) => creature.cells.find(cell => cell.q === q && cell.r === r);
@@ -172,16 +172,43 @@ check('Inhibitor is NOT (of the sum)', truthTable(sim.createNeuron('inhibitor'))
     sim.fibreRoute(sim.createRouteArea([placed.from, ...placed.via, placed.to]), placed) !== null);
 }
 
-{ // lanes: fibres sharing a side, either way round, never share a line
-  const stop = (node, x) => ({ node, x, y: 0 });
-  const there = [stop('a', 0), stop('b', 10)];
-  const back = [stop('b', 10), stop('a', 0)];
+{ // lanes: fibres cross each side square to it, spread evenly round the side's middle (user, 2026-11-05: "When I
+  // add another one the it will line up next to the first one and it will move the first one off the center")
+  const stop = (node, x, y = 0) => ({ node, x, y });
+  const there = [stop('a', 0), stop('b', 20)];
+  const back = [stop('b', 20), stop('a', 0)];
+  // where a laid-out fibre crosses the upright line at x: its y there
+  const crossingAt = (entry, x) => entry.line.find(point => Math.abs(point[0] - x) < 1e-9)[1];
+  const [alone] = sim.layOutFibreLanes([there], 8);
+  check('a fibre alone crosses a side at its middle, square to it', alone.line.every(([, y]) => y === 0));
+  check("its ends stop the end gap short of the end cells' middles",
+    Math.abs(alone.line[0][0] - sim.LINK_END_GAP) < 1e-9 &&
+    Math.abs(alone.line[alone.line.length - 1][0] - (20 - sim.LINK_END_GAP)) < 1e-9);
   const [first, second] = sim.layOutFibreLanes([there, back], 8);
-  check('a fibre alone keeps the centre line', sim.layOutFibreLanes([there], 8)[0].points[0][1] === 0);
-  check('a fibre running back along it takes another line',
-    Math.abs(first.points[0][1] - second.points[1][1]) > 1, `${first.points[0][1]} ${second.points[1][1]}`);
+  check('two fibres, either way round, sit evenly either side of the middle',
+    Math.abs(crossingAt(first, 10) + crossingAt(second, 10)) < 1e-9 &&
+    Math.abs(Math.abs(crossingAt(first, 10) - crossingAt(second, 10)) - sim.FIBRE_LANE_GAP) < 1e-9,
+    `${crossingAt(first, 10)} ${crossingAt(second, 10)}`);
+  const three = sim.layOutFibreLanes([there, there, there], 8).map(entry => crossingAt(entry, 10))
+    .sort((first, second) => first - second);
+  check('with three, the middle one is back on the middle', three[1] === 0 && three[0] === -three[2], three.join(' '));
+  const crowd = sim.layOutFibreLanes(Array.from({ length: 9 }, () => there), 8).map(entry => crossingAt(entry, 10));
+  check('a crowd squeezes into the room a side has',
+    Math.max(...crowd) - Math.min(...crowd) <= sim.FIBRE_SIDE_SPREAD + 1e-9, crowd.join(' '));
   check('the colours run out gracefully',
     sim.layOutFibreLanes(Array.from({ length: 10 }, () => there), 3).every(entry => entry.colorIndex < 3));
+
+  // two fibres along a row of three cells, one turning up (left of the way they run) after it, one turning down:
+  // the one turning left keeps to the left, above, on every side they share, so they never cross
+  const row = [stop('a', 0), stop('b', 20), stop('c', 40)];
+  const up = [...row, stop('d', 50, -17.3)];
+  const down = [...row, stop('e', 50, 17.3)];
+  for (const order of [[up, down], [down, up]]) {
+    const laidOut = sim.layOutFibreLanes(order, 8);
+    const [upLine, downLine] = order[0] === up ? laidOut : [laidOut[1], laidOut[0]];
+    check(`fibres running together keep their order (${order[0] === up ? 'up' : 'down'} laid first)`,
+      crossingAt(upLine, 10) < crossingAt(downLine, 10) && crossingAt(upLine, 30) < crossingAt(downLine, 30));
+  }
 }
 
 { // the drawn line: straight across each border, curved inside the cells between, its ends short of the end cells'

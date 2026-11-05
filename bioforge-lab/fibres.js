@@ -7,12 +7,11 @@
 // order; one without via takes the shortest route. The cells it passes through only carry it; they don't take its
 // signal.
 
-const FIBRE_LANE_GAP = 2.2;                               // px between fibres side by side in one cell
-const FIBRE_LANE_SPREAD = 6.5;                            // px: the outermost lane's furthest distance from a centre
-const FIBRE_MITER_LIMIT = 2;                              // times the lane offset a corner may stick out
-const FIBRE_LANE_ORDER = [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6];   // lanes tried, from the centre outward
+const FIBRE_LANE_GAP = 2.2;                               // px between fibres side by side across one side
+const FIBRE_SIDE_SPREAD = 9;                              // px: the most room the fibres across one side take
+const FIBRE_BEND_PULL = 0.5;                              // of a cell's middle-to-side, how far a fibre runs straight
 const LINK_END_GAP = 0.45 * CELL_RADIUS;                  // px from a drawn link's end to its cell's middle
-const LINK_CORNER_STEPS = 6;                              // straight pieces a rounded bend inside a cell is drawn with
+const LINK_CORNER_STEPS = 8;                              // straight pieces a rounded bend inside a cell is drawn with
 const LINK_MAX_GAP_SHARE = 0.4;                           // of its first or last side, the most an end gap may take
 
 // The cells a fibre may run through: their hex keys, in the order given, so routes come out the same on every run.
@@ -104,57 +103,105 @@ function routeCells(creature, route) {
 }
 
 // ---------- Lanes ----------
-// Side-by-side lanes for drawing fibres, so that fibres sharing a cell run next to each other instead of on top of
-// each other. paths: one per fibre, its stops from start to end as { node, x, y } (node: anything that names the
-// cell, the same for every fibre through it). Returns one { points, lane, colorIndex } per path: its line shifted
-// sideways into its lane, and a colour (an index) that no earlier fibre through one of its cells has, while the
-// palette (paletteSize colours) lasts.
+// Where fibres run along each other. A fibre crosses each side between two cells square to it, and the fibres
+// crossing one side lie side by side, spread evenly round the side's middle: a fibre alone crosses at the middle,
+// two sit half a gap either side of it (user, 2026-11-05: "When I add another one the it will line up next to the
+// first one and it will move the first one off the center"). Inside a cell a fibre bends from the side it comes in
+// by to the side it leaves by, and its ends run square to its first and last side, stopping short of the end cells'
+// middles. Fibres that run together keep their order all along, so they don't cross each other.
+// paths: one per fibre, its stops from start to end as { node, x, y } (node: anything that names the cell, the same
+// for every fibre through it). Returns one { line, colorIndex } per path: the [x, y] points it is drawn along, and a
+// colour (an index) that no earlier fibre through one of its cells has, while the palette (paletteSize colours) lasts.
 function layOutFibreLanes(paths, paletteSize) {
   const nodeIds = new Map();
   const idOf = node => {
     if (!nodeIds.has(node)) nodeIds.set(node, nodeIds.size);
     return nodeIds.get(node);
   };
-  const placed = [];
-  for (const path of paths) {
-    const ids = path.map(stop => idOf(stop.node));
-    const fibre = { cells: new Set(ids), edges: fibreEdges(ids), lane: 0, colorIndex: 0 };
-    const sharing = placed.filter(other => ids.some(id => other.cells.has(id)));
-    const freeLane = FIBRE_LANE_ORDER.find(lane => isLaneFree(fibre, lane, sharing));
-    fibre.lane = freeLane === undefined ? 0 : freeLane;
-    fibre.colorIndex = firstFreeColor(sharing, paletteSize, placed.length);
-    placed.push(fibre);
-  }
-  const widestLane = Math.max(1, ...placed.map(fibre => Math.abs(fibre.lane)));
-  const gap = Math.min(FIBRE_LANE_GAP, FIBRE_LANE_SPREAD / widestLane);
-  return paths.map((path, i) => ({
-    points: offsetPolyline(path, placed[i].lane * gap),
-    lane: placed[i].lane,
-    colorIndex: placed[i].colorIndex,
-  }));
+  const walks = paths.map(path => ({ path, ids: path.map(stop => idOf(stop.node)) }));
+  const offsets = sideOffsets(walks);
+  const colorIndexes = fibreColors(walks, paletteSize);
+  return walks.map(({ path }, i) => ({ line: laneLine(path, offsets[i]), colorIndex: colorIndexes[i] }));
 }
 
-// The sides between a path's stops, by a key the same either way round, each with +1 if the path runs from the lower
-// id to the higher one and -1 if the other way.
-function fibreEdges(ids) {
-  const edges = new Map();
-  for (let i = 1; i < ids.length; i++) {
-    const low = Math.min(ids[i - 1], ids[i]);
-    const high = Math.max(ids[i - 1], ids[i]);
-    edges.set(low + '-' + high, ids[i - 1] === low ? 1 : -1);
-  }
-  return edges;
-}
-
-// Fibres sharing a cell keep different lanes. A lane counts to the left of the way a fibre runs, so on a shared side
-// two fibres running opposite ways also collide when one's lane is minus the other's.
-function isLaneFree(fibre, lane, sharing) {
-  return sharing.every(other => {
-    if (other.lane === lane) return false;
-    for (const [edge, direction] of fibre.edges) {
-      if (other.edges.has(edge) && other.edges.get(edge) * other.lane === direction * lane) return false;
+// Each fibre's place on each side it crosses, in px from the side's middle to the left of the way the fibre runs.
+// walks: [{ path, ids }]. Returns one list per fibre, with one offset per side it crosses.
+function sideOffsets(walks) {
+  const sides = new Map();
+  walks.forEach((walk, walkIndex) => {
+    for (let step = 0; step + 1 < walk.ids.length; step++) {
+      const low = Math.min(walk.ids[step], walk.ids[step + 1]);
+      const key = low + '-' + Math.max(walk.ids[step], walk.ids[step + 1]);
+      if (!sides.has(key)) sides.set(key, []);
+      sides.get(key).push({ walk, walkIndex, step, sense: walk.ids[step] === low ? 1 : -1 });
     }
-    return true;
+  });
+  const offsets = walks.map(({ ids }) => new Array(Math.max(0, ids.length - 1)).fill(0));
+  for (const crossings of sides.values()) {
+    crossings.sort((first, second) => compareOnSide(first, second) || first.walkIndex - second.walkIndex);
+    const gap = crossings.length > 1 ? Math.min(FIBRE_LANE_GAP, FIBRE_SIDE_SPREAD / (crossings.length - 1)) : 0;
+    crossings.forEach((crossing, i) => {
+      offsets[crossing.walkIndex][crossing.step] = (i - (crossings.length - 1) / 2) * gap * crossing.sense;
+    });
+  }
+  return offsets;
+}
+
+// Which of two fibres crossing one side lies further left, seen from the side's lower cell id toward its higher:
+// positive when the first does, negative when the second does, 0 when nothing tells them apart. Both are followed
+// past the side's higher cell, then past its lower one, until their routes part; the one that turns further left
+// there (seen the way it is followed) lies on the left, so fibres running together keep one order and don't cross.
+function compareOnSide(first, second) {
+  for (const way of [1, -1]) {
+    const turn = partingTurn(first, second, way);
+    if (turn) return turn * way;
+  }
+  return 0;
+}
+
+// Where two crossings' fibres part, followed the given way past the side (1: past its higher cell, -1: past its
+// lower): 1 if the first turns further left there, -1 if the second does, 0 if they end in the same cell.
+function partingTurn(first, second, way) {
+  for (let count = 1; ; count++) {
+    const firstId = first.walk.ids[indexPastSide(first, way, count)];
+    const secondId = second.walk.ids[indexPastSide(second, way, count)];
+    if (firstId === undefined && secondId === undefined) return 0;
+    if (firstId !== secondId) return Math.sign(leftTurn(first, way, count) - leftTurn(second, way, count));
+  }
+}
+
+// The index in a crossing's path of the stop `count` cells past its side, followed the given way: 0 is the side's
+// own cell on that way, -1 the cell on the other side of it. Beyond the path's ends the index has no stop.
+function indexPastSide(crossing, way, count) {
+  const along = crossing.sense * way;               // 1: in the fibre's own order, -1: against it
+  const start = along > 0 ? crossing.step + 1 : crossing.step;
+  return start + along * count;
+}
+
+// How far a fibre turns left on its way into the stop `count` cells past its side, followed the given way: from -1
+// (a hard right) to 1 (a hard left), and 0 where it ends before it.
+function leftTurn(crossing, way, count) {
+  const path = crossing.walk.path;
+  const next = path[indexPastSide(crossing, way, count)];
+  if (!next) return 0;
+  const here = path[indexPastSide(crossing, way, count - 1)];
+  const before = path[indexPastSide(crossing, way, count - 2)];
+  const inX = here.x - before.x;
+  const inY = here.y - before.y;
+  const outX = next.x - here.x;
+  const outY = next.y - here.y;
+  const lengths = Math.sqrt(inX * inX + inY * inY) * Math.sqrt(outX * outX + outY * outY) || 1;
+  return (outX * inY - outY * inX) / lengths;
+}
+
+// a colour for each fibre that no earlier fibre through one of its cells has (see firstFreeColor)
+function fibreColors(walks, paletteSize) {
+  const placed = [];
+  return walks.map(({ ids }) => {
+    const sharing = placed.filter(other => ids.some(id => other.cells.has(id)));
+    const colorIndex = firstFreeColor(sharing, paletteSize, placed.length);
+    placed.push({ cells: new Set(ids), colorIndex });
+    return colorIndex;
   });
 }
 
@@ -167,27 +214,69 @@ function firstFreeColor(sharing, paletteSize, fibreIndex) {
   return fibreIndex % paletteSize;
 }
 
-// The path's stops ({ x, y }) as [x, y] points moved sideways by offset px, to the left of the way it runs; corners
-// are mitred, so the shifted lines stay parallel to the centre line.
-function offsetPolyline(path, offset) {
-  const normals = [];
-  for (let i = 1; i < path.length; i++) {
-    const deltaX = path[i].x - path[i - 1].x;
-    const deltaY = path[i].y - path[i - 1].y;
-    const length = Math.sqrt(deltaX * deltaX + deltaY * deltaY) || 1;
-    normals.push([deltaY / length, -deltaX / length]);
-  }
-  return path.map((stop, i) => {
-    const before = normals[i - 1] || normals[i];
-    const after = normals[i] || normals[i - 1];
-    if (!before) return [stop.x, stop.y];
-    const sumX = before[0] + after[0];
-    const sumY = before[1] + after[1];
-    const sumLength = Math.sqrt(sumX * sumX + sumY * sumY);
-    if (sumLength < 0.1) return [stop.x + before[0] * offset, stop.y + before[1] * offset];
-    const stretch = Math.min(FIBRE_MITER_LIMIT, 2 / sumLength);
-    return [stop.x + sumX / sumLength * offset * stretch, stop.y + sumY / sumLength * offset * stretch];
+// The line a fibre is drawn along in its lanes: square across each side at its offset there, bending inside the
+// cells between, and running square into its first and last side from points short of its end cells' middles (see
+// endRun). path: its stops ({ x, y }); offsets: px to the left of the way it runs, one per side it crosses.
+function laneLine(path, offsets) {
+  if (path.length < 2) return path.map(stop => [stop.x, stop.y]);
+  const crossings = offsets.map((offset, step) => sideCrossing(path[step], path[step + 1], offset));
+  const first = crossings[0];
+  const last = crossings[crossings.length - 1];
+  const line = [pointAlong(first, -endRun(first))];
+  crossings.forEach((crossing, i) => {
+    line.push(crossing.point);
+    if (i + 1 < crossings.length) line.push(...bendBetween(crossing, crossings[i + 1]));
   });
+  line.push(pointAlong(last, endRun(last)));
+  return line;
+}
+
+// Where a fibre crosses the side between two neighbouring stops, offset px to the left of the way it runs:
+// { point, direction (the way it runs, a unit vector), reach (px from either stop to the side) }.
+function sideCrossing(from, to, offset) {
+  const deltaX = to.x - from.x;
+  const deltaY = to.y - from.y;
+  const length = Math.sqrt(deltaX * deltaX + deltaY * deltaY) || 1;
+  const directionX = deltaX / length;
+  const directionY = deltaY / length;
+  return {
+    point: [(from.x + to.x) / 2 + directionY * offset, (from.y + to.y) / 2 - directionX * offset],
+    direction: [directionX, directionY],
+    reach: length / 2,
+  };
+}
+
+// the point `distance` px from where a fibre crosses a side, the way it runs (back the other way when negative)
+function pointAlong(crossing, distance) {
+  return [crossing.point[0] + crossing.direction[0] * distance, crossing.point[1] + crossing.direction[1] * distance];
+}
+
+// how far a fibre's end runs into its end cell from the side: to LINK_END_GAP px short of the cell's middle, but
+// keeping at least the share LINK_MAX_GAP_SHARE of the way between the two cells' middles as a gap
+function endRun(crossing) {
+  return crossing.reach - Math.min(LINK_END_GAP, 2 * crossing.reach * LINK_MAX_GAP_SHARE);
+}
+
+// the points of the curve inside a cell from where a fibre comes in (entry) to where it leaves (exit), square to
+// both sides; the two crossing points themselves are left out
+function bendBetween(entry, exit) {
+  const pull = FIBRE_BEND_PULL * Math.min(entry.reach, exit.reach);
+  const entryControl = pointAlong(entry, pull);
+  const exitControl = pointAlong(exit, -pull);
+  const points = [];
+  for (let step = 1; step < LINK_CORNER_STEPS; step++) {
+    points.push(cubicPoint(entry.point, entryControl, exitControl, exit.point, step / LINK_CORNER_STEPS));
+  }
+  return points;
+}
+
+// the point at `fraction` (0 to 1) along the curve from `start` to `end` pulled toward the two controls
+function cubicPoint(start, startControl, endControl, end, fraction) {
+  const rest = 1 - fraction;
+  const weights = [rest * rest * rest, 3 * rest * rest * fraction, 3 * rest * fraction * fraction,
+    fraction * fraction * fraction];
+  const points = [start, startControl, endControl, end];
+  return [0, 1].map(axis => points.reduce((sum, point, i) => sum + point[axis] * weights[i], 0));
 }
 
 // The line a fibre is drawn along, from its points ([x, y]: its cells' centres, or its lane beside them).

@@ -485,8 +485,8 @@ function routedBodyFibres(edited) {
     .filter(({ route }) => route);
 }
 
-// The body's fibres for drawing, side by side where they share cells (see layOutFibreLanes): [{ fibre, route,
-// points (grid px), lane, colorIndex }]. paletteSize: how many fibre colours there are to share out.
+// The body's fibres for drawing, side by side where they cross the same side (see layOutFibreLanes): [{ fibre,
+// route, line (grid px), colorIndex }]. paletteSize: how many fibre colours there are to share out.
 function laidOutBodyFibres(edited, paletteSize = 1) {
   const fibres = routedBodyFibres(edited);
   const pathOf = ({ route }) => route.hexes.map(key => {
@@ -519,20 +519,19 @@ function nerveRemovalTarget(edited, [x, y]) {
   const [centerX, centerY] = hexToPixel(q, r);
   const hasNeuron = !!cell && !!cell.neuron;
   if (hasNeuron && distanceSquared(x, y, centerX, centerY) <= square(NEURON_PICK_RADIUS)) return { neuronKey: key };
-  const laidOut = laidOutBodyFibres(edited).map(({ fibre, points }) => ({ link: fibre, points }));
+  const laidOut = laidOutBodyFibres(edited).map(({ fibre, line }) => ({ link: fibre, line }));
   const nearest = nearestLink(laidOut, x, y, FIBRE_PICK_DISTANCE);
   if (nearest) return { fibre: nearest };
   return hasNeuron ? { neuronKey: key } : null;
 }
 
 // The link whose drawn line passes nearest the grid point (x, y), within reach; the one drawn last when tied.
-// drawn: [{ link, points ([x, y] grid px) }], measured along the curved line they are drawn with (smoothLinkLine).
+// drawn: [{ link, line ([x, y] grid px: the line it is drawn along) }].
 // null if none is in reach.
 function nearestLink(drawn, x, y, reach) {
   let nearest = null;
   let nearestDistance = reach;
-  for (const { link, points } of drawn) {
-    const line = smoothLinkLine(points);
+  for (const { link, line } of drawn) {
     for (let i = 1; i < line.length; i++) {
       const distance = distanceToSegment(x, y, line[i - 1], line[i]);
       if (distance <= nearestDistance) {
