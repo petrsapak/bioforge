@@ -1,0 +1,194 @@
+{
+  "first-stroke-welcome": {
+    "text": "Welcome to the Lab. Build a creature from cells, wire up its nerves, and watch it come alive.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "first-stroke-nucleus": {
+    "text": "This is the Nucleus. Every creature has one, and everything you add grows out from it.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "first-stroke-goal": {
+    "text": "Your first level: swim into the ring ahead. To swim, your creature needs something that pushes water.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "first-stroke-pick-siphon": {
+    "text": "This is the dock, with every cell in the game. The locked ones open in later levels. Pick the Siphon: it squirts water out of its back and pushes the body forward.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "first-stroke-place-siphons": {
+    "text": "Click the two places behind the Nucleus to add a Siphon on each side. A right-click takes a cell away.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "first-stroke-still": {
+    "text": "The Preview runs your creature while you build. A Siphon squirts when a nerve signal tells it to, so next comes the wiring.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "first-stroke-nerves": {
+    "text": "Open the Nerves view. This is where you wire the creature's brain. The 2 key opens it too.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "first-stroke-pick-pacemaker": {
+    "text": "Pick the Pacemaker. It sends out a pulse again and again, like a heartbeat.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "first-stroke-place-pacemaker": {
+    "text": "Click the Nucleus to put the Pacemaker in it.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "first-stroke-fibres": {
+    "text": "Now drag from the Nucleus to a Siphon, and then to the other one. Each drag lays a nerve fibre, and every pulse runs down it and fires the Siphon.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "first-stroke-swims": {
+    "text": "Look at the Preview: both Siphons fire together, so the creature swims straight ahead.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "first-stroke-run": {
+    "text": "Ready? Run the level.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "first-stroke-watch": {
+    "text": "Watch it swim. The ring at the top is the goal.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "first-stroke-lost": {
+    "text": "Go back to the Lab, check that a fibre runs to each Siphon, and run the level again.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "first-stroke-won": {
+    "text": "You made it! The stars count how fast you were and how small your creature was. Press Next, then Retry to beat them, or go back to the Lab.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "lighthouse-welcome": {
+    "text": "Level two: reach the light. Give your creature eyes, and it will find the light.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "lighthouse-pick-eye": {
+    "text": "Each level unlocks new pieces, and they glow green in the dock. Pick the Light eye: the more light falls on it, the stronger it fires.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "lighthouse-place-eyes": {
+    "text": "Put two Light eyes at the front of the Nucleus, one on each side. Keep your Siphons at the back.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "lighthouse-nerves": {
+    "text": "Open the Nerves view again.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "lighthouse-cross": {
+    "text": "Here is the trick. Drag a fibre from each eye to the Siphon on the far side, so the wires cross. The eye nearer the light then pushes the far side harder, and that turns the creature toward the light.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "lighthouse-hints": {
+    "text": "Rest the mouse on any piece in the dock: its hint shows how to use it, with a live example. The Field guide, on the G key, has every piece in pictures.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "lighthouse-run": {
+    "text": "Run it, and watch where it goes.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "lighthouse-signals": {
+    "text": "These are the signals. Each line is one cell, showing how hard it fires as the run goes on. When your creature does something strange, look here first. The buttons at the top pause the run, step it and slow it down.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "lighthouse-watch": {
+    "text": "Watch it turn toward the light.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "lighthouse-lost": {
+    "text": "In the Lab, wire each eye to the Siphon on the other side, so the wires cross, and run it again.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "lighthouse-won": {
+    "text": "You made it! The stars count how fast you were and how small your creature was. Press Next, then Retry to beat them, or go back to the Lab.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "lab-tour-welcome": {
+    "text": "You have the basics. Here is the rest of the Lab.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "lab-tour-levels": {
+    "text": "Run level always runs the next level you haven't won. The Levels button above it lists every level, with its goal, its limits and a hint.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "lab-tour-limits": {
+    "text": "Each level sets limits. Biomass and cells are counted up here, and the Nerves view counts neurons and fibre.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "lab-tour-templates": {
+    "text": "Templates keeps the creatures you save, and ready-made examples to learn from.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "lab-tour-sandbox": {
+    "text": "The Sandbox drops your creature into open water with enemies and food, to try it out freely.",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  },
+  "lab-tour-menu": {
+    "text": "Escape opens the menu, with the settings and the Field guide, and H shows every key. That's all. Good luck in the Lab!",
+    "voiceId": "bIHbv24MWmeRgasZH58o",
+    "model": "eleven_multilingual_v2",
+    "voiceSettings": "{\"stability\":0.6,\"similarity_boost\":0.8,\"style\":0.1,\"use_speaker_boost\":true}"
+  }
+}

@@ -5,7 +5,14 @@
 //
 // A lesson starts once the lesson named by `after` is done and the level named by `needsWin` is won. A lesson with a
 // `level` chooses it and opens the Body view; it is skipped when that level is won already (except on a replay).
+// Its `runStep` is the step that asks for the run: a player who leaves a run before winning goes back to it.
 //
+// While a step is on screen the rest of the game is locked: the mouse reaches only the bubble and, on a step that
+// waits for the player to do something, its target (canTouch: true opens the target on a Next step too, to rest the
+// mouse on it); the keys are locked except Esc and the step's keys (keys: ['2']).
+//
+// A step shows in the Lab, or with mode: 'level' during a level run; anywhere else the tutorial waits until the
+// player is back. Back in the Lab from a won run, the run's steps are passed (the player chose Lab over Next).
 // A step's target is what the spotlight shows: { element: id }, { cell: type } or { neuron: kind } (a dock button),
 // { hexes: [[q, r], …] } (builder hexes), or none (the bubble in the middle). dim: false leaves the screen undimmed,
 // for watching a run. waitFor is what moves it on: 'next' (its Next button) or a condition:
@@ -25,14 +32,15 @@
 function runResultSteps(lessonId, level, lostText) {
   return [
     {
-      id: `${lessonId}-lost`, skipIf: { kind: 'levelWon', level }, dim: false, target: { element: 'level-result' },
+      id: `${lessonId}-lost`, skipIf: { kind: 'levelWon', level }, mode: 'level', dim: false,
+      target: { element: 'level-result' },
       text: lostText,
       waitFor: { kind: 'levelWon', level },
     },
     {
-      id: `${lessonId}-won`, dim: false, target: { element: 'level-result' },
-      text: 'You made it! The stars count how fast you were and how small your creature was. Retry to beat them, ' +
-        'or go back to the Lab.',
+      id: `${lessonId}-won`, mode: 'level', dim: false, target: { element: 'level-result' },
+      text: 'You made it! The stars count how fast you were and how small your creature was. Press Next, then ' +
+        'Retry to beat them, or go back to the Lab.',
       waitFor: 'next',
     },
   ];
@@ -40,7 +48,7 @@ function runResultSteps(lessonId, level, lostText) {
 
 const TUTORIAL_LESSONS = [
   {
-    id: 'first-stroke', level: 'first-stroke',
+    id: 'first-stroke', level: 'first-stroke', runStep: 'first-stroke-run',
     steps: [
       {
         id: 'first-stroke-welcome',
@@ -75,7 +83,7 @@ const TUTORIAL_LESSONS = [
         waitFor: 'next',
       },
       {
-        id: 'first-stroke-nerves', target: { element: 'layer-nerve' },
+        id: 'first-stroke-nerves', target: { element: 'layer-nerve' }, keys: ['2'],
         text: 'Open the Nerves view. This is where you wire the creature\'s brain. The 2 key opens it too.',
         waitFor: { kind: 'view', layer: 'nerve' },
       },
@@ -106,7 +114,7 @@ const TUTORIAL_LESSONS = [
         waitFor: { kind: 'mode', mode: 'level' },
       },
       {
-        id: 'first-stroke-watch', dim: false,
+        id: 'first-stroke-watch', mode: 'level', dim: false,
         text: 'Watch it swim. The ring at the top is the goal.',
         waitFor: { kind: 'runEnded' },
       },
@@ -115,7 +123,7 @@ const TUTORIAL_LESSONS = [
     ],
   },
   {
-    id: 'lighthouse', level: 'lighthouse', after: 'first-stroke', needsWin: 'first-stroke',
+    id: 'lighthouse', level: 'lighthouse', runStep: 'lighthouse-run', after: 'first-stroke', needsWin: 'first-stroke',
     steps: [
       {
         id: 'lighthouse-welcome',
@@ -134,7 +142,7 @@ const TUTORIAL_LESSONS = [
         waitFor: { kind: 'cellCount', cell: 'lighteye', count: 2 },
       },
       {
-        id: 'lighthouse-nerves', target: { element: 'layer-nerve' },
+        id: 'lighthouse-nerves', target: { element: 'layer-nerve' }, keys: ['2'],
         text: 'Open the Nerves view again.',
         waitFor: { kind: 'view', layer: 'nerve' },
       },
@@ -145,7 +153,7 @@ const TUTORIAL_LESSONS = [
         waitFor: { kind: 'fibresAcross', from: 'lighteye', to: 'siphon' },
       },
       {
-        id: 'lighthouse-hints', target: { element: 'dock' },
+        id: 'lighthouse-hints', target: { element: 'dock' }, canTouch: true, keys: ['g'],
         text: 'Rest the mouse on any piece in the dock: its hint shows how to use it, with a live example. The Field ' +
           'guide, on the G key, has every piece in pictures.',
         waitFor: 'next',
@@ -156,14 +164,14 @@ const TUTORIAL_LESSONS = [
         waitFor: { kind: 'mode', mode: 'level' },
       },
       {
-        id: 'lighthouse-signals', dim: false, target: { element: 'hud-probes' },
+        id: 'lighthouse-signals', mode: 'level', dim: false, target: { element: 'hud-probes' },
         text: 'These are the signals. Each line is one cell, showing how hard it fires as the run goes on. When your ' +
           'creature does something strange, look here first. The buttons at the top pause the run, step it and ' +
           'slow it down.',
         waitFor: 'next',
       },
       {
-        id: 'lighthouse-watch', dim: false,
+        id: 'lighthouse-watch', mode: 'level', dim: false,
         text: 'Watch it turn toward the light.',
         waitFor: { kind: 'runEnded' },
       },

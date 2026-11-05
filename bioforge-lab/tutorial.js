@@ -44,6 +44,30 @@ function nextShownStep(lesson, stepIndex, facts) {
   return index;
 }
 
+// where a step is meant to be seen: 'level' (a run) or, by default, 'build' (the Lab)
+const tutorialStepMode = step => step.mode || 'build';
+
+// whether the step can show where the player is now; elsewhere (a Lab step during a run or in the Sandbox) the
+// tutorial waits for the player to come back
+function isStepInPlace(step, facts) {
+  return tutorialStepMode(step) === facts.mode;
+}
+
+// Where a lesson goes on when the player is back in the Lab while it is at one of the run's steps: past the run's
+// steps when the last run was won (the player chose Lab instead of Next), or else back to the lesson's runStep
+// (they left before the end, or lost), so the lesson always follows the player. Other steps stay where they are.
+// facts.lastRunOutcome: how the last run ended ('won', 'lost', or null when it was left before the end).
+function stepAfterLeavingRun(lesson, stepIndex, facts) {
+  const step = lesson.steps[stepIndex];
+  if (tutorialStepMode(step) !== 'level' || facts.mode !== 'build') return stepIndex;
+  if (facts.lastRunOutcome !== 'won' && lesson.runStep) {
+    return lesson.steps.findIndex(other => other.id === lesson.runStep);
+  }
+  let index = stepIndex;
+  while (index < lesson.steps.length && tutorialStepMode(lesson.steps[index]) === 'level') index++;
+  return index;
+}
+
 // The design's cells of a type. design: an edited design ({ cells: Map of hex key to cell }).
 function cellsOfType(design, typeName) {
   return [...design.cells.values()].filter(cell => cell.typeName === typeName);
@@ -73,7 +97,7 @@ function areFibresCrossed(design, fromType, toType) {
 }
 
 // Whether a step's condition holds. facts: { selectedType, selectedNeuron, design, layer, mode, runOutcome,
-// levelResults } (runOutcome: 'won', 'lost' or null).
+// lastRunOutcome, levelResults } (runOutcome: 'won', 'lost' or null).
 function isTutorialConditionMet(condition, facts) {
   switch (condition.kind) {
     case 'cellPicked': return facts.selectedType === condition.cell;

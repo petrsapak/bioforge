@@ -7,6 +7,15 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.27 (2026-11-05)
+- The tutorial speaks: every step is read out by a calm, young voice. Tutorial voice in the settings switches it
+  off.
+- The tutorial follows you: going back to the Lab from a run moves it on (after a win) or back to running the level
+  (before the end), and a step about the Lab waits while you are in a run, instead of talking about the wrong
+  screen.
+- During the tutorial only what it asks for can be clicked: the rest of the Lab is locked until you do it (or press
+  Skip tutorial). Esc still opens the menu.
+
 ## 0.7.26 (2026-11-05)
 - The dock at the bottom shows every cell and neuron again, in every level. The ones you haven't unlocked yet are
   greyed out with a small lock; clicking one says which level opens it, and its hover hint says the same on top.

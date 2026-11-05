@@ -355,8 +355,9 @@ function listenToKeyboard(app) {
   addEventListener('keydown', event => {
     if (event.target && event.target.tagName === 'INPUT') return;   // typing a name
     const key = event.key.toLowerCase();
-    app.keysHeld.add(key);
     if (key === ' ' || ARROW_STEPS[key]) event.preventDefault();   // not the page's scrolling
+    if (isKeyLockedByTutorial(app, key)) return;
+    app.keysHeld.add(key);
     if (isDialogOpen()) {
       event.preventDefault();
       handleDialogKey(key);

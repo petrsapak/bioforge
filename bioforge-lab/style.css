@@ -215,7 +215,9 @@ button.big:hover { background: #4a8044; }
 
 /* the tutorial (tutorialview.js): a ring on what to click, the rest of the screen darkened around it, and a speech
    bubble with an arrow; clicks pass through to the game, except on the bubble */
-#tutorial { position: absolute; inset: 0; display: none; z-index: 9; pointer-events: none; }
+#tutorial { position: absolute; inset: 0; display: none; z-index: 26; pointer-events: none; }
+/* above the result box (25), under the menus and sheets (29 and up), which the tutorial hides behind */
+.tutorial-block { position: absolute; pointer-events: auto; }
 #tutorial.dimmed { background: #000000b0; }
 #tutorial-spot {
   position: absolute; display: none; border: 2px solid #e8c547; border-radius: 12px;
@@ -696,7 +698,7 @@ button.small.primary:hover { background: #3d6b38; }
 #tooltip {
   position: absolute; display: none; max-width: 316px; padding: 9px 11px; background: #0d1519f2;
   border: 1px solid #2c4650;
-  border-radius: 7px; font-size: 13px; color: #b9c3cd; pointer-events: none; z-index: 10;
+  border-radius: 7px; font-size: 13px; color: #b9c3cd; pointer-events: none; z-index: 27;
 }
 #tooltip canvas { display: block; margin-top: 4px; border: 1px solid #23323a; border-radius: 5px; }
 #tooltip #tooltip-traces { border: none; border-radius: 0; }

@@ -21,7 +21,18 @@ function createTutorialState() {
     voice: null,                                          // the Audio playing the step's line
     isVoiceOn: true,                                      // the player's setting
     isNextPressed: false,
+    lastRunOutcome: null,                                 // how the last level run ended: 'won', 'lost' or null
+    isLocking: false,                                     // the step on screen locks the rest of the game
+    unlockedKeys: [],                                     // the keys it leaves working, besides Esc
   };
+}
+
+// Whether the tutorial holds this key back: while a step is on screen, only Esc (the menu, so the player can always
+// leave) and the keys the step names work (user, 2026-11-05: "all buttons and elements are locked and only the
+// ones the tutorial wants me to press are enabled").
+function isKeyLockedByTutorial(app, key) {
+  const tutorial = app.tutorial;
+  return tutorial.isLocking && key !== 'escape' && !tutorial.unlockedKeys.includes(key);
 }
 
 // reads the game's tutorial and the voice setting, and wires the bubble's buttons
@@ -59,9 +70,12 @@ function toggleTutorialVoice(app) {
   if (!app.tutorial.isVoiceOn) stopTutorialVoice(app);
 }
 
-// what the tutorial's conditions read (tutorial.js)
+// What the tutorial's conditions read (tutorial.js). The last run's outcome is kept from the run itself, since the
+// run is gone once the player is back in the Lab.
 function tutorialFacts(app) {
+  if (app.mode === 'level' && app.levelRun) app.tutorial.lastRunOutcome = app.levelRun.outcome;
   return {
+    lastRunOutcome: app.tutorial.lastRunOutcome,
     selectedType: app.selectedType,
     selectedNeuron: app.selectedNeuron,
     design: app.edited,
@@ -92,11 +106,12 @@ function runTutorial(app) {
   }
   const facts = tutorialFacts(app);
   advanceTutorialSteps(app, facts);
-  if (!tutorial.lesson) {
+  const step = tutorial.lesson && tutorial.lesson.steps[tutorial.stepIndex];
+  if (!step || !isStepInPlace(step, facts)) {
     hideTutorial(app);
     return;
   }
-  showTutorialStep(app, tutorial.lesson.steps[tutorial.stepIndex]);
+  showTutorialStep(app, step);
 }
 
 // begins the next ready lesson, in the builder only: its level chosen and the Body view open. Returns whether one
@@ -118,12 +133,16 @@ function startNextLesson(app) {
 }
 
 // Moves past every step whose condition is met (a step met before it shows is passed without a word), and past
-// steps that skipIf leaves out. At the lesson's end it is kept as done.
+// steps that skipIf leaves out; back in the Lab from a run, past the run's steps or back to the run step
+// (stepAfterLeavingRun). At the lesson's end it is kept as done.
 function advanceTutorialSteps(app, facts) {
   const tutorial = app.tutorial;
   const lesson = tutorial.lesson;
   for (;;) {
     tutorial.stepIndex = nextShownStep(lesson, tutorial.stepIndex, facts);
+    if (tutorial.stepIndex < lesson.steps.length) {
+      tutorial.stepIndex = stepAfterLeavingRun(lesson, tutorial.stepIndex, facts);
+    }
     const step = lesson.steps[tutorial.stepIndex];
     if (!step) break;
     const isMet = step.waitFor === 'next' ? tutorial.isNextPressed : isTutorialConditionMet(step.waitFor, facts);
@@ -148,15 +167,65 @@ function showTutorialStep(app, step) {
     playTutorialVoice(app, step);
   }
   overlay.style.display = 'block';
+  revealTutorialTarget(step);
   const spot = tutorialTargetRect(app, step.target);
   const isDimmed = step.dim !== false;
   overlay.classList.toggle('dimmed', isDimmed && !spot);
   placeTutorialSpot(spot, isDimmed);
   placeTutorialBubble(spot, isDimmed);
+  lockAroundTutorialStep(app, step, spot);
 }
 
-// hides the overlay and stops the voice
+// a folded dock is opened for a step that points into it
+function revealTutorialTarget(step) {
+  const target = step.target || {};
+  if (target.cell || target.neuron || target.element === 'dock') byId('dock').classList.remove('collapsed');
+}
+
+// Locks the game around the step: blockers catch the mouse everywhere but the bubble and, on a step that waits for
+// the player to do something (or that lets them touch its target, canTouch), the spotlit target. A step whose
+// target isn't on screen locks nothing, so a target that can't be shown never traps the player.
+function lockAroundTutorialStep(app, step, spot) {
+  const tutorial = app.tutorial;
+  tutorial.isLocking = !step.target || !!spot;
+  tutorial.unlockedKeys = step.keys || [];
+  const isTouchable = step.waitFor !== 'next' || step.canTouch;
+  placeTutorialBlockers(tutorial.isLocking, isTouchable ? spot : null);
+}
+
+// Puts the four blockers around the hole (the spotlight's ring, or none: everything blocked), or out of the way.
+function placeTutorialBlockers(isLocking, hole) {
+  const blockers = ['top', 'bottom', 'left', 'right'].map(side => byId('tutorial-block-' + side));
+  if (!isLocking) {
+    blockers.forEach(blocker => placeBlocker(blocker, 0, 0, 0, 0));
+    return;
+  }
+  if (!hole) {
+    placeBlocker(blockers[0], 0, 0, innerWidth, innerHeight);
+    blockers.slice(1).forEach(blocker => placeBlocker(blocker, 0, 0, 0, 0));
+    return;
+  }
+  const left = hole.left - TUTORIAL_SPOT_MARGIN;
+  const top = hole.top - TUTORIAL_SPOT_MARGIN;
+  const right = hole.left + hole.width + TUTORIAL_SPOT_MARGIN;
+  const bottom = hole.top + hole.height + TUTORIAL_SPOT_MARGIN;
+  placeBlocker(blockers[0], 0, 0, innerWidth, top);
+  placeBlocker(blockers[1], 0, bottom, innerWidth, innerHeight - bottom);
+  placeBlocker(blockers[2], 0, top, left, bottom - top);
+  placeBlocker(blockers[3], right, top, innerWidth - right, bottom - top);
+}
+
+// one blocker's rectangle, in px
+function placeBlocker(blocker, left, top, width, height) {
+  blocker.style.left = left + 'px';
+  blocker.style.top = top + 'px';
+  blocker.style.width = Math.max(0, width) + 'px';
+  blocker.style.height = Math.max(0, height) + 'px';
+}
+
+// hides the overlay, unlocks the game and stops the voice
 function hideTutorial(app) {
+  app.tutorial.isLocking = false;
   if (app.tutorial.shownStepId === null) return;
   app.tutorial.shownStepId = null;
   byId('tutorial').style.display = 'none';
