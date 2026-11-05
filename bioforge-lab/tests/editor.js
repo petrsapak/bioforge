@@ -406,4 +406,39 @@ check("Bioforge Moba's old library carries over", byId('library-tab-creatures').
   check('once the mouse moves, the view stays where it is put', view.panX === 0, String(view.panX));
 }
 
+{ // the Body view holds still: what the test tank's cells and fibres are doing doesn't change how it is drawn
+  const app = readGlobal('globalThis.testApp');
+  templateButton('starter').onclick();
+  pressKey('1');
+  runFrames(1);
+  // every call and property set on the context, as text
+  const recordDrawing = () => {
+    const calls = [];
+    const recorder = new Proxy({}, {
+      get: (target, name) => (...args) => calls.push(`${String(name)}(${args.join(',')})`),
+      set: (target, name, value) => calls.push(`${String(name)}=${value}`) > 0,
+    });
+    const view = { ...app, context: recorder };
+    readGlobal('drawDesignCells')(view);
+    readGlobal('drawNerveLayer')(view, readGlobal('laidOutBodyFibres')(app.edited, 8));
+    return calls.join(';');
+  };
+  const setActivity = level => {
+    for (const cell of app.tank.cells) Object.assign(cell, { signal: level, senseOutput: level, hitFlash: level });
+    for (const fibre of app.tank.fibres) fibre.value = level;
+  };
+  setActivity(0);
+  const quiet = recordDrawing();
+  setActivity(1);
+  check('in the Body view, cells and fibres look the same signalled or not', recordDrawing() === quiet);
+  app.layer = 'nerve';
+  const lit = recordDrawing();
+  check('in the Nerve view they light up', lit !== quiet);
+  // a working cell out of fuel starves only while signalled; its mark darkened it then, so it looked lit off-beat
+  for (const cell of app.tank.cells) cell.starving = true;
+  check('on the grid a starving cell is drawn as one with fuel, so the signal shows in step', recordDrawing() === lit);
+  for (const cell of app.tank.cells) cell.starving = false;
+  app.layer = 'body';
+}
+
 done();

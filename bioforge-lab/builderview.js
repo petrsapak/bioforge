@@ -259,18 +259,23 @@ function cellCursor(app) {
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${half} ${half}, crosshair`;
 }
 
-// Each cell is drawn as a still copy of its live test tank cell, at its grid slot, without what it puts out into the
-// water (a Siphon's puff would cover the cell behind it; the preview window shows it). Planned cells (not joined to
-// the body) are washed out, with a dashed outline. This and drawNerveLayer read only context, edited, tank, layer,
+// Each cell is drawn as a copy of its live test tank cell, at its grid slot, without what it puts out into the
+// water (a Siphon's puff would cover the cell behind it; the preview window shows it). In the Body view the copy is
+// held still (see stillCell), since blinking cells disturb building. In every view the starving mark is left out: a
+// cell starves only while it works, so once the test tank's fuel runs out the mark darkened signalled cells and they
+// looked lit only while their signal was off (the preview window still shows it). Planned cells (not joined to the
+// body) are washed out, with a dashed outline. This and drawNerveLayer read only context, edited, tank, layer,
 // fluidView and the hover fields from app, so the Reference window (reference.js) draws with them too.
 function drawDesignCells(app) {
   const context = app.context;
   const liveCells = new Map(app.tank.cells.map(cell => [keyOfCell(cell), cell]));
   const joined = joinedKeys(app.edited);
   const atRest = { centerX: 0, centerY: 0, heading: 0 };  // thorns and mouths face away from the nucleus
+  const isStill = app.layer === 'body';
   for (const [key, designCell] of app.edited.cells) {
     const [x, y] = hexToPixel(designCell.q, designCell.r);
-    const source = liveCells.get(key) || makeDisplayCell(designCell.typeName, 0, 0);
+    const live = liveCells.get(key) || makeDisplayCell(designCell.typeName, 0, 0);
+    const source = isStill ? stillCell(live, app.fluidView) : { ...live, starving: false };
     drawCell(context, { ...source, x, y, radius: CELL_RADIUS, creature: atRest, isOnGrid: true }, app.fluidView);
     if (joined.has(key)) continue;
     traceHex(context, x, y, HEX_FILL_SIZE);
@@ -285,11 +290,21 @@ function drawDesignCells(app) {
   }
 }
 
+// a test tank cell with everything that comes and goes switched off: no signal or its glow, no heartbeat, no flash,
+// no hunger marks, and its fluids (hormone rims too) shown only while a fluid view is on
+function stillCell(live, fluidView) {
+  const still = { ...live, signal: 0, senseOutput: 0, beat: 0, cooldown: 0, hitFlash: 0, springCharge: 0 };
+  still.starving = false;
+  still.poisoned = false;
+  if (!fluidView) still.fluids = new Array(FLUID_COUNT).fill(0);
+  return still;
+}
+
 // Fibres side by side in their lanes, in different colours where they share a cell (see laidOutBodyFibres), brighter
 // while they carry a signal in the test tank. In the Nerve view the cells fade and the neurons and fibres stand out,
 // and the highlighted fibre is drawn whole and bold over the others, which dim; in the Body view the fibres stay
-// faint. The fibres go over the neuron badges, so that every cell they pass through shows. laidOut: the body's fibres
-// in their lanes (laidOutBodyFibres).
+// faint and still. The fibres go over the neuron badges, so that every cell they pass through shows. laidOut: the
+// body's fibres in their lanes (laidOutBodyFibres).
 function drawNerveLayer(app, laidOut) {
   const context = app.context;
   const isNerveView = app.layer === 'nerve';
@@ -297,7 +312,7 @@ function drawNerveLayer(app, laidOut) {
   if (isNerveView) drawNeuronBadges(app);
   const liveFibreKey = fibre => keyOfCell(fibre.from) + '>' + keyOfCell(fibre.to);
   const liveValues = new Map(app.tank.fibres.map(fibre => [liveFibreKey(fibre), fibre.value]));
-  const valueOf = fibre => liveValues.get(fibreStartKey(fibre) + '>' + fibreEndKey(fibre)) || 0;
+  const valueOf = fibre => (isNerveView ? liveValues.get(fibreStartKey(fibre) + '>' + fibreEndKey(fibre)) || 0 : 0);
   const highlighted = isNerveView ? highlightedFibre(app) : null;
   const width = isNerveView ? FIBRE_NERVE_VIEW_WIDTH : FIBRE_BODY_VIEW_WIDTH;
   for (const { fibre, line, colorIndex } of laidOut) {
@@ -333,14 +348,14 @@ function drawHighlightedFibre(app, { fibre, line, colorIndex }, value) {
 }
 
 // The reach of the Heart under the mouse, or of a Heart about to be placed there: the cells it pumps while it beats
-// (within HEART_REACH, vascular.js) tinted red, brighter while it beats in the test tank, and the edge of the reach
-// outlined.
+// (within HEART_REACH, vascular.js) tinted red, brighter while it beats in the test tank (not in the Body view, which
+// holds still), and the edge of the reach outlined.
 function drawHeartReach(app) {
   const heartKey = heartUnderMouse(app);
   if (!heartKey) return;
   const heart = parseHexKey(heartKey);
   const live = app.tank.cells.find(cell => keyOfCell(cell) === heartKey);
-  const isBeating = !!live && live.type.pumps && live.beat > 0;
+  const isBeating = app.layer !== 'body' && !!live && live.type.pumps && live.beat > 0;
   const context = app.context;
   context.fillStyle = isBeating ? HEART_REACH_BEATING_TINT : HEART_REACH_TINT;
   for (const designCell of app.edited.cells.values()) {

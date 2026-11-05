@@ -7,6 +7,12 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.31 (2026-11-05)
+- In the Lab's Body view the cells and fibres hold still: no blinking while you build. The preview window still
+  shows the creature live, and the Nerve view still lights up with its signals.
+- In the Lab, a cell out of fuel no longer goes dark whenever its signal comes on. Siphons fed by a Pacemaker
+  seemed to light up out of step with the cells beside them; now every cell on one signal lights up together.
+
 ## 0.7.30 (2026-11-05)
 - Nerve fibres cross each side between two cells square to it, at its middle. Fibres crossing the same side line
   up next to each other, spread evenly round the middle, and fibres running together no longer cross.
