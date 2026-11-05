@@ -218,9 +218,8 @@ const LEVELS = [
     unlocks: { cells: ['fat', 'gill'] },
     brief: 'The light drifts round the arena. Keep close to it for 150 s in all: longer than a bare ' +
       'body\'s O₂, sugar and room for waste last. Speed the run up with the speed button (,).',
-    hint: 'Watch the O₂, Sugar and Waste bars. Fat stores sugar, a Gill makes O₂ from the water, and a Pore on ' +
-      'the surface dumps waste. A Seeker with a Fat on each side and a Gill at the back lasts. Keep the body even, ' +
-      'or it turns.',
+    hint: 'Watch the O₂, Sugar and Waste bars. Fat stores sugar and a Gill makes O₂ from the water. A Seeker with ' +
+      'a Fat on each side and a Gill at the back lasts. Keep the body even, or it turns.',
     systems: CIRCULATION_SYSTEMS,
     limits: { budget: 45 },
     light: DRIFTING_LIGHT,
@@ -336,7 +335,7 @@ const LEVELS = [
     unlocks: { cells: ['shell'] },
     brief: 'The Puffer hunts you, and you can\'t outswim it. Keep your Nucleus alive for 60 s.',
     hint: 'Shell takes half damage, and thorns barely scratch it. Wall the Nucleus in with Shell on all six sides. ' +
-      'Shell and Thorns are built with mineral: the kit has just enough for a ring.',
+      'Shell is built with mineral: the kit has just enough for a ring.',
     systems: ARMOUR_SYSTEMS,
     limits: { kit: { protein: 30, sugar: 4, mineral: 6 } },
     food: { maxCount: 0 },

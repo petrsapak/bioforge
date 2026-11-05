@@ -114,8 +114,8 @@ const GUIDE_TOPICS = [
     id: 'programming', title: 'You program, it acts', chapter: 1,
     demo: 'pacemaker',
     paragraphs: [
-      'You don\'t steer your creature. You build it, wire it, and let it go: it acts on its senses and its nerves ' +
-        'alone. A level is won by the design, not by your reflexes.',
+      'You build your creature, wire it, and let it go: it acts on its senses and its nerves alone. A level is ' +
+        'won by the design, not by your reflexes.',
       'Build in two views: Body (1) for the cells, and Nerves (2) for neurons and fibres. ' +
         'The Preview runs the design while you build, so every change shows at once.',
     ],

@@ -7,6 +7,11 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.29 (2026-11-05)
+- Level hints name only the cells you have in that level: Long haul's points to Fat and the Gill, Bulwark's to
+  Shell.
+- The field guide's first page opens with what you do: build your creature, wire it, and let it go.
+
 ## 0.7.28 (2026-11-05)
 - Levels fill the whole screen with water: the frame round the arena is gone.
 
