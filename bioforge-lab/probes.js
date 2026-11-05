@@ -8,6 +8,7 @@ const PROBE_MAX_LANES = 8;                                // lanes; more probed 
 const PROBE_LANE_HEIGHT = 17;                             // px (canvas units) per lane
 const TRACES_LANE_HEIGHT = 24;                            // px per lane in the builder's Traces window
 const PROBE_LABEL_WIDTH = 78;                             // px (canvas units) left of the traces for the lane names
+const PROBE_VALUE_WIDTH = 28;                             // px (canvas units) right of the traces for the value now
 const PROBE_GROUPS = ['sense', 'neuron', 'action'];      // lane order: senses first, then neurons, then actions
 
 // hiddenCount: probe-worthy cells beyond the lanes; chosenHexes: the hex keys the player clicked, in lane order, or
@@ -114,12 +115,25 @@ function drawProbes(app, world) {
   byId('probe-more').textContent = probeFootnote(probes);
 }
 
-// each lane's name, a baseline and its signal over the last PROBE_SECONDS before time, laneHeight px apart
+// The value a lane shows right of its trace: its latest signal, as 0 or 1 for an on/off lane (every sample on the
+// lane 0 or 1, as a Pacemaker's), or else to one decimal; '' before the first sample. With many lanes the number
+// is easier to follow than the trace (user, 2026-11-05).
+function probeValueText(lane) {
+  const samples = lane.samples;
+  if (!samples.length) return '';
+  const value = samples[samples.length - 1].value;
+  const isOnOff = samples.every(sample => sample.value === 0 || sample.value === 1);
+  return isOnOff ? String(value) : value.toFixed(1);
+}
+
+// each lane's name, a baseline, its signal over the last PROBE_SECONDS before time and its value now, laneHeight
+// px apart
 function drawProbeLanes(canvas, probes, time, laneHeight) {
   const height = probes.lanes.length * laneHeight;
   if (canvas.height !== height) canvas.height = height;
   const context = canvas.getContext('2d');
-  const traceWidth = canvas.width - PROBE_LABEL_WIDTH;
+  const traceEnd = canvas.width - PROBE_VALUE_WIDTH;
+  const traceWidth = traceEnd - PROBE_LABEL_WIDTH;
   const startTime = time - PROBE_SECONDS;
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.font = '10px sans-serif';
@@ -133,7 +147,7 @@ function drawProbeLanes(canvas, probes, time, laneHeight) {
     context.lineWidth = 1;
     context.beginPath();
     context.moveTo(PROBE_LABEL_WIDTH, bottom + 0.5);
-    context.lineTo(canvas.width, bottom + 0.5);
+    context.lineTo(traceEnd, bottom + 0.5);
     context.stroke();
     context.strokeStyle = lane.color;
     context.lineWidth = 1.5;
@@ -145,6 +159,10 @@ function drawProbeLanes(canvas, probes, time, laneHeight) {
       else context.lineTo(x, y);
     });
     context.stroke();
+    context.fillStyle = lane.color;
+    context.textAlign = 'right';
+    context.fillText(probeValueText(lane), canvas.width, (top + bottom) / 2);
+    context.textAlign = 'left';
   });
 }
 

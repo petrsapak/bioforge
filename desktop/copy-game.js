@@ -7,7 +7,7 @@ const path = require('path');
 
 const SOURCE = path.join(__dirname, '..', 'bioforge-lab');
 const TARGET = path.join(__dirname, 'game');
-const LEFT_OUT = new Set(['tests', 'sessions', 'PLAN.md', 'CHANGELOG.md']);
+const LEFT_OUT = new Set(['tests', 'tools', 'sessions', 'PLAN.md', 'CHANGELOG.md']);
 
 fs.rmSync(TARGET, { recursive: true, force: true });
 fs.cpSync(SOURCE, TARGET, {

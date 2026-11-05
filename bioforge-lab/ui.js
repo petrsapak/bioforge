@@ -1,8 +1,8 @@
 'use strict';
 // The builder and sandbox app: its state, the controls, mouse and keyboard input, and the frame loop (browser only).
 // The editing rules are in builder.js, the drawing in builderview.js, the toolbar in toolbar.js, the side panel in
-// panel.js (with coach.js), the dock in dock.js, the library in library.js, the tooltip in tooltip.js and
-// the sandbox in sandbox.js; the signal traces (runs, and the builder's Traces window) are in probes.js.
+// panel.js, the tutorial in tutorialview.js, the dock in dock.js, the library in library.js, the tooltip in
+// tooltip.js and the sandbox in sandbox.js; the signal traces (runs, and the builder's Traces window) are in probes.js.
 
 const START_DESIGN = 'jet';
 const MAX_FRAME_TIME = 0.05;                              // s; a slower frame (below 20 fps) slows the game down
@@ -84,7 +84,7 @@ function createApp(canvas) {
     isTracesCollapsed: () => false,
     reference: null,                                      // the creature in the Reference window (reference.js)
     isReferenceCollapsed: () => false,
-    coach: createCoach(),                                 // the How to box
+    tutorial: createTutorialState(),                      // the guided lessons (tutorialview.js)
     menu: createMenuState(),                              // the main menu and the Esc menu (menus.js)
     guide: createGuideState(),                            // the field guide sheet (guideview.js)
     title: createTitleView(),                             // the living scene behind the main menu (titleview.js)
@@ -111,7 +111,7 @@ function boot() {
   app.showDockLayer(app.layer);
   setUpWindows(app);
   setUpToolbar(app);
-  setUpCoach(app);
+  setUpTutorial(app);
   setUpSaveMenu(app);
   setUpDialog();
   setUpGuide(app);
@@ -190,11 +190,15 @@ function loadDesign(app, design, label, savedName) {
 }
 
 // chooses the cell type to place, putting away a held stamp; the chosen one again puts it down. A type the chosen
-// level doesn't allow can't be picked.
+// level doesn't allow, or hasn't unlocked yet, can't be picked.
 function pickCellType(app, typeName) {
-  if (isCellBanned(chosenLimits(app), typeName)) {
-    showMessage(`No ${CELLS[typeName].name} allowed in this level.`);
-    playSound(app, 'refuse');
+  const limits = chosenLimits(app);
+  if (isCellLocked(limits, typeName)) {
+    refusePick(app, `${CELLS[typeName].name} is locked. ${lockedPieceText(typeName)}`);
+    return;
+  }
+  if (isCellBanned(limits, typeName)) {
+    refusePick(app, `No ${CELLS[typeName].name} allowed in this level.`);
     return;
   }
   app.selectedType = app.selectedType === typeName && !app.stamp ? null : typeName;
@@ -202,10 +206,20 @@ function pickCellType(app, typeName) {
   refreshPanel(app);
 }
 
-// chooses the neuron to place; the chosen one again puts it down
+// chooses the neuron to place; the chosen one again puts it down. A locked one can't be picked.
 function pickNeuron(app, kind) {
+  if (isNeuronLocked(chosenLimits(app), kind)) {
+    refusePick(app, `The ${NEURONS[kind].name} is locked. ${lockedPieceText(kind)}`);
+    return;
+  }
   app.selectedNeuron = app.selectedNeuron === kind ? null : kind;
   refreshPanel(app);
+}
+
+// a dock piece that can't be picked says why, with the refuse sound
+function refusePick(app, text) {
+  showMessage(text);
+  playSound(app, 'refuse');
 }
 
 // ---------- Body and Nerve views ----------
@@ -741,6 +755,7 @@ function runFrame(app, now) {
   keepProgress(app, now);
   updateScreenFade(app, dt);
   if (isGuideOpen(app)) runDemo(dt);                      // the guide's example tank, over any mode or the title
+  runTutorial(app);
   if (isTitleShown(app)) {                                // the title covers the game, which waits behind it
     runTitleFrame(app, dt);
     requestAnimationFrame(time => runFrame(app, time));
@@ -785,5 +800,4 @@ function runBuilderFrame(app, dt, now) {
   updateTooltip(app, now);
   if (!isGuideOpen(app)) runDemo(dt);                     // the tooltip's; the guide's runs in runFrame
   runBuilderTraces(app);
-  runCoach(app, dt);
 }

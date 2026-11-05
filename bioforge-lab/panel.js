@@ -14,7 +14,6 @@ function refreshPanel(app) {
   showCard(app);
   wirePanelButtons(app);
   showNeeds(app);
-  refreshCoach(app);
 }
 
 // a line saying why an edit couldn't be made, or what was saved; '' hides it (every redraw of the panel does)
@@ -57,7 +56,7 @@ function wirePanelButtons(app) {
 }
 
 // marks the chosen cell type, neuron and view as selected, dims the cell types the chosen level doesn't allow, and
-// leaves out of the dock and the tabs what it hasn't unlocked yet
+// locks in the dock what it hasn't unlocked yet
 function showSelectedButtons(app) {
   const limits = chosenLimits(app);
   app.showDockPieces(limits, chosenNewPieces(app));

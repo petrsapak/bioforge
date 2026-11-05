@@ -53,10 +53,6 @@
     <div id="card"><div id="info"></div></div>
     <div id="needs"></div>
   </div>
-  <div id="coach">
-    <div id="coach-bar"><span>How to</span><button id="coach-toggle" title="Hide / show">–</button></div>
-    <div id="coach-steps"></div>
-  </div>
 </div>
 </div>
 <div id="keys-sheet" title="Click to close">
@@ -271,8 +267,10 @@
       <div class="keys-title">Settings</div>
       <div class="menu-setting"><span>Music <kbd>M</kbd></span><button class="small" id="setting-music">On</button></div>
       <div class="menu-setting"><span>Sounds <kbd>N</kbd></span><button class="small" id="setting-sounds">On</button></div>
+      <div class="menu-setting"><span>Tutorial voice</span><button class="small" id="setting-voice">On</button></div>
       <div class="menu-setting" id="setting-fullscreen-row"><span>Fullscreen</span><button class="small" id="setting-fullscreen">Off</button></div>
       <button class="menu-button" id="setting-keys">Keys and mouse</button>
+      <button class="menu-button" id="setting-replay-tutorial" title="Play the tutorial again from level 1's lesson">Replay tutorial</button>
       <button class="menu-button danger" id="setting-reset-levels" title="Forget this game's stars and best results; the levels lock again">Reset level progress</button>
       <button class="menu-button" id="menu-back">Back</button>
     </div>
@@ -292,6 +290,17 @@
 <input type="file" id="creature-file-input" accept=".json,application/json">
 
 <div id="tooltip"></div>
+<div id="tutorial">
+  <div id="tutorial-spot"></div>
+  <div id="tutorial-bubble">
+    <div id="tutorial-arrow"></div>
+    <div id="tutorial-text"></div>
+    <div id="tutorial-buttons">
+      <button id="tutorial-skip" title="Stop the tutorial; Replay tutorial in the settings starts it again">Skip tutorial</button>
+      <button class="primary" id="tutorial-next">Next</button>
+    </div>
+  </div>
+</div>
 
 <script src="data/version.js"></script>
 <script src="data/rules.js"></script>
@@ -323,7 +332,9 @@
 <script src="data/templates.js"></script>
 <script src="data/levels.js"></script>
 <script src="data/sounds.js"></script>
+<script src="data/tutorial.js"></script>
 <script src="levels.js"></script>
+<script src="tutorial.js"></script>
 <script src="snapshot.js"></script>
 <script src="savegame.js"></script>
 <script src="data/title.js"></script>
@@ -339,7 +350,6 @@
 <script src="hud.js"></script>
 <script src="dock.js"></script>
 <script src="library.js"></script>
-<script src="coach.js"></script>
 <script src="panel.js"></script>
 <script src="toolbar.js"></script>
 <script src="builderview.js"></script>
@@ -352,6 +362,7 @@
 <script src="progress.js"></script>
 <script src="titleview.js"></script>
 <script src="gamesview.js"></script>
+<script src="tutorialview.js"></script>
 <script src="menus.js"></script>
 <script src="music.js"></script>
 <script src="audio/sfx/bank.js"></script>

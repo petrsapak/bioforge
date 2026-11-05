@@ -7,6 +7,19 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.26 (2026-11-05)
+- The dock at the bottom shows every cell and neuron again, in every level. The ones you haven't unlocked yet are
+  greyed out with a small lock; clicking one says which level opens it, and its hover hint says the same on top.
+  Every category tab is there from the start.
+- A tutorial. A new game walks you through the first two levels: a light picks out what to click, a speech bubble
+  says what to do, and it moves on once you've done it. You build and wire your first swimmer, then give it eyes
+  that find the light. After level 2 it shows you the rest of the Lab. Skip tutorial stops it, and the settings
+  have Replay tutorial and Tutorial voice.
+- The How to box on the left is gone; the tutorial does its job.
+- New game no longer opens the Levels list; the tutorial starts instead.
+- Every signal line, in a run and in the Traces window, shows its value now beside the trace: 0 or 1 for an on/off
+  signal such as a Pacemaker's, otherwise to one decimal.
+
 ## 0.7.25 (2026-11-03)
 - Biomass, Cells, Neurons and Fibre under the Body and Nerves tabs are much bigger: each has a large number and a
   bar that fills as you use it up, and a design over a limit says so in an orange box.

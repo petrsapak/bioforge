@@ -52,6 +52,12 @@ function levelBringing(name) {
   return LEVELS.find(level => level.unlocks.cells.includes(name) || level.unlocks.neurons.includes(name)) || null;
 }
 
+// what a locked piece in the dock says about when it opens
+function lockedPieceText(name) {
+  const level = levelBringing(name);
+  return level ? `Opens with level ${LEVELS.indexOf(level) + 1}, ${level.name}.` : 'Not in the levels yet.';
+}
+
 // whether the player has met a cell type or neuron kind: the level that brings it is earned, the last level is won,
 // or no level brings it
 function isPieceMet(results, name) {

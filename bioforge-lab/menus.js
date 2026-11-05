@@ -129,13 +129,13 @@ function startNewGame(app) {
   restartIntoGame(app, games, 'new-game', !app.progress.isSandboxSession);
 }
 
-// A game with nothing saved begins: level 1 chosen, with its card open in the Levels sheet, and just the Nucleus to
-// build on (the Jet the Lab starts with would already solve level 1, with cells it hasn't opened yet)
+// A game with nothing saved begins: level 1 chosen, the tutorial started, and just the Nucleus to build on (the Jet
+// the Lab starts with would already solve level 1, with cells it hasn't opened yet)
 function beginNewGame(app) {
   enterCurrentGame(app);
   chooseLevel(app, LEVELS[0]);
   loadDesign(app, bareDesign(), 'New game', '');
-  toggleLevelsSheet(app);
+  startTutorial(app);
   saveProgress(app);
 }
 
@@ -252,8 +252,16 @@ function setUpSettings(app) {
     toggleSounds(app);
     showSettings(app);
   });
+  onButton('setting-voice', () => {
+    toggleTutorialVoice(app);
+    showSettings(app);
+  });
   onButton('setting-fullscreen', () => toggleFullscreen(app));
   onButton('setting-keys', toggleKeysSheet);
+  onButton('setting-replay-tutorial', () => {
+    startTutorial(app, true);
+    closeMenu(app);
+  });
   onButton('setting-reset-levels', () => resetLevelProgressAsked(app));
   onButton('menu-back', () => showMenuView(app, 'buttons'));
   addEventListener('fullscreenchange', () => showSettings(app));
@@ -264,6 +272,7 @@ function showSettings(app) {
   const onOff = isOn => (isOn ? 'On' : 'Off');
   byId('setting-music').textContent = onOff(!app.musicOff);
   byId('setting-sounds').textContent = onOff(!app.soundsOff);
+  byId('setting-voice').textContent = onOff(app.tutorial.isVoiceOn);
   byId('setting-fullscreen').textContent = onOff(isFullscreen());
   byId('setting-fullscreen-row').style.display = canGoFullscreen() ? '' : 'none';
 }

@@ -44,13 +44,6 @@ const dockButtons = () => byId('palette').children.flatMap(section => section.ch
 const dockButton = typeName => dockButtons().find(button => button.dataset.type === typeName);
 const neuronButton = kind => dockButtons().find(button => button.dataset.neuron === kind);
 const fibreUnitsShown = () => +/Fibre: (\d+)/.exec(byId('budget').innerHTML)[1];
-// the How to box's steps: their captions and which is marked next or done
-const coachSteps = () => byId('coach-steps').children.map(step => ({
-  caption: step.children[1].textContent,
-  isNext: step.classList.contains('next'),
-  isDone: step.classList.contains('done'),
-}));
-const nextCoachStep = () => (coachSteps().find(step => step.isNext) || {}).caption || '';
 
 runFrames(5);
 // the default Jet comes wired; these steps wire a body from scratch, so they start from the Starter (no neurons)
@@ -143,7 +136,6 @@ runFrames(55);
 check('resting on a cell shows its tooltip with a live example',
   byId('tooltip').style.display === 'block' && /How to use/.test(byId('tooltip').innerHTML));
 
-check('the How to box shows the Body steps', /add the cell/.test(coachSteps()[0].caption) && coachSteps()[0].isDone);
 pressKey('h');
 check('H opens the keys sheet', byId('keys-sheet').style.display === 'flex');
 pressKey('Escape');
@@ -163,14 +155,11 @@ check('resting on a neuron in the dock shows a hint in the cell hint\'s format, 
   /tooltip-traces/.test(byId('tooltip').innerHTML), byId('tooltip').innerHTML);
 moveMouseTo(0, 0);
 runFrames(1);
-check('the How to box switches to the Nerve steps, the next one being to put a neuron in',
-  /Pick a neuron/.test(coachSteps()[0].caption) && /neuron goes in/.test(nextCoachStep()), nextCoachStep());
 check('with nothing clicked there is no card, and the Traces window shows in the Nerve view',
   byId('card').style.display === 'none' && byId('traces').style.display === '');
 check('with no neurons yet, the Traces window says so', /No neurons/.test(byId('traces-note').textContent));
 neuronButton('command').onclick();
 clickHex(1, 0);
-check('then the next step is laying a fibre', /a fibre/.test(nextCoachStep()), nextCoachStep());
 check('the Traces window traces the new neuron', !/No neurons/.test(byId('traces-note').textContent),
   byId('traces-note').textContent);
 pressKey('k');                                            // G opens the field guide, so it is reserved

@@ -57,9 +57,9 @@ function updateTooltip(app, now) {
   const cellType = CELLS[tooltip.typeName];
   const neuronType = NEURONS[tooltip.neuronKind];
   if (!cellType && !neuronType) return;
-  box.innerHTML = cellType
+  box.innerHTML = lockedLineHtml(app, tooltip.typeName, tooltip.neuronKind) + (cellType
     ? tooltipHtml(tooltip.typeName, cellType)
-    : neuronTooltipHtml(tooltip.neuronKind, neuronType);
+    : neuronTooltipHtml(tooltip.neuronKind, neuronType));
   box.style.display = 'block';
   const { left, top } = tooltipPlace(tooltip, box.offsetWidth, box.offsetHeight);
   const maxLeft = innerWidth - box.offsetWidth - TOOLTIP_EDGE_MARGIN;
@@ -80,6 +80,14 @@ function tooltipPlace(tooltip, width, height) {
   const isRightHalf = tooltip.mouseX > innerWidth / 2;
   const left = isRightHalf ? tooltip.mouseX - width - TOOLTIP_MOUSE_OFFSET : tooltip.mouseX + TOOLTIP_MOUSE_OFFSET;
   return { left, top: tooltip.mouseY - height / 2 };
+}
+
+// the line on top of a locked piece's tooltip, naming the level that opens it; '' for a piece that isn't locked
+function lockedLineHtml(app, typeName, neuronKind) {
+  const limits = chosenLimits(app);
+  const isLocked = typeName ? isCellLocked(limits, typeName) : isNeuronLocked(limits, neuronKind);
+  if (!isLocked) return '';
+  return `<div class="tooltip-locked">🔒 Locked. ${lockedPieceText(typeName || neuronKind)}</div>`;
 }
 
 // a cell type's tooltip: name, cost, health, needs and fuel

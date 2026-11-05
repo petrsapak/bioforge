@@ -280,8 +280,10 @@ async function main() {
   const fresh = startApp({ ...before.storage.items }, { atMainMenu: true });
   fresh.runFrames(2);
   const firstLevelId = fresh.readGlobal('LEVELS[0].id');
-  check('the new game starts at once at level 1, its card open, with no creatures and the settings kept',
-    fresh.byId('menu-sheet').style.display === 'none' && fresh.byId('levels-sheet').style.display === 'flex' &&
+  check('the new game starts at once at level 1 with the tutorial (not the Levels sheet), no creatures and the ' +
+    'settings kept',
+    fresh.byId('menu-sheet').style.display === 'none' && fresh.byId('levels-sheet').style.display !== 'flex' &&
+    fresh.byId('tutorial').style.display === 'block' &&
     fresh.byId('show-levels').classList.contains('selected') && savedCreatureCount(fresh.byId) === 0 &&
     fresh.storage.items['bioforge-lab-music-off'] === 'true' && startWithIn(fresh) === null &&
     JSON.parse(fresh.storage.items['bioforge-lab-game-2-continue']).levelId === firstLevelId);

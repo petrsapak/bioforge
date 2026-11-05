@@ -431,13 +431,15 @@ const openTiles = allOpen.byId('levels-list').children.filter(child => child.cla
 const bloomTile = openTiles[sim.LEVELS.findIndex(level => level.id === 'bloom')];
 bloomTile.onclick();
 allOpen.byId('level-build').onclick();
-// the dock's buttons, shown or not
+// the dock's buttons, open or locked (every piece is in the dock; the locked ones are greyed out with a lock)
 const dockButtonsOf = page => page.byId('palette').children.flatMap(section => section.children[0].children);
-const isDockShown = (page, attribute, name) => dockButtonsOf(page)
-  .find(button => button.dataset[attribute] === name).style.display !== 'none';
-check('Bloom\'s dock has the cells of the levels before it, not the later ones',
+const isDockShown = (page, attribute, name) => !dockButtonsOf(page)
+  .find(button => button.dataset[attribute] === name).classList.contains('locked');
+check('Bloom\'s dock has the cells of the levels before it open, the later ones locked',
   isDockShown(allOpen, 'type', 'mouth') && isDockShown(allOpen, 'type', 'heart') &&
   !isDockShown(allOpen, 'type', 'shell') && !isDockShown(allOpen, 'type', 'nettle'));
+check('every piece stays in the dock, locked or not',
+  dockButtonsOf(allOpen).every(button => button.style.display !== 'none'));
 check('with every level open, any level can be chosen, and the builder takes its limits',
   openTiles.every(tile => !tile.className.includes('locked')) && /Protein/.test(allOpen.byId('budget').innerHTML) &&
   /\/ 38/.test(allOpen.byId('budget').innerHTML), allOpen.byId('budget').innerHTML.slice(0, 200));
@@ -449,8 +451,8 @@ runFrames(3);
 check('no level is chosen at first', !byId('show-levels').classList.contains('selected'));
 check('Run level (bottom right) points at level 1 while nothing is won',
   byId('run-next-label').textContent === 'Run level 1' && byId('run-next-name').textContent === 'First stroke');
-check('in free build the dock has every cell and neuron',
-  dockButtonsOf({ byId }).every(button => button.style.display !== 'none'));
+check('in free build every cell and neuron in the dock is open',
+  dockButtonsOf({ byId }).every(button => !button.classList.contains('locked')));
 byId('show-levels').onclick();
 const listed = byId('levels-list').children;
 const rows = listed.filter(child => child.className.startsWith('level-tile'));
@@ -483,15 +485,20 @@ check('First stroke\'s Needs card has no Oxygen, Sugar, Waste or Blood rows, nor
   // its category's section, opened for it although the player had only the first one open
   const siphonSection = byId('palette').children.find(section => section.children[0].children.includes(siphonButton));
   const categoryTabs = byId('dock-tabs').children.filter(tab => tab.style.display !== 'none');
-  check('First stroke\'s dock has only Tissue, Siphons and the Pacemaker, its own ones marked new',
-    isDockShown(page, 'type', 'tissue') && siphonButton.style.display !== 'none' &&
+  check('First stroke\'s dock has only Tissue, Siphons and the Pacemaker open, its own ones marked new',
+    isDockShown(page, 'type', 'tissue') && !siphonButton.classList.contains('locked') &&
     siphonButton.classList.contains('new') && siphonSection.style.display !== 'none' &&
     !isDockShown(page, 'type', 'lighteye') &&
     isDockShown(page, 'neuron', 'pacemaker') && !isDockShown(page, 'neuron', 'synapse'),
-    dockButtonsOf(page).filter(button => button.style.display !== 'none').map(button => button.dataset.type ||
+    dockButtonsOf(page).filter(button => !button.classList.contains('locked')).map(button => button.dataset.type ||
       button.dataset.neuron).join(','));
-  check('the tabs of empty categories are hidden', categoryTabs.length === 2,
+  check('every category keeps its tab, even with all its cells locked', categoryTabs.length === 5,
     categoryTabs.map(tab => tab.textContent).join(','));
+  const eyeButton = dockButtonsOf(page).find(button => button.dataset.type === 'lighteye');
+  eyeButton.onclick();
+  check('a locked cell can\'t be picked, and says which level opens it',
+    !eyeButton.classList.contains('selected') && /Opens with level 2, Lighthouse/.test(byId('message').textContent),
+    byId('message').textContent);
 }
 byId('show-levels').onclick();
 check('while a level is chosen, the sheet offers to leave it',
@@ -584,13 +591,13 @@ check('after it, Run level points at level 1 again', byId('run-next-label').text
   finished.byId('levels-list').children.find(child => child.className.startsWith('level-tile')).onclick();
   finished.byId('level-build').onclick();
   check('after the last level is won, First stroke\'s dock has everything, nothing marked new',
-    dockButtonsOf(finished).every(button => button.style.display !== 'none' && !button.classList.contains('new')));
+    dockButtonsOf(finished).every(button => !button.classList.contains('locked') && !button.classList.contains('new')));
   // Reset level progress in Settings too: the results go, and the dock locks again
   finished.byId('setting-reset-levels').onclick();
   finished.byId('dialog-confirm').onclick();
   check('Reset level progress in Settings forgets the results, and First stroke\'s dock locks again',
     finished.storage.items['bioforge-lab-game-1-level-results'] === '{}' &&
-    dockButtonsOf(finished).some(button => button.style.display === 'none'),
+    dockButtonsOf(finished).some(button => button.classList.contains('locked')),
     finished.storage.items['bioforge-lab-game-1-level-results']);
 }
 

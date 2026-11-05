@@ -2,7 +2,7 @@
 // Signal probes (full app, fake DOM): a Sandbox run probes the Seeker's eyes and Siphons in order, records their
 // signals while it runs and keeps only the last few seconds, T hides the panel and is remembered, clicking the
 // player's cells chooses the lanes (kept through a respawn), and a level run probes its own player afresh, where a
-// click on a cell works through the arena's scaling too.
+// click on a cell works through the arena's scaling too. Each lane shows its value now.
 const { startApp } = require('./dom');
 const { check, done } = require('./check');
 
@@ -97,5 +97,15 @@ const levelEye = probes().lanes[0].cell;
 clickScreen(view.offsetX + levelEye.x * view.scale, view.offsetY + levelEye.y * view.scale);
 check('in a level, a click on a cell is found through the arena\'s scaling', !probes().lanes.some(lane =>
   lane.cell === levelEye) && laneLabels().startsWith('1 Light eye'), laneLabels());
+
+// the number right of each trace: the latest signal, 0 or 1 for an on/off lane, else one decimal
+const valueText = values => readGlobal('probeValueText')({ samples: values.map((value, time) => ({ time, value })) });
+check('an on/off lane (a Pacemaker) shows 0 or 1', valueText([0, 1, 1]) === '1' && valueText([1, 0]) === '0');
+check('an analogue lane shows one decimal', valueText([0.2, 0.46]) === '0.5' && valueText([0.37, 1]) === '1.0' &&
+  valueText([0.5, 0]) === '0.0', `${valueText([0.2, 0.46])} ${valueText([0.37, 1])} ${valueText([0.5, 0])}`);
+check('a lane with no samples yet shows nothing', valueText([]) === '');
+const eyeLane = probes().lanes[0];
+check('the level\'s eye lane shows its value as a number', /^\d+(\.\d)?$/.test(readGlobal('probeValueText')(eyeLane)),
+  readGlobal('probeValueText')(eyeLane));
 
 done();

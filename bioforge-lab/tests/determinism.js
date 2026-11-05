@@ -10,10 +10,11 @@ const { X: sim } = load({}, ['sine', 'cosine', 'arcTangent2', 'nextRandom', 'new
 // every pure file (CLAUDE.md); tests/style.js checks that this list and CLAUDE.md's agree
 const SIM_FILES = ['math.js', 'core.js', 'fibres.js', 'terrain.js', 'physics.js', 'nerve.js', 'fluid.js', 'vascular.js',
   'chemical.js', 'scent.js', 'metabolism.js', 'actuators.js', 'secretions.js', 'treatments.js', 'combat.js',
-  'growth.js', 'food.js', 'ai.js', 'design.js', 'builder.js', 'fieldguide.js', 'levels.js', 'snapshot.js',
+  'growth.js', 'food.js', 'ai.js', 'design.js', 'builder.js', 'fieldguide.js', 'levels.js', 'tutorial.js',
+  'snapshot.js',
   'savegame.js', 'titlescene.js', 'data/version.js', 'data/rules.js', 'data/materials.js', 'data/fluids.js',
   'data/cells.js', 'data/neurons.js', 'data/templates.js', 'data/tips.js', 'data/guide.js', 'data/levels.js',
-  'data/sounds.js', 'data/title.js'];
+  'data/sounds.js', 'data/title.js', 'data/tutorial.js'];
 const SAMPLE_COUNT = 20000;                               // angles compared with Math
 
 // distance between two numbers relative to their size (absolute near zero)
@@ -65,7 +66,11 @@ const BANNED = [
   [/Math\.(random|sin|cos|tan|atan|atan2|exp|log|pow|hypot)\b/, 'engine-dependent math or Math.random'],
   [/\*\*/, '** (use x * x or square())'],
   [/\b(document|window|localStorage|requestAnimationFrame)\b/, 'the DOM'],
-  [/typeName\s*[!=]==/, 'a type-name check (use a behaviour field in data/cells.js)'],
+  // A type name written into the code (cell.typeName === 'mouth') is banned. Until 2026-11-05 any comparison was:
+  // the tutorial (tutorial.js) compares a cell's type with the one its lesson data names ("pick the Siphon"), as
+  // levels compare with their unlocks lists, which is content as data, not a system acting on a name.
+  [/typeName\s*[!=]==\s*['"`]|['"`]\s*[!=]==\s*[\w.]*typeName\b/,
+    'a type-name check (use a behaviour field in data/cells.js)'],
 ];
 for (const file of SIM_FILES) {
   const lines = fs.readFileSync(path.join(ROOT, file), 'utf8').split(/\r?\n/);
