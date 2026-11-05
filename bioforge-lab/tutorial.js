@@ -21,6 +21,12 @@ function isLessonOutgrown(record, lesson, levelResults) {
   return !!lesson.level && !!levelResults[lesson.level] && !record.isReplay;
 }
 
+// whether the tutorial is still to teach this level (record: null when the game has no tutorial)
+function isLevelTaught(record, levelId) {
+  if (!record || !record.isOn) return false;
+  return TUTORIAL_LESSONS.some(lesson => lesson.level === levelId && !record.done.includes(lesson.id));
+}
+
 // The lesson to play next, or null. Lessons outgrown on the way are marked done, so an experienced player's chain
 // moves on to the next lesson that still has something to show.
 function nextTutorialLesson(record, levelResults) {

@@ -24,7 +24,8 @@ function onButton(id, action) {
 const savedStore = () => window.desktopSaves || localStorage;
 
 // A value saved with writeStorage, or fallback if there is none (or storage is blocked). The current game's own
-// values (GAME_KEYS in savegame.js: creatures, level results, Continue, quick save, tutorial) are kept apart per game.
+// values (GAME_KEYS in savegame.js: creatures, level results, Continue, quick save, tutorial, briefings seen) are
+// kept apart per game.
 function readStorage(name, fallback) {
   return readSharedStorage(storageName(readSharedStorage('games', null), name), fallback);
 }

@@ -89,7 +89,7 @@ function tutorialFacts(app) {
 // whether something covers the game that the tutorial must wait behind: a menu, a sheet or a dialog
 function isTutorialCovered(app) {
   return isMenuOpen(app) || isGuideOpen(app) || isLibraryOpen(app) || isDialogOpen() || isGamesScreenOpen() ||
-    byId('levels-sheet').style.display === 'flex' || byId('keys-sheet').style.display === 'flex';
+    isBriefingOpen() || byId('levels-sheet').style.display === 'flex' || byId('keys-sheet').style.display === 'flex';
 }
 
 // Each frame: starts the next lesson when one is ready, moves on when the step's condition is met, and keeps the

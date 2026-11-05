@@ -72,6 +72,16 @@ check('a level\'s texts name only levels before it', laterNamed.length === 0, la
 // ---------- Nothing names what is gone ----------
 const allTexts = [...perLevel.flatMap(({ texts }) => texts), ...generalTexts()];
 const goneNamed = GONE_NAMES.filter(name => allTexts.some(text => names(text, name)));
+// the level briefing lists each new piece with its summary (data/guide.js): one short line
+const BRIEFING_SUMMARY_LENGTH = 60;                       // characters
+const levelPieces = sim.LEVELS.flatMap(level => [
+  ...level.unlocks.cells.map(typeName => [typeName, sim.GUIDE_CELLS[typeName]]),
+  ...level.unlocks.neurons.map(kind => [kind, sim.GUIDE_NEURONS[kind]]),
+]);
+const unsummed = levelPieces.filter(([, words]) => !words || !words.summary ||
+  words.summary.length > BRIEFING_SUMMARY_LENGTH);
+check('every piece a level brings has a summary of one short line for the briefing', unsummed.length === 0,
+  unsummed.map(([name]) => name).join(', '));
 check('no help text names a piece or level the game no longer has', goneNamed.length === 0, goneNamed.join(', '));
 check('no gone name is a piece or level again',
   GONE_NAMES.every(name => piecesNamed(name).length === 0 && !sim.LEVELS.some(level => level.name === name)));

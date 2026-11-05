@@ -5,7 +5,7 @@
 
 const SAVE_VERSION = 3;                                   // the save's format; a new one adds a step to SAVE_UPGRADES
 // kept per game; the rest is shared
-const GAME_KEYS = ['continue', 'level-results', 'library', 'quicksave', 'tutorial'];
+const GAME_KEYS = ['continue', 'level-results', 'library', 'quicksave', 'tutorial', 'briefed-levels'];
 const CREATURE_FILE_KIND = 'bioforge-lab-creature';       // marks a JSON file as a creature saved by this game
 const CREATURE_FILE_VERSION = 1;                          // the creature file's format
 const CREATURE_FILE_EXTENSION = '.bioforge.json';

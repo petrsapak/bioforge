@@ -218,6 +218,8 @@ function resetLevelProgressAsked(app) {
   }, () => {
     app.levelResults = {};
     writeStorage('level-results', app.levelResults);
+    app.briefedLevels = [];                               // each level briefs again on the way
+    writeStorage('briefed-levels', app.briefedLevels);
     if (app.level && !isLevelOpen(app.levelResults, LEVELS.indexOf(app.level))) chooseLevel(app, null);
     showLevelButtons(app);                                // Run level goes back to level 1
     refreshPanel(app);                                    // the dock locks again what the last level's win opened

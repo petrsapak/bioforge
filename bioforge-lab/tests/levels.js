@@ -476,6 +476,23 @@ byId('level-build').onclick();
 check('Build for it chooses the level and goes back to the builder with its limits',
   byId('levels-sheet').style.display === 'none' && byId('budget').innerHTML.includes('of 40') &&
   byId('show-levels').classList.contains('selected'));
+// the briefing (user, 2026-11-05: "you end up in the lab but you have no idead what you're preparing for")
+const isBriefingShown = () => byId('briefing-sheet').style.display === 'flex';
+const briefedPieces = () => byId('briefing-pieces').children.map(row => row.children[1].innerHTML).join(' | ');
+runFrames(1);
+check('the first time the Lab builds for a level, its briefing opens: name, goal, arena, new pieces, rules',
+  isBriefingShown() && byId('briefing-title').textContent === 'First stroke' &&
+  byId('briefing-brief').textContent === 'Swim into the ring ahead.' && byId('briefing-arena').width > 0 &&
+  /<b>Siphon<\/b>/.test(briefedPieces()) && /<b>Pacemaker neuron<\/b>/.test(briefedPieces()) &&
+  /Biomass<\/span><b>40/.test(byId('briefing-rules').innerHTML), briefedPieces());
+check('its hint is hidden until Hint', byId('briefing-hint-text').style.display === 'none');
+byId('briefing-hint').onclick();
+check('Hint shows it', byId('briefing-hint-text').style.display === 'block' &&
+  /Pacemaker/.test(byId('briefing-hint-text').textContent));
+fire('window', 'keydown', { key: 'Enter' });
+runFrames(1);
+check('Enter closes it, and it does not open again for the same level', !isBriefingShown() &&
+  JSON.parse(storage.items['bioforge-lab-game-1-briefed-levels']).join() === 'first-stroke');
 check('First stroke\'s Needs card has no Oxygen, Sugar, Waste or Blood rows, nor how long the sugar lasts',
   byId('needs').innerHTML.includes('Signal') && !/Oxygen|Sugar|Waste|Blood/.test(byId('needs').innerHTML),
   byId('needs').innerHTML.slice(0, 300));
@@ -544,6 +561,19 @@ check('back in the builder from a level, the Body view is shown', byId('layer-bo
   !byId('layer-nerve').classList.contains('selected'));
 check('after the win, Run level points at level 2', byId('run-next-label').textContent === 'Run level 2' &&
   byId('run-next-name').textContent === 'Lighthouse', byId('run-next-label').textContent);
+{
+  // the user's bug (2026-11-05): the Lab stayed on level 1 after the win, its Light eye locked
+  const eyeButton = dockButtonsOf({ byId }).find(button => button.dataset.type === 'lighteye');
+  check('back in the Lab after a first win, the Lab builds for level 2: the Light eye open and marked new',
+    /level 2: Lighthouse/.test(byId('show-levels').title) && !eyeButton.classList.contains('locked') &&
+    eyeButton.classList.contains('new'), byId('show-levels').title);
+}
+runFrames(1);
+check('and Lighthouse\'s briefing opens, with the Light eye new in the dock', isBriefingShown() &&
+  byId('briefing-title').textContent === 'Lighthouse' && /<b>Light eye<\/b>/.test(briefedPieces()),
+  briefedPieces());
+byId('briefing-build').onclick();
+check('Build closes it', !isBriefingShown());
 byId('show-levels').onclick();
 const rowsAfterWin = byId('levels-list').children.filter(child => child.className.startsWith('level-tile'));
 check('the win opens level 2, and only level 2', !rowsAfterWin[1].className.includes('locked') &&

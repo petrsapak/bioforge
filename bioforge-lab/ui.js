@@ -71,6 +71,8 @@ function createApp(canvas) {
     sheetLevel: null,                                     // the level whose card the levels sheet shows
     levelRun: null,                                       // the level being played (levels.js startLevel)
     levelDesign: null,                                    // the design it runs, kept for a retry and the score
+    isFirstWin: false,                                    // the run just won its level for the first time
+    briefedLevels: [],                                    // ids of the levels this game has shown the briefing of
     levelResults: {},                                     // best result per level id: { stars, seconds, biomass }
     isHintShown: false,
     musicOff: false,                                     // the player switched the background music off
@@ -119,6 +121,7 @@ function boot() {
   setUpMusic(app);
   setUpSounds(app);
   setUpLevels(app);
+  setUpBriefing(app);
   setUpProgress(app);
   app.isProbesShown = readStorage('probes-shown', true);
   app.hudBars = makeHudBars(byId('hud-bars'));
@@ -329,6 +332,7 @@ function enterBuilder(app) {
   showModeWindows(app);
   showLayer(app, 'body');
   rebuildTank(app);
+  moveOnAfterFirstWin(app);
 }
 
 // what the builder's design must fit: the chosen level's limits, or RULES; once the last level is won nothing is
@@ -361,6 +365,10 @@ function listenToKeyboard(app) {
     if (isDialogOpen()) {
       event.preventDefault();
       handleDialogKey(key);
+      return;
+    }
+    if (isBriefingOpen()) {                               // over the Lab: Esc or Enter closes it
+      if (key === 'escape' || key === 'enter') closeBriefing(app);
       return;
     }
     if (isGuideOpen(app)) {                               // over everything, menus too: only Esc, to close it
@@ -762,8 +770,10 @@ function runFrame(app, now) {
     requestAnimationFrame(time => runFrame(app, time));
     return;
   }
-  if (app.mode === 'build') runBuilderFrame(app, dt, now);
-  else if (app.mode === 'sandbox') {
+  if (app.mode === 'build') {
+    runBriefing(app);
+    runBuilderFrame(app, dt, now);
+  } else if (app.mode === 'sandbox') {
     stepSandbox(app, dt);
     listenToWorld(app, app.world, app.player);
     drawSandbox(app);

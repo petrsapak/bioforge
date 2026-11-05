@@ -249,6 +249,10 @@ check('Lab instead of Next ends the lesson, and level 2\'s lesson starts in the 
 byId('tutorial-skip').onclick();
 runFrames(1);
 check('Skip tutorial hides it and keeps it off for this game', !isBubbleShown() && kept().isOn === false);
+runFrames(1);
+check('the level the tutorial was to teach gets its briefing instead',
+  byId('briefing-sheet').style.display === 'flex' && byId('briefing-title').textContent === 'Lighthouse');
+byId('briefing-build').onclick();
 byId('setting-voice').onclick();
 check('the voice can be switched off in the settings', byId('setting-voice').textContent === 'Off' &&
   storage.items['bioforge-lab-tutorial-voice'] === 'false');

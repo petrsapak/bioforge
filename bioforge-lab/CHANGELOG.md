@@ -7,6 +7,13 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.33 (2026-11-05)
+- After you win a level for the first time, going back to the Lab moves you on to the next level: its new cells
+  are open in the dock and its limits apply. Replaying a won level for more stars keeps you on it.
+- A level briefing: the first time the Lab builds for a level, a card shows what the level asks, a picture of its
+  arena with you, the goal and the light, the new pieces in your dock with what each does, and the limits and
+  stars. Hint shows the hint; Build (or Enter, or Esc) closes it. Levels the tutorial teaches skip it.
+
 ## 0.7.32 (2026-11-05)
 - A level runs only creatures built from pieces its dock has open. A creature loaded from the Templates screen
   with a cell or neuron from a later level is refused, and the level card says which piece to take out.

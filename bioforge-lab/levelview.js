@@ -144,6 +144,14 @@ function nextUnfinishedLevel(app) {
   return unfinished || latestOpenLevel(app);
 }
 
+// Back in the Lab after a level's first win, the Lab builds for the level Run level now points at, so its dock and
+// limits match the button (user, 2026-11-05). A replay for more stars keeps its level.
+function moveOnAfterFirstWin(app) {
+  if (!app.isFirstWin) return;
+  app.isFirstWin = false;
+  chooseLevel(app, nextUnfinishedLevel(app));
+}
+
 // Run level: chooses the next unfinished level, so the Lab shows its limits, and runs the creature in it if it fits
 function runNextLevel(app) {
   chooseLevel(app, nextUnfinishedLevel(app));
@@ -164,24 +172,32 @@ function showLevelCard(app) {
   const level = app.sheetLevel;
   if (!level) return;
   const limits = levelLimits(level);
-  const best = bestResult(app, level);
   const chapter = `Chapter ${level.chapter} · level ${LEVELS.indexOf(level) + 1}`;
   byId('level-card-number').textContent = level === app.level ? chapter + ' · chosen' : chapter;
-  byId('level-card-title').innerHTML = `${level.name}<span class="level-stars">${starsHtml(best)}</span>`;
+  const stars = starsHtml(bestResult(app, level));
+  byId('level-card-title').innerHTML = `${level.name}<span class="level-stars">${stars}</span>`;
   byId('level-card-brief').textContent = level.brief;
-  const rule = (name, value) => `<span>${name}</span><b>${value}</b>`;
-  const materials = limits.kit ? rule('Kit', kitText(limits.kit)) : rule('Biomass', limits.budget);
-  const banned = limits.bannedCells.map(typeName => CELLS[typeName].name).join(', ');
-  const bannedRule = banned ? rule('Not allowed', banned) : '';
-  byId('level-card-rules').innerHTML = materials + bannedRule + rule('Time limit', level.timeLimit + ' s') +
-    rule('★ Finish by', level.par.seconds + ' s') + rule('★ Use at most', level.par.biomass + ' biomass') +
-    rule('Best', best ? `${best.seconds.toFixed(1)} s, ${formatBiomass(best.biomass)} biomass` : '–');
+  byId('level-card-rules').innerHTML = levelRulesHtml(app, level);
   byId('level-card-hint').textContent = app.isHintShown ? level.hint : '';
   byId('level-card-hint').style.display = app.isHintShown ? 'block' : 'none';
   byId('level-hint').textContent = app.isHintShown ? 'Hide hint' : 'Hint';
   const problem = buildCheck(bodyDesign(app.edited), limits);
   byId('level-run').disabled = !!problem;
   byId('level-run-note').textContent = problem ? `Your design doesn't fit: ${problem}. Build for it to trim it.` : '';
+}
+
+// a level's rules as name and value pairs: its materials, the cells it bans, the time limit, what earns the stars
+// and the best result (the level card and the briefing)
+function levelRulesHtml(app, level) {
+  const limits = levelLimits(level);
+  const best = bestResult(app, level);
+  const rule = (name, value) => `<span>${name}</span><b>${value}</b>`;
+  const materials = limits.kit ? rule('Kit', kitText(limits.kit)) : rule('Biomass', limits.budget);
+  const banned = limits.bannedCells.map(typeName => CELLS[typeName].name).join(', ');
+  const bannedRule = banned ? rule('Not allowed', banned) : '';
+  return materials + bannedRule + rule('Time limit', level.timeLimit + ' s') +
+    rule('★ Finish by', level.par.seconds + ' s') + rule('★ Use at most', level.par.biomass + ' biomass') +
+    rule('Best', best ? `${best.seconds.toFixed(1)} s, ${formatBiomass(best.biomass)} biomass` : '–');
 }
 
 // ---------- Running a level ----------
@@ -225,6 +241,7 @@ function enterLevelMode(app, design) {
 // starts the run over with the same design, running at the chosen speed
 function retryLevel(app) {
   app.levelRun = startLevel(app.level, app.levelDesign);
+  app.isFirstWin = false;
   playSound(app, 'start');
   noteSpawnHealth(app.levelRun.player);
   resetProbes(app.probes, app.levelRun.player);
@@ -251,6 +268,7 @@ function showLevelResult(app, run) {
   const isWon = run.outcome === 'won';
   playSound(app, isWon ? 'win' : 'lose');
   byId('result-title').textContent = isWon ? 'Level done' : 'Not this time';
+  app.isFirstWin = isWon && !bestResult(app, run.level);
   if (isWon) {
     const score = levelScore(run, app.levelDesign);
     const isBest = keepLevelResult(app, run.level, score);
