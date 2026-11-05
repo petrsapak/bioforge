@@ -41,6 +41,16 @@ check('Shell and Thorn are hard, built with mineral; Tissue is soft',
   !sim.isHardCell({ type: sim.CELLS.tissue }));
 check('Shell and Thorn cost as much biomass as before (2 and 3), so budget levels are unchanged',
   sim.CELLS.shell.cost === 2 && sim.CELLS.thorn.cost === 3);
+// a Mouth bites on contact, not on a signal: the dummy starts pressed into it (18 px apart, 20 px touching)
+function biteArena(dummyType) {
+  const arena = glandArena('mouth', dummyType, []);
+  arena.target.creature.cells.forEach(dummyCell => { dummyCell.y = arena.gland.y - 18; });
+  return arena;
+}
+const mouthOnShell = runSignalled(biteArena('shell'), 1);
+const mouthOnTissue = runSignalled(biteArena('tissue'), 1);
+check('a Mouth bites soft cells but not hard ones (user, 2026-11-05: "Mouths can\'t bite hardened shells")',
+  mouthOnShell === 0 && mouthOnTissue > 0, `${mouthOnShell} on Shell, ${mouthOnTissue.toFixed(1)} on Tissue`);
 
 // ---------- Acid ----------
 const acidOnShell = runSignalled(glandArena('acid', 'shell'), 1);

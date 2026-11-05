@@ -5,7 +5,7 @@
 const { load } = require('./load');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['newWorld', 'spawn', 'step', 'blueprintFromList', 'createDesignCell', 'createNeuron',
-  'TEMPLATES', 'createLight', 'LIGHT_RANGE']);
+  'TEMPLATES', 'createLight', 'LIGHT_RANGE', 'FLUID_SUGAR']);
 
 const RUN_STEPS = 200;                                    // 5 game s at 1/40 s per step
 const STILL_DISTANCE = 2;                                 // px a creature with no movers may drift
@@ -46,6 +46,20 @@ const bothSides = runCreature([[0, 0, 'nucleus'], [-1, 0, 'cilia'], [1, 0, 'cili
 check('cilia on both sides swim it forward without turning',
   bothSides.forward > 50 && Math.abs(bothSides.heading) < TURNED_ANGLE,
   `${bothSides.forward.toFixed(1)} px, ${bothSides.heading.toFixed(2)} rad`);
+// Cilia burned fuel only while the creature had a swimming input, which an autonomous creature never has, so they
+// beat for free (found 2026-11-05: a body of Cilia won every endurance level with no stores)
+{
+  const world = sim.newWorld(2000, 2000, { seed: 1 });
+  const creature = sim.spawn(world, { cells: sim.blueprintFromList([[0, 0, 'nucleus'], [0, 1, 'cilia']]) },
+    1000, 1000, 0, 0);
+  creature.aiControlled = false;
+  creature.autonomous = true;
+  const cilia = creature.cells[1];
+  const startSugar = cilia.fluids[sim.FLUID_SUGAR];
+  for (let i = 0; i < RUN_STEPS; i++) sim.step(world, 1 / 40, { swimX: 0, swimY: 0, ability: false });
+  check('beating Cilia burn fuel in an autonomous creature', cilia.fluids[sim.FLUID_SUGAR] < startSugar,
+    `${startSugar.toFixed(3)} -> ${cilia.fluids[sim.FLUID_SUGAR].toFixed(3)} sugar`);
+}
 const rightSide = runCreature([[0, 0, 'nucleus'], [-1, 0, 'tissue'], [1, 0, 'cilia']], true);
 check('cilia on the right side turn it to the left', rightSide.heading < -TURNED_ANGLE,
   rightSide.heading.toFixed(2) + ' rad');

@@ -7,6 +7,13 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.35 (2026-11-05)
+- Cilia now burn fuel whenever they beat, as their description always said. Before, your creature's Cilia beat for
+  free, so a body of Cilia lasted through the long chases without any Fat, Gills or Pore.
+- A Mouth can't bite hard cells (Shell, Thorns, hardened cells). The Puffer has a fifth Thorn at the front, so a ring
+  of Mouths no longer survives it by biting its soft front away.
+- Snap doesn't allow acid or protease: Clam's acid ram won it without the springy Muscle.
+
 ## 0.7.34 (2026-11-05)
 - Desktop: saving no longer crashes the game with an "EPERM: operation not permitted" error when Windows briefly
   holds the save file (a virus scan, the search indexer, a cloud sync). The save is tried again until it goes in.

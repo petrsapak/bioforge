@@ -221,6 +221,9 @@ const TEMPLATES = {
   puffer: designFromList([
     [0, 0, 'nucleus'], [0, -1, 'eyespot'], [1, -1, 'bloater'], [1, 0, 'bloater'], [0, 1, 'bloater'],
     [-1, 1, 'bloater'], [-1, 0, 'bloater'], [0, -2, 'thorn'], [2, -1, 'thorn'], [1, 1, 'thorn'], [-1, -1, 'thorn'],
+    // closes the soft gap in the crown: without it a ring of Mouths bites the front Bloater and Eyespot away and the
+    // Nucleus rides in the hole, out of every Thorn's reach
+    [1, -2, 'thorn'],
     [-1, 2, 'gill'], [-2, 1, 'pore'], [0, 2, 'fat'],
   ]),
   starter: designFromList([

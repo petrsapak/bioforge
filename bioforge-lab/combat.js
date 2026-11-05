@@ -57,9 +57,11 @@ function applyThornHit(world, thorn, target, impactSpeed) {
   spawnSparks(world, (thorn.x + target.x) / 2, (thorn.y + target.y) / 2, '#ffffff', 4);
 }
 
-// a Mouth bites a touching enemy cell: damage, and sugar for the Mouth, then a cooldown
+// a Mouth bites a touching soft enemy cell: damage, and sugar for the Mouth, then a cooldown. It can't bite hard
+// cells (Shell, Thorns, hardened cells), so armour keeps Mouths off.
 function applyBite(world, mouth, target) {
   if (!mouth.type.bites || mouth.cooldown > 0 || mouth.dead) return;
+  if (isHardCell(target)) return;
   if (mouth.creature.debris && !mouth.creature.launchedPart) return;
   mouth.cooldown = BITE_COOLDOWN;
   damageCell(target, BITE_DAMAGE);

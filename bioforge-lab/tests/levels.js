@@ -296,6 +296,22 @@ check('"Dock": the Synapse\'s threshold matters: 1 stops short of the ring, 2 ne
   dockRuns.every(run => run.outcome === 'lost'), dockRuns.map(run => run.player.centerY.toFixed(0)).join());
 check('"Lullaby" doesn\'t allow Spitters, which kill the urchin from out of reach without calming it',
   /Spitter/.test(sim.buildCheck(spitBuild, sim.levelLimits(levelById('lullaby')))));
+check('"Snap" doesn\'t allow acid or protease: Clam\'s acid ram, which needs no Resilin, doesn\'t fit',
+  /Acid/.test(sim.buildCheck(SOLUTIONS.clam, sim.levelLimits(levelById('snap')))));
+// Six Mouths round the Nucleus survived every Puffer level (2026-11-05): they bit the soft front of the Puffer's
+// crown away and the Nucleus rode in the hole. Mouths now can't bite hard cells, and a fifth Thorn closes the gap.
+const PUFFER_LEVELS = ['bulwark', 'pincushion', 'quarry', 'siege', 'tanned-hide'];
+const mouthRingRuns = PUFFER_LEVELS.map(id => sim.runLevel(levelById(id), ringBuild('mouth')));
+check('a ring of Mouths loses every Puffer level', mouthRingRuns.every(run => run.outcome === 'lost'),
+  mouthRingRuns.map(run => `${run.outcome} ${run.time.toFixed(0)} s`).join(', '));
+// Cilia steered by side Muscles won the endurance levels with no stores while Cilia burned nothing (2026-11-05)
+const ciliaCruiser = { cells: [cell(0, 0, 'nucleus'), cell(-1, 0, 'muscle'), cell(1, 0, 'muscle'),
+  cell(-2, 0, 'lighteye'), cell(2, 0, 'lighteye'), cell(0, -1, 'tissue'), cell(1, -1, 'tissue'), cell(-1, 1, 'cilia'),
+  cell(0, 1, 'cilia'), cell(-1, 2, 'cilia')], fibres: [fibre(-2, 0, -1, 0), fibre(2, 0, 1, 0)] };
+const ENDURANCE_LEVELS = ['long-haul', 'exhaust', 'cold-water', 'marathon', 'packed-lunch', 'bloom', 'lie-low'];
+const cruiserRuns = ENDURANCE_LEVELS.map(id => sim.runLevel(levelById(id), ciliaCruiser));
+check('a Cilia cruiser with no stores loses every endurance level', cruiserRuns.every(run => run.outcome === 'lost'),
+  cruiserRuns.map(run => `${run.outcome} ${run.time.toFixed(0)} s`).join(', '));
 check('"Tail" and "Crevice" don\'t allow Siphons or Cilia: the Jet doesn\'t fit',
   ['tail', 'crevice'].every(id => /Siphon/.test(sim.buildCheck(sim.TEMPLATES.jet, sim.levelLimits(levelById(id))))));
 const wiggling = sim.runLevel(levelById('tail'), sim.TEMPLATES.wiggler);

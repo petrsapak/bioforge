@@ -498,13 +498,14 @@ const LEVELS = [
   createLevel({
     id: 'snap', chapter: 6, name: 'Snap',
     unlocks: { cells: ['resilin'] },
-    brief: 'The clam again, its Nucleus behind two layers of Shell, with the light on it, and no mineral or acid ' +
-      'needed: destroy its Nucleus in 50 s.',
+    brief: 'The clam again, its Nucleus behind two layers of Shell, with the light on it. Acid and protease aren\'t ' +
+      'allowed this time: destroy its Nucleus in 50 s.',
     hint: 'A springy muscle held contracted, then let go, strikes everything touching it and the cells round it. ' +
       'Put a Muscle at the front with a slow Pacemaker in it (0.5 Hz: a second held, a second let go) and a ' +
       'Resilin gland beside it with an Inhibitor in it. Crossed Light eyes drive you into the clam.',
     systems: MOODS_SYSTEMS,
-    limits: { kit: { protein: 30, sugar: 4, fat: 3 } },
+    // Clam's acid ram wins here too, without the Resilin
+    limits: { kit: { protein: 30, sugar: 4, fat: 3 }, bannedCells: ['acid', 'protease'] },
     food: { maxCount: 0 },
     start: { x: 700, y: 550, heading: 0 },
     light: CLAM_LIGHT,

@@ -30,7 +30,7 @@ const WORK_LEVELS = {
   graded: cell => clamp01(cell.signal),
   onSignal: cell => cell.signal > SIGNAL_ON ? 1 : 0,
   snare: cell => cell.snareLine || cell.signal > SIGNAL_ON ? 1 : 0,
-  swimming: cell => cell.creature.swimX || cell.creature.swimY ? 1 : 0,
+  beating: cell => (cell.creature.resting ? 0 : 1),
   always: () => 1,
   refillRepair: cell => cell.fluids[FLUID_REPAIR] < MENDER_FULL_SHARE * cell.fluidCapacity[FLUID_REPAIR] ? 1 : 0,
   growPart: cell => cell.budGrowth && !cell.budGrowth.done && cell.cooldown <= 0 ? 1 : 0,

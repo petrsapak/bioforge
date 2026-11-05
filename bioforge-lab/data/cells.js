@@ -15,7 +15,7 @@
 // Behaviours: what the cell does in each system. The systems read these, never the type's name.
 //   isNucleus: the creature dies with it
 //   work (fluid): how hard it works, which sets its fuel use: 'graded' (with its signal), 'onSignal' (fully while
-//     signalled), 'snare' (signalled or holding a line), 'swimming' (while the creature swims), 'always',
+//     signalled), 'snare' (signalled or holding a line), 'beating' (unless the creature rests), 'always',
 //     'refillRepair' (until its repair fluid is nearly full), 'growPart' (while its Bud part is unfinished)
 //   product (fluid): what its burned fuel turns into: 'repair', 'hormone' or 'budPart'; hormone: which hormone
 //     (a chemical fluid's id, data/fluids.js)
@@ -80,7 +80,7 @@ const CELLS = {
   }),
   cilia: cellType({
     category: 'Body', name: 'Cilia', cost: 2, health: 20, mass: 0.6, fuelBurn: 0.05, color: '#6ac9a0',
-    work: 'swimming', beats: true,
+    work: 'beating', beats: true,
     description: 'Beating hairs push the creature forward from where they sit, while fed O₂ and sugar. Cilia on ' +
       'one side turn it.',
   }),
@@ -168,7 +168,8 @@ const CELLS = {
     category: 'Fluid', name: 'Mouth', cost: 2, health: 35, sugarCapacity: 2, color: '#d98a6a',
     eatsFood: true, bites: true, isWeapon: true,
     description: 'Eats food specks that touch the body, and bites enemies and debris it touches, for sugar. ' +
-      'Leaves food alone while full. Mineral specks go to a Mineralizer with room.',
+      'It can\'t bite hard cells (Shell, Thorns, hardened cells). Leaves food alone while full. Mineral specks go ' +
+      'to a Mineralizer with room.',
   }),
   heart: cellType({
     category: 'Fluid', name: 'Heart', cost: 3, health: 30, fuelBurn: 0.15, color: '#b8243a', work: 'graded',
