@@ -120,11 +120,22 @@ eater.cells[1].fluids[sim.FLUID_SUGAR] = 0;
 eatWorld.food = [{ x: eater.cells[1].x, y: eater.cells[1].y }];
 sim.step(eatWorld, 1 / 40, noInput);
 check('a creature counts the specks its Mouth eats', eater.foodEaten === 1 && eatWorld.food.length === 0);
+// user, 2026-11-07: "I don't like that mouth possition changes how much the mouth can eat"
+const [eaterNucleus, eaterMouth] = eater.cells;
+eaterMouth.fluids[sim.FLUID_SUGAR] = eaterMouth.fluidCapacity[sim.FLUID_SUGAR];
+eaterNucleus.fluids[sim.FLUID_SUGAR] = 0;
+eatWorld.food = [{ x: eaterNucleus.x, y: eaterNucleus.y }];
+sim.step(eatWorld, 1 / 40, noInput);
+check('a full Mouth still eats while the body has room: the sugar is shared over the body, not poured into it',
+  eater.foodEaten === 2 && eaterNucleus.fluids[sim.FLUID_SUGAR] > 0.9, eaterNucleus.fluids[sim.FLUID_SUGAR]);
 
 const endingSupply = sim.newWorld(600, 600, { systems: ['food'],
   foodSupply: sim.createFoodSupply({ maxCount: 50, interval: 0.5, until: 2 }) });
-for (let i = 0; i < 200; i++) sim.step(endingSupply, 1 / 40, noInput);
-check('no new specks appear after the supply\'s end time', endingSupply.food.length === 4, endingSupply.food.length);
+for (let i = 0; i < 79; i++) sim.step(endingSupply, 1 / 40, noInput);
+const bloomCount = endingSupply.food.length;
+for (let i = 0; i < 121; i++) sim.step(endingSupply, 1 / 40, noInput);
+check('specks grow until the supply\'s end time, then the uneaten ones wither and no new ones appear',
+  bloomCount === 4 && endingSupply.food.length === 0, `${bloomCount} then ${endingSupply.food.length}`);
 
 const lit = sim.newWorld(1400, 800, { systems: ['food'], foodSupply: sim.createFoodSupply({ nearLight: 120 }),
   light: { x: 300, y: 300, range: 450 } });

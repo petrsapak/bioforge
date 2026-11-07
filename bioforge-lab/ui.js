@@ -131,10 +131,8 @@ function boot() {
   listenToMouse(app);
   rebuildTank(app);
   setUpMenus(app);
-  requestAnimationFrame(time => {
-    runFrame(app, time);
-    hideLoadingScreen();                                  // the title is drawn now, under the black of its fade-in
-  });
+  setUpSplash(app);
+  requestAnimationFrame(time => runFrame(app, time));
 }
 
 // makes the canvas fill the window
@@ -793,6 +791,7 @@ function runFrame(app, now) {
   updateCursor(app);
   keepProgress(app, now);
   updateScreenFade(app, dt);
+  updateSplash(app, now);
   if (isGuideOpen(app)) runDemo(dt);                      // the guide's example tank, over any mode or the title
   runTutorial(app);
   if (isTitleShown(app)) {                                // the title covers the game, which waits behind it

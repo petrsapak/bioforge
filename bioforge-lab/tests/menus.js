@@ -34,7 +34,12 @@ async function main() {
   runFrames(2);
   check('the game starts at the main menu', byId('menu-sheet').style.display === 'flex' &&
     byId('menu-title').textContent === 'Bioforge');
-  check('the loading screen is gone once the title is drawn', byId('loading-screen').classList.contains('done'));
+  const splash = byId('loading-screen').classList;
+  check('the Bioforge splash covers the title while it plays', !splash.contains('leaving') && !splash.contains('done'));
+  runFrames(200);                                         // 3.2 s
+  check('after 3.2 s the splash fades away into the title', splash.contains('leaving') && !splash.contains('done'));
+  runFrames(60);                                          // its 0.8 s fade
+  check('then it is gone', splash.contains('done'));
   check('with nothing saved yet there is no Continue, and no Quit outside the desktop build',
     !isShown(byId, 'menu-continue') && !isShown(byId, 'menu-quit') && isShown(byId, 'menu-new-game') &&
     isShown(byId, 'menu-load-game') && isShown(byId, 'menu-sandbox'));

@@ -7,7 +7,18 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="loading-screen"><div id="loading-text">Loading…</div></div>
+<div id="loading-screen">
+  <div id="splash">
+    <div class="splash-cell" style="--x: 18%; --y: 30%; --size: 150px; --delay: 0s"></div>
+    <div class="splash-cell" style="--x: 78%; --y: 22%; --size: 90px; --delay: .3s"></div>
+    <div class="splash-cell" style="--x: 70%; --y: 74%; --size: 190px; --delay: .15s"></div>
+    <div class="splash-cell" style="--x: 26%; --y: 78%; --size: 70px; --delay: .45s"></div>
+    <div class="splash-cell" style="--x: 50%; --y: 12%; --size: 50px; --delay: .6s"></div>
+    <h1 id="splash-title"><span style="--i: 0">B</span><span style="--i: 1">i</span><span style="--i: 2">o</span><span style="--i: 3">f</span><span style="--i: 4">o</span><span style="--i: 5">r</span><span style="--i: 6">g</span><span style="--i: 7">e</span></h1>
+    <div id="splash-line"></div>
+    <div id="loading-text">Loading…</div>
+  </div>
+</div>
 <canvas id="game"></canvas>
 <audio id="music" src="audio/cellular-bloom.mp3" preload="auto"></audio>
 <audio id="music-b" src="audio/cellular-bloom.mp3" preload="auto"></audio>

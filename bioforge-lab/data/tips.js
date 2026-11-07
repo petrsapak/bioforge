@@ -264,8 +264,8 @@ const TIPS = {
   },
   fat: {
     howToUse: 'Put it in the body near the cells that burn fuel. It is your main sugar store for long fights; ' +
-      'what the Mouth eats collects here, so put one beside the Mouth. In a level with a kit, leftover Fat goes ' +
-      'only into Fat cells.',
+      'what the Mouth eats is shared over the body, and a Fat takes the most of it. In a level with a kit, leftover ' +
+      'Fat goes only into Fat cells.',
     example: {
       cells: [
         [0, 0, 'nucleus'], [0, 1, 'fat'], [-1, 1, 'muscle'], [-1, 2, 'muscle'], [0, 2, 'muscle'],

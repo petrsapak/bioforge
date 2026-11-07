@@ -13,6 +13,8 @@ const FADE_INTO_TITLE = 0.35;                             // real s to black whe
 const FADE_FROM_BLACK_AT_START = 1.4;                     // real s from black to the title when the game starts
 const FADE_OUT_OF_TITLE = 0.5;                            // real s from the title to black
 const FADE_INTO_LAB = 0.9;                                // real s from black to the lab
+const SPLASH_TIME = 3.2;                                  // real s the Bioforge splash plays before it fades away
+const SPLASH_FADE_TIME = 0.8;                             // real s it takes to fade into the title (style.css)
 
 // what titleview.js keeps in the app
 function createTitleView() {
@@ -23,6 +25,7 @@ function createTitleView() {
     focusIndex: 0,                                        // which of titleSubjects() the camera follows
     focusTime: 0,                                         // real s it has followed it
     fade: { opacity: 0, from: 0, to: 0, duration: 0, elapsed: 0, then: null },   // the black over the screen
+    splash: { startedAt: performance.now(), skipped: false, leftAt: null, done: false },   // ms; the loading screen
   };
 }
 
@@ -150,8 +153,26 @@ function enterTitle(app, showMenu) {
   });
 }
 
-// takes away the loading screen that covered the page while the scripts loaded
-function hideLoadingScreen() {
+// a click on the splash skips the rest of it
+function setUpSplash(app) {
+  byId('loading-screen').addEventListener('pointerdown', () => {
+    app.title.splash.skipped = true;
+  });
+}
+
+// Once the splash has played (or was clicked) and the game has drawn a frame, the loading screen fades away into
+// the title, and then it is taken out of the page.
+function updateSplash(app, now) {
+  const splash = app.title.splash;
+  if (splash.done) return;
+  if (splash.leftAt === null) {
+    if (!splash.skipped && (now - splash.startedAt) / 1000 < SPLASH_TIME) return;
+    splash.leftAt = now;
+    byId('loading-screen').classList.add('leaving');
+    return;
+  }
+  if ((now - splash.leftAt) / 1000 < SPLASH_FADE_TIME) return;
+  splash.done = true;
   byId('loading-screen').classList.add('done');
 }
 

@@ -34,10 +34,19 @@ function updateFood(world, dt) {
 function spawnFood(world, dt) {
   const supply = world.foodSupply;
   world.foodTimer -= dt;
+  if (supply.until && world.time >= supply.until) {
+    witherBloom(world);
+    return;
+  }
   if (world.foodTimer > 0 || world.food.filter(speck => !speck.mineral).length >= supply.maxCount) return;
-  if (supply.until && world.time >= supply.until) return;
   world.foodTimer = supply.interval;
   addFoodSpeck(world);
+}
+
+// Once a supply's time is up, its uneaten sugar specks wither away: a famine with the bloom's leftovers still
+// drifting about fed every body later on, so the levels about storing food were won without storing any.
+function witherBloom(world) {
+  if (world.food.some(speck => !speck.mineral)) world.food = world.food.filter(speck => speck.mineral);
 }
 
 // Puts the supply's first specks in the water, for a level's start: its fixed ones, its mineral ones, then its
@@ -76,22 +85,38 @@ function driftFood(world, dt) {
   }
 }
 
-// A speck touching any cell is eaten while the creature has a Mouth: a sugar speck goes into a Mouth that has room,
+// A speck touching any cell is eaten while the creature has a Mouth: a sugar speck's sugar goes into the whole body,
 // a mineral speck into a mineral store with room. The creature counts what it eats.
 function eatTouchingFood(world, creature) {
-  const mouths = creature.cells.filter(cell => cell.type.eatsFood);
-  if (!mouths.length) return;
+  if (!creature.cells.some(cell => cell.type.eatsFood)) return;
   const speckSugar = world.foodSupply.sugar;
   const touches = (speck, cell) =>
     distanceSquared(speck.x, speck.y, cell.x, cell.y) <= square(cell.radius + FOOD_TOUCH_MARGIN);
   world.food = world.food.filter(speck => {
     if (speck.mineral) return !eatMineralSpeck(creature, speck, touches);
-    const mouth = mouths.find(cell => cell.fluids[FLUID_SUGAR] <= cell.fluidCapacity[FLUID_SUGAR] - speckSugar / 2);
-    if (!mouth || !creature.cells.some(cell => touches(speck, cell))) return true;
-    mouth.fluids[FLUID_SUGAR] = Math.min(mouth.fluidCapacity[FLUID_SUGAR], mouth.fluids[FLUID_SUGAR] + speckSugar);
+    if (freeSugarRoom(creature) < speckSugar / 2 || !creature.cells.some(cell => touches(speck, cell))) return true;
+    spreadSugar(creature, speckSugar);
     creature.foodEaten += 1;
     return false;
   });
+}
+
+// the sugar the creature's living cells have room for, together
+function freeSugarRoom(creature) {
+  return creature.cells.reduce((sum, cell) => sum + (cell.dead ? 0 : sugarRoomLeft(cell)), 0);
+}
+
+const sugarRoomLeft = cell => Math.max(0, cell.fluidCapacity[FLUID_SUGAR] - cell.fluids[FLUID_SUGAR]);
+
+// Shares eaten sugar over every living cell in proportion to the room it has left, so a body takes in food at the
+// same rate wherever its Mouth sits (until 0.7.38 it all went into the Mouth, and a Mouth at the edge, with few
+// neighbours to pass it on to, stayed full and let food slide off the body).
+function spreadSugar(creature, sugar) {
+  const room = freeSugarRoom(creature);
+  const share = Math.min(1, sugar / room);
+  for (const cell of creature.cells) {
+    if (!cell.dead) cell.fluids[FLUID_SUGAR] += sugarRoomLeft(cell) * share;
+  }
 }
 
 // puts a touching mineral speck into the first mineral store with room for it; true if it was eaten

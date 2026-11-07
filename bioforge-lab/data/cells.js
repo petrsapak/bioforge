@@ -170,8 +170,8 @@ const CELLS = {
     category: 'Fluid', name: 'Mouth', cost: 2, health: 35, sugarCapacity: 2, color: '#d98a6a',
     eatsFood: true, bites: true, isWeapon: true,
     description: 'Eats food specks that touch the body, and bites enemies and debris it touches, for sugar. ' +
-      'It can\'t bite hard cells (Shell, Thorns, hardened cells). Leaves food alone while full. Mineral specks go ' +
-      'to a Mineralizer with room.',
+      'It can\'t bite hard cells (Shell, Thorns, hardened cells). Leaves food alone once the body is full of sugar. ' +
+      'Mineral specks go to a Mineralizer with room.',
   }),
   heart: cellType({
     category: 'Fluid', name: 'Heart', cost: 3, health: 30, fuelBurn: 0.15, color: '#b8243a', work: 'graded',

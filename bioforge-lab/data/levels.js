@@ -295,8 +295,8 @@ const LEVELS = [
     unlocks: { cells: ['nose', 'mouth'] },
     brief: 'A trail of food specks winds across the dark water. Eat 13 of them.',
     hint: 'Two Noses at the front, each wired across to the Siphon on the far side, follow the smell from speck ' +
-      'to speck, as crossed Light eyes follow the light. Any cell touching a speck eats it while a Mouth has room, ' +
-      'and a Mouth only makes room by passing what it ate on: put a Fat beside it.',
+      'to speck, as crossed Light eyes follow the light. Any cell touching a speck eats it while the body has room ' +
+      'for its sugar: a Fat anywhere in the body holds plenty.',
     systems: FEEDING_SYSTEMS,
     limits: { kit: { protein: 30, sugar: 3, fat: 2 } },
     start: { x: 200, y: 700, heading: 0 },

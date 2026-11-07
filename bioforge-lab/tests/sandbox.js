@@ -6,7 +6,7 @@ const { check, done } = require('./check');
 
 const ENEMY_DESIGNS = ['wiggler', 'squirter', 'nettler', 'puffer', 'starter', 'eel', 'jelly', 'manta', 'crab'];
 const storedItems = {};
-const { byId, fire, runFrames, templateButton } = startApp(storedItems);
+const { byId, fire, runFrames, templateButton, readGlobal } = startApp(storedItems);
 
 const enemyCount = () => +/Enemies (\d+)/.exec(byId('hud-enemies').textContent)[1];
 const playerAlive = () => byId('hud-dead').style.display === 'none';
@@ -131,6 +131,17 @@ check('C turns the chemical lens on: its legend shows, and the run goes on drawi
 pressKey('c');
 check('C again turns it off', byId('lens-legend').style.display === 'none' &&
   !byId('chemical-lens').classList.contains('selected'));
+const shadeCalls = [];
+const shadeRecorder = {
+  canvas: { width: 1600, height: 900 },
+  save: () => shadeCalls.push('save'),
+  restore: () => shadeCalls.push('restore'),
+  setTransform: (...values) => shadeCalls.push('setTransform ' + values.join(',')),
+  fillRect: (...values) => shadeCalls.push('fillRect ' + values.join(',')),
+};
+readGlobal('shadeWholeScreen')(shadeRecorder);
+check('the lens shades the whole screen out to its edges, not a box the size of the arena (no frame round it)',
+  shadeCalls.join(' | ') === 'save | setTransform 1,0,0,1,0,0 | fillRect 0,0,1600,900 | restore');
 // ---------- The vitals panel moves ----------
 const vitals = byId('hud-vitals');
 Object.assign(vitals, { offsetLeft: 14, offsetTop: 500, offsetWidth: 270 });  // the fake DOM has no layout
@@ -141,4 +152,16 @@ const savedPlace = Object.keys(storedItems).find(key => key.endsWith('window-hud
 check('the vitals panel is dragged by its body, no longer held to the bottom, and its place is remembered',
   vitals.style.left === '314px' && vitals.style.top === '200px' && vitals.style.bottom === 'auto' && !!savedPlace,
   `${vitals.style.left} ${vitals.style.top} ${savedPlace}`);
+
+// ---------- A window saved off screen comes back ----------
+// the user's Preview, saved on a wider screen (2026-11-07), on this 1600 × 900 one
+const preview = byId('preview');
+readGlobal('restoreWindow')(preview, { left: 3001, top: 103, width: 359, height: 403, collapsed: false });
+check('a window saved past the screen\'s right edge is put back, whole, against it',
+  preview.style.left === `${1600 - 359}px` && preview.style.top === '103px',
+  `${preview.style.left} ${preview.style.top}`);
+preview.style.top = '800px';
+fire('window', 'resize', {});
+check('a resize pulls a window that no longer fits back on screen', preview.style.top === `${900 - 403}px`,
+  preview.style.top);
 done();

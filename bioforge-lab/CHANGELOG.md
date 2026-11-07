@@ -7,6 +7,16 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.38 (2026-11-07)
+- The game opens with a short Bioforge animation: the title comes into focus letter by letter over drifting cells,
+  then fades into the main menu. Click to skip it.
+- The hormone view (C) no longer draws a frame round the arena in levels: its dark shade reaches the screen's edges.
+- Where the Mouth sits no longer changes how much a creature eats: a speck's sugar is shared over the whole body at
+  once, so food keeps being eaten until the body is full. Before, it all went into the Mouth, and a Mouth at the
+  edge stayed full and let food slide past.
+- When a bloom of food ends (Bloom, Feast and famine), its uneaten specks wither, so the famine is a real one.
+- Windows (Preview, Signals, Reference) saved off screen, on a bigger screen or window, come back into view.
+
 ## 0.7.37 (2026-11-07)
 - Saving cells is now one move: hold Shift and drag with the right mouse button to draw a box round them. The cells
   in the box light up as you drag; let go and the game asks for a name. A box round the Nucleus saves a creature,

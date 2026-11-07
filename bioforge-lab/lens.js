@@ -62,8 +62,7 @@ function lensSprite(hormone) {
 
 // The lens over a world drawn in world px (levels, the Sandbox): shade, the water's clouds, then each cell's clouds.
 function drawChemicalLens(context, world) {
-  context.fillStyle = LENS_SHADE;
-  context.fillRect(0, 0, world.width, world.height);
+  shadeWholeScreen(context);
   drawWaterScent(context, world);
   drawCellClouds(context, world.cells.map(cell => ({ cell, x: cell.x, y: cell.y, radius: cell.radius })));
 }
@@ -79,12 +78,18 @@ function drawBuilderLens(app) {
     const [x, y] = hexToPixel(designCell.q, designCell.r);
     shown.push({ cell, x, y, radius: CELL_RADIUS });
   }
+  shadeWholeScreen(context);
+  drawCellClouds(context, shown);
+}
+
+// The shade over the whole canvas, out to the screen's edges, whatever the view's transform: a shade only as big as
+// the arena drew a frame round it.
+function shadeWholeScreen(context) {
   context.save();
   context.fillStyle = LENS_SHADE;
   context.setTransform(1, 0, 0, 1, 0, 0);
-  context.fillRect(0, 0, app.canvas.width, app.canvas.height);
+  context.fillRect(0, 0, context.canvas.width, context.canvas.height);
   context.restore();
-  drawCellClouds(context, shown);
 }
 
 // Each shown cell ({ cell, x, y, radius }) gets a cloud per hormone it holds, mixed by adding light, so a cell with

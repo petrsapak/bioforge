@@ -86,7 +86,21 @@ function makeFloating(windowElement, handle, name) {
     drag = null;
     save();
   });
+  addEventListener('resize', () => keepWindowOnScreen(windowElement));
   return save;
+}
+
+// Pulls a moved window back inside the screen, whole if it fits: a place saved on a bigger screen or window (the
+// Preview was once saved at 3001 px across on a 1920 px screen) would otherwise keep it out of sight for good.
+// A window never moved keeps its place from style.css.
+function keepWindowOnScreen(windowElement) {
+  const left = parseFloat(windowElement.style.left);
+  const top = parseFloat(windowElement.style.top);
+  if (Number.isNaN(left) || Number.isNaN(top)) return;
+  const width = parseFloat(windowElement.style.width) || windowElement.offsetWidth || WINDOW_MIN_VISIBLE_WIDTH;
+  const height = parseFloat(windowElement.style.height) || windowElement.offsetHeight || WINDOW_MIN_VISIBLE_HEIGHT;
+  windowElement.style.left = Math.max(0, Math.min(innerWidth - width, left)) + 'px';
+  windowElement.style.top = Math.max(0, Math.min(innerHeight - height, top)) + 'px';
 }
 
 // puts a window back where it was saved
@@ -101,6 +115,7 @@ function restoreWindow(windowElement, saved) {
     height: saved.height ? saved.height + 'px' : '',
   });
   windowElement.classList.toggle('collapsed', !!saved.collapsed);
+  keepWindowOnScreen(windowElement);
 }
 
 // saves where a window is and its size

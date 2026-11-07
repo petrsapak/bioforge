@@ -384,7 +384,7 @@ check('"Marathon": a Heart that never stops beating runs the body dry, and so do
   marathonRuns.every(run => run.outcome === 'lost'),
   marathonRuns.map(run => `${run.reason} ${run.goalTime.toFixed(0)} s near the light`).join(', '));
 const fullMouth = sim.runLevel(levelById('grazing'), grazingBuild('tissue'));
-check('"Grazing": without a Fat beside the Mouth, the Mouth stays full and eats too little',
+check('"Grazing": without a Fat the body is soon full of sugar and eats too little',
   fullMouth.outcome === 'lost' && fullMouth.player.foodEaten < 13, `ate ${fullMouth.player.foodEaten}`);
 const noStore = sim.runLevel(levelById('bloom'), bloomBuild('tissue'));
 check('"Bloom": with Tissue for the Fat, the bloom\'s food has nowhere to go', noStore.outcome === 'lost',
