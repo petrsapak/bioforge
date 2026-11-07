@@ -198,6 +198,7 @@ function showSandboxHud(app) {
   byId('hud-fps').textContent = `${Math.round(app.fps)} fps`;
   byId('hud-mode').textContent = 'Sandbox';
   byId('hud-enemies').textContent = `Enemies ${enemyCount}`;
+  byId('hud-goal').style.display = 'none';
   showVitalsHud(app, app.world, app.player, []);
   if (byId('hud-keys').innerHTML !== SANDBOX_KEYS_HELP) byId('hud-keys').innerHTML = SANDBOX_KEYS_HELP;
 }

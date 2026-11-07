@@ -89,7 +89,7 @@ const editedFrom = (cells, biomassLimit) => sim.createEditedDesign({ cells, fibr
   check('a turned stamp is placed', sim.placeStamp(edited, stamp, 0, 2) === '' && edited.cells.size === 5);
   const tight = editedFrom(cellsOf([[0, 0, 'nucleus']]), 1);
   check('a stamp joining the body must fit the biomass limit',
-    /Not enough biomass/.test(sim.stampPlacement(tight, stamp, 1, 0).problem));
+    /Too much biomass/.test(sim.stampPlacement(tight, stamp, 1, 0).problem));
   const whole = sim.templateFromSelection(edited, new Set(edited.cells.keys()), 'Me');
   check('a selection with the Nucleus saves as a whole creature', whole.isCreature && whole.cells.length === 5);
   const library = [];

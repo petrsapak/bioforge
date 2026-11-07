@@ -81,7 +81,7 @@ function isLastLevelWon(results) {
 // material kit, the player starts with the kit's leftovers as its sugar and fat, instead of stores two thirds full.
 function startLevel(level, design) {
   const world = newWorld(level.arena.width, level.arena.height, { systems: level.systems, seed: LEVEL_SEED,
-    seepFactor: level.seepFactor, foodSupply: createFoodSupply(level.food),
+    seepFactor: level.seepFactor, waterOxygen: level.waterOxygen, foodSupply: createFoodSupply(level.food),
     terrain: createTerrain(level.rocks, level.currents) });
   const player = spawn(world, design, level.start.x, level.start.y, level.start.heading, 0);
   player.autonomous = true;

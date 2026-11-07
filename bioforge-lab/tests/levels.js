@@ -39,7 +39,7 @@ const seekerWithFat = withGill => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSi
 // the crossed Seeker with a Fat and an Air sac on the sides, and this cell at the back touching both Siphons
 const seekerWithStores = backTypeName => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(-1, 0, 'fat'),
   cell(1, 0, 'airsac'), cell(-1, 2, backTypeName)], fibres: CROSSED });
-// Exhaust's body with a Heart at the front between the eyes for cold water. heartBeat: what beats the Heart: an
+// Stale water's body with a Heart at the front between the eyes for cold water. heartBeat: what beats the Heart: an
 // Inhibitor in it (all the time), a Pacemaker in it (in pulses), 'eyes' (fibres from both Light eyes: while they see
 // the light, as the Siphons work) or 'none' (nothing: it doesn't beat).
 const EXHAUST_BODY = seekerWithStores('pore');
@@ -61,9 +61,10 @@ const marathonBuild = ({ airSac = false, heartBeat = 'pacemaker' } = {}) => {
     bodyCell.typeName === 'airsac' && !airSac ? cell(1, 0, 'fat') : bodyCell);
   return { cells: [...cells, cell(-2, 1, 'gill'), cell(1, 1, 'gill')], fibres: coldWater.fibres };
 };
-// Packed lunch: the crossed Seeker with this store on the left, a Gill on the right and a Pore at the back
-const lunchBuild = storeTypeName => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(-1, 0, storeTypeName),
-  cell(1, 0, 'gill'), cell(-1, 2, 'pore')], fibres: CROSSED });
+// Long haul and Packed lunch: the crossed Seeker with this store on the left, a Gill on the right and this cell (a
+// Pore) at the back
+const lunchBuild = (storeTypeName, backTypeName = 'pore') => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons,
+  cell(-1, 0, storeTypeName), cell(1, 0, 'gill'), cell(-1, 2, backTypeName)], fibres: CROSSED });
 // Grazing: two Noses at the front crossed to the Siphons, a Mouth on the left and this cell on the right
 const grazingBuild = rightTypeName => ({ cells: [cell(0, 0, 'nucleus'), cell(0, -1, 'nose'), cell(1, -1, 'nose'),
   cell(-1, 1, 'siphon'), cell(0, 1, 'siphon'), cell(-1, 0, 'mouth'), cell(1, 0, rightTypeName)], fibres: CROSSED });
@@ -195,7 +196,7 @@ const SOLUTIONS = {
   dock: eyesThroughSynapse(1.5),
   tail: tailFish,
   crevice: creviceWormBuild(),
-  'long-haul': seekerWithFat(true),
+  'long-haul': lunchBuild('fat'),
   exhaust: EXHAUST_BODY,
   'cold-water': coldWaterBuild(),
   marathon: marathonBuild(),
@@ -324,12 +325,21 @@ check('"Crevice": the worm crawls out at other rates and lengths too', wormRuns.
 const noBackGrip = sim.runLevel(levelById('crevice'), creviceWormBuild(1.5, 3, 'tissue'));
 check('"Crevice": without Bloaters at the back nothing holds the body while it stretches, and the current wins',
   noBackGrip.outcome === 'lost', noBackGrip.reason);
-const fatOnly =sim.runLevel(levelById('long-haul'), seekerWithFat(false));
+check('"Long haul" opens the Pore', sim.levelBringing('pore') === levelById('long-haul'));
+const fatOnly = sim.runLevel(levelById('long-haul'), seekerWithFat(false));
 check('"Long haul": Fat alone is not enough, it runs out of O2', fatOnly.outcome === 'lost' &&
   fatOnly.player.cells.every(playerCell => playerCell.fluids[sim.FLUID_OXYGEN] < 0.01), fatOnly.reason);
-const tissueBack = sim.runLevel(levelById('exhaust'), seekerWithStores('tissue'));
-check('"Exhaust": the same body with Tissue for the Pore loses its Siphons to waste', tissueBack.outcome === 'lost' &&
+// Long haul's bodies without a Pore were poisoned with nothing to fix it while the Pore came a level later
+// (user, 2026-11-06: "my creature dies of poisoning because it doesn't have pores, But pore is locked")
+const tissueBack = sim.runLevel(levelById('long-haul'), lunchBuild('fat', 'tissue'));
+check('"Long haul": the same body with Tissue for the Pore loses its Siphons to waste', tissueBack.outcome === 'lost' &&
   tissueBack.player.cells.filter(playerCell => playerCell.type.jets).length < 2, tissueBack.reason);
+// the player's layout: the Gill on the left and the Fat on the right, which pulls a little to one side
+const mirroredLongHaul = { cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(-1, 0, 'gill'), cell(1, 0, 'fat'),
+  cell(-1, 2, 'pore')], fibres: CROSSED };
+const mirroredRun = sim.runLevel(levelById('long-haul'), mirroredLongHaul);
+check('"Long haul": the Gill and the Fat the other way round win too', mirroredRun.outcome === 'won',
+  `${mirroredRun.outcome} ${mirroredRun.time.toFixed(0)} s, ${mirroredRun.goalTime.toFixed(0)} s near the light`);
 // Cold water should have more than one way to win (user, 2026-10-30: "it seems like there's only one design that can
 // finish the assigment")
 const coldRuns = ['pacemaker', 'eyes']
@@ -353,7 +363,7 @@ check('"Hunt": the Darter outruns a heavier hunter', heavyHunt.outcome === 'lost
   `${heavyHunt.outcome} ${heavyHunt.time.toFixed(0)} s`);
 // Packed lunch was beaten by the Marathon build (user, 2026-10-30: "14 can be finished with the same vessel as 13")
 const lunchProblem = sim.buildCheck(SOLUTIONS.marathon, sim.levelLimits(levelById('packed-lunch')));
-check('"Packed lunch": the Marathon build doesn\'t fit its kit', /Not enough protein/.test(lunchProblem), lunchProblem);
+check('"Packed lunch": the Marathon build doesn\'t fit its kit', /Too much protein/.test(lunchProblem), lunchProblem);
 const unbeating = sim.runLevel(levelById('cold-water'), coldWaterBuild('none'));
 check('"Cold water": a Heart without a signal doesn\'t beat, and loses', unbeating.outcome === 'lost',
   `${unbeating.reason} ${unbeating.goalTime.toFixed(0)} s near the light`);
@@ -553,6 +563,9 @@ check('Run level closes the sheet and starts the level with its bar and HUD',
 runFrames(5);
 check('the HUD names the level and runs its clock', byId('hud-mode').textContent === '1. First stroke' &&
   /^0\.\d \/ 40 s$/.test(byId('hud-enemies').textContent), byId('hud-enemies').textContent);
+check('the goal shows in its own banner at the top, not among the vitals chips',
+  byId('hud-goal').style.display === 'flex' && byId('hud-goal-text').textContent === 'Reach the ring' &&
+  !byId('hud-chips').innerHTML.includes('Reach'), byId('hud-goal-text').textContent);
 fire('window', 'keydown', { key: 'p' });
 runFrames(3);
 const pausedClock = byId('hud-enemies').textContent;
@@ -622,7 +635,7 @@ check('Run level refuses a design that doesn\'t fit the level, and stays in the 
   byId('message').textContent);
 byId('show-levels').onclick();
 check('Run level is shut while the design does not fit the level, and says why', byId('level-run').disabled === true &&
-  /doesn't fit: (Take out|Over budget|Too many)/.test(byId('level-run-note').textContent),
+  /doesn't fit: (Take out|Too much|Too many)/.test(byId('level-run-note').textContent),
   byId('level-run-note').textContent);
 byId('levels-close').onclick();
 

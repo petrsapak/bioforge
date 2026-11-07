@@ -83,13 +83,14 @@ check('planned cells reported with their keys',
   const savedNeuronLimit = sim.RULES.maxNeurons;
   sim.RULES.maxNeurons = 2;
   check('more neurons than RULES.maxNeurons are reported',
-    /Too many neurons: 3 \/ 2/.test(sim.buildCheck(manyNeurons)));
+    /Too many neurons: the body has 3, the limit is 2/.test(sim.buildCheck(manyNeurons)));
   sim.RULES.maxNeurons = savedNeuronLimit;
   const longFibre = { cells, fibres: [{ from: { q: 0, r: 0 }, to: { q: 2, r: 0 } }] };
   const savedUnitLimit = sim.RULES.maxFibreUnits;
   sim.RULES.maxFibreUnits = 1;
   check('more fibre units than RULES.maxFibreUnits are reported',
-    /Too many fibre units: 2 \/ 1/.test(sim.buildCheck(longFibre)), sim.buildCheck(longFibre));
+    /Too many fibre units: the body uses 2, the limit is 1/.test(sim.buildCheck(longFibre)),
+    sim.buildCheck(longFibre));
   sim.RULES.maxFibreUnits = savedUnitLimit;
 }
 

@@ -90,7 +90,8 @@ function updateMetabolism(world, dt) {
     if (cell.creature.debris && !cell.creature.launchedPart) continue;
     if (cell.type.fuelBurn) burnAndProduce(cell, dt);
     if (cell.type.breathes) {
-      const oxygenMade = (GILL_OXYGEN_RATE + GILL_SPEED_BONUS * vectorLength(cell.velocityX, cell.velocityY)) * dt;
+      const oxygenMade = (GILL_OXYGEN_RATE + GILL_SPEED_BONUS * vectorLength(cell.velocityX, cell.velocityY)) *
+        world.waterOxygen * dt;
       fluids[FLUID_OXYGEN] = Math.min(capacity[FLUID_OXYGEN], fluids[FLUID_OXYGEN] + oxygenMade);
     }
     if (cell.type.dumpsWaste && cell.onSurface) {

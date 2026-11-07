@@ -77,6 +77,7 @@ function newWorld(width, height, options = {}) {
     waterFeedRate: 0,                                     // sugar per second Mouths take straight from the water
     waterMineralRate: 0,                                  // mineral per second Mineralizers take from the water
     seepFactor: 1,                                        // share of the usual seeping (cold water: less)
+    waterOxygen: 1,                                       // share of the usual O2 Gills make (stale water: less)
     spaceFiresAllSources: false,                          // Space fires every signal source, to try a design out
     enemiesIdle: false,                                   // sandbox: enemies hold still
     light: null,                                          // createLight(): what Light eyes see (sandbox: the mouse)

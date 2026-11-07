@@ -10,7 +10,7 @@ const SHOWCASE_BUILDS = ['eel', 'jelly', 'manta', 'crab'];
 const { byId, fire, runFrames, templateButton, readGlobal, storage } = startApp();
 
 const cellCount = () => +/Cells: (\d+)/.exec(byId('budget').innerHTML)[1];
-const isOverLimit = () => /Over budget|Too many/.test(byId('budget').innerHTML);
+const isOverLimit = () => /Too much|Too many/.test(byId('budget').innerHTML);
 
 runFrames(10);
 for (const name of SHOWCASE_BUILDS) {
@@ -38,11 +38,11 @@ check('the Examples tab shows every example as a card, under its group title',
   byId('library-cards').children.filter(child => child.className === 'library-heading').length ===
   readGlobal('EXAMPLE_GROUPS').length);
 check('a showcase card is badged as over the limits, saying why, and a small one isn\'t',
-  SHOWCASE_BUILDS.every(isBadged) && /Over budget|Too many/.test(templateButton('eel').children[3].title) &&
+  SHOWCASE_BUILDS.every(isBadged) && /Too much|Too many/.test(templateButton('eel').children[3].title) &&
   !SMALL_BUILDS.some(isBadged));
 byId('unlimited-biomass').onclick();
 check('with Unlimited biomass the showcase cards lose the badge, unless they break another limit',
-  !isBadged('crab') || !/Over budget/.test(templateButton('crab').children[3].title));
+  !isBadged('crab') || !/Too much biomass/.test(templateButton('crab').children[3].title));
 byId('unlimited-biomass').onclick();
 
 // Study on a card: the Reference window shows that creature live in its own tank, and the Lab keeps its design

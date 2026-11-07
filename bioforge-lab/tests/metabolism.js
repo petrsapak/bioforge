@@ -57,8 +57,9 @@ const fatBody = { cells: [cell(0, 0, 'nucleus'), cell(1, 0, 'fat'), cell(-1, 0, 
 const materials = sim.designMaterials(fatBody);
 check('a design\'s materials add up its cells\' recipes: a Fat takes one protein and one fat',
   materials.protein === 3 && materials.fat === 2 && materials.sugar === 0, JSON.stringify(materials));
-check('a kit short of a material says which, and by how much',
-  sim.kitShortfall(fatBody, { protein: 10, sugar: 5, fat: 1 }) === 'Not enough fat: it needs 2, the kit has 1',
+check('a body using more of a material than the kit has says which, how much, and which cells use it',
+  sim.kitShortfall(fatBody, { protein: 10, sugar: 5, fat: 1 }) ===
+    'Too much fat: the body uses 2, the kit has 1. It goes into the Fat',
   sim.kitShortfall(fatBody, { protein: 10, sugar: 5, fat: 1 }));
 check('with a kit, the budget no longer counts: only the kit and the other limits do',
   sim.buildCheck(fatBody, { ...sim.levelLimits(longHaul), budget: 0, kit: { protein: 3, fat: 2 } }) === '');

@@ -390,11 +390,31 @@ function showLevelHud(app, run) {
   byId('hud-fps').textContent = `${Math.round(app.fps)} fps`;
   byId('hud-mode').textContent = `${LEVELS.indexOf(run.level) + 1}. ${run.level.name}`;
   byId('hud-enemies').textContent = `${run.time.toFixed(1)} / ${run.level.timeLimit} s`;
-  const chips = [`<span class="chip-goal">${goalProgress(run)}</span>`];
-  const stillness = stillnessRule(run);
-  if (stillness) chips.push(`<span class="chip-still">${stillness}</span>`);
-  showVitalsHud(app, run.world, run.player, chips);
+  showGoalBanner(run);
+  showVitalsHud(app, run.world, run.player, []);
   if (byId('hud-keys').innerHTML !== LEVEL_KEYS_HELP) byId('hud-keys').innerHTML = LEVEL_KEYS_HELP;
+}
+
+// The goal in a banner at the top centre, under the level's controls, so it is always in view: its words, a bar
+// for goals that fill up, and the stillness rule when the level has one.
+function showGoalBanner(run) {
+  byId('hud-goal').style.display = 'flex';
+  byId('hud-goal-text').textContent = goalProgress(run);
+  const fraction = goalFraction(run);
+  byId('hud-goal-track').style.display = fraction === null ? 'none' : '';
+  if (fraction !== null) byId('hud-goal-fill').style.width = (clamp01(fraction) * 100).toFixed(1) + '%';
+  const stillness = stillnessRule(run);
+  byId('hud-goal-rule').style.display = stillness ? '' : 'none';
+  byId('hud-goal-rule').textContent = stillness;
+}
+
+// how far along the goal is, 0 to 1, or null for goals that are met in one moment (reach, kill)
+function goalFraction(run) {
+  const goal = run.level.goal;
+  if (goal.kind === 'stayNear' || goal.kind === 'restIn') return run.goalTime / goal.seconds;
+  if (goal.kind === 'eat') return run.player.foodEaten / goal.count;
+  if (goal.kind === 'survive') return run.time / goal.seconds;
+  return null;
 }
 
 // what a level's stillness rule asks right now, or '' when it asks nothing

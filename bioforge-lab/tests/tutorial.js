@@ -54,6 +54,16 @@ check('a player past levels 1 and 2 skips their lessons and gets the tour of the
   veteran.done.join() === 'first-stroke,lighthouse', veteran.done.join());
 check('a replay plays level 1\'s lesson although the level is won',
   sim.nextTutorialLesson(sim.createTutorialRecord(true), results('first-stroke')).id === 'first-stroke');
+const chapterTwoIds = ['first-stroke', 'lighthouse', 'shade', 'hunt', 'freeze', 'false-start', 'metronome', 'dock',
+  'tail', 'crevice'];
+const afterTour = { ...sim.createTutorialRecord(), done: ['first-stroke', 'lighthouse', 'lab-tour'] };
+check('after the Lab tour, Long haul\'s lesson on fluids waits for level 10 to be won',
+  sim.nextTutorialLesson({ ...afterTour }, results('first-stroke', 'lighthouse')) === null &&
+  sim.nextTutorialLesson({ ...afterTour }, results(...chapterTwoIds)).id === 'long-haul');
+const pastLongHaul = { ...afterTour, done: [...afterTour.done] };
+check('a player who won Long haul already gets Packed lunch\'s lesson on kits and fat after chapter 3',
+  sim.nextTutorialLesson(pastLongHaul, results(...chapterTwoIds, 'long-haul', 'exhaust', 'cold-water',
+    'marathon')).id === 'packed-lunch' && pastLongHaul.done.includes('long-haul'), pastLongHaul.done.join());
 check('a skipped tutorial plays nothing', sim.nextTutorialLesson({ ...fresh, isOn: false }, {}) === null);
 
 // ---------- Reading the design ----------

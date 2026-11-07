@@ -217,4 +217,89 @@ const TUTORIAL_LESSONS = [
       },
     ],
   },
+  {
+    id: 'long-haul', level: 'long-haul', runStep: 'long-haul-run', after: 'lab-tour', needsWin: 'crevice',
+    steps: [
+      {
+        id: 'long-haul-welcome',
+        text: 'From this level on, your cells run on fluids. Every working cell burns O₂ and sugar, and burning ' +
+          'makes waste. A cell with no O₂ or no sugar stops, and a cell full of waste is poisoned.',
+        waitFor: 'next',
+      },
+      {
+        id: 'long-haul-needs', target: { element: 'needs' },
+        text: 'This panel checks what your creature needs. Sugar lasts says how long its sugar runs every cell at ' +
+          'once. A cross marks what is missing; click a row to see that fluid in the body.',
+        waitFor: 'next',
+      },
+      {
+        id: 'long-haul-fat', target: { cell: 'fat' },
+        text: 'Sugar is the fuel. It flows from cell to cell, but plain cells hold only a little. A Fat cell is a ' +
+          'tank: it holds ten times the sugar and passes it on to its neighbours.',
+        waitFor: 'next',
+      },
+      {
+        id: 'long-haul-gill', target: { cell: 'gill' },
+        text: 'A Gill makes O₂ from the water, more while the creature swims fast. It works anywhere in the body.',
+        waitFor: 'next',
+      },
+      {
+        id: 'long-haul-pore', target: { cell: 'pore' },
+        text: 'A Pore dumps waste into the water. Put it on the surface, touching the Siphons: they work hardest, ' +
+          'so they make the most waste.',
+        waitFor: 'next',
+      },
+      {
+        id: 'long-haul-run', target: { element: 'run-next-level' },
+        text: 'Add a Fat, a Gill and a Pore to your Seeker, keep both sides about as heavy, and run the level.',
+        waitFor: { kind: 'mode', mode: 'level' },
+      },
+      {
+        id: 'long-haul-bars', mode: 'level', dim: false, target: { element: 'hud-bars' },
+        text: 'These bars show the whole body\'s O₂, Sugar and Waste. Low O₂ or sugar, or high waste, makes its bar ' +
+          'pulse red: that is what to fix next.',
+        waitFor: 'next',
+      },
+      ...runResultSteps('long-haul', 'long-haul', 'Look at which bar ran out first. Sugar: add a Fat. O₂: add a ' +
+        'Gill. Waste: give the Pore a place on the surface, touching the Siphons.'),
+    ],
+  },
+  {
+    id: 'packed-lunch', level: 'packed-lunch', runStep: 'packed-lunch-run', after: 'long-haul',
+    needsWin: 'marathon',
+    steps: [
+      {
+        id: 'packed-lunch-welcome',
+        text: 'This level hands you a kit of materials instead of a biomass budget, and there is no food. What you ' +
+          'don\'t build with is all the fuel you get.',
+        waitFor: 'next',
+      },
+      {
+        id: 'packed-lunch-kit', target: { element: 'budget' },
+        text: 'Cells are built from Protein, and a Fat cell takes one Fat as well. These bars count what your body ' +
+          'uses against the kit.',
+        waitFor: 'next',
+      },
+      {
+        id: 'packed-lunch-reserves', target: { element: 'budget' },
+        text: 'Reserves is what is left for the run. The kit\'s sugar spreads over every cell. Leftover Fat is a ' +
+          'second fuel, and it goes only into Fat cells: with no Fat cell, it is lost.',
+        waitFor: 'next',
+      },
+      {
+        id: 'packed-lunch-fat', target: { cell: 'fat' },
+        text: 'Sugar is what cells burn, and it flows. Fat stays in its Fat cell, up to ten each. When the cell runs ' +
+          'low on sugar, it slowly turns its fat back into sugar, and when it is full of sugar, it stores the spare ' +
+          'as fat.',
+        waitFor: 'next',
+      },
+      {
+        id: 'packed-lunch-run', target: { element: 'run-next-level' },
+        text: 'A Fat cell carries the kit\'s fat. Fit your creature into the kit, and run the level.',
+        waitFor: { kind: 'mode', mode: 'level' },
+      },
+      ...runResultSteps('packed-lunch', 'packed-lunch', 'In the Lab, check the Reserves: if they are orange, some ' +
+        'fuel has no room. A Fat cell takes the kit\'s fat.'),
+    ],
+  },
 ];

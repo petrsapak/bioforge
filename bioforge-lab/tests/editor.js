@@ -132,6 +132,12 @@ moveMouseTo(0, 0);
 runFrames(15);
 check('after 0.25 s the hint shows the cell\'s name and biomass cost', byId('tooltip').style.display === 'block' &&
   /<b>Nucleus<\/b>/.test(byId('tooltip').innerHTML) && /◆ 0/.test(byId('tooltip').innerHTML));
+{ // a kit counts materials, so ◆ 2 (the Fat's biomass) read as 2 Protein there (user, 2026-11-06)
+  const fatHint = limits => readGlobal('tooltipHtml')('fat', readGlobal('CELLS').fat, limits);
+  const kitHint = fatHint({ kit: { protein: 22, sugar: 4, fat: 7 } });
+  check('in a level with a kit, a cell\'s hint names its materials instead of the biomass total',
+    />1 Protein</.test(kitHint) && />1 Fat</.test(kitHint) && !/◆/.test(kitHint) && /◆ 2/.test(fatHint({})), kitHint);
+}
 runFrames(55);
 check('resting on a cell shows its tooltip with a live example',
   byId('tooltip').style.display === 'block' && /How to use/.test(byId('tooltip').innerHTML));

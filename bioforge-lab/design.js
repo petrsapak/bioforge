@@ -78,17 +78,23 @@ function buildCheck(design, limits = RULES) {
   if (lockedCell) return `Take out the ${CELLS[lockedCell.typeName].name}: a later level brings it`;
   const lockedNeuron = design.cells.find(cell => cell.neuron && isNeuronLocked(limits, cell.neuron.kind));
   if (lockedNeuron) return `Take out the ${NEURONS[lockedNeuron.neuron.kind].name}: a later level brings it`;
-  if (design.cells.length > limits.maxCells) return `Too many cells: ${design.cells.length} / ${limits.maxCells}`;
+  if (design.cells.length > limits.maxCells) {
+    return `Too many cells: the body has ${design.cells.length}, the limit is ${limits.maxCells}`;
+  }
   if (limits.kit) {
     const shortfall = kitShortfall(design, limits.kit);
     if (shortfall) return shortfall;
   } else if (designCost(design) > limits.budget) {
-    return `Over budget by ${designCost(design) - limits.budget}`;
+    return `Too much biomass: the body costs ${designCost(design)}, the limit is ${limits.budget}`;
   }
   const neuronCount = design.cells.filter(cell => cell.neuron).length;
-  if (neuronCount > limits.maxNeurons) return `Too many neurons: ${neuronCount} / ${limits.maxNeurons}`;
+  if (neuronCount > limits.maxNeurons) {
+    return `Too many neurons: the body has ${neuronCount}, the limit is ${limits.maxNeurons}`;
+  }
   const units = fibreUnits(design);
-  if (units > limits.maxFibreUnits) return `Too many fibre units: ${units} / ${limits.maxFibreUnits}`;
+  if (units > limits.maxFibreUnits) {
+    return `Too many fibre units: the body uses ${units}, the limit is ${limits.maxFibreUnits}`;
+  }
   return '';
 }
 
@@ -119,13 +125,23 @@ function kitLeftover(design, kit) {
   return Object.fromEntries(MATERIALS.map(material => [material.id, (kit[material.id] || 0) - used[material.id]]));
 }
 
-// the first material the design needs more of than the kit has, in words ('' = it fits)
+// the first material the design uses more of than the kit has, in words, naming the cells that use it ('' = it fits)
 function kitShortfall(design, kit) {
   const leftover = kitLeftover(design, kit);
-  const short = MATERIALS.find(material => leftover[material.id] < 0);
-  if (!short) return '';
-  return `Not enough ${short.name.toLowerCase()}: it needs ${(kit[short.id] || 0) - leftover[short.id]}, ` +
-    `the kit has ${kit[short.id] || 0}`;
+  const over = MATERIALS.find(material => leftover[material.id] < 0);
+  if (!over) return '';
+  const inKit = kit[over.id] || 0;
+  const users = [...new Set(design.cells
+    .filter(cell => CELLS[cell.typeName].recipe[over.id])
+    .map(cell => 'the ' + CELLS[cell.typeName].name))];
+  return `Too much ${over.name.toLowerCase()}: the body uses ${inKit - leftover[over.id]}, ` +
+    `the kit has ${inKit || 'none'}. It goes into ${joinWithAnd(users)}`;
+}
+
+// names joined as 'A', 'A and B' or 'A, B and C'
+function joinWithAnd(names) {
+  if (names.length < 2) return names.join('');
+  return names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
 }
 
 // the kit's leftovers that become reserves at the start of a run: { sugar, fat, mineral }

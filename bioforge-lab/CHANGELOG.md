@@ -7,6 +7,29 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.36 (2026-11-06)
+- A body that uses more of a material than the kit gives now says "Too much mineral: the body uses 3, the kit has
+  none. It goes into the Shell and the Thorn" instead of "Not enough mineral", so you know what to take out. The
+  other limits read the same way: "Too much biomass: the body costs 130, the limit is 120" (was "Over budget by
+  10"), and "Too many cells / neurons / fibre units: the body has 26, the limit is 24" (was "26 / 24").
+- Bloom is less strict: "near the light" now reaches 140 px instead of 100, and the level runs 320 s instead of
+  260. You still need 180 s near the light, and a creature with no Mouth still runs dry.
+- A level's goal now sits in a banner at the top centre of the screen, under the pause and speed buttons, with a bar
+  that fills as you get there ("Near the light 9.9 / 150 s"). It used to be a small chip under the vitals. A level's
+  stillness rule ("Light on: hold still") shows in the same banner.
+- Long haul now brings the Pore along with Fat and the Gill. Before, a creature that lasted long enough filled up
+  with waste and lost its Siphons, with no way to get rid of the waste. Long haul also gives you 300 s instead of
+  240 s, so a body that pulls a little to one side can still make it.
+- Exhaust is now Stale water: the water has no O₂ in it, so Gills make none, and the level brings the Air sac to
+  carry O₂ instead. Your result in it is kept.
+- Two new tutorial lessons. Long haul explains O₂, sugar and waste: the Creature panel, the Fat cell as a sugar
+  tank, the Gill, the Pore, and the O₂, Sugar and Waste bars during the run. Packed lunch explains the kit: what
+  cells are built from, what Reserves means, and how sugar and fat differ (sugar flows and is burned; fat stays in
+  its Fat cell and slowly turns back into sugar). They play without voice for now. A tutorial you skipped stays
+  off; Replay tutorial in the settings plays them, and a level you have won already skips its lesson.
+- In a level with a kit, a piece's hint now shows what it is built from ("Fat: 1 Protein · 1 Fat"). It showed
+  the biomass total ("◆ 2"), which read as 2 Protein. Levels with a biomass budget still show the total.
+
 ## 0.7.35 (2026-11-05)
 - Cilia now burn fuel whenever they beat, as their description always said. Before, your creature's Cilia beat for
   free, so a body of Cilia lasted through the long chases without any Fat, Gills or Pore.

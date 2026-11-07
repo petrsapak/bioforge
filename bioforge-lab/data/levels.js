@@ -7,6 +7,7 @@
 //     every cell works at full power and nothing starves; chapter 3 adds fluid and vascular; chapter 4 metabolism
 //     and food; chapter 5 secretions; chapter 6 chemical, scent and treatments)
 //   seepFactor: share of the usual seeping between cells (cold water: less); a Heart's pumping is not slowed
+//   waterOxygen: share of the usual O₂ a Gill makes from the water (stale water: less)
 //   limits: design limits ({ budget, maxCells, maxNeurons, maxFibreUnits, bannedCells: cell type names the level
 //   doesn't allow }); any left out come from
 //   RULES. kit: { protein, sugar, fat, mineral } (data/materials.js) instead of a budget: the body's recipes must fit
@@ -75,8 +76,8 @@ const pufferArriving = at => ({ design: 'puffer', x: 1250, y: 700, heading: 0, b
 
 // a level: the definition over the defaults
 function createLevel(definition) {
-  return { arena: ARENA, systems: CHAPTER_1_SYSTEMS, seepFactor: 1, limits: {}, start: START_BOTTOM, light: null,
-    creatures: [], rocks: [], currents: [], hint: '', ...definition,
+  return { arena: ARENA, systems: CHAPTER_1_SYSTEMS, seepFactor: 1, waterOxygen: 1, limits: {}, start: START_BOTTOM,
+    light: null, creatures: [], rocks: [], currents: [], hint: '', ...definition,
     unlocks: { cells: [], neurons: [], ...definition.unlocks } };
 }
 
@@ -215,26 +216,28 @@ const LEVELS = [
   }),
   createLevel({
     id: 'long-haul', chapter: 3, name: 'Long haul',
-    unlocks: { cells: ['fat', 'gill'] },
+    unlocks: { cells: ['fat', 'gill', 'pore'] },
     brief: 'The light drifts round the arena. Keep close to it for 150 s in all: longer than a bare ' +
       'body\'s O₂, sugar and room for waste last. Speed the run up with the speed button (,).',
-    hint: 'Watch the O₂, Sugar and Waste bars. Fat stores sugar and a Gill makes O₂ from the water. A Seeker with ' +
-      'a Fat on each side and a Gill at the back lasts. Keep the body even, or it turns.',
+    hint: 'Watch the O₂, Sugar and Waste bars. Fat stores sugar, a Gill makes O₂ from the water, and a Pore on ' +
+      'the surface dumps waste. A Seeker with a Fat on the left, a Gill on the right and a Pore at the back, ' +
+      'touching both Siphons, lasts. Keep the body even, or it turns.',
     systems: CIRCULATION_SYSTEMS,
     limits: { budget: 45 },
     light: DRIFTING_LIGHT,
     goal: { kind: 'stayNear', radius: 100, seconds: 150 },
-    timeLimit: 240, par: { seconds: 180, biomass: 20 },
+    timeLimit: 300, par: { seconds: 195, biomass: 20 },
   }),
   createLevel({
-    id: 'exhaust', chapter: 3, name: 'Exhaust',
-    unlocks: { cells: ['airsac', 'pore'] },
-    brief: 'The light drifts faster now. Keep close to it for 120 s in all. Hard work makes waste, and waste that ' +
-      'builds up poisons the cells that made it.',
-    hint: 'A Pore on the surface dumps waste into the water. Put one at the back, touching both Siphons, so their ' +
-      'waste seeps into it. A Fat and an Air sac on the sides carry the fuel.',
+    id: 'exhaust', chapter: 3, name: 'Stale water',
+    unlocks: { cells: ['airsac'] },
+    brief: 'Stale water: there is no O₂ in it, so Gills make none. The light drifts faster too. Keep close to it ' +
+      'for 120 s in all.',
+    hint: 'An Air sac holds 10x the O₂ of a working cell, and the cells beside it draw on it. Put a Fat and an ' +
+      'Air sac on the sides, and keep the Pore at the back touching both Siphons.',
     systems: CIRCULATION_SYSTEMS,
     limits: { budget: 45 },
+    waterOxygen: 0,
     light: { ...DRIFTING_LIGHT, speed: 24 },
     goal: { kind: 'stayNear', radius: 100, seconds: 120 },
     timeLimit: 240, par: { seconds: 190, biomass: 20 },
@@ -242,9 +245,9 @@ const LEVELS = [
   createLevel({
     id: 'cold-water', chapter: 3, name: 'Cold water',
     unlocks: { cells: ['heart'] },
-    brief: 'The same chase as Exhaust, in cold water: fluids barely seep from cell to cell (20x slower). Your ' +
-      'Siphons burn through their own O₂ and sugar, and the stores and the Pore beside them can\'t keep up. ' +
-      'Keep close to the light for 100 s in all.',
+    brief: 'The fast chase of Stale water, with O₂ in the water again, but cold: fluids barely seep from cell to ' +
+      'cell (20x slower). Your Siphons burn through their own O₂ and sugar, and the stores and the Pore beside ' +
+      'them can\'t keep up. Keep close to the light for 100 s in all.',
     hint: `The cold doesn't slow a beating Heart: it pumps blood between every cell within ${HEART_REACH} steps ` +
       'of it. A Heart beats only on a nerve signal: an Inhibitor in it (Nerves view) keeps it beating, and a ' +
       'Pacemaker beats it in pulses, for half the fuel. Put it where it keeps the body even, such as at the front ' +
@@ -312,8 +315,8 @@ const LEVELS = [
     limits: { kit: { protein: 38, sugar: 2, fat: 3 } },
     food: { maxCount: 8, interval: 2, nearLight: 120, until: 80 },
     light: DRIFTING_LIGHT,
-    goal: { kind: 'stayNear', radius: 100, seconds: 180 },
-    timeLimit: 260, par: { seconds: 250, biomass: 24 },
+    goal: { kind: 'stayNear', radius: 140, seconds: 180 },
+    timeLimit: 320, par: { seconds: 250, biomass: 24 },
   }),
   createLevel({
     id: 'sting', chapter: 5, name: 'Sting',

@@ -739,11 +739,10 @@ function stampPlacement(edited, stamp, q, r) {
     const shortfall = kitShortfallWithAdded(edited, cells);
     if (shortfall) problem = shortfall + '.';
   } else {
-    const costNow = bodyCost(edited);
     const costAfter = costWithAdded(edited, cells);
     if (costAfter > edited.biomassLimit) {
-      problem = `Not enough biomass: it costs ${formatBiomass(costAfter - costNow)}, ` +
-        `you have ${formatBiomass(edited.biomassLimit - costNow)} left.`;
+      problem = `Too much biomass: the body would cost ${formatBiomass(costAfter)}, ` +
+        `the limit is ${formatBiomass(edited.biomassLimit)}.`;
     }
   }
   return { cells, fibres, problem };

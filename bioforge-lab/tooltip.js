@@ -57,9 +57,10 @@ function updateTooltip(app, now) {
   const cellType = CELLS[tooltip.typeName];
   const neuronType = NEURONS[tooltip.neuronKind];
   if (!cellType && !neuronType) return;
+  const limits = chosenLimits(app);
   box.innerHTML = lockedLineHtml(app, tooltip.typeName, tooltip.neuronKind) + (cellType
-    ? tooltipHtml(tooltip.typeName, cellType)
-    : neuronTooltipHtml(tooltip.neuronKind, neuronType));
+    ? tooltipHtml(tooltip.typeName, cellType, limits)
+    : neuronTooltipHtml(tooltip.neuronKind, neuronType, limits));
   box.style.display = 'block';
   const { left, top } = tooltipPlace(tooltip, box.offsetWidth, box.offsetHeight);
   const maxLeft = innerWidth - box.offsetWidth - TOOLTIP_EDGE_MARGIN;
@@ -90,13 +91,27 @@ function lockedLineHtml(app, typeName, neuronKind) {
   return `<div class="tooltip-locked">🔒 Locked. ${lockedPieceText(typeName || neuronKind)}</div>`;
 }
 
-// a cell type's tooltip: name, cost, health, needs and fuel
-function tooltipHtml(typeName, cellType) {
+// What a piece costs, in the tooltip's title. A level with a kit counts materials, so there it is the recipe in
+// their colours ("1 Protein · 1 Fat"); elsewhere it is the biomass total, which is the recipe's sum.
+function costHtml(recipe, limits) {
+  if (!limits.kit) {
+    const biomass = Object.values(recipe).reduce((sum, amount) => sum + amount, 0);
+    return `<span class="tooltip-cost" title="Biomass cost">◆ ${biomass}</span>`;
+  }
+  const parts = Object.entries(recipe).filter(([, amount]) => amount > 0).map(([materialId, amount]) => {
+    const material = MATERIALS_BY_ID[materialId];
+    return `<span style="color: ${material.color}">${amount} ${material.name}</span>`;
+  });
+  return `<span class="tooltip-cost" title="Built from">${parts.length ? parts.join(' · ') : 'free'}</span>`;
+}
+
+// a cell type's tooltip: name, cost (limits: the level's, for how cost is counted), health, needs and fuel
+function tooltipHtml(typeName, cellType, limits) {
   const facts = [`${cellType.health} HP`];
   if (cellType.needsSignal) facts.push('needs a nerve signal');
   if (cellType.fuelBurn) facts.push(`burns ${+(cellType.fuelBurn * FUEL_BURN_SCALE).toFixed(3)}/s`);
   return `<div class="tooltip-title"><b>${cellType.name}</b>` +
-    `<span class="tooltip-cost" title="Biomass cost">◆ ${cellType.cost}</span></div>` +
+    costHtml(cellType.recipe, limits) + '</div>' +
     `<span class="dim">${facts.join(' · ')}</span><br>${cellType.description}` +
     `<div class="tooltip-heading">How to use</div>${TIPS[typeName].howToUse}` +
     `<div class="tooltip-heading">Example</div>` +
@@ -105,12 +120,12 @@ function tooltipHtml(typeName, cellType) {
 
 // A neuron button's tooltip, in the cell tooltip's format: name and cost (neurons cost no biomass), its facts, what
 // it does, how to use it, and a live example with the signals of its cells as lanes.
-function neuronTooltipHtml(kind, neuronType) {
+function neuronTooltipHtml(kind, neuronType, limits) {
   const facts = [neuronType.ignoresInputs ? 'makes its own signal' : 'reads the fibres coming in'];
   const setting = neuronType.setting;
   if (setting) facts.push(`${setting.name} ${setting.min}–${setting.max}${setting.unit ? ' ' + setting.unit : ''}`);
   return `<div class="tooltip-title"><b>${neuronType.symbol} ${neuronType.name}</b>` +
-    `<span class="tooltip-cost" title="Biomass cost">◆ 0</span></div>` +
+    costHtml({}, limits) + '</div>' +
     `<span class="dim">${facts.join(' · ')}</span><br>${neuronType.description}` +
     `<div class="tooltip-heading">How to use</div>${NEURON_TIPS[kind].howToUse}` +
     `<div class="tooltip-heading">Example</div>` +
