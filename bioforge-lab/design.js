@@ -147,7 +147,7 @@ function joinWithAnd(names) {
 // the kit's leftovers that become reserves at the start of a run: { sugar, fat, mineral }
 function kitReserves(design, kit) {
   const leftover = kitLeftover(design, kit);
-  const reserves = { sugar: 0, fat: 0, mineral: 0 };
+  const reserves = { sugar: 0, fat: 0, mineral: 0, protein: 0 };
   for (const material of MATERIALS) {
     if (material.reserve) reserves[material.reserve] += leftover[material.id];
   }

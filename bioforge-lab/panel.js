@@ -121,12 +121,16 @@ function kitLimitsHtml(app, body) {
   const hasMineral = reserves.mineral > 0 || room.mineral > 0;
   const mineralTitle = hasMineral ? `, ${formatBiomass(reserves.mineral)} mineral in Mineralizers ` +
     `(room for ${formatBiomass(room.mineral)})` : '';
+  // the protein left over matters only to a body that grows cells (Buds, Menders)
+  const grows = body.cells.some(cell => CELLS[cell.typeName].growsParts || CELLS[cell.typeName].rebuildsCells);
+  const proteinTitle = grows ? `, ${formatBiomass(reserves.protein)} protein for growing cells` : '';
   const reservesTitle = `Left over for the run: ${formatBiomass(reserves.sugar)} sugar spread over the body ` +
     `(room for ${formatBiomass(room.sugar)}), ${formatBiomass(reserves.fat)} fat in Fat cells ` +
-    `(room for ${formatBiomass(room.fat)})` + mineralTitle +
+    `(room for ${formatBiomass(room.fat)})` + mineralTitle + proteinTitle +
     (lost ? `. ${formatBiomass(lost)} has no room and is lost.` : '');
   const reservesText = `${formatBiomass(reserves.sugar)} sugar · ${formatBiomass(reserves.fat)} fat` +
-    (hasMineral ? ` · ${formatBiomass(reserves.mineral)} mineral` : '');
+    (hasMineral ? ` · ${formatBiomass(reserves.mineral)} mineral` : '') +
+    (grows ? ` · ${formatBiomass(reserves.protein)} protein` : '');
   return materialSpans.join('') + limitHtml('body', app.layer, 'Reserves', reservesTitle, reservesText, lost > 0);
 }
 
@@ -254,8 +258,9 @@ function describeBud(bud, cellType) {
   const aimText = bud.partAim !== undefined
     ? `aimed at ${Math.round(((bud.partAim * 180 / Math.PI) % 360 + 360) % 360)}°`
     : "fires the way the part's front points";
-  return `<div class="line">Grows <b>${escapeHtml(part.name)}</b> in about ${Math.round(growSeconds)} s, ` +
-    `${aimText}.</div>` +
+  const protein = part.cells.reduce((sum, cell) => sum + CELLS[cell.typeName].recipe.protein, 0);
+  return `<div class="line">Grows <b>${escapeHtml(part.name)}</b> in about ${Math.round(growSeconds)} s ` +
+    `(${protein} protein where a kit pays for it), ${aimText}.</div>` +
     '<div class="keys-hint">drag dots: move · <b>Q</b><b>E</b> turn · drag arrow: aim</div>' +
     (bud.partAim !== undefined ? RESET_AIM_BUTTON : '');
 }

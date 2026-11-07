@@ -196,7 +196,8 @@ const TIPS = {
   bud: {
     howToUse: 'Put it on the surface, click it in the Lab, then click a part on the Templates screen (T) to ' +
       'assign it. The body feeds it O₂ and sugar while the part grows; a nerve signal (an Eyespot, or a slow ' +
-      'Pacemaker) shoots the finished part away from the body. Thorns on the part hit hard.',
+      'Pacemaker) shoots the finished part away from the body, stocked with fuel. Thorns on the part hit hard; ' +
+      'crossed Light eyes and Siphons on it make it home in on a light.',
     example: {
       cells: [
         [0, 0, 'nucleus'], [0, -1, 'bud'], [1, -1, 'tissue', 'pacemaker', 0.2], [-1, 0, 'gill'], [1, 0, 'fat'],

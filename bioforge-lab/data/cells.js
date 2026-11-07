@@ -156,10 +156,10 @@ const CELLS = {
   bud: cellType({
     category: 'Action', name: 'Bud', cost: 4, health: 30, fuelBurn: 0.4, color: '#c8e07a',
     work: 'growPart', product: 'budPart', growsParts: true, needsSignal: true,
-    description: 'Grows a saved part on its outer side from O₂ and sugar. A nerve signal shoots the finished ' +
-      'part away from the body, then it grows a new one. The part has its own nerves and fluids: with a Pacemaker ' +
-      'or Eyespot, Fat, Gills and working cells it moves and stings on its own until its fuel runs out, then ' +
-      'rots.',
+    description: 'Grows a saved part on its outer side from O₂ and sugar, and from the protein a kit leaves over. ' +
+      'A nerve signal shoots the finished part away with its share of the body\'s O₂ and sugar, then it grows a ' +
+      'new one. The part keeps its own nerves: with eyes, a Pacemaker or an Eyespot and working cells it swims ' +
+      'and stings on its own until its fuel runs out, then rots.',
   }),
   gill: cellType({
     category: 'Fluid', name: 'Gill', cost: 2, health: 20, mass: 0.8, oxygenCapacity: 1, color: '#e07a8a',
@@ -198,8 +198,8 @@ const CELLS = {
   mender: cellType({
     category: 'Gland', name: 'Mender', cost: 4, health: 25, fuelBurn: 0.12, color: '#58d858',
     work: 'refillRepair', product: 'repair', rebuildsCells: true,
-    description: 'Turns O₂ and sugar into repair fluid. Damaged cells that receive it heal, and lost cells ' +
-      'regrow one at a time, nearest the Mender first.',
+    description: 'Turns O₂ and sugar into repair fluid. Damaged cells that receive it heal slowly, and lost cells ' +
+      'regrow within seconds, one at a time, nearest the Mender first, from the protein a kit leaves over.',
   }),
   adrenal: cellType({
     category: 'Gland', name: 'Adrenal', cost: 3, health: 25, fuelBurn: 0.2, color: '#e04090',

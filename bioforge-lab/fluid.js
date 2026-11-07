@@ -33,7 +33,10 @@ const WORK_LEVELS = {
   beating: cell => (cell.creature.resting ? 0 : 1),
   always: () => 1,
   refillRepair: cell => cell.fluids[FLUID_REPAIR] < MENDER_FULL_SHARE * cell.fluidCapacity[FLUID_REPAIR] ? 1 : 0,
-  growPart: cell => cell.budGrowth && !cell.budGrowth.done && cell.cooldown <= 0 ? 1 : 0,
+  growPart: cell => {
+    const growth = cell.budGrowth;
+    return growth && !growth.done && !growth.waitingForProtein && cell.cooldown <= 0 ? 1 : 0;
+  },
 };
 
 // What a cell's burned fuel turns into, by the cell type's `product` behaviour.

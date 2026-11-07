@@ -140,6 +140,21 @@ const snapBuild = leftTypeName => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSi
   cell(1, 0, 'fat'),
   cell(0, -2, leftTypeName, leftTypeName === 'resilin' ? { neuron: sim.createNeuron('inhibitor') } : {}),
   cell(1, -2, 'muscle', { neuron: { kind: 'pacemaker', setting: 0.5 } }), cell(2, -2, 'tissue')], fibres: CROSSED });
+// Grazed: a Nucleus inside a ring of Tissue, with this cell on both sides (left and right)
+const grazedBuild = sideTypeName => ({ cells: [cell(0, 0, 'nucleus'), cell(1, 0, sideTypeName),
+  cell(-1, 0, sideTypeName), ...[[0, 1], [0, -1], [1, -1], [-1, 1]].map(([q, r]) => cell(q, r, 'tissue'))] });
+// Swarm: a Bud at the front fired by a 0.2 Hz Pacemaker in the Nucleus, growing this part facing up; a Fat, a Gill
+// and a Pore round the Nucleus
+const swarmBuild = part => ({ cells: [cell(0, 0, 'nucleus', { neuron: { kind: 'pacemaker', setting: 0.2 } }),
+  cell(0, -1, 'bud', { budPart: part, partRotation: 0 }), cell(1, 0, 'fat'), cell(-1, 0, 'gill'), cell(0, 1, 'pore')],
+fibres: [fibre(0, 0, 0, -1)] });
+// a homing stinger: the crossed Seeker without a Nucleus (Tissue in its place), a Nettle always on at the front middle
+const HOMING_PART = { name: 'stinger', cells: [cell(0, -1, 'lighteye'), cell(1, -1, 'lighteye'), cell(0, 0, 'tissue'),
+  cell(-1, 1, 'siphon'), cell(0, 1, 'siphon'), cell(1, -2, 'nettle', { neuron: sim.createNeuron('inhibitor') })],
+fibres: CROSSED };
+// a Nettle on a Tissue cell, with no way to steer
+const NETTLE_PART = { name: 'nettle', cells: [cell(0, 0, 'tissue'),
+  cell(0, -1, 'nettle', { neuron: sim.createNeuron('inhibitor') })], fibres: [] };
 // Moods: a Light eye at the front middle into an Adrenal holding a Latch; a Fat each side; beside each Siphon this
 // cell (a Receptor drives its Siphon); a Heart at the back, kept beating by an Inhibitor
 const moodsBuild = (sideTypeName, withHeart = true) => ({ cells: [cell(0, 0, 'nucleus'), cell(1, -2, 'lighteye'),
@@ -219,6 +234,8 @@ const SOLUTIONS = {
   snap: snapBuild('resilin'),
   lullaby: lullabyBuild('calmgland'),
   moods: moodsBuild('receptor'),
+  grazed: grazedBuild('mender'),
+  swarm: swarmBuild(HOMING_PART),
 };
 // the wrong tool for each level: it must not win
 const WRONG_TOOLS = {
@@ -254,6 +271,8 @@ const WRONG_TOOLS = {
   snap: snapBuild('tissue'),
   lullaby: lullabyBuild('tissue'),
   moods: moodsBuild('tissue'),
+  grazed: grazedBuild('tissue'),
+  swarm: swarmBuild(NETTLE_PART),
 };
 
 // the cells and neurons in a design that the level's dock doesn't have yet (buildCheck lets them run, but the
@@ -506,8 +525,8 @@ const listed = byId('levels-list').children;
 const rows = listed.filter(child => child.className.startsWith('level-tile'));
 const headings = listed.filter(child => child.className === 'chapter-heading');
 check('the levels sheet lists every level under its chapter', byId('levels-sheet').style.display === 'flex' &&
-  rows.length === readGlobal('LEVELS.length') && headings.length === 6 &&
-  headings[5].textContent === `Chapter 6: ${readGlobal('CHAPTER_NAMES')[6]}`,
+  rows.length === readGlobal('LEVELS.length') && headings.length === 7 &&
+  headings[6].textContent === 'Chapter 7: Growth',
   `${rows.length} rows, ${headings.length} headings`);
 check('at first only level 1 is open: the others are locked and say which win opens them',
   !rows[0].className.includes('locked') && rows.slice(1).every(row => row.className.includes('locked')) &&

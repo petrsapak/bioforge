@@ -115,7 +115,18 @@ function cellsReachableFrom(bud, placedCells) {
 
 // a Bud's growth state: what it will grow, in order, and how far it has got
 function newBudGrowth(designCells, bud) {
-  return { plan: planBudPart(designCells, bud), progress: 0, grownCount: 0, done: false };
+  return { plan: planBudPart(designCells, bud), progress: 0, grownCount: 0, done: false, waitingForProtein: false };
+}
+
+// ---------- Protein ----------
+// whether the creature has the protein to grow a cell of this type (always, without a kit's protein to spend)
+function canAffordCell(creature, typeName) {
+  return creature.protein === null || creature.protein >= CELLS[typeName].recipe.protein - 1e-9;
+}
+
+// takes a grown cell's protein from the creature's store, if it keeps one
+function spendProtein(creature, typeName) {
+  if (creature.protein !== null) creature.protein = Math.max(0, creature.protein - CELLS[typeName].recipe.protein);
 }
 
 // ---------- Growing cells ----------
@@ -173,6 +184,7 @@ function releaseBudPart(world, creature, bud) {
   world.angleSprings = world.angleSprings.filter(spring =>
     !crossesCut(spring.pivot, spring.first) && !crossesCut(spring.pivot, spring.second));
   world.fluidLinks = world.fluidLinks.filter(link => !crossesCut(link.first, link.second));
+  shareFuelEvenly(creature.cells);
   creature.cells = creature.cells.filter(cell => !part.has(cell));
   const [aimX, aimY] = bud.budGrowth.plan.direction;
   const launched = createCreature(creature.team, [...part], {
@@ -215,7 +227,20 @@ function releaseBudPart(world, creature, bud) {
   spawnSparks(world, bud.x, bud.y, bud.type.color, 6);
 }
 
-// Buds turn burned fuel into their part one cell at a time; a nerve signal launches the finished part.
+// Stocks a part about to launch, as a yolk does: the O2 and sugar of the whole creature (part and body) are shared
+// out so the part's cells are as full as the body's. (Seeping through the Bud alone left a part nearly empty: 0.1
+// sugar after 4 s, so it couldn't swim, 2026-11-07.)
+function shareFuelEvenly(cells) {
+  for (const fluid of [FLUID_OXYGEN, FLUID_SUGAR]) {
+    const total = cells.reduce((sum, cell) => sum + cell.fluids[fluid], 0);
+    const capacity = cells.reduce((sum, cell) => sum + cell.fluidCapacity[fluid], 0);
+    if (!capacity) continue;
+    for (const cell of cells) cell.fluids[fluid] = cell.fluidCapacity[fluid] * total / capacity;
+  }
+}
+
+// Buds turn burned fuel and the creature's protein into their part one cell at a time; a nerve signal launches the
+// finished part.
 function updateBuds(world) {
   for (const cell of [...world.cells]) {
     if (!cell.type.growsParts || !cell.budGrowth || cell.creature.debris || cell.dead) continue;
@@ -223,9 +248,11 @@ function updateBuds(world) {
     const creature = cell.creature;
     const nextCell = growth.plan.cells.find(planned => !liveCellAt(creature, planned.q, planned.r));
     growth.done = !nextCell;
-    if (nextCell && growth.progress >= BUD_FUEL_PER_BIOMASS * CELLS[nextCell.typeName].cost) {
-      growth.progress -= BUD_FUEL_PER_BIOMASS * CELLS[nextCell.typeName].cost;
-      growCell(world, creature, nextCell, cell);
+    growth.waitingForProtein = !!nextCell && !canAffordCell(creature, nextCell.typeName);
+    const fuelNeeded = nextCell ? BUD_FUEL_PER_BIOMASS * CELLS[nextCell.typeName].cost : Infinity;
+    if (growth.progress >= fuelNeeded && !growth.waitingForProtein) {
+      growth.progress -= fuelNeeded;
+      if (growCell(world, creature, nextCell, cell)) spendProtein(creature, nextCell.typeName);
       connectFibres(world, creature, growth.plan.fibres);
     }
     growth.grownCount = growth.plan.cells.filter(planned => liveCellAt(creature, planned.q, planned.r)).length;
@@ -237,7 +264,7 @@ function updateBuds(world) {
 
 // ---------- Regrowth ----------
 // Menders pool repair fluid and rebuild the missing design cell nearest a Mender that touches the body, one at a
-// time; it swells to size from a quarter of its health and repair fluid heals the rest.
+// time, from the creature's protein; it swells to size from a quarter of its health and repair fluid heals the rest.
 function updateRegrowth(world, dt) {
   for (const creature of world.creatures) {
     if (creature.debris || !creature.design) continue;
@@ -262,10 +289,11 @@ function updateRegrowth(world, dt) {
     const nextCell = missing.reduce((best, planned) =>
       distanceToMender(planned) < distanceToMender(best) ? planned : best);
     const cost = REGROW_FLUID_PER_BIOMASS * CELLS[nextCell.typeName].cost;
-    if (creature.regrowthPool < cost) continue;
+    if (creature.regrowthPool < cost || !canAffordCell(creature, nextCell.typeName)) continue;
     const cell = regrowCell(world, creature, nextCell);
     if (!cell) continue;
     creature.regrowthPool -= cost;
+    spendProtein(creature, nextCell.typeName);
     cell.health = cell.maxHealth * REGROW_START_HEALTH;
   }
 }

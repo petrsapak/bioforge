@@ -123,6 +123,8 @@ function createCreature(team, cells, options = {}) {
     debris: false,                                       // a piece cut off from its nucleus, or a launched Bud part
     launchedPart: false,                                  // a Bud part fired from its parent
     fueled: false,                                        // launched part: still carries O2 and sugar
+    protein: null,                                        // a kit's leftover protein, spent growing cells (null: no
+                                                          // kit, growing costs no protein)
     heading: 0,                                           // radians clockwise from up
     targetHeading: 0,
     launchAim: 0,                                         // launched part: its firing direction in its rest frame
@@ -216,7 +218,7 @@ function createCell(typeName, q, r, creature) {
     starving: false,
     poisoned: false,
     boundKey: null,                                       // Command: the key it fires on ('a'–'z', '0'–'9')
-    budGrowth: null,                                      // Bud: { plan, progress, grownCount, done }
+    budGrowth: null,                                      // Bud: its part and growth (newBudGrowth, growth.js)
     budParent: null,                                      // a cell of a growing Bud part: its Bud
     snareLine: null,
   };

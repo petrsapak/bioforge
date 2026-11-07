@@ -17,12 +17,13 @@ function steerAiCreature(world, creature, dt) {
   else steerTowardNearestEnemy(world, creature);
 }
 
-// the nearest living creature of another team and its distance between centres; { target: null } if there is none
+// The nearest living creature of another team and its distance between centres; { target: null } if there is none.
+// A launched Bud part counts while it still has fuel, so hunters chase decoys.
 function nearestEnemy(world, creature) {
   let target = null;
   let targetDistance = Infinity;
   for (const other of world.creatures) {
-    if (other.team === creature.team || other.debris) continue;
+    if (other.team === creature.team || (other.debris && !(other.launchedPart && other.fueled))) continue;
     const distance = vectorLength(other.centerX - creature.centerX, other.centerY - creature.centerY);
     if (distance >= targetDistance) continue;
     targetDistance = distance;

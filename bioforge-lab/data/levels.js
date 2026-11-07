@@ -5,7 +5,8 @@
 //     level before it add (levelUnlocks in levels.js)
 //   arena: { width, height } in px; systems: the switchable systems that run (chapters 1 and 2: nerve only, so
 //     every cell works at full power and nothing starves; chapter 3 adds fluid and vascular; chapter 4 metabolism
-//     and food; chapter 5 secretions; chapter 6 chemical, scent and treatments)
+//     and food; chapter 5 secretions; chapter 6 chemical, scent and treatments; chapter 7 regrow, with treatments
+//     but no hormones)
 //   seepFactor: share of the usual seeping between cells (cold water: less); a Heart's pumping is not slowed
 //   waterOxygen: share of the usual O₂ a Gill makes from the water (stale water: less)
 //   limits: design limits ({ budget, maxCells, maxNeurons, maxFibreUnits, bannedCells: cell type names the level
@@ -43,7 +44,9 @@ const CIRCULATION_SYSTEMS = ['nerve', 'fluid', 'vascular'];
 const FEEDING_SYSTEMS = ['nerve', 'fluid', 'vascular', 'metabolism', 'food'];
 const ARMOUR_SYSTEMS = [...FEEDING_SYSTEMS, 'secretions'];
 const MOODS_SYSTEMS = [...ARMOUR_SYSTEMS, 'chemical', 'scent', 'treatments'];
-const CHAPTER_NAMES = { 1: 'Reflexes', 2: 'Memory and logic', 3: 'Circulation', 4: 'Feeding', 5: 'Armour', 6: 'Moods' };
+const GROWTH_SYSTEMS = [...ARMOUR_SYSTEMS, 'treatments', 'regrow'];
+const CHAPTER_NAMES = { 1: 'Reflexes', 2: 'Memory and logic', 3: 'Circulation', 4: 'Feeding', 5: 'Armour', 6: 'Moods',
+  7: 'Growth' };
 // while the hormone levels are hidden, chapter 6 holds only Tanned hide and Snap
 if (HIDDEN.levels.includes('moods')) CHAPTER_NAMES[6] = 'Tanning and resilin';
 const WATCHER_LIGHT = { x: 700, y: 60, range: 2000 };     // px: above the top ring, bright all over the arena
@@ -552,6 +555,42 @@ const ALL_LEVELS = [
     goal: TOP_RING,
     timeLimit: 35, par: { seconds: 30, biomass: 30 },
   }),
+  createLevel({
+    id: 'grazed', chapter: 7, name: 'Grazed',
+    unlocks: { cells: ['mender'] },
+    brief: 'Three grazers hunt you and bite your cells off one by one. No weapons this time: keep your Nucleus alive ' +
+      'for 60 s.',
+    hint: 'A Mender turns O₂ and sugar into repair fluid, and regrows a lost cell of your design within a few ' +
+      'seconds, from the protein the kit leaves over. Ring the Nucleus with Tissue and make two of the ring Menders.',
+    systems: GROWTH_SYSTEMS,
+    // every weapon wins by killing the grazers (2026-11-07); a Tanner ring and more Tissue lose
+    limits: { kit: { protein: 40, sugar: 6 }, bannedCells: ['nettle', 'spitter', 'protease', 'acid'] },
+    food: { maxCount: 0 },
+    start: { x: 700, y: 400, heading: 0 },
+    creatures: [[200, 150], [1200, 150], [200, 650]].map(([x, y]) =>
+      ({ design: 'grazer', x, y, heading: 0, behaviour: 'hunt' })),
+    goal: { kind: 'survive', seconds: 60 },
+    timeLimit: 70, par: { seconds: 70, biomass: 12 },
+  }),
+  createLevel({
+    id: 'swarm', chapter: 7, name: 'Swarm',
+    unlocks: { cells: ['bud'] },
+    brief: 'The urchin again, with the light on it. Spitters aren\'t allowed: send a swarm to destroy its Nucleus, ' +
+      'and stay out of its reach yourself.',
+    hint: 'A Bud grows a saved part and, on a signal, shoots it off with its share of the body\'s fuel. The part ' +
+      'keeps its own wiring: save crossed Light eyes, two Siphons and a Nettle with an Inhibitor at the front middle ' +
+      'as a part (Shift+right-drag, no Nucleus), give it to a Bud at the front and turn it (Q, E) to face up. A slow ' +
+      'Pacemaker (0.2 Hz) fires the Bud. Each part is built from the kit\'s leftover protein.',
+    systems: GROWTH_SYSTEMS,
+    // Spit's Spitters win here too, without a Bud
+    limits: { kit: { protein: 50, sugar: 8, fat: 2 }, bannedCells: ['spitter'] },
+    food: { maxCount: 0 },
+    start: { x: 700, y: 620, heading: 0 },
+    light: { carriedBy: 0, range: 900 },
+    creatures: [{ design: 'urchin', x: 700, y: 250, heading: 0, behaviour: 'wired', anchored: true }],
+    goal: { kind: 'kill', creature: 0 },
+    timeLimit: 90, par: { seconds: 50, biomass: 10 },
+  }),
 ];
 // the levels in the game, in order
 const LEVELS = ALL_LEVELS.filter(level => !HIDDEN.levels.includes(level.id));
@@ -567,7 +606,7 @@ const darterCells = () => [
 // Creatures that live in levels. The Darter holds still until its Eyespot sees an enemy within reach (120 px), then
 // jets straight ahead on both Siphons. The skittish Darter has no nerves: the AI makes it flee (behaviour 'flee',
 // ai.js), so its Siphons' bursts can't add to its sprint. The Clam is a Nucleus inside two rings of Shell, and does
-// nothing.
+// nothing. The Grazer is a small hunter with a Mouth in front, which bites soft cells.
 const LEVEL_CREATURES = {
   darter: {
     cells: darterCells(),
@@ -587,6 +626,11 @@ const LEVEL_CREATURES = {
       createDesignCell(-1, 0, 'nettle'),
     ],
     fibres: [[1, -1], [1, 0], [-1, 1], [-1, 0]].map(([q, r]) => ({ from: { q: 0, r: -1 }, to: { q, r } })),
+  },
+  grazer: {
+    cells: [createDesignCell(0, 0, 'nucleus'), createDesignCell(0, -1, 'mouth'), createDesignCell(-1, 1, 'tissue'),
+      createDesignCell(0, 1, 'tissue')],
+    fibres: [],
   },
   clam: designFromArt([
     '  S S S',

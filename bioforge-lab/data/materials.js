@@ -4,8 +4,8 @@
 // (metabolism.js). Nucleic joins with chapter 7. Field meanings:
 //   id, name, color: what the builder and the level card show
 //   reserve: where the unspent part of a kit goes at the start of a run: 'sugar' (spread over the cells' sugar
-//   stores), 'fat' (into Fat cells), 'mineral' (into Mineralizers), or null (kept for nothing
-//   yet: growth, milestone 7)
+//   stores), 'fat' (into Fat cells), 'mineral' (into Mineralizers) or 'protein' (kept by the creature for growing
+//   cells: Bud parts and cells a Mender regrows)
 
 // a material: the definition over the defaults
 function material(definition) {
@@ -13,7 +13,7 @@ function material(definition) {
 }
 
 const MATERIALS = [
-  material({ id: 'protein', name: 'Protein', color: '#d98a6a' }),
+  material({ id: 'protein', name: 'Protein', color: '#d98a6a', reserve: 'protein' }),
   material({ id: 'sugar', name: 'Sugar', color: '#ffd23f', reserve: 'sugar' }),
   material({ id: 'fat', name: 'Fat', color: '#f0e0a0', reserve: 'fat' }),
   material({ id: 'mineral', name: 'Mineral', color: '#b8c4cc', reserve: 'mineral' }),

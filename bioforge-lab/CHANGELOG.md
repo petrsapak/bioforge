@@ -7,6 +7,17 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.40 (2026-11-07)
+- Chapter 7, Growth, with two new levels after Snap. Grazed brings the Mender: three grazers bite your cells off,
+  and no weapons are allowed. Swarm brings the Bud: send homing stingers at the urchin while you stay out of its
+  reach. Swarm is now the last level.
+- A Bud's part leaves with its share of the body's O₂ and sugar, so it can swim and sting on its own. Before, it
+  left nearly empty and only drifted.
+- Growing costs protein: in a level with a kit, every cell a Bud grows or a Mender regrows takes its protein from
+  what the kit leaves over, and growing stops when it runs out. The Reserves line shows the protein for a body with
+  a Bud or a Mender, and the Bud's card says what its part costs.
+- Hunters chase launched Bud parts that still have fuel, as well as you.
+
 ## 0.7.39 (2026-11-07)
 - Hormones are put away for now: the Adrenal, Calm, Fed and Starved glands, the Receptor, the hormone view (C) and
   the five levels built on them (Fight or flight, Lie low, Feast and famine, Lullaby, Moods). Chapter 6 is now

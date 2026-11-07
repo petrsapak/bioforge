@@ -45,9 +45,10 @@ function releaseFat(cell, dt) {
   cell.fluids[FLUID_SUGAR] += fatUsed * FAT_SUGAR_YIELD;
 }
 
-// Fills a new creature's stores from a kit's leftovers ({ sugar, fat, mineral }): the sugar spread so that every
-// cell is equally full, the fat the same over the cells that store fat, the mineral over the mineral stores. Any
-// beyond the body's room is lost. Mouths start empty, ready to eat. O2 comes from the water and is left as it was.
+// Fills a new creature's stores from a kit's leftovers ({ sugar, fat, mineral, protein }): the sugar spread so that
+// every cell is equally full, the fat the same over the cells that store fat, the mineral over the mineral stores.
+// Any beyond the body's room is lost. The protein is kept whole on the creature, for growing cells (growth.js).
+// Mouths start empty, ready to eat. O2 comes from the water and is left as it was.
 function stockReserves(creature, reserves) {
   fillEvenly(creature.cells, sugarRoom, reserves.sugar, (cell, amount) => {
     cell.fluids[FLUID_SUGAR] = amount;
@@ -58,6 +59,7 @@ function stockReserves(creature, reserves) {
   fillEvenly(creature.cells, cell => cell.type.mineralCapacity, reserves.mineral, (cell, amount) => {
     cell.mineral = amount;
   });
+  creature.protein = reserves.protein;
 }
 
 // the sugar a cell keeps as a store: none in a Mouth, which only takes food in
