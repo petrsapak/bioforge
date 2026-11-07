@@ -21,8 +21,9 @@ const LIBRARY_TAB_HELP = {
   creatures: 'Click a creature to load it into the Lab (it replaces the design), or its Study button to show it in ' +
     'a window beside your own. Saving under a name that is taken asks before it overwrites. Ctrl+S saves too, ' +
     'from the Lab.',
-  parts: 'Ctrl+click cells in the Lab, then right-click them to save a part. Click a part to stamp it onto your ' +
-    'creature (Q/E turn it, Esc puts it away). With a Bud clicked, the part goes to the Bud, which grows it.',
+  parts: 'Hold Shift and right-drag a box round cells in the Lab to save them as a part. Click a part to stamp it ' +
+    'onto your creature (Q/E turn it, Esc puts it away). With a Bud clicked, the part goes to the Bud, which grows ' +
+    'it.',
   examples: 'Click one to load it into the Lab (it replaces the design), or its Study button to show it in a ' +
     'window beside your own, to study while you build.',
 };
@@ -131,7 +132,8 @@ function showOwnCards(app, box, isCreature) {
   if (!kept.length) {
     box.innerHTML = isCreature
       ? '<div class="library-empty">No creatures yet. Save this creature keeps the one in the Lab here.</div>'
-      : '<div class="library-empty">No parts yet. Ctrl+click cells in the Lab, then right-click them.</div>';
+      : '<div class="library-empty">No parts yet. In the Lab, hold Shift and right-drag a box ' +
+        'round cells.</div>';
   } else if (!entries.length) {
     box.innerHTML = '<div class="library-empty">Nothing by that name.</div>';
   }

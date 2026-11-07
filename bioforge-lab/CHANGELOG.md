@@ -7,6 +7,15 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.37 (2026-11-07)
+- Saving cells is now one move: hold Shift and drag with the right mouse button to draw a box round them. The cells
+  in the box light up as you drag; let go and the game asks for a name. A box round the Nucleus saves a creature,
+  one without it saves a part. This replaces right-clicking the Nucleus and Ctrl+click selecting; a plain right-click
+  only removes cells now.
+- Lie low can no longer be won by a plain Seeker (two Light eyes and two Siphons) without Calm: the kit has 3 sugar
+  instead of 5. The Calm gland now burns a quarter of the sugar it did and makes as much Calm, so a gland that is
+  always on saves more than it costs. Before, it cost about as much as it saved.
+
 ## 0.7.36 (2026-11-06)
 - A body that uses more of a material than the kit gives now says "Too much mineral: the body uses 3, the kit has
   none. It goes into the Shell and the Thorn" instead of "Not enough mineral", so you know what to take out. The

@@ -1,7 +1,7 @@
 'use strict';
 // builder.js and the saved format (sim only): placing and removing cells (mirrored too), painting strokes, planned
-// cells, Command keys, Bud parts and their aim, fibres drawn along a route, stamping, saving a selection, the
-// library, and carrying old saves over to the current format.
+// cells, Command keys, Bud parts and their aim, fibres drawn along a route, stamping, a marquee's cells, saving a
+// selection, the library, and carrying old saves over to the current format.
 const { load } = require('./load');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['createEditedDesign', 'canPlaceCell', 'placeCell', 'removeCell', 'bodyCells',
@@ -13,7 +13,7 @@ const { X: sim } = load({}, ['createEditedDesign', 'canPlaceCell', 'placeCell', 
   'hexesAlongStroke', 'MIRROR_AXIS_COUNT', 'FRONT_TO_BACK_AXIS', 'extendFibrePath', 'laidOutBodyFibres',
   'planFibreToggle', 'fibreUnits', 'mirrorKeyMaps', 'placeNeuronMirrored', 'changeNeuronSettingMirrored',
   'removeNeuronMirrored', 'toggleFibreMirrored', 'removeFibreMirrored', 'setSensedHormoneMirrored',
-  'cellInDirection']);
+  'cellInDirection', 'cellKeysInBox']);
 
 const cellsOf = list => list.map(([q, r, typeName]) => sim.createDesignCell(q, r, typeName));
 const editedFrom = (cells, biomassLimit) => sim.createEditedDesign({ cells, fibres: [] }, biomassLimit);
@@ -73,6 +73,17 @@ const editedFrom = (cells, biomassLimit) => sim.createEditedDesign({ cells, fibr
   const creature = sim.spawn(world, { cells: sim.bodyCells(edited) }, 400, 400, 0, 0);
   for (let i = 0; i < 400; i++) sim.step(world, 1 / 40, { swimX: 0, swimY: 0, ability: false });
   check('the spawned Bud grows its part', creature.cells.length > 3, `cells ${creature.cells.length}`);
+}
+
+{ // the cells a marquee takes in
+  const edited = editedFrom(cellsOf([[0, 0, 'nucleus'], [1, 0, 'muscle'], [2, 0, 'muscle'], [0, 2, 'tissue']]),
+    Infinity);
+  const [rightX] = sim.hexToPixel(1, 0);
+  check('a box over the row takes in the cells whose centres it covers, from either corner',
+    sim.cellKeysInBox(edited, [rightX + 1, 5], [-1, -5]).join(' ') === '0,0 1,0' &&
+    sim.cellKeysInBox(edited, [-1, -5], [rightX + 1, 5]).join(' ') === '0,0 1,0');
+  check('a click with no drag takes in the cell under it', sim.cellKeysInBox(edited, [2, 1], [2, 1]).join() === '0,0');
+  check('a box over empty water takes in nothing', sim.cellKeysInBox(edited, [-80, -80], [-60, -60]).length === 0);
 }
 
 { // stamping and saving a selection

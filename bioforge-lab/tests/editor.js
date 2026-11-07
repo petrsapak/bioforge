@@ -224,10 +224,16 @@ check('3 opens no tab: there is no Vessels view since the Heart pumps an area (2
   byId('dock-bar').textContent === 'Cells' && !/Vessels/.test(byId('budget').innerHTML));
 pressKey('Escape');
 
-clickHex(0, -1, { ctrlKey: true });
-clickHex(1, -1, { ctrlKey: true });
-fire('game', 'contextmenu', { ...screenPointOf(1, -1), target: canvas });
-check('right-clicking the selection opens the save menu', byId('save-menu').style.display === 'block');
+const cellsBeforeMarquee = cellCount();
+fire('game', 'mousedown', { ...screenPointOf(0, -1), button: 2, shiftKey: true, target: canvas });
+moveMouseTo(1, -1);
+runFrames(1);
+check('a Shift+right-drag removes nothing and outlines the cells in its box, but asks nothing yet',
+  cellCount() === cellsBeforeMarquee && byId('save-menu').style.display !== 'block');
+fire('window', 'mouseup', { ...screenPointOf(1, -1), button: 2, target: canvas });
+check('letting go of it opens the save menu for those cells', byId('save-menu').style.display === 'block' &&
+  byId('save-menu-title').textContent.startsWith('2 selected') && byId('save-menu-save').textContent === 'Save part',
+  byId('save-menu-title').textContent);
 byId('save-menu-name').value = 'Front';
 byId('save-menu-save').onclick();
 const partRow = byId('library-cards').children[0];

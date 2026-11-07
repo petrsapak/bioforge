@@ -97,9 +97,9 @@ const sprinterBuild = backTypeName => ({ cells: [cell(0, 0, 'nucleus', { neuron:
   cell(-1, 1, 'siphon'), cell(0, 1, 'siphon'), cell(0, -1, 'gill'), cell(1, -1, 'gill'), cell(-1, 0, 'fat'),
   cell(1, 0, 'fat'), cell(-1, 2, backTypeName)],
   fibres: [fibre(0, 0, -1, 1), fibre(0, 0, 0, 1), ...(backTypeName === 'adrenal' ? [fibre(0, 0, -1, 2)] : [])] });
-// Lie low: the crossed Seeker with Fat on both sides and this cell at the back (a Calm gland holds an Inhibitor)
-const calmSeekerBuild = backTypeName => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(-1, 0, 'fat'),
-  cell(1, 0, 'fat'),
+// Lie low: the crossed Seeker with this cell at the back (a Calm gland holds an Inhibitor). No Fat: a Fat cell takes
+// most of the starting sugar into its big store, away from the Siphons.
+const calmSeekerBuild = backTypeName => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons,
   cell(-1, 2, backTypeName, backTypeName === 'calmgland' ? { neuron: sim.createNeuron('inhibitor') } : {})],
   fibres: CROSSED });
 // Feast and famine: Bloom's body with a Nose at the front middle into a Fed gland beside the Fat, and a Receptor for
@@ -305,6 +305,17 @@ const PUFFER_LEVELS = ['bulwark', 'pincushion', 'quarry', 'siege', 'tanned-hide'
 const mouthRingRuns = PUFFER_LEVELS.map(id => sim.runLevel(levelById(id), ringBuild('mouth')));
 check('a ring of Mouths loses every Puffer level', mouthRingRuns.every(run => run.outcome === 'lost'),
   mouthRingRuns.map(run => `${run.outcome} ${run.time.toFixed(0)} s`).join(', '));
+// the bare crossed Seeker won Lie low with no Calm while the kit had 5 sugar and the Calm gland burned as much as it
+// saved (user, 2026-11-07: "lie low level can be won with this creature")
+const bareSeeker = { cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons], fibres: CROSSED };
+const bareLieLow = sim.runLevel(levelById('lie-low'), bareSeeker);
+check('"Lie low": the bare Seeker runs dry before 120 s near the light', bareLieLow.outcome === 'lost',
+  `${bareLieLow.outcome} ${bareLieLow.goalTime.toFixed(0)} s near the light`);
+const calmLayouts = [cell(1, -2, 'calmgland', lit()), [cell(1, 0, 'fat'), cell(-1, 2, 'calmgland', lit())]]
+  .map(extra => sim.runLevel(levelById('lie-low'), { ...bareSeeker, cells: [...bareSeeker.cells, ...[extra].flat()] }));
+check('"Lie low": a Calm gland at the front, or one at the back with a Fat cell, wins too',
+  calmLayouts.every(run => run.outcome === 'won'), calmLayouts.map(run => `${run.outcome} ${run.time.toFixed(0)} s`)
+    .join(', '));
 // Cilia steered by side Muscles won the endurance levels with no stores while Cilia burned nothing (2026-11-05)
 const ciliaCruiser = { cells: [cell(0, 0, 'nucleus'), cell(-1, 0, 'muscle'), cell(1, 0, 'muscle'),
   cell(-2, 0, 'lighteye'), cell(2, 0, 'lighteye'), cell(0, -1, 'tissue'), cell(1, -1, 'tissue'), cell(-1, 1, 'cilia'),

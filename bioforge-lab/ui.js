@@ -36,7 +36,8 @@ function createApp(canvas) {
     focusKey: null,                                       // the clicked cell, shown and set up in the panel
     arrowColumn: null,                                    // { key, x }: the column Up and Down keep to (grid px)
     isFollowingFocus: false,                              // the view follows the arrow keys' cell, till the mouse moves
-    selection: new Set(),                                 // Ctrl+clicked hexes
+    selection: new Set(),                                 // the hexes a Shift+right-drag marquee took in
+    marquee: null,                                        // that drag: { from, to } in grid px, screenX/Y the mouse
     stamp: null,                                          // a saved part being placed: { template, rotation }
     mirrorAxes: readStorage('mirror-axes', []),           // the symmetry axes on, as turns of 30° (builder.js)
     paintDrag: null,                                      // a held button painting cells: { isErasing, lastPoint }
@@ -238,7 +239,7 @@ function showLayer(app, layer) {
   refreshPanel(app);
 }
 
-// ---------- The save menu (right-click on the selection, or on the Nucleus for the whole creature) ----------
+// ---------- The save menu (opens when a Shift+right-drag marquee is let go over cells) ----------
 function setUpSaveMenu(app) {
   byId('save-menu-save').onclick = () => {
     saveSelection(app, byId('save-menu-name').value);
@@ -402,6 +403,7 @@ function listenToKeyboard(app) {
   });
   addEventListener('keyup', event => {
     app.keysHeld.delete(event.key.toLowerCase());
+    if (event.key === 'Shift') finishMarquee(app);
     const commandKey = commandKeyOf(event);
     if (commandKey) app.commandKeysHeld.delete(commandKey);
   });
@@ -505,6 +507,7 @@ function letGoOfWhatIsInHand(app) {
   app.aimDragKey = null;
   app.fibreDrag = null;
   app.stamp = null;
+  app.marquee = null;
   app.selection.clear();
   refreshPanel(app);
   return true;
@@ -553,13 +556,7 @@ function listenToMouse(app) {
     event.preventDefault();
     zoomAtCursor(app, event.clientX, event.clientY, event.deltaY);
   }, { passive: false });
-  canvas.addEventListener('contextmenu', event => {
-    event.preventDefault();
-    if (app.mode !== 'build' || app.stamp) return;
-    const key = hexKey(...hexUnderMouse(app, event));
-    if (app.layer === 'body' && isNucleusHex(app, key)) app.selection = new Set(app.edited.cells.keys());
-    if (app.selection.has(key)) openSaveMenu(app, event.clientX, event.clientY);
-  });
+  canvas.addEventListener('contextmenu', event => event.preventDefault());
   addEventListener('mouseup', event => dropWhatIsInHand(app, event));
   addEventListener('mousemove', event => trackTooltipTarget(app, event));
   addEventListener('mousedown', () => hideTooltip(app));
@@ -578,18 +575,24 @@ function trackMouse(app, event) {
   }
   app.hoverHex = hexUnderMouse(app, event);
   app.hoverPoint = screenToGrid(app, event.clientX, event.clientY);
+  if (app.marquee) stretchMarquee(app, event);
   if (app.paintDrag) paintAlongStroke(app);
   if (app.fibreDrag) {
     app.fibreDrag.pathKeys = extendFibrePath(app.edited, app.fibreDrag.pathKeys, hexKey(...app.hoverHex));
   }
 }
 
-// Middle button pans. Left: grab a Bud's aim arrow or part, Ctrl+click selects, a click on a cell sets it up, a click
-// on an empty hex places the chosen cell. Right: remove. While a stamp is in hand, left places it and right drops it.
+// Middle button pans. Left: grab a Bud's aim arrow or part, a click on a cell sets it up, a click on an empty hex
+// places the chosen cell. Right: remove; Shift+right drags a marquee round cells to save. While a stamp is in hand,
+// left places it and right drops it.
 function handleBuilderMouseDown(app, event) {
   if (event.button === 1) {
     event.preventDefault();
     app.panDrag = { panX: app.gridView.panX, panY: app.gridView.panY, mouseX: event.clientX, mouseY: event.clientY };
+    return;
+  }
+  if (event.button === 2 && event.shiftKey && !app.stamp) {
+    startMarquee(app, event);
     return;
   }
   const [q, r] = hexUnderMouse(app, event);
@@ -600,17 +603,11 @@ function handleBuilderMouseDown(app, event) {
   const key = hexKey(q, r);
   const isLeft = event.button === 0;
   const isRight = event.button === 2;
-  const withCtrl = event.ctrlKey || event.metaKey;
-  if (isLeft && !app.stamp && !withCtrl && grabBudHandle(app, q, r)) return;
+  if (isLeft && !app.stamp && grabBudHandle(app, q, r)) return;
   if (app.stamp) {
     useStamp(app, isRight, q, r);
     return;
   }
-  if (isLeft && withCtrl) {
-    if (app.edited.cells.has(key) && !app.selection.delete(key)) app.selection.add(key);
-    return;
-  }
-  if (isRight && (app.selection.has(key) || isNucleusHex(app, key))) return;   // the save menu opens instead
   if (isLeft && app.edited.cells.has(key)) {
     app.focusKey = key;
     refreshPanel(app);
@@ -700,7 +697,7 @@ function grabBudHandle(app, q, r) {
   return true;
 }
 
-// whether the hex holds the Nucleus, which can't be removed: a right-click on it saves the whole creature
+// whether the hex holds the Nucleus
 function isNucleusHex(app, key) {
   const cell = app.edited.cells.get(key);
   return !!cell && CELLS[cell.typeName].isNucleus;
@@ -731,8 +728,41 @@ function placeChosenCell(app, q, r) {
   return true;
 }
 
-// lets go of a dragged Bud part or aim arrow; a drop that doesn't fit says why
+// ---------- The marquee (Shift+right-drag: select cells to save) ----------
+// starts a marquee at the mouse; it takes the place of the cells selected before
+function startMarquee(app, event) {
+  const point = screenToGrid(app, event.clientX, event.clientY);
+  app.marquee = { from: point, to: point, screenX: event.clientX, screenY: event.clientY };
+  app.paintDrag = null;
+  closeSaveMenu();
+  selectCellsInMarquee(app);
+}
+
+// moves the marquee's free corner to the mouse
+function stretchMarquee(app, event) {
+  app.marquee.to = screenToGrid(app, event.clientX, event.clientY);
+  app.marquee.screenX = event.clientX;
+  app.marquee.screenY = event.clientY;
+  selectCellsInMarquee(app);
+}
+
+// selects the cells the marquee takes in, so they light up as it grows
+function selectCellsInMarquee(app) {
+  app.selection = new Set(cellKeysInBox(app.edited, app.marquee.from, app.marquee.to));
+}
+
+// Letting go of the right button or of Shift ends the marquee. With cells in it, the save menu asks for a name, at
+// the mouse; an empty one just goes away.
+function finishMarquee(app) {
+  const marquee = app.marquee;
+  if (!marquee) return;
+  app.marquee = null;
+  if (app.selection.size) openSaveMenu(app, marquee.screenX, marquee.screenY);
+}
+
+// lets go of a dragged Bud part or aim arrow, or ends a marquee; a drop that doesn't fit says why
 function dropWhatIsInHand(app, event) {
+  if (event.button === 2) finishMarquee(app);
   const hex = app.hoverHex;
   if (app.mode === 'build' && hex && app.fibreDrag) finishFibreDrag(app, hex);
   if (app.mode === 'build' && hex) {

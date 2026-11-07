@@ -18,7 +18,8 @@
 //     signalled), 'snare' (signalled or holding a line), 'beating' (unless the creature rests), 'always',
 //     'refillRepair' (until its repair fluid is nearly full), 'growPart' (while its Bud part is unfinished)
 //   product (fluid): what its burned fuel turns into: 'repair', 'hormone' or 'budPart'; hormone: which hormone
-//     (a chemical fluid's id, data/fluids.js)
+//     (a chemical fluid's id, data/fluids.js); hormoneYield: how many times the usual amount of hormone it makes
+//     from each unit of fuel (1 if not set)
 //   breathes: makes O2 from the water; dumpsWaste: dumps waste into the water from the surface
 //   pumps: while signalled, pumps blood between the cells in its reach (Heart, vascular.js)
 //   eatsFood: takes in food specks; bites: bites cells it touches; spiked: damages enemy cells it hits
@@ -46,6 +47,7 @@ function cellType(definition) {
     swimPower: 1,
     damageFactor: 1,
     fuelBurn: 0,
+    hormoneYield: 1,
     oxygenCapacity: pipeOrStore,
     sugarCapacity: pipeOrStore,
     fatCapacity: 0,
@@ -206,7 +208,9 @@ const CELLS = {
       'that receive it work up to 80% harder.',
   }),
   calmgland: cellType({
-    category: 'Gland', name: 'Calm gland', cost: 3, health: 25, fuelBurn: 0.02, color: '#4a86d0',
+    // a quarter of a gland's usual fuel for the same Calm, so a gland that is always on saves more than it burns
+    // (at 0.02 it cost about what it saved, and a Seeker without one won Lie low; 2026-11-07)
+    category: 'Gland', name: 'Calm gland', cost: 3, health: 25, fuelBurn: 0.005, hormoneYield: 4, color: '#4a86d0',
     work: 'onSignal', product: 'hormone', hormone: 'calm', needsSignal: true,
     description: 'On a nerve signal, turns a little sugar into Calm, which lasts. Cells that receive it burn up to ' +
       'half the fuel, but their Pacemakers slow down and their Synapses need more to fire.',

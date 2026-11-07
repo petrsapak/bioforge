@@ -43,7 +43,7 @@ const PRODUCTS = {
     cell.fluids[FLUID_REPAIR] += burned / FUEL_BURN_SCALE;
   },
   hormone: (cell, burned) => {
-    cell.fluids[HORMONE_INDEX[cell.type.hormone]] += burned * HORMONE_GAIN / FUEL_BURN_SCALE;
+    cell.fluids[HORMONE_INDEX[cell.type.hormone]] += burned * HORMONE_GAIN * cell.type.hormoneYield / FUEL_BURN_SCALE;
   },
   budPart: (cell, burned) => {
     if (cell.budGrowth) cell.budGrowth.progress += burned;

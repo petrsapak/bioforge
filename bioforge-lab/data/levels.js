@@ -463,7 +463,7 @@ const LEVELS = [
     hint: 'Calm halves what a cell burns, and lasts. A Calm gland with an Inhibitor in it is always on and costs ' +
       'little: put it at the back between the Siphons, where the burning is.',
     systems: MOODS_SYSTEMS,
-    limits: { kit: { protein: 30, sugar: 5, fat: 2 } },
+    limits: { kit: { protein: 30, sugar: 3, fat: 2 } },   // at 5 sugar a Seeker without Calm won (2026-11-07)
     food: { maxCount: 0 },
     light: DRIFTING_LIGHT,
     goal: { kind: 'stayNear', radius: 100, seconds: 120 },

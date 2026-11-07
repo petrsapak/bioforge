@@ -61,9 +61,11 @@ async function main() {
   pressKey('Escape');
   check('Esc first closes an open sheet', byId('keys-sheet').style.display === 'none' &&
     byId('menu-sheet').style.display === 'none');
-  first.fire('game', 'mousedown', { clientX: GRID_MIDDLE_X, clientY: GRID_MIDDLE_Y, button: 0, ctrlKey: true,
+  first.fire('game', 'mousedown', { clientX: GRID_MIDDLE_X, clientY: GRID_MIDDLE_Y, button: 2, shiftKey: true,
     target: byId('game') });
-  first.fire('window', 'mouseup', { clientX: GRID_MIDDLE_X, clientY: GRID_MIDDLE_Y, target: byId('game') });
+  first.fire('window', 'keyup', { key: 'Shift' });
+  check('letting go of Shift ends a marquee too, and asks for a name', byId('save-menu').style.display === 'block');
+  pressKey('Escape');
   pressKey('Escape');
   check('with cells selected, Esc lets go of them and opens no menu', byId('menu-sheet').style.display === 'none');
   first.fire('game', 'mousedown', { clientX: GRID_MIDDLE_X, clientY: GRID_MIDDLE_Y, button: 0, target: byId('game') });
@@ -88,10 +90,13 @@ async function main() {
   check('the builder\'s design is saved within a second or two',
     savedState(storage) && savedState(storage).design.cells.length > 3 && savedState(storage).run === null);
 
-  // ---------- Saving the creature: the Nucleus' right-click, quick save and load, Delete all ----------
+  // ---------- Saving the creature: a marquee round it, quick save and load, Delete all ----------
   const starterCells = cellCount(byId);
-  first.fire('game', 'contextmenu', { clientX: GRID_MIDDLE_X, clientY: GRID_MIDDLE_Y, preventDefault() {} });
-  check('a right-click on the Nucleus offers to save the whole creature', byId('save-menu').style.display === 'block' &&
+  first.fire('game', 'mousedown', { clientX: 0, clientY: 0, button: 2, shiftKey: true, target: byId('game') });
+  first.fire('game', 'mousemove', { clientX: 2 * GRID_MIDDLE_X, clientY: 2 * GRID_MIDDLE_Y, target: byId('game') });
+  first.fire('window', 'mouseup', { clientX: 2 * GRID_MIDDLE_X, clientY: 2 * GRID_MIDDLE_Y, button: 2,
+    target: byId('game') });
+  check('a marquee round the whole creature offers to save it', byId('save-menu').style.display === 'block' &&
     byId('save-menu-title').textContent.startsWith(`${starterCells} selected`) &&
     byId('save-menu-save').textContent === 'Save creature');
   pressKey('Escape');

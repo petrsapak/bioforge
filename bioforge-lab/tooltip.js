@@ -25,7 +25,8 @@ function trackTooltipTarget(app, event) {
     typeName = dockButton.dataset.type || null;
     neuronKind = dockButton.dataset.neuron || null;
     target = 'dock:' + (typeName || neuronKind);
-  } else if (event.target === app.canvas && app.mode === 'build' && app.layer === 'body') {
+  } else if (event.target === app.canvas && app.mode === 'build' && app.layer === 'body' && !app.marquee) {
+    // not while a marquee is drawn: the card would cover the cells it takes in
     const [q, r] = hexUnderMouse(app, event);
     const cell = app.edited.cells.get(hexKey(q, r));
     if (cell) {

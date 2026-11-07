@@ -19,6 +19,7 @@ const BUD_PART_COLOR = '#c8e07a';
 const WARNING_COLOR = '#e8875a';
 const HOVERED_WARNING_COLOR = '#ffb48f';
 const SELECTION_COLOR = '#e8c547';
+const MARQUEE_FILL = 'rgba(232,197,71,0.08)';             // inside a Shift+right-drag's box
 const DIM_TEXT_COLOR = '#6f7b88';
 const NERVE_VIEW_SHADE = 'rgba(11,20,24,0.62)';           // laid over the cells in the Nerve view
 const NEURON_GHOST_ALPHA = 0.5;                           // the neuron a click would put in, under the mouse
@@ -201,9 +202,9 @@ function sameTypeShown(app) {
   return focused ? focused.typeName : app.selectedType;
 }
 
-// Shift held in the Body view shows where the clicked or chosen cell type is used
+// Shift held in the Body view shows where the clicked or chosen cell type is used, but not while it drags a marquee
 const isShowingSameType = app => app.keysHeld.has('shift') && app.layer === 'body' && !app.stamp &&
-  !!sameTypeShown(app);
+  !app.marquee && !!sameTypeShown(app);
 
 // Shift: the other cells shaded, and every cell of the shown type outlined
 function drawSameTypeCells(app) {
@@ -556,8 +557,9 @@ function drawAimArrow(context, arrow, isFocused) {
   fillCircle(context, tipX, tipY, 3.5);
 }
 
-// the clicked cell (white) and the Ctrl+clicked selection (dashed gold)
+// the clicked cell (white), the selection (dashed gold) and the marquee being dragged round it
 function drawSelection(app) {
+  drawMarquee(app);
   const context = app.context;
   if (app.focusKey) {
     const [x, y] = keyToPixel(app.focusKey);
@@ -575,6 +577,20 @@ function drawSelection(app) {
     context.stroke();
   }
   context.setLineDash([]);
+}
+
+// a Shift+right-drag's box, faintly filled, its outline one screen px whatever the zoom
+function drawMarquee(app) {
+  const marquee = app.marquee;
+  if (!marquee) return;
+  const context = app.context;
+  const [fromX, fromY] = marquee.from;
+  const [toX, toY] = marquee.to;
+  context.fillStyle = MARQUEE_FILL;
+  context.fillRect(fromX, fromY, toX - fromX, toY - fromY);
+  context.strokeStyle = SELECTION_COLOR;
+  context.lineWidth = 1 / app.gridView.zoom;
+  context.strokeRect(fromX, fromY, toX - fromX, toY - fromY);
 }
 
 // While the mouse is on a row of the Needs card, a small orange "!" and an outline on every cell that row is about.

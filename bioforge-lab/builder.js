@@ -11,6 +11,7 @@ const NAME_MAX_LENGTH = 40;                               // characters in a sav
 const NEURON_PICK_RADIUS = 6;                             // grid px around a cell's centre that pick its neuron
 const FIBRE_PICK_DISTANCE = 3;                            // grid px from a fibre's line that pick the fibre
 const STROKE_SAMPLE_SPACING = HEX_SPACING_X / 4;          // grid px between the points a painting drag is read at
+const MARQUEE_REACH = CELL_RADIUS / 2;                    // grid px past a marquee's edge that still take a cell in
 
 const keyOfCell = cell => hexKey(cell.q, cell.r);
 // biomass shown to the half point
@@ -780,6 +781,21 @@ function placeStamp(edited, stamp, q, r) {
 }
 
 // ---------- The library ----------
+// The keys of the cells a marquee between two grid points takes in: those whose centre lies within MARQUEE_REACH of
+// the box, so that a box only touching a cell takes it, and a click without a drag takes the cell under it.
+function cellKeysInBox(edited, corner, oppositeCorner) {
+  const left = Math.min(corner[0], oppositeCorner[0]) - MARQUEE_REACH;
+  const right = Math.max(corner[0], oppositeCorner[0]) + MARQUEE_REACH;
+  const top = Math.min(corner[1], oppositeCorner[1]) - MARQUEE_REACH;
+  const bottom = Math.max(corner[1], oppositeCorner[1]) + MARQUEE_REACH;
+  const keys = [];
+  for (const [key, cell] of edited.cells) {
+    const [x, y] = hexToPixel(cell.q, cell.r);
+    if (x >= left && x <= right && y >= top && y <= bottom) keys.push(key);
+  }
+  return keys;
+}
+
 // A library entry from the selected cells (null if none). A selection with the Nucleus is a whole creature and is
 // saved as it is; a part is saved around the cell nearest its middle, so that its stamp hangs under the cursor.
 function templateFromSelection(edited, selectedKeys, name) {

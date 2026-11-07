@@ -372,7 +372,7 @@ button.small.primary:hover { background: #3d6b38; }
 #games-inner { flex-direction: column; width: min(900px, calc(100vw - 32px)); }
 #games-cards { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
 
-/* ---------- Save menu (right-click on a selection) ---------- */
+/* ---------- Save menu (a Shift+right-drag marquee let go over cells) ---------- */
 /* the Symmetry dial: six axis buttons turned around one centre */
 #mirror-menu {
   display: none; position: absolute; top: 60px; left: 50%; z-index: 5; width: 200px; padding: 10px;
