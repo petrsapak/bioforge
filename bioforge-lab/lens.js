@@ -27,6 +27,10 @@ function rgbOf(hex) {
 
 // the button and the legend; the lens starts off every visit, since it is a view to look through now and then
 function setUpChemicalLens(app) {
+  if (HIDDEN.hormoneView) {                               // style, since .tool's own display would beat [hidden]
+    byId('chemical-lens').style.display = 'none';
+    document.querySelectorAll('.keys-hormones').forEach(element => { element.style.display = 'none'; });
+  }
   byId('chemical-lens').onclick = () => toggleChemicalLens(app);
   const legend = LENS_HORMONES.map(({ fluid }) =>
     `<span><i style="background:${FLUIDS[fluid].color}"></i>${FLUIDS[fluid].name}</span>`).join('');
@@ -35,6 +39,7 @@ function setUpChemicalLens(app) {
 
 // C: turns the lens on or off
 function toggleChemicalLens(app) {
+  if (HIDDEN.hormoneView) return;
   app.isLensOn = !app.isLensOn;
   byId('chemical-lens').classList.toggle('selected', app.isLensOn);
   byId('lens-legend').style.display = app.isLensOn ? 'flex' : 'none';

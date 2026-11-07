@@ -44,6 +44,8 @@ const FEEDING_SYSTEMS = ['nerve', 'fluid', 'vascular', 'metabolism', 'food'];
 const ARMOUR_SYSTEMS = [...FEEDING_SYSTEMS, 'secretions'];
 const MOODS_SYSTEMS = [...ARMOUR_SYSTEMS, 'chemical', 'scent', 'treatments'];
 const CHAPTER_NAMES = { 1: 'Reflexes', 2: 'Memory and logic', 3: 'Circulation', 4: 'Feeding', 5: 'Armour', 6: 'Moods' };
+// while the hormone levels are hidden, chapter 6 holds only Tanned hide and Snap
+if (HIDDEN.levels.includes('moods')) CHAPTER_NAMES[6] = 'Tanning and resilin';
 const WATCHER_LIGHT = { x: 700, y: 60, range: 2000 };     // px: above the top ring, bright all over the arena
 const TOP_RING = { kind: 'reach', x: 700, y: 200, radius: 70 };   // px
 const START_BOTTOM = { x: 700, y: 680, heading: 0 };      // px, rad: bottom middle, facing up
@@ -81,7 +83,8 @@ function createLevel(definition) {
     unlocks: { cells: [], neurons: [], ...definition.unlocks } };
 }
 
-const LEVELS = [
+// every level, the hidden ones (HIDDEN in data/rules.js) too
+const ALL_LEVELS = [
   createLevel({
     id: 'first-stroke', chapter: 1, name: 'First stroke',
     unlocks: { cells: ['tissue', 'siphon'], neurons: ['pacemaker'] },
@@ -550,6 +553,8 @@ const LEVELS = [
     timeLimit: 35, par: { seconds: 30, biomass: 30 },
   }),
 ];
+// the levels in the game, in order
+const LEVELS = ALL_LEVELS.filter(level => !HIDDEN.levels.includes(level.id));
 
 // the Darter's body: a Nucleus, an Eyespot in front and two Siphons behind
 const darterCells = () => [

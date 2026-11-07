@@ -191,7 +191,8 @@ function topicPageHtml(topic) {
 
 // every term as a card with its picture
 function glossaryHtml() {
-  const cards = GUIDE_TERMS.map(([term, meaning, picture]) => `<div class="guide-term">` +
+  const shownTerms = GUIDE_TERMS.filter(([term]) => !HIDDEN.guideTerms.includes(term));
+  const cards = shownTerms.map(([term, meaning, picture]) => `<div class="guide-term">` +
     guideIconHtml(picture, GUIDE_TILE_ICON_SIZE) +
     `<div><b>${escapeHtml(term)}</b><span>${escapeHtml(meaning)}</span></div></div>`);
   return `<div class="guide-terms">${cards.join('')}</div>`;

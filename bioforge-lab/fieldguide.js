@@ -22,14 +22,14 @@ function guideEntry(kind, key, name, chapter) {
 // The guide's sections in order: [{ title, entries }]. Cells come by category, as the dock shows them.
 function guideSections() {
   const cellEntries = category => Object.entries(CELLS)
-    .filter(([, type]) => type.category === category)
+    .filter(([typeName, type]) => type.category === category && !HIDDEN.cells.includes(typeName))
     .map(([typeName, type]) => guideEntry('cell', typeName, type.name, pieceChapter(typeName)));
   return [
     ...CELL_CATEGORY_ORDER.map(category => ({ title: `Cells: ${category}`, entries: cellEntries(category) })),
     { title: 'Neurons', entries: Object.entries(NEURONS)
       .map(([kind, type]) => guideEntry('neuron', kind, type.name, pieceChapter(kind))) },
-    { title: 'How it works', entries: GUIDE_TOPICS.map(topic => guideEntry('topic', topic.id, topic.title,
-      topic.chapter)) },
+    { title: 'How it works', entries: GUIDE_TOPICS.filter(topic => !HIDDEN.guideTopics.includes(topic.id))
+      .map(topic => guideEntry('topic', topic.id, topic.title, topic.chapter)) },
     { title: 'Glossary', entries: [guideEntry('term', 'all', 'All terms', 1)] },
   ];
 }

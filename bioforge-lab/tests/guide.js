@@ -8,13 +8,17 @@ const { check, done } = require('./check');
 const { X: sim } = load({}, ['CELLS', 'NEURONS', 'GUIDE_CELLS', 'GUIDE_NEURONS', 'GUIDE_TOPICS', 'GUIDE_TERMS',
   'guideSections', 'guideEntries', 'findGuideEntry', 'relatedGuideEntry', 'cellFacts', 'neuronFacts', 'TIPS',
   'NEURON_TIPS', 'EYESPOT_RANGE', 'NETTLE_DAMAGE', 'CHAPTER_NAMES', 'LEVELS', 'cellStats', 'exampleWiring',
-  'showsHormones']);
+  'showsHormones', 'HIDDEN']);
 
 // ---------- The entries ----------
 const entries = sim.guideEntries();
 const ids = entries.map(entry => entry.id);
-check('every cell type has an entry and notes',
-  Object.keys(sim.CELLS).every(typeName => ids.includes('cell:' + typeName) && sim.GUIDE_CELLS[typeName]),
+// pieces and topics kept out of the game for now (HIDDEN in data/rules.js) have no entry, and links to them are
+// left out
+const isHidden = name => sim.HIDDEN.cells.includes(name) || sim.HIDDEN.guideTopics.includes(name);
+check('every cell type has notes, and an entry unless it is hidden',
+  Object.keys(sim.CELLS).every(typeName => ids.includes('cell:' + typeName) !== isHidden(typeName) &&
+    sim.GUIDE_CELLS[typeName]),
   Object.keys(sim.CELLS).filter(typeName => !sim.GUIDE_CELLS[typeName]).join(' '));
 check('every neuron has an entry and notes',
   Object.keys(sim.NEURONS).every(kind => ids.includes('neuron:' + kind) && sim.GUIDE_NEURONS[kind]));
@@ -27,7 +31,7 @@ const linked = [
   ...Object.values(sim.GUIDE_NEURONS).flatMap(notes => notes.pairs),
   ...sim.GUIDE_TOPICS.flatMap(topic => topic.related),
 ];
-const broken = linked.filter(name => !sim.relatedGuideEntry(name));
+const broken = linked.filter(name => !sim.relatedGuideEntry(name) && !isHidden(name));
 check('every "works well with" and related link opens an entry', broken.length === 0, broken.join(' '));
 const chapters = [...sim.GUIDE_TOPICS.map(topic => topic.chapter),
   ...entries.filter(entry => entry.kind === 'cell' || entry.kind === 'neuron').map(entry => entry.chapter)];
@@ -70,8 +74,9 @@ check('the Light eye\'s example wiring is eye → Siphon, listed once',
 const allWiring = [...Object.values(sim.TIPS), ...Object.values(sim.NEURON_TIPS)]
   .flatMap(tip => sim.exampleWiring(tip.example));
 check('every example\'s wiring names cells and neurons the guide has pages for',
-  allWiring.every(pair => sim.relatedGuideEntry(pair.from) && sim.relatedGuideEntry(pair.to)),
-  JSON.stringify(allWiring.filter(pair => !sim.relatedGuideEntry(pair.from) || !sim.relatedGuideEntry(pair.to))));
+  allWiring.every(pair => [pair.from, pair.to].every(name => sim.relatedGuideEntry(name) || isHidden(name))),
+  JSON.stringify(allWiring.filter(pair => [pair.from, pair.to].some(name => !sim.relatedGuideEntry(name) &&
+    !isHidden(name)))));
 check('every topic runs the example of a cell or neuron that has one',
   sim.GUIDE_TOPICS.every(topic => sim.TIPS[topic.demo] || sim.NEURON_TIPS[topic.demo]));
 check('every glossary term has a picture of a cell or neuron',
@@ -108,7 +113,7 @@ byId('guide-filter').value = 'gland';
 byId('guide-filter').oninput();
 const shown = byId('guide-list').innerHTML;
 check('the filter keeps only the entries whose name matches',
-  shown.includes('Calm gland') && !shown.includes('>Muscle<'));
+  shown.includes('Acid gland') && !shown.includes('>Muscle<') && !shown.includes('Calm gland'));
 pressKey('Escape');
 check('Esc closes the guide and leaves the main menu up', byId('guide-sheet').style.display === 'none' &&
   byId('menu-sheet').style.display === 'flex');

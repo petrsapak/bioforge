@@ -7,6 +7,11 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.39 (2026-11-07)
+- Hormones are put away for now: the Adrenal, Calm, Fed and Starved glands, the Receptor, the hormone view (C) and
+  the five levels built on them (Fight or flight, Lie low, Feast and famine, Lullaby, Moods). Chapter 6 is now
+  Tanning and resilin, with Tanned hide and Snap, and Snap is the last level.
+
 ## 0.7.38 (2026-11-07)
 - The game opens with a short Bioforge animation: the title comes into focus letter by letter over drifting cells,
   then fades into the main menu. Click to skip it.

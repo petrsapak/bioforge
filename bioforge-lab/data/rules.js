@@ -17,3 +17,14 @@ const RULES = {
   systems: ['nerve', 'fluid', 'vascular', 'metabolism', 'food', 'regrow', 'secretions', 'chemical', 'scent',
     'treatments'],
 };
+
+// Kept out of the game for now with their code in place (user, 2026-11-07: hide the hormones, which don't work
+// properly yet): cell types left out of the dock and the field guide, levels left out of the level list, field guide
+// topics and glossary terms, and whether the hormone view (C) is hidden. Empty lists and false bring them back.
+const HIDDEN = {
+  cells: ['adrenal', 'calmgland', 'fedgland', 'starvedgland', 'receptor'],
+  levels: ['fight-or-flight', 'lie-low', 'feast-and-famine', 'lullaby', 'moods'],
+  guideTopics: ['moods', 'scent'],
+  guideTerms: ['Mood', 'Scent'],
+  hormoneView: true,
+};

@@ -123,6 +123,14 @@ runFrames(30);
 check('the sandbox starts again with a new design', byId('sandbox-bar').style.display === 'flex' && playerAlive());
 
 // ---------- The chemical lens ----------
+// hidden for now (HIDDEN in data/rules.js): no button, and C does nothing
+const hidden = readGlobal('HIDDEN');
+pressKey('c');
+check('while the hormones are hidden, the lens button is gone and C does nothing',
+  !hidden.hormoneView || (byId('chemical-lens').style.display === 'none' &&
+    byId('lens-legend').style.display !== 'flex'));
+const wasHidden = hidden.hormoneView;
+hidden.hormoneView = false;                               // the lens itself still works, for when it comes back
 pressKey('c');
 runFrames(20);
 check('C turns the chemical lens on: its legend shows, and the run goes on drawing it',
@@ -131,6 +139,7 @@ check('C turns the chemical lens on: its legend shows, and the run goes on drawi
 pressKey('c');
 check('C again turns it off', byId('lens-legend').style.display === 'none' &&
   !byId('chemical-lens').classList.contains('selected'));
+hidden.hormoneView = wasHidden;
 const shadeCalls = [];
 const shadeRecorder = {
   canvas: { width: 1600, height: 900 },

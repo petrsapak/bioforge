@@ -495,6 +495,15 @@ tests/          the save file test, and a CRLF check of these files
    - **Chapter 6, Moods** (`MOODS_SYSTEMS`): Fight or flight (a race only adrenaline wins in time; the Puffer chase was dropped, since it couldn't catch even a plain runner), Lie low (the drifting light for 120 s on 3 sugar: Calm; 5 sugar until 2026-11-07, when a bare Seeker won it. The Calm gland burns 0.005 per s, a quarter of a gland's usual 0.02, and makes the same Calm (hormoneYield 4): at 0.02 an always-on gland cost about what it saved), Feast and famine (food for the first 40 s round a light drifting at 10 px/s, then 220 s in all near it: a Nose fires Fed, a Receptor for Fed with an Inhibitor fires Starved; Fed left on loses), Tanned hide (Bulwark without mineral: a Tissue ring with a Tanner), Snap (the Clam broken by a springy Muscle with a 0.5 Hz Pacemaker; acid and protease are banned since 2026-11-05, as Clam's acid ram won without the Resilin), Lullaby (added 2026-10-30: an anchored urchin whose Eyespot holds a Synapse at 0.9 wired to four Nettles; wait 180 px away while four Calm glands fill the water, a Receptor for Calm and a crossed Light eye both into a Synapse at 1 in each Siphon, then digest it with protease; it wins at about 41 s; rushing in loses its front to the stings, and without Calm it never sets off) and Moods (wait for the flash, then reach the ring with only 3 units of fibre: Light eye into an Adrenal holding a Latch, a Heart with vessels to a Receptor beside each Siphon; without the Heart the seeping is uneven and the body misses).
    - Test: `tests/chemical.js` (glands, Receptor, moods, Fat stores, Tanner, Resilin, the strike, the systems off), `tests/levels.js` (every level's reference solution and wrong tool), `tests/vascular.js` (hormones in vessels).
    - **Done after the milestone, 2026-10-30 (version 0.7.2; see "Ideas after chapter 6" under Decisions):** the chemical lens, hormones in the water, vessels drawn like nerve fibres, the Photophore with Anglerfish and Lullaby, and the field guide. Test: `tests/scent.js` (scent given off and taken in, clouds spreading and fading, the system off; the Photophore seen by others, not its own creature, and a Seeker following it), `tests/guide.js` (every cell and neuron has an entry, links and chapters are real, facts come from the data; the sheet from the menu and G), `tests/builder.js` (vessels and fibres in one set of lanes), `tests/sandbox.js` (C), `tests/design.js` (an Inhibitor held in a cell is a signal source).
+   - **Hidden for the release (2026-11-07,** user: "I would like to remove parts of the game that don't work properly
+     yet - the hormones. Not remove but hide"). `HIDDEN` in `data/rules.js` keeps the Adrenal, Calm, Fed and Starved
+     glands and the Receptor out of the dock and the field guide; Fight or flight, Lie low, Feast and famine, Lullaby
+     and Moods out of the level list (`LEVELS` is `ALL_LEVELS` without them, so 27 levels and Snap is the last); the
+     Hormones and Scent topics and the Mood and Scent terms out of the guide; and the hormone view (its button, C and
+     its keys lines). Chapter 6 is called Tanning and resilin while they are hidden. The code, the systems and the
+     tests stay: `tests/levels.js` still runs the hidden levels with everything unlocked. Emptying the lists brings it
+     all back. Still in: the hormone fluid views (Shift+5 to 8), the Eel and Manta examples' Adrenals, and hormone
+     mentions in the Pacemaker, Synapse and Threshold texts.
 8. **Growth and chapter 7.** The growth plan, Buds, regrowth, Nucleic, and the metamorphosis boss.
    - **Spread levels** (2026-10-30, see "Late-game ideas" under Decisions). Open: does a Bud part break off as a new creature, or stay joined; what is counted (cells, creatures or area covered); how fast spreading is limited (material, Nucleic, food), so it is a puzzle and not just a bigger number.
 9. **Takeover and chapter 8.** The reprogramming cell (2026-10-30, see "Late-game ideas" under Decisions), as its own switchable system.
@@ -512,6 +521,40 @@ tests/          the save file test, and a CRLF check of these files
      0.6, style 0.1); the default in `tools/make-voice.js`. Chosen without hearing it: ElevenLabs gives nothing
      without a key, so the script looks the voice up first and `--first` makes one line to listen to.
    - ✅ **Hints kept up to date** (2026-11-05): a level's brief, hint and tutorial words name only the cells and neurons its dock has and only levels before it, and no help text names a gone piece or level (Valve, Vessel, Moth). It caught Long haul's hint naming the Pore (one level early) and Bulwark's naming Thorns (since Pincushion came after it). The 32 voice lines are made (`audio/voice/`). Test: `tests/hints.js`.
+13. **Clean gates: nerve logic like a program (after the release).** Asked 2026-11-07, user: "I want to be able to
+    build a logic like in a computer - pacemaker is processor that sends impulses and the rest of the nerves would be
+    functions or conditions, like if, for, while, and, or ... I want to keep the bilogical names though." Four
+    approaches were drawn up (A clean gates, B the impulse is the program, C Ganglion scripts, D moods as states); the
+    user chose A ("I like the approach A").
+   - **What today has:** clock (Pacemaker), if and/or (Synapse at threshold 1 or 2), not (Inhibitor), a one-bit
+     memory that only flips (Latch), wait (Delay), global variables (hormones and the Receptor). Missing: counting
+     (for), a memory that can be reset, and a readable while. What makes it feel complicated: signals from 0 to 1 that
+     add up, the Synapse's meaning hidden in a number, moods moving thresholds during a run, and loops taking a hidden
+     nerve step.
+   - **The plan:**
+     - **On or off between neurons.** Nothing adds up. A sense wired straight into a Siphon or Muscle stays graded, so
+       Braitenberg steering (Lighthouse, Shade) works as now. Show the two kinds apart in the Nerve view: graded
+       fibres as a gradient, on/off ones solid.
+     - **Veto fibre** (an inhibitory fibre, drawn with a bar end): while it is on, its target is off, whatever else
+       feeds it. One rule for "unless", reset and gating: a vetoed Pacemaker beats only while the veto is off (while).
+     - **Coincidence** (∧, a real coincidence detector) replaces the Synapse: on while all its inputs are on. "Or"
+       needs no piece: two fibres into one cell.
+     - **Integrator** (∑, an integrate-and-fire neuron, setting: count 1-9): sends one pulse on every Nth pulse in
+       (for).
+     - **Engram** (◐, replaces the Latch): a fibre switches it on, a veto fibre off (remember, forget).
+     - **A brightness setting on senses**, in 2-3 named steps (dim, bright), for levels like Dock once eyes no longer
+       add up.
+     - **Goes away:** the Synapse threshold, the Ganglion's smoothing, and moods moving thresholds (moods would change
+       only Pacemaker rates and how hard effectors work).
+   - **Levels:** chapter 1 and most answers stay. Freeze, False start and Metronome keep their wiring (Latch becomes
+     Engram); Dock is rebuilt on Coincidence and a bright eye; Lullaby and Moods are retuned. New levels, one per
+     piece: Hunter (eyes veto a Pacemaker: roam in the dark, steer in the light), Third flash (an Integrator counts 3
+     flashes, then an Engram keeps swimming) and Stinger as the boss (sting 3 times at 3 Hz, turn away for 2 s, come
+     back: 4 neurons, about 11 today).
+   - **Later, if A works:** B (each Pacemaker beat sends one visible impulse that the neurons route) as a prototype in
+     a copied folder, and D (hormones as crisp states with a fade setting) for chapter 6.
+   - Open: queue or drop a pulse that arrives while an Integrator is counting; whether the brightness setting is on
+     the eye or on the fibre.
 
 ## Open questions
 - **Movement redesign (2026-11-02), still open:** M3, making the water forgiving about the beat rate (a fish's speed still swings with the Pacemaker's rate); whether a body one cell heavier on one side should still swim in circles (6.4 rad in 10 s for a two-row fish with one extra cell at the head); and how a Heart keeps beating once neurons sit only in Tissue and the Nucleus. Muscles keep their timing from the wiring (see Decisions).
@@ -525,6 +568,9 @@ tests/          the save file test, and a CRLF check of these files
 - **Levels that don't need their new piece (2026-11-05):** Fight or flight is won by a Nucleus with two bare
   Siphons (15.8 s) or three Siphons (16.1 s), faster than the Adrenal build (22.9 s): skin drag grows with the square
   of speed, so the Adrenal's 1.8x push makes a lean body only about 8% faster (78 against 72 px/s), and it veers.
+  (All of chapter 6's hormone levels are hidden since 2026-11-07. Feast and famine: since a speck's sugar spreads
+  over the body and a bloom's leftovers wither, its glands decide little; the reference stays near the light 247 s
+  with Fed and Starved, 224 s with neither. Before that:)
   Feast and famine is won without its glands: the bloom's uneaten specks are still there at 220-240 s, and the
   Bloom build stays near the light 412 s in all, the reference with Fed and Starved only 361 s. Moods is won by one
   Light eye into a Latch (3 fibre units, the same as the reference) or by Delays that count to the flash, which

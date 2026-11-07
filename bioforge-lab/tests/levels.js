@@ -5,7 +5,8 @@
 const { load } = require('./load');
 const { startApp } = require('./dom');
 const { check, done } = require('./check');
-const { X: sim } = load({}, ['LEVELS', 'TEMPLATES', 'runLevel', 'levelScore', 'levelLimits', 'buildCheck',
+const { X: sim } = load({}, ['LEVELS', 'ALL_LEVELS', 'HIDDEN', 'withEverythingUnlocked', 'TEMPLATES', 'runLevel',
+  'levelScore', 'levelLimits', 'buildCheck',
   'createDesignCell', 'createNeuron', 'isLevelLightOn', 'isLevelOpen', 'isLevelEarned', 'RULES', 'FLUID_OXYGEN',
   'linksFromList', 'CELLS', 'NEURONS', 'isCellLocked', 'isNeuronLocked',
   'isLastLevelWon', 'withEverythingUnlocked', 'levelBringing', 'isPieceMet']);
@@ -266,22 +267,30 @@ function piecesNotInDock(design, level) {
   return [...new Set([...cells, ...neurons])];
 }
 
-for (const level of sim.LEVELS) {
+// Hidden levels (HIDDEN in data/rules.js) are run too, so they still work when they come back. They have no place
+// in the level list, so no dock: they are checked with everything unlocked.
+const isHiddenLevel = level => sim.HIDDEN.levels.includes(level.id);
+// Feast and famine was hidden (2026-11-07) because it no longer balances once a speck's sugar spreads over the
+// body: the glands decide little. Its balance checks come back with the level.
+const isUnbalanced = level => level.id === 'feast-and-famine' && isHiddenLevel(level);
+for (const level of sim.ALL_LEVELS) {
   const solution = SOLUTIONS[level.id];
-  const missing = piecesNotInDock(solution, level);
+  const missing = isHiddenLevel(level) ? [] : piecesNotInDock(solution, level);
   check(`"${level.name}": the reference solution uses only pieces the dock has`, !missing.length, missing.join(', '));
-  const problem = sim.buildCheck(solution, sim.levelLimits(level));
+  const limits = isHiddenLevel(level) ? sim.withEverythingUnlocked(sim.levelLimits(level)) : sim.levelLimits(level);
+  const problem = sim.buildCheck(solution, limits);
   const run = sim.runLevel(level, solution);
   check(`"${level.name}": the reference solution fits and wins with 3 stars`,
     !problem && run.outcome === 'won' && sim.levelScore(run, solution).stars === 3,
     `${problem} ${run.outcome} ${run.reason} in ${run.time.toFixed(1)} s`);
   const wrongTool = WRONG_TOOLS[level.id];
-  if (!wrongTool) continue;
+  if (!wrongTool || isUnbalanced(level)) continue;
   const wrongRun = sim.runLevel(level, wrongTool);
   check(`"${level.name}": the wrong tool doesn't win`, wrongRun.outcome === 'lost', wrongRun.reason);
 }
 
-const levelById = id => sim.LEVELS.find(level => level.id === id);
+// hidden levels (HIDDEN in data/rules.js) are still checked, so they work when they come back
+const levelById = id => sim.ALL_LEVELS.find(level => level.id === id);
 {
   const rushing = sim.runLevel(levelById('lullaby'), lullabyBuild('calmgland', false));
   check('"Lullaby": Calm glands alone lose, swimming in before the urchin is calm', rushing.outcome === 'lost',
@@ -390,8 +399,10 @@ const noStore = sim.runLevel(levelById('bloom'), bloomBuild('tissue'));
 check('"Bloom": with Tissue for the Fat, the bloom\'s food has nowhere to go', noStore.outcome === 'lost',
   `near the light ${noStore.goalTime.toFixed(0)} s, ate ${noStore.player.foodEaten}`);
 const fedOnly = sim.runLevel(levelById('feast-and-famine'), feastBuild(true, false));
-check('"Feast and famine": Fed left on loses: it locks the food away for the famine', fedOnly.outcome === 'lost',
-  `near the light ${fedOnly.goalTime.toFixed(0)} s`);
+if (!isUnbalanced(levelById('feast-and-famine'))) {
+  check('"Feast and famine": Fed left on loses: it locks the food away for the famine', fedOnly.outcome === 'lost',
+    `near the light ${fedOnly.goalTime.toFixed(0)} s`);
+}
 const seeped = sim.runLevel(levelById('moods'), moodsBuild('receptor', false));
 check('"Moods": Receptors without a Heart get the adrenaline unevenly and miss the ring', seeped.outcome === 'lost',
   seeped.reason);
@@ -496,7 +507,8 @@ const rows = listed.filter(child => child.className.startsWith('level-tile'));
 const headings = listed.filter(child => child.className === 'chapter-heading');
 check('the levels sheet lists every level under its chapter', byId('levels-sheet').style.display === 'flex' &&
   rows.length === readGlobal('LEVELS.length') && headings.length === 6 &&
-  headings[5].textContent === 'Chapter 6: Moods', `${rows.length} rows, ${headings.length} headings`);
+  headings[5].textContent === `Chapter 6: ${readGlobal('CHAPTER_NAMES')[6]}`,
+  `${rows.length} rows, ${headings.length} headings`);
 check('at first only level 1 is open: the others are locked and say which win opens them',
   !rows[0].className.includes('locked') && rows.slice(1).every(row => row.className.includes('locked')) &&
   rows[1].title === 'Win “First stroke” to open it.', rows[1].title);
