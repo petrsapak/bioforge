@@ -7,6 +7,11 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.41 (2026-11-07)
+- The Resilin gland and the Tanner are gone, and with them the Snap and Tanned hide levels that taught them. A
+  saved creature with either gets Tissue in its place. Growth is now chapter 6, right after Armour, and Swarm is the
+  last of 27 levels.
+
 ## 0.7.40 (2026-11-07)
 - Chapter 7, Growth, with two new levels after Snap. Grazed brings the Mender: three grazers bite your cells off,
   and no weapons are allowed. Swarm brings the Bud: send homing stingers at the urchin while you stay out of its

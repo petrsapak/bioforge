@@ -5,8 +5,7 @@
 //     level before it add (levelUnlocks in levels.js)
 //   arena: { width, height } in px; systems: the switchable systems that run (chapters 1 and 2: nerve only, so
 //     every cell works at full power and nothing starves; chapter 3 adds fluid and vascular; chapter 4 metabolism
-//     and food; chapter 5 secretions; chapter 6 chemical, scent and treatments; chapter 7 regrow, with treatments
-//     but no hormones)
+//     and food; chapter 5 secretions; chapter 6 regrow; chapter 7 chemical and scent)
 //   seepFactor: share of the usual seeping between cells (cold water: less); a Heart's pumping is not slowed
 //   waterOxygen: share of the usual O₂ a Gill makes from the water (stale water: less)
 //   limits: design limits ({ budget, maxCells, maxNeurons, maxFibreUnits, bannedCells: cell type names the level
@@ -43,12 +42,11 @@ const CHAPTER_1_SYSTEMS = ['nerve'];
 const CIRCULATION_SYSTEMS = ['nerve', 'fluid', 'vascular'];
 const FEEDING_SYSTEMS = ['nerve', 'fluid', 'vascular', 'metabolism', 'food'];
 const ARMOUR_SYSTEMS = [...FEEDING_SYSTEMS, 'secretions'];
-const MOODS_SYSTEMS = [...ARMOUR_SYSTEMS, 'chemical', 'scent', 'treatments'];
-const GROWTH_SYSTEMS = [...ARMOUR_SYSTEMS, 'treatments', 'regrow'];
-const CHAPTER_NAMES = { 1: 'Reflexes', 2: 'Memory and logic', 3: 'Circulation', 4: 'Feeding', 5: 'Armour', 6: 'Moods',
-  7: 'Growth' };
-// while the hormone levels are hidden, chapter 6 holds only Tanned hide and Snap
-if (HIDDEN.levels.includes('moods')) CHAPTER_NAMES[6] = 'Tanning and resilin';
+const GROWTH_SYSTEMS = [...ARMOUR_SYSTEMS, 'regrow'];
+const MOODS_SYSTEMS = [...GROWTH_SYSTEMS, 'chemical', 'scent'];
+// chapter 7 is hidden for now (HIDDEN in data/rules.js)
+const CHAPTER_NAMES = { 1: 'Reflexes', 2: 'Memory and logic', 3: 'Circulation', 4: 'Feeding', 5: 'Armour',
+  6: 'Growth', 7: 'Moods' };
 const WATCHER_LIGHT = { x: 700, y: 60, range: 2000 };     // px: above the top ring, bright all over the arena
 const TOP_RING = { kind: 'reach', x: 700, y: 200, radius: 70 };   // px
 const START_BOTTOM = { x: 700, y: 680, heading: 0 };      // px, rad: bottom middle, facing up
@@ -449,7 +447,43 @@ const ALL_LEVELS = [
     timeLimit: 50, par: { seconds: 34, biomass: 26 },
   }),
   createLevel({
-    id: 'fight-or-flight', chapter: 6, name: 'Fight or flight',
+    id: 'grazed', chapter: 6, name: 'Grazed',
+    unlocks: { cells: ['mender'] },
+    brief: 'Three grazers hunt you and bite your cells off one by one. No weapons this time: keep your Nucleus alive ' +
+      'for 60 s.',
+    hint: 'A Mender turns O₂ and sugar into repair fluid, and regrows a lost cell of your design within a few ' +
+      'seconds, from the protein the kit leaves over. Ring the Nucleus with Tissue and make two of the ring Menders.',
+    systems: GROWTH_SYSTEMS,
+    // every weapon wins by killing the grazers (2026-11-07); more Tissue loses
+    limits: { kit: { protein: 40, sugar: 6 }, bannedCells: ['nettle', 'spitter', 'protease', 'acid'] },
+    food: { maxCount: 0 },
+    start: { x: 700, y: 400, heading: 0 },
+    creatures: [[200, 150], [1200, 150], [200, 650]].map(([x, y]) =>
+      ({ design: 'grazer', x, y, heading: 0, behaviour: 'hunt' })),
+    goal: { kind: 'survive', seconds: 60 },
+    timeLimit: 70, par: { seconds: 70, biomass: 12 },
+  }),
+  createLevel({
+    id: 'swarm', chapter: 6, name: 'Swarm',
+    unlocks: { cells: ['bud'] },
+    brief: 'The urchin again, with the light on it. Spitters aren\'t allowed: send a swarm to destroy its Nucleus, ' +
+      'and stay out of its reach yourself.',
+    hint: 'A Bud grows a saved part and, on a signal, shoots it off with its share of the body\'s fuel. The part ' +
+      'keeps its own wiring: save crossed Light eyes, two Siphons and a Nettle with an Inhibitor at the front middle ' +
+      'as a part (Shift+right-drag, no Nucleus), give it to a Bud at the front and turn it (Q, E) to face up. A slow ' +
+      'Pacemaker (0.2 Hz) fires the Bud. Each part is built from the kit\'s leftover protein.',
+    systems: GROWTH_SYSTEMS,
+    // Spit's Spitters win here too, without a Bud
+    limits: { kit: { protein: 50, sugar: 8, fat: 2 }, bannedCells: ['spitter'] },
+    food: { maxCount: 0 },
+    start: { x: 700, y: 620, heading: 0 },
+    light: { carriedBy: 0, range: 900 },
+    creatures: [{ design: 'urchin', x: 700, y: 250, heading: 0, behaviour: 'wired', anchored: true }],
+    goal: { kind: 'kill', creature: 0 },
+    timeLimit: 90, par: { seconds: 50, biomass: 10 },
+  }),
+  createLevel({
+    id: 'fight-or-flight', chapter: 7, name: 'Fight or flight',
     unlocks: { cells: ['adrenal'] },
     brief: 'The ring is right across the water and the clock is short: two Siphons alone are too slow. Reach it ' +
       'in 26 s.',
@@ -463,7 +497,7 @@ const ALL_LEVELS = [
     timeLimit: 26, par: { seconds: 24, biomass: 20 },
   }),
   createLevel({
-    id: 'lie-low', chapter: 6, name: 'Lie low',
+    id: 'lie-low', chapter: 7, name: 'Lie low',
     unlocks: { cells: ['calmgland'] },
     brief: 'Stay near the drifting light for 120 s in all, on the little sugar you start with. There is no food.',
     hint: 'Calm halves what a cell burns, and lasts. A Calm gland with an Inhibitor in it is always on and costs ' +
@@ -476,7 +510,7 @@ const ALL_LEVELS = [
     timeLimit: 170, par: { seconds: 160, biomass: 22 },
   }),
   createLevel({
-    id: 'feast-and-famine', chapter: 6, name: 'Feast and famine',
+    id: 'feast-and-famine', chapter: 7, name: 'Feast and famine',
     unlocks: { cells: ['fedgland', 'starvedgland', 'receptor'] },
     brief: 'Food blooms round the drifting light for the first 40 s, then never again. Stay near the light for ' +
       '220 s in all.',
@@ -491,39 +525,7 @@ const ALL_LEVELS = [
     timeLimit: 310, par: { seconds: 290, biomass: 37 },
   }),
   createLevel({
-    id: 'tanned-hide', chapter: 6, name: 'Tanned hide',
-    unlocks: { cells: ['tanner'] },
-    brief: 'The Puffer hunts you, and your kit has no mineral for Shell. Keep your Nucleus alive for 60 s.',
-    hint: 'A Tanner crosslinks the cells round it: they take 60% less damage and blunt thorns like Shell. Ring ' +
-      'the Nucleus with Tissue and make one of the ring a Tanner with an Inhibitor in it, so it is always on.',
-    systems: MOODS_SYSTEMS,
-    limits: { kit: { protein: 30, sugar: 4 } },
-    food: { maxCount: 0 },
-    start: { x: 700, y: 400, heading: 0 },
-    creatures: [{ design: 'puffer', x: 250, y: 150, heading: 2, behaviour: 'hunt' }],
-    goal: { kind: 'survive', seconds: 60 },
-    timeLimit: 70, par: { seconds: 70, biomass: 14 },
-  }),
-  createLevel({
-    id: 'snap', chapter: 6, name: 'Snap',
-    unlocks: { cells: ['resilin'] },
-    brief: 'The clam again, its Nucleus behind two layers of Shell, with the light on it. Acid and protease aren\'t ' +
-      'allowed this time: destroy its Nucleus in 50 s.',
-    hint: 'A springy muscle held contracted, then let go, strikes everything touching it and the cells round it. ' +
-      'Put a Muscle at the front with a slow Pacemaker in it (0.5 Hz: a second held, a second let go) and a ' +
-      'Resilin gland beside it with an Inhibitor in it. Crossed Light eyes drive you into the clam.',
-    systems: MOODS_SYSTEMS,
-    // Clam's acid ram wins here too, without the Resilin
-    limits: { kit: { protein: 30, sugar: 4, fat: 3 }, bannedCells: ['acid', 'protease'] },
-    food: { maxCount: 0 },
-    start: { x: 700, y: 550, heading: 0 },
-    light: CLAM_LIGHT,
-    creatures: [ANCHORED_CLAM],
-    goal: { kind: 'kill', creature: 0 },
-    timeLimit: 50, par: { seconds: 45, biomass: 24 },
-  }),
-  createLevel({
-    id: 'lullaby', chapter: 6, name: 'Lullaby',
+    id: 'lullaby', chapter: 7, name: 'Lullaby',
     brief: 'An urchin sits on the rock with the light on it. Its Nettles sting anything its Eyespot sees within ' +
       '120 px, and they would digest your glands before you digest it. Calm it down, then destroy its Nucleus.',
     hint: 'Hormones leak into the water (C shows them), and cells take in what is around them. Calm raises a ' +
@@ -541,7 +543,7 @@ const ALL_LEVELS = [
     timeLimit: 90, par: { seconds: 50, biomass: 44 },
   }),
   createLevel({
-    id: 'moods', chapter: 6, name: 'Moods',
+    id: 'moods', chapter: 7, name: 'Moods',
     brief: 'Hold still until the light flashes, then swim to the ring. Your nerves are short: 3 units of fibre in ' +
       'all, not enough to reach from an eye to the Siphons.',
     hint: 'Send the flash as adrenaline: a Light eye into an Adrenal holding a Latch, so it stays on. A Receptor ' +
@@ -554,42 +556,6 @@ const ALL_LEVELS = [
     stillUntilLit: { speed: 10 },
     goal: TOP_RING,
     timeLimit: 35, par: { seconds: 30, biomass: 30 },
-  }),
-  createLevel({
-    id: 'grazed', chapter: 7, name: 'Grazed',
-    unlocks: { cells: ['mender'] },
-    brief: 'Three grazers hunt you and bite your cells off one by one. No weapons this time: keep your Nucleus alive ' +
-      'for 60 s.',
-    hint: 'A Mender turns O₂ and sugar into repair fluid, and regrows a lost cell of your design within a few ' +
-      'seconds, from the protein the kit leaves over. Ring the Nucleus with Tissue and make two of the ring Menders.',
-    systems: GROWTH_SYSTEMS,
-    // every weapon wins by killing the grazers (2026-11-07); a Tanner ring and more Tissue lose
-    limits: { kit: { protein: 40, sugar: 6 }, bannedCells: ['nettle', 'spitter', 'protease', 'acid'] },
-    food: { maxCount: 0 },
-    start: { x: 700, y: 400, heading: 0 },
-    creatures: [[200, 150], [1200, 150], [200, 650]].map(([x, y]) =>
-      ({ design: 'grazer', x, y, heading: 0, behaviour: 'hunt' })),
-    goal: { kind: 'survive', seconds: 60 },
-    timeLimit: 70, par: { seconds: 70, biomass: 12 },
-  }),
-  createLevel({
-    id: 'swarm', chapter: 7, name: 'Swarm',
-    unlocks: { cells: ['bud'] },
-    brief: 'The urchin again, with the light on it. Spitters aren\'t allowed: send a swarm to destroy its Nucleus, ' +
-      'and stay out of its reach yourself.',
-    hint: 'A Bud grows a saved part and, on a signal, shoots it off with its share of the body\'s fuel. The part ' +
-      'keeps its own wiring: save crossed Light eyes, two Siphons and a Nettle with an Inhibitor at the front middle ' +
-      'as a part (Shift+right-drag, no Nucleus), give it to a Bud at the front and turn it (Q, E) to face up. A slow ' +
-      'Pacemaker (0.2 Hz) fires the Bud. Each part is built from the kit\'s leftover protein.',
-    systems: GROWTH_SYSTEMS,
-    // Spit's Spitters win here too, without a Bud
-    limits: { kit: { protein: 50, sugar: 8, fat: 2 }, bannedCells: ['spitter'] },
-    food: { maxCount: 0 },
-    start: { x: 700, y: 620, heading: 0 },
-    light: { carriedBy: 0, range: 900 },
-    creatures: [{ design: 'urchin', x: 700, y: 250, heading: 0, behaviour: 'wired', anchored: true }],
-    goal: { kind: 'kill', creature: 0 },
-    timeLimit: 90, par: { seconds: 50, biomass: 10 },
   }),
 ];
 // the levels in the game, in order

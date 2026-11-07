@@ -263,7 +263,7 @@ function drawWorldFibres(context, world) {
 }
 
 // ---------- Cells ----------
-// One cell: its body and symbol (cellart.js), then overlays for key binding, signal, hormones, treatments, starving,
+// One cell: its body and symbol (cellart.js), then overlays for key binding, signal, hormones, starving,
 // poison and hits.
 function drawCell(context, cell, view, showRanges = true) {
   const radius = cell.radius * 0.9;
@@ -377,7 +377,6 @@ function drawCellOverlays(context, cell, radius) {
     fillCircle(context, cell.x, cell.y, radius * 0.75);
   }
   if (cell.mineralized) drawHardenedCrust(context, cell, radius);   // hardened by a Mineralizer
-  drawTreatments(context, cell, radius);
   drawHormoneRim(context, cell, radius);
   if (cell.starving) {
     context.globalAlpha = 0.5;

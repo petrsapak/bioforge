@@ -20,11 +20,6 @@ const ORGANELLE_SPECKS = [[0.55, 0.4, 0.05], [-0.6, 0.3, 0.05], [0.35, 0.62, 0.0
 // the Mineralizer's crystal and the crust of a hardened cell, in cell radii
 const CRYSTAL_OUTLINE = [[0, -0.6], [0.4, -0.2], [0.4, 0.25], [0, 0.6], [-0.4, 0.25], [-0.4, -0.2]];
 const CRUST_RADIUS = 0.86;                                // cell radii
-// the Resilin gland's spring, in cell radii
-const RESILIN_COIL = [[0, -0.6], [0.35, -0.45], [-0.35, -0.25], [0.35, -0.05], [-0.35, 0.15], [0.35, 0.35],
-  [-0.35, 0.5], [0, 0.6]];
-const TANNED_COLOR = '#8a5a2a';                          // the ring of a tanned cell
-const RESILIN_COLOR = '#e0c060';                         // the ring of a springy muscle
 
 // ---------- colours ----------
 const translucentCache = new Map();
@@ -189,25 +184,6 @@ function drawHardenedCrust(context, cell, radius) {
   for (let i = 0; i < 6; i += 2) traceRay(context, i * TAU / 6, CRUST_RADIUS, CRUST_RADIUS * 0.72);
   strokeIn(context, MATERIALS_BY_ID.mineral.color, THIN_SYMBOL_WIDTH);
   context.restore();
-}
-
-// A tanned cell: a thick brown ring inside its membrane. A springy (resilin) muscle: a dotted gold ring that glows
-// as it charges. Drawn in world space, as overlays.
-function drawTreatments(context, cell, radius) {
-  if (cell.tanned) {
-    context.globalAlpha = 0.85;
-    context.strokeStyle = TANNED_COLOR;
-    context.lineWidth = Math.max(1.5, radius * 0.18);
-    strokeCircle(context, cell.x, cell.y, radius * 0.72);
-  }
-  if (cell.resilient) {
-    context.globalAlpha = 0.5 + 0.5 * clamp01(cell.springCharge);
-    context.strokeStyle = RESILIN_COLOR;
-    context.lineWidth = 1.5 + 2 * clamp01(cell.springCharge);
-    context.setLineDash([2, 3]);
-    strokeCircle(context, cell.x, cell.y, radius * 0.6);
-    context.setLineDash([]);
-  }
 }
 
 // ---------- the symbols ----------
@@ -518,23 +494,6 @@ const CELL_SYMBOLS = {
     context.beginPath();
     context.arc(0, -0.05, 0.5, 0, Math.PI);
     context.closePath();
-    strokeIn(context, cell.signal > SIGNAL_ON ? palette.light : palette.ink, SYMBOL_WIDTH);
-  },
-  // crossed fibres, linked
-  tanner(context, cell, palette) {
-    const color = cell.signal > SIGNAL_ON ? palette.light : palette.ink;
-    for (const x of [-0.25, 0.25]) {
-      tracePolyline(context, [[x, -0.55], [x, 0.55]]);
-      strokeIn(context, color, SYMBOL_WIDTH);
-    }
-    for (const y of [-0.3, 0, 0.3]) {
-      tracePolyline(context, [[-0.45, y], [0.45, y]]);
-      strokeIn(context, color, THIN_SYMBOL_WIDTH);
-    }
-  },
-  // a coiled spring
-  resilin(context, cell, palette) {
-    tracePolyline(context, RESILIN_COIL);
     strokeIn(context, cell.signal > SIGNAL_ON ? palette.light : palette.ink, SYMBOL_WIDTH);
   },
   // a crystal that fills from the bottom with the mineral it stores

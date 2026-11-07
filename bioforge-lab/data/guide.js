@@ -41,7 +41,7 @@ const GUIDE_CELLS = {
     pairs: ['synapse', 'inhibitor', 'siphon'],
     watch: 'Hormones rise and fall slowly, so its signal does too. A Synapse after it makes a clean on and off.' },
   muscle: { summary: 'Shrinks on a signal, bending the body.',
-    pairs: ['pacemaker', 'inhibitor', 'joint', 'resilin'],
+    pairs: ['pacemaker', 'inhibitor', 'joint'],
     watch: 'A muscle only bends the body. To swim, it needs a fin of Joints behind it, or it swims tail first. ' +
       'Speed is touchy about the rate: try it in small steps (short bodies beat fast, long ones slower). Only a ' +
       'Muscle held shut steers: one beating on a Pacemaker lets go too often to turn the body.' },
@@ -111,12 +111,6 @@ const GUIDE_CELLS = {
   protease: { summary: 'Digests soft enemy cells it touches, for sugar.',
     pairs: ['eyespot', 'acid', 'photophore', 'snare'],
     watch: 'It can\'t touch hard cells. What it digests becomes sugar in the gland.' },
-  tanner: { summary: 'Toughens the cells around it on a signal.',
-    pairs: ['inhibitor', 'shell', 'muscle'],
-    watch: 'Tanned muscles move at half speed, so tan the hide, not the tail.' },
-  resilin: { summary: 'Makes the muscles around it springy on a signal.',
-    pairs: ['muscle', 'pacemaker', 'inhibitor'],
-    watch: 'A springy muscle must be held contracted to charge: a fast Pacemaker never charges it.' },
   mineralizer: { summary: 'Stores mineral: the leftover of a kit, and eaten specks.',
     pairs: ['mouth', 'pacemaker', 'shell'],
     watch: 'It needs mineral: leftover in the kit or mineral specks eaten by a Mouth.' },
@@ -124,7 +118,7 @@ const GUIDE_CELLS = {
 
 const GUIDE_NEURONS = {
   pacemaker: { summary: 'Turns on and off by itself, at its rate.',
-    pairs: ['muscle', 'siphon', 'resilin'],
+    pairs: ['muscle', 'siphon', 'heart'],
     watch: 'Calm slows it and adrenaline speeds it up, so a mood changes your rhythm. Its beat reaches every ' +
       'cell wired to it at the same moment, however long the fibres.' },
   command: { pairs: ['nettle', 'bloater', 'spitter'],
@@ -288,7 +282,7 @@ const GUIDE_TOPICS = [
     related: ['photophore', 'lighteye', 'protease'],
   },
   {
-    id: 'moods', title: 'Hormones and moods', chapter: 6,
+    id: 'moods', title: 'Hormones and moods', chapter: 7,
     demo: 'adrenal',
     paragraphs: [
       'Glands turn sugar into hormones, which seep through the body and ride in the blood. A cell\'s mood comes ' +
@@ -303,7 +297,7 @@ const GUIDE_TOPICS = [
     related: ['adrenal', 'calmgland', 'fedgland', 'starvedgland', 'receptor', 'synapse'],
   },
   {
-    id: 'scent', title: 'Hormones in the water', chapter: 6,
+    id: 'scent', title: 'Hormones in the water', chapter: 7,
     demo: 'calmgland',
     paragraphs: [
       'Every cell gives off a scent of the hormones it holds into the water around it, without losing them, and ' +
@@ -314,18 +308,6 @@ const GUIDE_TOPICS = [
     ],
     example: 'Wait out of an enemy\'s reach with Calm glands on until its threshold rises, then go in.',
     related: ['calmgland', 'adrenal', 'receptor', 'synapse'],
-  },
-  {
-    id: 'treatments', title: 'Tanning and resilin', chapter: 6,
-    demo: 'resilin',
-    paragraphs: [
-      'The Tanner and the Resilin gland change your own cells, one at a time, nearest first, while signalled. ' +
-        'Tanned cells are stiffer and take less damage (and blunt stings), but tanned muscles move slowly. A ' +
-        'resilin muscle charges while held contracted and snaps open on release, striking what it touches.',
-    ],
-    example: 'A Muscle at the front with a 0.5 Hz Pacemaker and a Resilin gland held on beside it: a strike every ' +
-      'two seconds.',
-    related: ['tanner', 'resilin', 'muscle'],
   },
 ];
 

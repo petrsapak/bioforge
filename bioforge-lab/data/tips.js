@@ -403,26 +403,6 @@ const TIPS = {
       fluidView: 8,
     },
   },
-  tanner: {
-    howToUse: 'Put it in the middle of the cells you want tough and keep it signalled (an Inhibitor in it): it ' +
-      'tans them one by one, nearest first, and they stay tanned. Keep it away from muscles you need fast.',
-    example: {
-      cells: [[0, 0, 'nucleus'], [0, -1, 'tanner', 'inhibitor'], [-1, -1, 'tissue'], [1, -2, 'tissue'],
-        [0, -2, 'tissue'], [1, -1, 'tissue'], [-1, 0, 'fat']],
-    },
-  },
-  resilin: {
-    howToUse: 'Put it next to the muscle that should strike, with an Inhibitor in it to keep it on. Hold the ' +
-      'muscle contracted for a second (a slow Pacemaker in the muscle, or a Latch), then let go: it snaps open ' +
-      'like a flea\'s leg and strikes whatever touches it, Shell too.',
-    example: {
-      cells: [[0, 0, 'nucleus'], [0, -1, 'muscle', 'pacemaker', 0.5], [1, -1, 'resilin', 'inhibitor'],
-        [-1, 0, 'fat'], [1, 0, 'gill'], [0, 1, 'tissue']],
-      stimulus: 'enemy',
-      dummyType: 'shell',
-      dummyTouches: true,
-    },
-  },
 };
 
 // The body every neuron example shares: a Nucleus with a Gill and a Fat beside it to fuel the Muscles, two Muscles

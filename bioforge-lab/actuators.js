@@ -64,7 +64,7 @@ function updateSize(cell, power, dt, time) {
   }
   const snapping = resize === 'swell' ? targetSize > cell.size : targetSize < cell.size;
   const relaxRate = RELAX_RATES[resize] || SIZE_RELAX_RATE;
-  const rate = (snapping ? SIZE_SNAP_RATE : relaxRate) * cell.resizeRateFactor;   // tanned cells are slower
+  const rate = snapping ? SIZE_SNAP_RATE : relaxRate;
   cell.size += (targetSize - cell.size) * Math.min(1, dt * rate);
   cell.radius = CELL_RADIUS * cell.size;
 }

@@ -151,14 +151,6 @@ function behaviourFacts(type) {
     facts.push(['Hardens', `one cell every ${MINERALIZE_TIME} s within ${MINERALIZE_REACH} hexes, for 1 mineral ` +
       `(stores ${MINERALIZER_CAPACITY})`]);
   }
-  if (type.treats === 'tan') {
-    facts.push(['Tans', `one cell every ${TREAT_TIME} s within ${TREAT_REACH} hexes: it then takes ` +
-      `${guideNumber(TANNED_DAMAGE_FACTOR * 100)}% damage`]);
-  }
-  if (type.treats === 'resilin') {
-    facts.push(['Springs', `one muscle every ${TREAT_TIME} s within ${TREAT_REACH} hexes: a full snap does ` +
-      `${RESILIN_STRIKE_DAMAGE} damage`]);
-  }
   if (type.product === 'hormone') facts.push(['Makes', FLUIDS[fluidIndex(type.hormone)].name]);
   if (type.breathes) facts.push(['Makes', `${GILL_OXYGEN_RATE} O₂ per s, more while swimming fast`]);
   if (type.dumpsWaste) facts.push(['Dumps', `${PORE_RATE} waste per s, from the surface`]);

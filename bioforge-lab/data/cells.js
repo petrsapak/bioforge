@@ -29,7 +29,6 @@
 //   growsParts: grows a saved part (Bud); rebuildsCells: regrows lost cells from repair fluid (Mender)
 //   secretes (secretions.js): what it puts on touching enemy cells while signalled: 'acid' or 'protease';
 //   mineralizes: while signalled, spends its stored mineral to harden its creature's cells near it
-//   treats (treatments.js): while signalled, changes its creature's cells near it: 'tan' or 'resilin'
 // Builder hints (design.js): needsSignal: does nothing without a nerve signal; isWeapon: can hurt other creatures;
 //   storesSugar: a sugar reservoir (Fat); storesMineral: a mineral store
 // Cells that burn no fuel are pipes: they pass O2 and sugar on to their neighbours but hold only a little.
@@ -240,22 +239,6 @@ const CELLS = {
     description: 'On a nerve signal, digests the soft enemy cells and debris it touches, and takes in sugar ' +
       'from them. It can\'t touch hard cells (Shell, Thorns, hardened cells). Never hurts your own cells. Burns ' +
       'fuel while signalled.',
-  }),
-  tanner: cellType({
-    category: 'Gland', name: 'Tanner', cost: 3, health: 25, fuelBurn: 0.1, color: '#8a5a2a',
-    work: 'onSignal', treats: 'tan', needsSignal: true,
-    description: `On a nerve signal, crosslinks its own cells one every ${TREAT_TIME} s, nearest first, up to ` +
-      `${TREAT_REACH} cells away. A tanned cell takes ${Math.round(100 * (1 - TANNED_DAMAGE_FACTOR))}% less ` +
-      'damage and blunts thorns and stings like Shell (acid doesn\'t eat it), and tanned cells next to each ' +
-      'other hold together stiffly, but tanned muscles and bloaters move at half speed.',
-  }),
-  resilin: cellType({
-    category: 'Gland', name: 'Resilin gland', cost: 3, health: 25, fuelBurn: 0.1, color: '#e0c060',
-    work: 'onSignal', treats: 'resilin', needsSignal: true,
-    description: `On a nerve signal, makes its creature's muscles springy, one every ${TREAT_TIME} s, nearest ` +
-      `first, up to ${TREAT_REACH} cells away. A springy muscle held contracted charges up over ` +
-      `${RESILIN_CHARGE_TIME} s; when its signal stops it snaps open at once, kicks its neighbours away and ` +
-      `strikes every enemy cell touching it or them for up to ${RESILIN_STRIKE_DAMAGE} damage.`,
   }),
   mineralizer: cellType({
     category: 'Gland', name: 'Mineralizer', cost: 3, health: 25, fuelBurn: 0.1, color: '#8fb0c8',

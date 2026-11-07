@@ -1,13 +1,13 @@
 'use strict';
 // The chemical layer (milestone 7): hormone glands, the Receptor, moods (Synapse thresholds, Pacemaker speed, fuel
-// burn, Fat storage) and the treatments (Tanner, Resilin gland), each with its system switched off as well. Sim only:
+// burn, Fat storage), each with its system switched off as well. Sim only:
 // glands and muscles are held signalled by hand, and hormone levels are set by hand where only their effect is tested.
 const { load } = require('./load');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['newWorld', 'spawn', 'step', 'createDesignCell', 'createNeuron', 'damageCell',
   'NEURON_RULES', 'FLUID_SUGAR', 'FLUID_ADRENALINE', 'FLUID_CALM', 'FLUID_FED', 'FLUID_STARVED', 'CELLS',
-  'TREAT_TIME', 'TANNED_DAMAGE_FACTOR', 'stingShare', 'BOND_STIFFNESS', 'createEditedDesign', 'setSensedHormone',
-  'bodyDesign', 'hexKey']);
+  'stingShare', 'createEditedDesign', 'setSensedHormone',
+  'bodyDesign', 'hexKey', 'migrateLibraryEntry']);
 
 const cell = (q, r, typeName, extras = {}) => sim.createDesignCell(q, r, typeName, extras);
 const noInput = { swimX: 0, swimY: 0, ability: false, heldKeys: new Set() };
@@ -148,108 +148,15 @@ check('a Fat cell 70% full keeps its fat by itself', fatAfter(0.7, 5, null) === 
 check('with Starved it turns fat back into sugar', fatAfter(0.7, 5, sim.FLUID_STARVED) < 4.7,
   fatAfter(0.7, 5, sim.FLUID_STARVED).toFixed(2));
 
-// ---------- Tanner ----------
-// a Tanner in a row of Tissue, held signalled for some game seconds
-function tannedRow(seconds, systems = ['treatments']) {
-  const cells = [cell(0, 0, 'nucleus'), cell(1, 0, 'tanner'), cell(2, 0, 'tissue'), cell(3, 0, 'tissue'),
-    cell(4, 0, 'tissue')];
-  const { world, creature } = lone(cells, systems);
-  const tanner = cellAt(creature, 1, 0);
-  runFor(world, seconds, () => {
-    tanner.signal = 1;
-  });
-  return { world, creature };
-}
-const tanned = row => row.creature.cells.filter(each => each.tanned).map(each => each.q);
-check('a Tanner tans one cell every TREAT_TIME, nearest first',
-  tanned(tannedRow(sim.TREAT_TIME + 0.05)).join() === '1' &&
-  tanned(tannedRow(3 * sim.TREAT_TIME + 0.05)).join() === '0,1,2', tanned(tannedRow(3 * sim.TREAT_TIME + 0.05)).join());
-const fullyTanned = tannedRow(10);
-check('it reaches only 2 cells away', tanned(fullyTanned).join() === '0,1,2,3');
-const tannedTissue = cellAt(fullyTanned.creature, 2, 0);
-const healthBefore = tannedTissue.health;
-sim.damageCell(tannedTissue, 10);
-check('a tanned cell takes less damage (TANNED_DAMAGE_FACTOR of it)',
-  Math.abs(healthBefore - tannedTissue.health - 10 * sim.TANNED_DAMAGE_FACTOR) < 1e-9);
-const bondBetween = (world, firstQ, secondQ) => world.bonds.find(bond =>
-  [bond.first.q, bond.second.q].sort().join() === [firstQ, secondQ].sort().join() && bond.first.r === 0 &&
-  bond.second.r === 0);
-check('a bond between two tanned cells is stiffer; one to an untanned cell is not',
-  bondBetween(fullyTanned.world, 2, 3).stiffness > 2 * sim.BOND_STIFFNESS &&
-  bondBetween(fullyTanned.world, 3, 4).stiffness === sim.BOND_STIFFNESS);
-check('with the treatments system off nothing is tanned', tanned(tannedRow(10, [])).length === 0);
-
-// a Muscle's size after 0.1 s of contracting, tanned or not
-function contractedSize(isTanned) {
-  const { world, creature } = lone([cell(0, 0, 'nucleus'), cell(0, 1, 'muscle')], []);
-  const muscle = cellAt(creature, 0, 1);
-  if (isTanned) muscle.resizeRateFactor = 0.5;
-  runFor(world, 0.1, () => {
-    holdSignal(muscle, 1);
-  });
-  return muscle.size;
-}
-check('a tanned muscle contracts slower', contractedSize(true) > contractedSize(false) + 0.1,
-  `${contractedSize(false).toFixed(2)} vs ${contractedSize(true).toFixed(2)}`);
-
-// ---------- Resilin ----------
-// A Resilin gland beside a Muscle, with a Tissue beyond it: the gland treats, then the muscle is held contracted for
-// holdSeconds and let go. Returns the Tissue's speed the step after the release, and the creature.
-function resilinSnap(holdSeconds, systems = ['treatments']) {
-  const cells = [cell(0, 0, 'nucleus'), cell(1, 0, 'resilin'), cell(0, 1, 'muscle'), cell(0, 2, 'tissue')];
-  const { world, creature } = lone(cells, systems);
-  const gland = cellAt(creature, 1, 0);
-  const muscle = cellAt(creature, 0, 1);
-  runFor(world, sim.TREAT_TIME + 0.05, () => {
-    gland.signal = 1;
-  });
-  gland.signal = 0;
-  runFor(world, holdSeconds, () => {
-    holdSignal(muscle, 1);
-  });
-  holdSignal(muscle, 0);
-  const tissue = cellAt(creature, 0, 2);
-  runFor(world, STEP);
-  return { speed: Math.hypot(tissue.velocityX, tissue.velocityY), creature, muscle };
-}
-const snap = resilinSnap(1);
-const plainRelease = resilinSnap(1, []);
-check('a Resilin gland makes only muscles springy',
-  snap.muscle.resilient && snap.creature.cells.filter(each => each.resilient).length === 1);
-check('a springy muscle held contracted, then let go, kicks its neighbour much harder than a plain one',
-  snap.speed > 3 * plainRelease.speed, `${plainRelease.speed.toFixed(1)} → ${snap.speed.toFixed(1)} px/s`);
-check('a short hold charges it less', resilinSnap(0.3).speed < snap.speed);
-
-// a springy muscle beside a dummy enemy Tissue, held contracted for some game seconds and let go: the damage it took
-function strikeOnDummy(seconds) {
-  const cells = [cell(0, 0, 'nucleus'), cell(1, 0, 'resilin'), cell(0, -1, 'muscle')];
-  const { world, creature } = lone(cells, ['treatments']);
-  const muscle = cellAt(creature, 0, -1);
-  const dummy = sim.spawn(world, { cells: [cell(0, 0, 'tissue')] }, muscle.x, muscle.y - 22, 0, 1);
-  dummy.autonomous = true;
-  const gland = cellAt(creature, 1, 0);
-  runFor(world, sim.TREAT_TIME + 0.05, () => {
-    gland.signal = 1;
-  });
-  gland.signal = 0;
-  const target = dummy.cells[0];
-  const healthBefore = target.health;
-  runFor(world, seconds, () => {
-    holdSignal(muscle, 1);
-  });
-  holdSignal(muscle, 0);
-  runFor(world, STEP);
-  return healthBefore - Math.max(0, target.health);
-}
-// a full strike kills the Tissue
-check('the snap strikes an enemy cell touching the muscle, harder for a full charge',
-  strikeOnDummy(1) >= sim.CELLS.tissue.health && strikeOnDummy(0.3) < strikeOnDummy(1),
-  `${strikeOnDummy(0.3).toFixed(1)} / ${strikeOnDummy(1).toFixed(1)}`);
-check('a tanned cell blunts thorns like Shell', sim.stingShare({ type: sim.CELLS.tissue, tanned: true }) < 1 &&
-  sim.stingShare({ type: sim.CELLS.tissue, tanned: false, mineralized: false }) === 1);
-const momentum = snap.creature.cells.reduce((sum, each) => sum + each.type.mass * each.velocityY, 0);
-// the kick pushes both ways; after a step of water drag a little momentum is left, small next to the kick itself
-check('the kick keeps the creature\'s momentum', Math.abs(momentum) < 0.1 * snap.speed, momentum.toFixed(2));
+// ---------- Gone cells ----------
+// the Resilin gland and the Tanner went on 2026-11-07: a saved one, in a body or a Bud's part, loads as Tissue
+const withResilin = sim.migrateLibraryEntry({ name: 'old', isCreature: true, fibres: [], cells: [
+  cell(0, 0, 'nucleus'), cell(0, 1, 'resilin', { neuron: sim.createNeuron('inhibitor') }),
+  cell(0, 2, 'bud', { budPart: { name: 'part', cells: [cell(0, 0, 'resilin')] } }), cell(1, 0, 'tanner')] });
+check('a saved Resilin gland or Tanner loads as Tissue, keeping its neuron, also in a Bud part',
+  withResilin.cells[1].typeName === 'tissue' && withResilin.cells[1].neuron.kind === 'inhibitor' &&
+  withResilin.cells[2].budPart.cells[0].typeName === 'tissue' && withResilin.cells[3].typeName === 'tissue',
+  JSON.stringify(withResilin.cells));
 
 // ---------- The builder: the Receptor's hormone ----------
 const edited = sim.createEditedDesign({ cells: [cell(0, 0, 'nucleus'), cell(0, 1, 'receptor'),

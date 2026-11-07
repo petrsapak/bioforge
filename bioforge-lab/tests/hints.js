@@ -8,7 +8,7 @@ const { X: sim } = load({}, ['CELLS', 'NEURONS', 'LEVELS', 'levelUnlocks', 'TIPS
   'GUIDE_NEURONS', 'GUIDE_TOPICS', 'GUIDE_TERMS', 'TUTORIAL_LESSONS']);
 
 // pieces and levels taken out of the game, which old help texts may still name
-const GONE_NAMES = ['Valve', 'Vessel', 'Moth'];
+const GONE_NAMES = ['Valve', 'Vessel', 'Moth', 'Resilin', 'Snap', 'Tanner', 'Tanned hide'];
 
 // whether the text names the thing: the name as a whole word, or its plural (Siphons, Light eyes, Noses)
 function names(text, name) {

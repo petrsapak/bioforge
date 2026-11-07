@@ -87,11 +87,8 @@ const travelled = typeName => {
 };
 check('the Cilia, Thorn and Siphon examples swim', ['cilia', 'thorn', 'siphon'].every(name => travelled(name) > 100),
   ['cilia', 'thorn', 'siphon'].map(name => `${name} ${travelled(name).toFixed(0)} px`).join(', '));
-check('the Tanner example tans cells', cellResults.tanner.run.creature.cells.some(cell => cell.tanned));
 check('the Mineralizer example hardens cells',
   cellResults.mineralizer.run.creature.cells.some(cell => cell.mineralized));
-check('the Resilin example makes its Muscle springy',
-  cellResults.resilin.run.creature.cells.some(cell => cell.resilient));
 check('the Adrenal example\'s adrenaline reaches the Siphons beside it',
   cellResults.adrenal.run.creature.cells.filter(cell => cell.typeName === 'siphon')
     .every(cell => cell.fluids[sim.FLUID_ADRENALINE] > 0.1));

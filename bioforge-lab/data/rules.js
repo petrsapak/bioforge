@@ -13,9 +13,9 @@ const RULES = {
   // metabolism = Fat cells store spare sugar as fat and turn it back;
   // food = food specks in the water; regrow = Menders and lost-cell regrowth;
   // secretions = acid, protease and Mineralizer glands; chemical = hormones set moods (thresholds, clocks, burn,
-  // stores); scent = hormones in the water, traded with the cells in it; treatments = Tanner and Resilin glands
+  // stores); scent = hormones in the water, traded with the cells in it
   systems: ['nerve', 'fluid', 'vascular', 'metabolism', 'food', 'regrow', 'secretions', 'chemical', 'scent',
-    'treatments'],
+  ],
 };
 
 // Kept out of the game for now with their code in place (user, 2026-11-07: hide the hormones, which don't work

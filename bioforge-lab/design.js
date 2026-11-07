@@ -354,6 +354,8 @@ const OLD_DESIGN_FIELD_NAMES = {
 // Cell types taken out of the game, and the type a saved one becomes. It keeps its neuron and fibres.
 const REMOVED_CELL_TYPES = {
   valve: 'tissue',                                        // 2026-11-02: no level used it
+  resilin: 'tissue',                                      // 2026-11-07: the user found it useless
+  tanner: 'tissue',                                       // 2026-11-07: it did the Mineralizer's job without its cost
 };
 
 // a saved design cell in the current format, whichever format it was saved in

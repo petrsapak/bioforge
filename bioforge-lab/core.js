@@ -205,16 +205,10 @@ function createCell(typeName, q, r, creature) {
     mineral: 0,                                           // mineral stored in the cell (Mineralizer, secretions.js)
     mineralized: false,                                   // hardened by a Mineralizer: takes half damage, acid eats it
     mineralizeProgress: 0,                                // Mineralizer: share of the way to hardening the next cell
-    tanned: false,                                        // crosslinked by a Tanner (treatments.js)
-    resilient: false,                                     // a muscle made springy by a Resilin gland
-    springCharge: 0,                                      // resilin muscle: share of a full charge, 0..1
     heldPull: 0,                                          // muscle: the pull it held for the last 1-2 s (actuators.js)
     weakestPull: 0,                                       // muscle: its weakest pull in this hold window
     weakestPullBefore: 0,                                 // muscle: its weakest pull in the hold window before
     holdWindow: 0,                                        // muscle: which hold window weakestPull is for
-    treatProgress: 0,                                     // treatment gland: share of the way to the next cell
-    treatedDamageFactor: 1,                               // share of damage it takes for its treatments
-    resizeRateFactor: 1,                                  // share of the usual speed it contracts or swells at
     starving: false,
     poisoned: false,
     boundKey: null,                                       // Command: the key it fires on ('a'–'z', '0'–'9')

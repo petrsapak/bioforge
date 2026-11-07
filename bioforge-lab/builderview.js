@@ -294,7 +294,7 @@ function drawDesignCells(app) {
 // a test tank cell with everything that comes and goes switched off: no signal or its glow, no heartbeat, no flash,
 // no hunger marks, and its fluids (hormone rims too) shown only while a fluid view is on
 function stillCell(live, fluidView) {
-  const still = { ...live, signal: 0, senseOutput: 0, beat: 0, cooldown: 0, hitFlash: 0, springCharge: 0 };
+  const still = { ...live, signal: 0, senseOutput: 0, beat: 0, cooldown: 0, hitFlash: 0 };
   still.starving = false;
   still.poisoned = false;
   if (!fluidView) still.fluids = new Array(FLUID_COUNT).fill(0);

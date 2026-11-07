@@ -112,10 +112,6 @@ const feastBuild = (fed, starved) => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAn
     starved ? { neuron: sim.createNeuron('inhibitor'), sensedHormone: 'fed' } : {}),
   cell(-2, 0, fed ? 'fedgland' : 'tissue'), cell(2, 0, 'tissue')],
   fibres: [...CROSSED, ...(fed ? [fibre(1, -2, -2, 0)] : []), ...(starved ? [fibre(2, -1, -1, -1)] : [])] });
-// Tanned hide: the Nucleus in a ring of Tissue, one of them a Tanner holding an Inhibitor if asked
-const tannedRingBuild = withTanner => ({ cells: [cell(0, 0, 'nucleus'),
-  ...[[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]].map(([q, r]) => (withTanner && q === 0 && r === 1
-    ? cell(q, r, 'tanner', { neuron: sim.createNeuron('inhibitor') }) : cell(q, r, 'tissue')))] });
 // Anglerfish: a lit cell (a Photophore, or Tissue) at the front, in a cup of four always-on protease glands
 const lit = () => ({ neuron: sim.createNeuron('inhibitor') });
 const cupBuild = lureTypeName => ({ cells: [cell(0, 0, 'nucleus'), cell(0, -1, lureTypeName, lit()),
@@ -134,12 +130,6 @@ const lullabyBuild = (sideTypeName, isGated = true) => {
     cell(2, -1, 'fat'), cell(-1, 2, 'receptor', { sensedHormone: 'calm' })],
   fibres: [...CROSSED, fibre(-1, 2, -1, 1), fibre(-1, 2, 0, 1)] };
 };
-// Snap: the crossed Seeker with a Fat, and across the front this cell (a Resilin gland holds an Inhibitor), a Muscle
-// with a 0.5 Hz Pacemaker in it, and Tissue
-const snapBuild = leftTypeName => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(-1, 0, 'tissue'),
-  cell(1, 0, 'fat'),
-  cell(0, -2, leftTypeName, leftTypeName === 'resilin' ? { neuron: sim.createNeuron('inhibitor') } : {}),
-  cell(1, -2, 'muscle', { neuron: { kind: 'pacemaker', setting: 0.5 } }), cell(2, -2, 'tissue')], fibres: CROSSED });
 // Grazed: a Nucleus inside a ring of Tissue, with this cell on both sides (left and right)
 const grazedBuild = sideTypeName => ({ cells: [cell(0, 0, 'nucleus'), cell(1, 0, sideTypeName),
   cell(-1, 0, sideTypeName), ...[[0, 1], [0, -1], [1, -1], [-1, 1]].map(([q, r]) => cell(q, r, 'tissue'))] });
@@ -230,8 +220,6 @@ const SOLUTIONS = {
   'fight-or-flight': sprinterBuild('adrenal'),
   'lie-low': calmSeekerBuild('calmgland'),
   'feast-and-famine': feastBuild(true, true),
-  'tanned-hide': tannedRingBuild(true),
-  snap: snapBuild('resilin'),
   lullaby: lullabyBuild('calmgland'),
   moods: moodsBuild('receptor'),
   grazed: grazedBuild('mender'),
@@ -267,8 +255,6 @@ const WRONG_TOOLS = {
   'fight-or-flight': sprinterBuild('tissue'),
   'lie-low': calmSeekerBuild('tissue'),
   'feast-and-famine': feastBuild(false, false),
-  'tanned-hide': tannedRingBuild(false),
-  snap: snapBuild('tissue'),
   lullaby: lullabyBuild('tissue'),
   moods: moodsBuild('tissue'),
   grazed: grazedBuild('tissue'),
@@ -325,11 +311,9 @@ check('"Dock": the Synapse\'s threshold matters: 1 stops short of the ring, 2 ne
   dockRuns.every(run => run.outcome === 'lost'), dockRuns.map(run => run.player.centerY.toFixed(0)).join());
 check('"Lullaby" doesn\'t allow Spitters, which kill the urchin from out of reach without calming it',
   /Spitter/.test(sim.buildCheck(spitBuild, sim.levelLimits(levelById('lullaby')))));
-check('"Snap" doesn\'t allow acid or protease: Clam\'s acid ram, which needs no Resilin, doesn\'t fit',
-  /Acid/.test(sim.buildCheck(SOLUTIONS.clam, sim.levelLimits(levelById('snap')))));
 // Six Mouths round the Nucleus survived every Puffer level (2026-11-05): they bit the soft front of the Puffer's
 // crown away and the Nucleus rode in the hole. Mouths now can't bite hard cells, and a fifth Thorn closes the gap.
-const PUFFER_LEVELS = ['bulwark', 'pincushion', 'quarry', 'siege', 'tanned-hide'];
+const PUFFER_LEVELS = ['bulwark', 'pincushion', 'quarry', 'siege'];
 const mouthRingRuns = PUFFER_LEVELS.map(id => sim.runLevel(levelById(id), ringBuild('mouth')));
 check('a ring of Mouths loses every Puffer level', mouthRingRuns.every(run => run.outcome === 'lost'),
   mouthRingRuns.map(run => `${run.outcome} ${run.time.toFixed(0)} s`).join(', '));
@@ -525,8 +509,8 @@ const listed = byId('levels-list').children;
 const rows = listed.filter(child => child.className.startsWith('level-tile'));
 const headings = listed.filter(child => child.className === 'chapter-heading');
 check('the levels sheet lists every level under its chapter', byId('levels-sheet').style.display === 'flex' &&
-  rows.length === readGlobal('LEVELS.length') && headings.length === 7 &&
-  headings[6].textContent === 'Chapter 7: Growth',
+  rows.length === readGlobal('LEVELS.length') && headings.length === 6 &&
+  headings[5].textContent === 'Chapter 6: Growth',
   `${rows.length} rows, ${headings.length} headings`);
 check('at first only level 1 is open: the others are locked and say which win opens them',
   !rows[0].className.includes('locked') && rows.slice(1).every(row => row.className.includes('locked')) &&
