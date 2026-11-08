@@ -89,7 +89,7 @@ function lockedLineHtml(app, typeName, neuronKind) {
   const limits = chosenLimits(app);
   const isLocked = typeName ? isCellLocked(limits, typeName) : isNeuronLocked(limits, neuronKind);
   if (!isLocked) return '';
-  return `<div class="tooltip-locked">🔒 Locked. ${lockedPieceText(typeName || neuronKind)}</div>`;
+  return `<div class="tooltip-locked">🔒 Locked. ${lockedPieceText(typeName || neuronKind, app.level)}</div>`;
 }
 
 // What a piece costs, in the tooltip's title. A level with a kit counts materials, so there it is the recipe in

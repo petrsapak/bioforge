@@ -160,6 +160,12 @@ function setUpSplash(app) {
   });
 }
 
+// takes the splash out at once: a page loaded again into a game (New game, Load game) goes straight to it
+function skipSplash(app) {
+  app.title.splash.done = true;
+  byId('loading-screen').classList.add('done');
+}
+
 // Once the splash has played (or was clicked) and the game has drawn a frame, the loading screen fades away into
 // the title, and then it is taken out of the page.
 function updateSplash(app, now) {

@@ -145,6 +145,12 @@ fibres: CROSSED };
 // a Nettle on a Tissue cell, with no way to steer
 const NETTLE_PART = { name: 'nettle', cells: [cell(0, 0, 'tissue'),
   cell(0, -1, 'nettle', { neuron: sim.createNeuron('inhibitor') })], fibres: [] };
+// Tumour: a Nucleus with a 0.5 Hz Pacemaker firing a Bud in front, a Fat and a Gill, and the Bud's part: a Cilia
+// and partSize - 1 Tissue. With a part of 4 no body has more than 8 cells; with 5 the body has 9 while it grows one.
+const tumourBuild = partSize => ({ cells: [cell(0, 0, 'nucleus', { neuron: { kind: 'pacemaker', setting: 0.5 } }),
+  cell(0, -1, 'bud', { budPart: { name: 'lump', cells: [cell(0, 0, 'cilia'),
+    ...[[0, -1], [1, -1], [1, 0], [-1, 0]].slice(0, partSize - 1).map(([q, r]) => cell(q, r, 'tissue'))], fibres: [] },
+  partRotation: 0 }), cell(1, 0, 'fat'), cell(-1, 0, 'gill')], fibres: [fibre(0, 0, 0, -1)] });
 // Moods: a Light eye at the front middle into an Adrenal holding a Latch; a Fat each side; beside each Siphon this
 // cell (a Receptor drives its Siphon); a Heart at the back, kept beating by an Inhibitor
 const moodsBuild = (sideTypeName, withHeart = true) => ({ cells: [cell(0, 0, 'nucleus'), cell(1, -2, 'lighteye'),
@@ -224,6 +230,7 @@ const SOLUTIONS = {
   moods: moodsBuild('receptor'),
   grazed: grazedBuild('mender'),
   swarm: swarmBuild(HOMING_PART),
+  tumour: tumourBuild(4),
 };
 // the wrong tool for each level: it must not win
 const WRONG_TOOLS = {
@@ -259,6 +266,7 @@ const WRONG_TOOLS = {
   moods: moodsBuild('tissue'),
   grazed: grazedBuild('tissue'),
   swarm: swarmBuild(NETTLE_PART),
+  tumour: tumourBuild(5),
 };
 
 // the cells and neurons in a design that the level's dock doesn't have yet (buildCheck lets them run, but the
@@ -278,7 +286,8 @@ const isHiddenLevel = level => sim.HIDDEN.levels.includes(level.id);
 // Feast and famine was hidden (2026-11-07) because it no longer balances once a speck's sugar spreads over the
 // body: the glands decide little. Its balance checks come back with the level.
 const isUnbalanced = level => level.id === 'feast-and-famine' && isHiddenLevel(level);
-for (const level of sim.ALL_LEVELS) {
+// an adventure is played with keys and rebuilt on the way, so runLevel can't win it: tests/adventure.js plays it
+for (const level of sim.ALL_LEVELS.filter(entry => !entry.adventure)) {
   const solution = SOLUTIONS[level.id];
   const missing = isHiddenLevel(level) ? [] : piecesNotInDock(solution, level);
   check(`"${level.name}": the reference solution uses only pieces the dock has`, !missing.length, missing.join(', '));
@@ -409,6 +418,12 @@ if (!isUnbalanced(levelById('feast-and-famine'))) {
 const seeped = sim.runLevel(levelById('moods'), moodsBuild('receptor', false));
 check('"Moods": Receptors without a Heart get the adrenaline unevenly and miss the ring', seeped.outcome === 'lost',
   seeped.reason);
+const keptRule = sim.runLevel(levelById('tumour'), tumourBuild(4));
+const brokenRule = sim.runLevel(levelById('tumour'), tumourBuild(5));
+const isAwake = run => run.creatures.filter(guard => guard.guardAwake).length;
+check('"Tumour": keeping every body to 8 cells leaves the guards asleep; one body of 9 wakes all four',
+  !keptRule.ruleBroken && isAwake(keptRule) === 0 && brokenRule.ruleBroken && isAwake(brokenRule) === 4,
+  `kept: ${isAwake(keptRule)} awake; broken: ${isAwake(brokenRule)} awake, ${brokenRule.reason}`);
 const blinking = levelById('freeze').light;
 check('a blinking light is on for 2 s, off for 3 s, and round again',
   [0.5, 2.5, 4.9, 5.1].map(time => sim.isLevelLightOn(blinking, time)).join() === 'true,false,false,true');
@@ -446,7 +461,7 @@ function lockedPieceOf(level) {
     bodyCell.neuron && sim.isNeuronLocked(limits, bodyCell.neuron.kind));
   return neuronPiece ? neuronPiece.neuron.kind : '';
 }
-const levelsMissingPieces = sim.LEVELS.filter(level => lockedPieceOf(level))
+const levelsMissingPieces = sim.LEVELS.filter(level => !level.adventure && lockedPieceOf(level))
   .map(level => level.id + ': ' + lockedPieceOf(level));
 check('every reference solution is built from what its level\'s dock has by then', levelsMissingPieces.length === 0,
   levelsMissingPieces.join(', '));
@@ -460,11 +475,11 @@ check('every reference solution is built from what its level\'s dock has by then
   check('a later level keeps what the earlier ones unlocked, and Cold water brings the Heart',
     !sim.isCellLocked(coldWater, 'lighteye') && !sim.isNeuronLocked(coldWater, 'synapse') &&
     !sim.isCellLocked(coldWater, 'heart') && sim.isCellLocked(coldWater, 'shell'));
-  check('Hunt brings Cilia and Dock the Ganglion; no level brings the Command (a key the player holds)',
+  check('Hunt brings Cilia, Dock the Ganglion and Metastasis the Command (a key the player holds, to steer)',
     sim.levelBringing('cilia') === levelById('hunt') && sim.levelBringing('ganglion') === levelById('dock') &&
-    sim.levelBringing('command') === null);
+    sim.levelBringing('command') === levelById('metastasis'));
   check('a piece is met once the level that brings it is earned, or the last level is won',
-    sim.isPieceMet({}, 'siphon') && !sim.isPieceMet({}, 'muscle') && sim.isPieceMet({}, 'command') &&
+    sim.isPieceMet({}, 'siphon') && !sim.isPieceMet({}, 'muscle') && !sim.isPieceMet({}, 'command') &&
     sim.isPieceMet({ [lastLevel.id]: { stars: 1 } }, 'muscle'));
   const opened = sim.withEverythingUnlocked(firstLimits);
   check('winning the last level opens everything',
@@ -509,8 +524,8 @@ const listed = byId('levels-list').children;
 const rows = listed.filter(child => child.className.startsWith('level-tile'));
 const headings = listed.filter(child => child.className === 'chapter-heading');
 check('the levels sheet lists every level under its chapter', byId('levels-sheet').style.display === 'flex' &&
-  rows.length === readGlobal('LEVELS.length') && headings.length === 6 &&
-  headings[5].textContent === 'Chapter 6: Growth',
+  rows.length === readGlobal('LEVELS.length') && headings.length === 7 &&
+  headings[6].textContent === 'Chapter 7: Breaking the rules',
   `${rows.length} rows, ${headings.length} headings`);
 check('at first only level 1 is open: the others are locked and say which win opens them',
   !rows[0].className.includes('locked') && rows.slice(1).every(row => row.className.includes('locked')) &&

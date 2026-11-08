@@ -11,16 +11,17 @@ function isLevelEarned(results, levelIndex) {
   return levelIndex === 0 || !!results[LEVELS[levelIndex - 1].id];
 }
 
-// whether a level can be shown and played: earned, or every level while RULES.allLevelsOpen is on (for testing)
+// whether a level can be shown and played: earned, or every level while RULES.allLevelsOpen is on (on for the release)
 function isLevelOpen(results, levelIndex) {
   return RULES.allLevelsOpen || isLevelEarned(results, levelIndex);
 }
 
 // The design limits a level sets, filled in from RULES where it sets none; kit: its material kit, or null for a
 // biomass budget; bannedCells: the cell types the level doesn't allow; lockedCells and lockedNeurons: what no level up
-// to this one has unlocked yet (levelUnlocks), which the dock doesn't show.
+// to this one has unlocked yet (levelUnlocks), which the dock doesn't show. An adventure starts with its own list.
 function levelLimits(level) {
-  const unlocked = levelUnlocks(level);
+  const unlocked = level.adventure ? adventureUnlocks(level.adventure.cells, level.adventure.neurons)
+    : levelUnlocks(level);
   return {
     budget: RULES.budget,
     maxCells: RULES.maxCells,
@@ -52,8 +53,9 @@ function levelBringing(name) {
   return LEVELS.find(level => level.unlocks.cells.includes(name) || level.unlocks.neurons.includes(name)) || null;
 }
 
-// what a locked piece in the dock says about when it opens
-function lockedPieceText(name) {
+// what a locked piece in the dock says about when it opens; chosen: the level being built for, if any
+function lockedPieceText(name, chosen = null) {
+  if (chosen && chosen.adventure) return 'Find it on the way: some pickups and kills bring new cells.';
   const level = levelBringing(name);
   return level ? `Opens with level ${LEVELS.indexOf(level) + 1}, ${level.name}.` : 'Not in the levels yet.';
 }
@@ -77,8 +79,10 @@ function isLastLevelWon(results) {
 }
 
 // A level in play: its world, the player's creature, the level's other creatures, the clock and the outcome
-// ('won', 'lost' or null while it runs). goalTime counts the seconds a stayNear goal has been met. With a
+// ('won', 'lost' or null while it runs). goalTime counts the seconds a stayNear, restIn or spread goal has been
+// met; ruleBroken: one of the player's bodies has broken the level's host rule, which woke its guards. With a
 // material kit, the player starts with the kit's leftovers as its sugar and fat, instead of stores two thirds full.
+// design: the player's, changed by a rebuild in an adventure's den (adventure.js).
 function startLevel(level, design) {
   const world = newWorld(level.arena.width, level.arena.height, { systems: level.systems, seed: LEVEL_SEED,
     seepFactor: level.seepFactor, waterOxygen: level.waterOxygen, foodSupply: createFoodSupply(level.food),
@@ -89,24 +93,29 @@ function startLevel(level, design) {
   if (kit) stockReserves(player, kitReserves(design, kit));
   const creatures = level.creatures.map(entry => (entry.at ? null : spawnLevelCreature(world, entry)));
   const run = { level, world, player, creatures, time: 0, goalTime: 0, outcome: null, reason: '',
-    playerSpeed: 0 };
+    playerSpeed: 0, ruleBroken: false, design };
+  if (level.adventure) startAdventure(run);
   placeLevelLight(run);
   if (world.systems.has('food')) stockFood(world);
   return run;
 }
 
 // A 'wired' creature moves only by its own wiring, like the player's; a 'hunt' creature is steered by the AI
-// (ai.js) toward its nearest enemy, and a 'flee' one away from it (its wiring still works too). One with an arrival
+// (ai.js) toward its nearest enemy, a 'guard' one too once the host rule is broken (checkHostRule), and a 'flee'
+// one away from it (its wiring still works too). One with an arrival
 // time (at) is spawned then (spawnArrivals), null until.
 function spawnLevelCreature(world, entry) {
   const design = LEVEL_CREATURES[entry.design] || TEMPLATES[entry.design];
   const creature = spawn(world, design, entry.x, entry.y, entry.heading || 0, 1);
-  creature.aiControlled = entry.behaviour === 'hunt' || entry.behaviour === 'flee';
-  creature.aiBehaviour = entry.behaviour === 'flee' ? 'flee' : 'hunt';
+  creature.aiControlled = AI_BEHAVIOURS.includes(entry.behaviour);
+  creature.aiBehaviour = creature.aiControlled ? entry.behaviour : 'hunt';
   creature.autonomous = !creature.aiControlled;
   creature.anchored = !!entry.anchored;
   return creature;
 }
+
+// the level creature behaviours the AI steers (ai.js)
+const AI_BEHAVIOURS = ['hunt', 'flee', 'guard'];
 
 // spawns the level creatures whose arrival time has come
 function spawnArrivals(run) {
@@ -169,8 +178,8 @@ function pointAlongLoop(points, distance) {
   return points[0];
 }
 
-// one step of the level: brings in arriving creatures, moves the light, steps the world, then checks the goal and
-// the clock
+// one step of the level: brings in arriving creatures, moves the light, steps the world, then checks the host rule,
+// the adventure's dens and pickups, the goal and the clock
 function stepLevel(run, dt, input) {
   if (run.outcome) return;
   spawnArrivals(run);
@@ -180,7 +189,23 @@ function stepLevel(run, dt, input) {
   step(run.world, dt, input);
   run.time += dt;
   run.playerSpeed = vectorLength(run.player.centerX - lastX, run.player.centerY - lastY) / dt;
+  checkHostRule(run);
+  if (run.adventure) stepAdventure(run);
   checkLevelGoal(run, dt);
+}
+
+// A level's host rule ({ maxBodyCells }): every one of the player's bodies, its own (with the part growing on a Bud)
+// and each launched Bud part, may have that many cells at most. The first time one has more, every guard wakes.
+function checkHostRule(run) {
+  const rule = run.level.hostRule;
+  if (!rule || run.ruleBroken) return;
+  const bodies = run.world.creatures.filter(creature => creature.team === run.player.team &&
+    (creature === run.player || creature.launchedPart));
+  if (!bodies.some(body => body.cells.length > rule.maxBodyCells)) return;
+  run.ruleBroken = true;
+  for (const creature of run.creatures) {
+    if (creature && creature.aiBehaviour === 'guard') creature.guardAwake = true;
+  }
 }
 
 // What each goal kind asks, as a test of the run after a step of dt: true once it is met.
@@ -194,12 +219,26 @@ const LEVEL_GOALS = {
   eat: (run, goal) => run.player.foodEaten >= goal.count,
   survive: (run, goal) => run.time >= goal.seconds,
   kill: (run, goal) => !!run.creatures[goal.creature] && !run.creatures[goal.creature].alive,
+  spread: (run, goal, dt) => {
+    run.goalTime = livingPlayerCells(run) >= goal.count ? run.goalTime + dt : 0;
+    return run.goalTime >= goal.seconds;
+  },
   restIn: (run, goal, dt) => {
     const isResting = distanceToPlayer(run, goal.x, goal.y) < goal.radius && run.playerSpeed < goal.speed;
     run.goalTime = isResting ? run.goalTime + dt : 0;
     return run.goalTime >= goal.seconds;
   },
 };
+
+// The player's living cells: its body's (with a Bud part still growing on it) and those of its launched Bud parts
+// that still have fuel. A part that has rotted or been cut to unfueled pieces doesn't count.
+function livingPlayerCells(run) {
+  const player = run.player;
+  const body = player.alive ? player.cells.length : 0;
+  const parts = run.world.creatures.filter(creature =>
+    creature.team === player.team && creature.launchedPart && creature.fueled);
+  return parts.reduce((sum, part) => sum + part.cells.length, body);
+}
 
 const distanceToPlayer = (run, x, y) => vectorLength(run.player.centerX - x, run.player.centerY - y);
 

@@ -10,7 +10,8 @@ const { X: sim } = load({}, ['sine', 'cosine', 'arcTangent2', 'nextRandom', 'new
 // every pure file (CLAUDE.md); tests/style.js checks that this list and CLAUDE.md's agree
 const SIM_FILES = ['math.js', 'core.js', 'fibres.js', 'terrain.js', 'physics.js', 'nerve.js', 'fluid.js', 'vascular.js',
   'chemical.js', 'scent.js', 'metabolism.js', 'actuators.js', 'secretions.js', 'combat.js',
-  'growth.js', 'food.js', 'ai.js', 'design.js', 'builder.js', 'fieldguide.js', 'levels.js', 'tutorial.js',
+  'growth.js', 'food.js', 'ai.js', 'design.js', 'builder.js', 'fieldguide.js', 'levels.js', 'adventure.js',
+  'tutorial.js',
   'snapshot.js',
   'savegame.js', 'titlescene.js', 'data/version.js', 'data/rules.js', 'data/materials.js', 'data/fluids.js',
   'data/cells.js', 'data/neurons.js', 'data/templates.js', 'data/tips.js', 'data/guide.js', 'data/levels.js',

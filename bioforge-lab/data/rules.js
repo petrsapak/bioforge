@@ -6,7 +6,8 @@ const RULES = {
   maxCells: 24,
   maxNeurons: 12,                                     // neurons on the nerve layer (they cost no biomass)
   maxFibreUnits: 40,                                  // steps of nerve fibre from cell centre to cell centre
-  allLevelsOpen: true,                                // TESTING ONLY (user, 2026-10-29): all levels open; remove later
+  allLevelsOpen: true,                                // all levels open (user, 2026-10-29, for testing; kept on for the
+                                                      // release, user 2026-11-07: "do not switch it off")
   // systems stepped each tick: nerve = signals;
   // fluid = O2, sugar, waste and hormones burn and seep (off: cells work at full power);
   // vascular = beating Hearts pump blood between the cells in their reach;

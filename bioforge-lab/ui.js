@@ -28,6 +28,8 @@ function createApp(canvas) {
     isLensOn: false,                                      // the chemical lens (lens.js): hormones shown, bodies dimmed
     keysHeld: new Set(),                                  // lower-case key names
     commandKeysHeld: new Set(),                           // letter and number keys held, for bound Commands
+    adventureRun: null,                                   // an adventure's run waiting while the Lab rebuilds in a den
+    adventureCamera: { x: 0, y: 0, run: null },           // px in the arena: where an adventure's camera looks
     edited: createEditedDesign(TEMPLATES[START_DESIGN],
       readStorage('unlimited-biomass', false) ? Infinity : RULES.budget),
     lastLoadedName: '',                                   // the saved creature last loaded, offered when saving again
@@ -196,7 +198,7 @@ function loadDesign(app, design, label, savedName) {
 function pickCellType(app, typeName) {
   const limits = chosenLimits(app);
   if (isCellLocked(limits, typeName)) {
-    refusePick(app, `${CELLS[typeName].name} is locked. ${lockedPieceText(typeName)}`);
+    refusePick(app, `${CELLS[typeName].name} is locked. ${lockedPieceText(typeName, app.level)}`);
     return;
   }
   if (isCellBanned(limits, typeName)) {
@@ -211,7 +213,7 @@ function pickCellType(app, typeName) {
 // chooses the neuron to place; the chosen one again puts it down. A locked one can't be picked.
 function pickNeuron(app, kind) {
   if (isNeuronLocked(chosenLimits(app), kind)) {
-    refusePick(app, `The ${NEURONS[kind].name} is locked. ${lockedPieceText(kind)}`);
+    refusePick(app, `The ${NEURONS[kind].name} is locked. ${lockedPieceText(kind, app.level)}`);
     return;
   }
   app.selectedNeuron = app.selectedNeuron === kind ? null : kind;
@@ -337,6 +339,7 @@ function enterBuilder(app) {
 // what the builder's design must fit: the chosen level's limits, or RULES; once the last level is won nothing is
 // locked in any level
 function chosenLimits(app) {
+  if (app.adventureRun) return adventureLimits(app.adventureRun);
   if (!app.level) return RULES;
   const limits = levelLimits(app.level);
   return isLastLevelWon(app.levelResults) ? withEverythingUnlocked(limits) : limits;

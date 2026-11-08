@@ -189,6 +189,22 @@ const TEMPLATES = {
     ],
     fibres: [{ from: { q: 0, r: 0 }, to: { q: -1, r: 1 } }, { from: { q: 0, r: 0 }, to: { q: 0, r: 1 } }],
   },
+  // Steered by keys (Metastasis): W in the Nucleus fires both back Siphons and the Heart, A (left Tissue) the right
+  // Siphon to turn left, D (right Tissue) the left one to turn right. A Mouth, a Gill and a Pore keep it going.
+  steerer: {
+    cells: [
+      createDesignCell(0, 0, 'nucleus', { neuron: createNeuron('command'), boundKey: 'w' }),
+      createDesignCell(0, -1, 'mouth'),
+      createDesignCell(1, -1, 'gill'),
+      createDesignCell(-1, 0, 'tissue', { neuron: createNeuron('command'), boundKey: 'a' }),
+      createDesignCell(1, 0, 'tissue', { neuron: createNeuron('command'), boundKey: 'd' }),
+      createDesignCell(-1, 1, 'siphon'),
+      createDesignCell(0, 1, 'siphon'),
+      createDesignCell(1, 1, 'pore'),
+      createDesignCell(-2, 1, 'heart'),
+    ],
+    fibres: linksFromList([[0, 0, -1, 1], [0, 0, 0, 1], [0, 0, -2, 1], [-1, 0, 0, 1], [1, 0, -1, 1]]),
+  },
   paddler: muscleFish(2.2, 0.1),
   leanPaddler: muscleFish(2.2, 0.1, true),
   // Follows the light (in the Sandbox, the mouse): each Light eye is wired across to the Siphon on the far side, so

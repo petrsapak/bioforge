@@ -121,9 +121,10 @@ const GUIDE_NEURONS = {
     pairs: ['muscle', 'siphon', 'heart'],
     watch: 'Calm slows it and adrenaline speeds it up, so a mood changes your rhythm. Its beat reaches every ' +
       'cell wired to it at the same moment, however long the fibres.' },
-  command: { pairs: ['nettle', 'bloater', 'spitter'],
-    watch: 'A Sandbox piece: it acts only while a key is held, and levels don\'t have it. A creature that must act ' +
-      'on its own needs a sense or a Pacemaker instead.' },
+  command: { summary: 'On while its key is held: wire it to steer.',
+    pairs: ['nettle', 'bloater', 'spitter'],
+    watch: 'It acts only while its key is held, so it steers (Metastasis) but does nothing on its own. A creature ' +
+      'that must act by itself needs a sense or a Pacemaker instead.' },
   ganglion: { summary: 'Follows its input slowly, smoothing it.',
     pairs: ['lighteye', 'siphon'],
     watch: 'Smoothing makes a signal late: a smoothed tail swims slower.' },
@@ -282,7 +283,7 @@ const GUIDE_TOPICS = [
     related: ['photophore', 'lighteye', 'protease'],
   },
   {
-    id: 'moods', title: 'Hormones and moods', chapter: 7,
+    id: 'moods', title: 'Hormones and moods', chapter: 8,
     demo: 'adrenal',
     paragraphs: [
       'Glands turn sugar into hormones, which seep through the body and ride in the blood. A cell\'s mood comes ' +
@@ -297,7 +298,7 @@ const GUIDE_TOPICS = [
     related: ['adrenal', 'calmgland', 'fedgland', 'starvedgland', 'receptor', 'synapse'],
   },
   {
-    id: 'scent', title: 'Hormones in the water', chapter: 7,
+    id: 'scent', title: 'Hormones in the water', chapter: 8,
     demo: 'calmgland',
     paragraphs: [
       'Every cell gives off a scent of the hormones it holds into the water around it, without losing them, and ' +

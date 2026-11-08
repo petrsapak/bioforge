@@ -81,11 +81,19 @@ for (const level of sim.LEVELS) {
 // ---------- The resume state ----------
 {
   const design = { name: 'Jet', isCreature: true, ...sim.TEMPLATES.jet };
-  const run = { mode: 'level', levelDesign: null, snapshot: '{}' };
+  const lighthouse = sim.LEVELS.find(level => level.id === 'lighthouse');
+  const run = sim.savedRun('level', sim.startLevel(lighthouse, sim.TEMPLATES.jet), null);
   const saved = JSON.parse(JSON.stringify(sim.createResumeState(design, 'lighthouse', run)));
   const read = sim.readResumeState(saved);
   check('a resume state reads back with its design, level and run',
     read.design.cells.length === design.cells.length && read.levelId === 'lighthouse' && read.run);
+  // a run keeps state per creature and pickup in the level's order: one saved before the level's data changed broke
+  // every frame (2026-11-08, Metastasis), so the screen stayed black after Continue
+  const changedRun = { ...saved.run, levelKey: 'changed' };
+  check('a run saved before its level\'s data changed is dropped, the design and level kept',
+    sim.readResumeState({ ...saved, run: changedRun }).run === null &&
+    sim.readResumeState({ ...saved, run: changedRun }).levelId === 'lighthouse' &&
+    sim.readResumeState({ ...saved, run: { ...saved.run, levelKey: undefined } }).run === null);
   check('a run saved by another game version is dropped, the design and level kept',
     sim.readResumeState({ ...saved, gameVersion: '0.0.1' }).run === null &&
     sim.readResumeState({ ...saved, gameVersion: '0.0.1' }).levelId === 'lighthouse');

@@ -39,7 +39,7 @@ check('every chapter named is one the game has (0: none yet)',
   chapters.every(chapter => chapter === 0 || sim.CHAPTER_NAMES[chapter]));
 check('a cell\'s chapter is that of the level that brings it, the Nucleus\'s the first',
   sim.findGuideEntry('cell:muscle').chapter === 2 && sim.findGuideEntry('cell:eyespot').chapter === 5 &&
-  sim.findGuideEntry('cell:nucleus').chapter === 1 && sim.findGuideEntry('neuron:command').chapter === 0);
+  sim.findGuideEntry('cell:nucleus').chapter === 1 && sim.findGuideEntry('neuron:command').chapter === 7);
 check('every topic has words and an example',
   sim.GUIDE_TOPICS.every(topic => topic.paragraphs.length && topic.example && topic.title));
 check('the glossary has terms with meanings', sim.GUIDE_TERMS.length > 10 &&
@@ -99,9 +99,10 @@ check('Field guide on the main menu opens the guide at its first topic',
 check('its list holds every entry', (byId('guide-list').innerHTML.match(/data-guide=/g) || []).length ===
   entries.length);
 const listHtml = byId('guide-list').innerHTML;
-check('with no level won, the Muscle is dimmed as not met yet, the Siphon and the Command are not',
+check('with no level won, the Muscle and the Command are dimmed as not met yet, the Siphon is not',
   /guide-link unmet" data-guide="cell:muscle" title="Not met yet: it comes with Tail"/.test(listHtml) &&
-  /guide-link" data-guide="cell:siphon"/.test(listHtml) && /guide-link" data-guide="neuron:command"/.test(listHtml));
+  /guide-link" data-guide="cell:siphon"/.test(listHtml) &&
+  /guide-link unmet" data-guide="neuron:command" title="Not met yet: it comes with Metastasis"/.test(listHtml));
 byId('guide-sheet').onclick({ target: { closest: () => ({ dataset: { guide: 'cell:photophore' } }) } });
 runFrames(5);
 check('a link opens its entry, with its facts and its example tank',

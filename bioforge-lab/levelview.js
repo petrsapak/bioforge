@@ -41,7 +41,7 @@ function setUpLevels(app) {
   onButton('level-pause', () => togglePause(app));
   onButton('level-step', () => requestOneStep(app));
   onButton('level-speed', () => cycleSandboxSpeed(app));
-  onButton('level-retry', () => retryLevel(app));
+  onButton('level-retry', () => (app.levelRun.adventure ? giveUpBody(app) : retryLevel(app)));
   onButton('result-retry', () => retryLevel(app));
   onButton('result-builder', () => enterBuilder(app));
   showLevelButtons(app);
@@ -114,6 +114,7 @@ function chapterHeading(chapter) {
 // Makes the level the one the builder works toward (null: free build). Its limits, budget or kit, become the
 // builder's. A chosen cell type or neuron it hasn't unlocked is put down.
 function chooseLevel(app, level) {
+  if ((level || null) !== app.level) app.adventureRun = null;  // a den's run waits only while its level is chosen
   app.level = level || null;
   app.isHintShown = false;
   const limits = chosenLimits(app);
@@ -125,13 +126,19 @@ function chooseLevel(app, level) {
   refreshPanel(app);
 }
 
-// The bottom-right buttons: Run level names the next level not won yet, and the Levels button lights up while a
-// level is chosen, its tooltip naming it.
+// The bottom-right buttons: Run level names the next level not won yet (in a den: Back to the adventure), and the
+// Levels button lights up while a level is chosen, its tooltip naming it.
 function showLevelButtons(app) {
   const level = app.level;
   byId('show-levels').classList.toggle('selected', !!level);
   byId('show-levels').title = level ? `All levels (building for level ${LEVELS.indexOf(level) + 1}: ${level.name})`
     : 'All levels: pick one, see its rules and your best result';
+  if (app.adventureRun) {
+    byId('run-next-label').textContent = 'Back to the adventure';
+    byId('run-next-name').textContent = `Den ${app.adventureRun.adventure.atDen + 1}, ${level.name}`;
+    byId('run-next-level').title = 'Grow this design in the den and swim on';
+    return;
+  }
   const next = nextUnfinishedLevel(app);
   byId('run-next-label').textContent = `Run level ${LEVELS.indexOf(next) + 1}`;
   byId('run-next-name').textContent = next.name;
@@ -153,8 +160,13 @@ function moveOnAfterFirstWin(app) {
   chooseLevel(app, nextUnfinishedLevel(app));
 }
 
-// Run level: chooses the next unfinished level, so the Lab shows its limits, and runs the creature in it if it fits
+// Run level: chooses the next unfinished level, so the Lab shows its limits, and runs the creature in it if it fits;
+// in a den, goes back to the adventure
 function runNextLevel(app) {
+  if (app.adventureRun) {
+    resumeAdventure(app);
+    return;
+  }
   chooseLevel(app, nextUnfinishedLevel(app));
   startLevelRun(app);
 }
@@ -196,7 +208,8 @@ function levelRulesHtml(app, level) {
   const materials = limits.kit ? rule('Kit', kitText(limits.kit)) : rule('Biomass', limits.budget);
   const banned = limits.bannedCells.map(typeName => CELLS[typeName].name).join(', ');
   const bannedRule = banned ? rule('Not allowed', banned) : '';
-  return materials + bannedRule + rule('Time limit', level.timeLimit + ' s') +
+  const hostRule = level.hostRule ? rule('Host rule', `No body over ${level.hostRule.maxBodyCells} cells`) : '';
+  return materials + bannedRule + hostRule + rule('Time limit', level.timeLimit + ' s') +
     rule('★ Finish by', level.par.seconds + ' s') + rule('★ Use at most', level.par.biomass + ' biomass') +
     rule('Best', best ? `${best.seconds.toFixed(1)} s, ${formatBiomass(best.biomass)} biomass` : '–');
 }
@@ -211,6 +224,8 @@ function startLevelRun(app) {
     playSound(app, 'refuse');
     return;
   }
+  app.adventureRun = null;                                // a new run of an adventure starts it over
+  app.progress.pendingRun = null;
   enterLevelMode(app, design);
   retryLevel(app);
 }
@@ -224,6 +239,7 @@ function resumeLevelRun(app, design, run) {
   app.stepRequested = false;
   byId('level-result').style.display = 'none';
   showTimeControls(app);
+  showRetryButton(app);
 }
 
 // leaves the builder for a level run of the design: the run's windows instead of the builder's
@@ -250,6 +266,14 @@ function retryLevel(app) {
   app.stepRequested = false;
   byId('level-result').style.display = 'none';
   showTimeControls(app);
+  showRetryButton(app);
+}
+
+// the bar's Retry button, which in an adventure takes the creature back to the last den instead of starting over
+function showRetryButton(app) {
+  const isAdventure = !!app.levelRun.adventure;
+  byId('level-retry').textContent = isAdventure ? 'Back to den' : 'Retry';
+  byId('level-retry').title = isAdventure ? 'Grow back at the last den (R)' : 'Start over (R)';
 }
 
 // Steps the level like the Sandbox (time controls apply); when it ends, keeps a win and shows the result.
@@ -275,7 +299,7 @@ function showLevelResult(app, run) {
     const isBest = keepLevelResult(app, run.level, score);
     byId('result-stars').innerHTML = starsHtml(score);
     byId('result-text').textContent = `${score.seconds.toFixed(1)} s · ${formatBiomass(score.biomass)} biomass` +
-      (isBest ? ' · new best' : '');
+      (isBest ? ' · new best' : '') + (run.adventure ? `. ${adventureSummary(run)}` : '');
   } else {
     byId('result-stars').innerHTML = '';
     byId('result-text').textContent = run.reason;
@@ -294,8 +318,9 @@ function keepLevelResult(app, level, score) {
   return true;
 }
 
-// level keys: Esc the menu, R retry, P pause, . one step, , speed
+// level keys: Esc the menu, R retry, P pause, . one step, , speed; an adventure's own first (adventureview.js)
 function handleLevelKey(app, key) {
+  if (handleAdventureKey(app, key)) return;
   if (key === 'escape') openPauseMenu(app);
   if (key === 'r') retryLevel(app);
   if (key === 'p') togglePause(app);
@@ -311,11 +336,21 @@ function handleLevelClick(app, event) {
   toggleProbeAt(app.probes, (event.clientX - view.offsetX) / view.scale, (event.clientY - view.offsetY) / view.scale);
 }
 
-// where the arena sits on screen: as large as fits below the HUD, centred
+// Where the arena sits on screen: as large as fits below the HUD, centred. A level with a view shows that much of
+// the arena, round the camera that follows the player (adventureview.js).
 function arenaView(app, world) {
   const freeWidth = app.canvas.width - 2 * ARENA_SIDE_MARGIN;
   const freeHeight = app.canvas.height - ARENA_TOP_MARGIN - ARENA_SIDE_MARGIN;
-  const scale = Math.min(freeWidth / world.width, freeHeight / world.height);
+  const shown = app.levelRun.level.view || world;
+  const scale = Math.min(freeWidth / shown.width, freeHeight / shown.height);
+  if (app.levelRun.level.view) {
+    const camera = followCamera(app, app.levelRun, app.canvas.width / 2 / scale, (freeHeight / 2) / scale);
+    return {
+      scale,
+      offsetX: app.canvas.width / 2 - camera.x * scale,
+      offsetY: ARENA_TOP_MARGIN + freeHeight / 2 - camera.y * scale,
+    };
+  }
   return {
     scale,
     offsetX: (app.canvas.width - world.width * scale) / 2,
@@ -339,6 +374,7 @@ function drawLevelMode(app) {
   drawWater(context, world, app.canvas.width / view.scale, app.canvas.height / view.scale);
   context.translate(-screenLeft, -screenTop);
   drawLevelGoal(context, run);
+  drawAdventure(context, run);
   drawDarkLamp(context, run);
   drawLight(context, world.light);
   drawWorld(context, world, app.fluidView);
@@ -393,6 +429,10 @@ function showLevelHud(app, run) {
   byId('hud-enemies').textContent = `${run.time.toFixed(1)} / ${run.level.timeLimit} s`;
   showGoalBanner(run);
   showVitalsHud(app, run.world, run.player, []);
+  if (run.adventure) {
+    showAdventureHud(app, run);
+    return;
+  }
   if (byId('hud-keys').innerHTML !== LEVEL_KEYS_HELP) byId('hud-keys').innerHTML = LEVEL_KEYS_HELP;
 }
 
@@ -415,12 +455,17 @@ function goalFraction(run) {
   if (goal.kind === 'stayNear' || goal.kind === 'restIn') return run.goalTime / goal.seconds;
   if (goal.kind === 'eat') return run.player.foodEaten / goal.count;
   if (goal.kind === 'survive') return run.time / goal.seconds;
+  if (goal.kind === 'spread') return run.goalTime ? run.goalTime / goal.seconds : livingPlayerCells(run) / goal.count;
   return null;
 }
 
-// what a level's stillness rule asks right now, or '' when it asks nothing
+// what a level's stillness rule asks right now, or how its host rule stands, or '' when it has neither
 function stillnessRule(run) {
   const level = run.level;
+  if (level.hostRule) {
+    return run.ruleBroken ? 'Rule broken: the guards are awake'
+      : `Host rule: no body over ${level.hostRule.maxBodyCells} cells`;
+  }
   if (level.stillWhileLit) return run.world.light ? 'Light on: hold still' : 'Dark: go';
   if (level.stillUntilLit && run.time < level.light.flash.at) return 'Wait for the flash';
   return '';
@@ -440,5 +485,9 @@ function goalProgress(run) {
   if (goal.kind === 'eat') return `Eaten ${run.player.foodEaten} / ${goal.count}`;
   if (goal.kind === 'survive') return `Alive ${Math.min(run.time, goal.seconds).toFixed(1)} / ${goal.seconds} s`;
   if (goal.kind === 'kill') return 'Destroy its Nucleus';
+  if (goal.kind === 'spread') {
+    const cells = `Your cells ${livingPlayerCells(run)} / ${goal.count}`;
+    return run.goalTime ? `${cells}, held ${run.goalTime.toFixed(1)} / ${goal.seconds} s` : cells;
+  }
   return 'Reach the ring';
 }

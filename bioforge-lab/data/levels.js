@@ -5,7 +5,7 @@
 //     level before it add (levelUnlocks in levels.js)
 //   arena: { width, height } in px; systems: the switchable systems that run (chapters 1 and 2: nerve only, so
 //     every cell works at full power and nothing starves; chapter 3 adds fluid and vascular; chapter 4 metabolism
-//     and food; chapter 5 secretions; chapter 6 regrow; chapter 7 chemical and scent)
+//     and food; chapter 5 secretions; chapters 6 and 7 regrow; chapter 8 chemical and scent)
 //   seepFactor: share of the usual seeping between cells (cold water: less); a Heart's pumping is not slowed
 //   waterOxygen: share of the usual O₂ a Gill makes from the water (stale water: less)
 //   limits: design limits ({ budget, maxCells, maxNeurons, maxFibreUnits, bannedCells: cell type names the level
@@ -22,7 +22,8 @@
 //     that game s, for that long)
 //   creatures: others in the arena: { design (a LEVEL_CREATURES or TEMPLATES name), x, y, heading, behaviour }.
 //     behaviour 'wired': it moves only by its own wiring; 'hunt': the AI steers it at the player; 'flee': the AI
-//     steers it away from the player once near, in sprints that tire it (ai.js); at: game s it arrives (left out:
+//     steers it away from the player once near, in sprints that tire it (ai.js); 'guard': it holds still until the
+//     host rule is broken, then hunts; at: game s it arrives (left out:
 //     there from the start); anchored: fixed in place, nothing moves it
 //   goal: { kind: 'reach', x, y, radius } swim the creature's centre into the ring;
 //     { kind: 'stayNear', radius, seconds } stay that close to the light for that long in all;
@@ -30,7 +31,21 @@
 //     { kind: 'restIn', x, y, radius, speed, seconds } stay in the ring, slower than speed (px/s), that long without
 //     a break;
 //     { kind: 'survive', seconds } keep the Nucleus alive that long;
-//     { kind: 'kill', creature } destroy the Nucleus of that level creature (its index in creatures)
+//     { kind: 'kill', creature } destroy the Nucleus of that level creature (its index in creatures);
+//     { kind: 'spread', count, seconds } have that many living cells (the body's and its fueled launched Bud
+//     parts') that long without a break
+//   hostRule: { maxBodyCells }: no body of the player's (its own, with a part growing on a Bud, or a launched part)
+//     may have more cells; the first time one does, every guard wakes
+//   view: { width, height } in px: the arena is bigger than the screen, and the camera follows the player over a
+//     window this big
+//   adventure: the level is a journey (adventure.js): { cells, neurons: what the builder has at the start; dens:
+//     [{ x, y }] where the creature is rebuilt and comes back, the first at the start; pickups: [{ x, y, name,
+//     materials, cells, neurons, secret }] lying in the water (a secret is off the way, and counted at the end) }.
+//     The kit is what the bank starts with. A creature entry may have drop: a pickup's { name, materials, cells,
+//     neurons } left where it dies; wakeRange: px within which a 'guard' wakes (it goes back to its post past twice
+//     that, and while the player is in a den); leash: px from its post past which it goes back; waves: [{ share,
+//     design, count, name }] sent out round it once it is down to that share of its cells
+//   starter: a TEMPLATES name the briefing offers to start from
 //   stillWhileLit: { speed, grace }: lost when the player swims faster than speed (px/s) while the light has been
 //     on longer than grace (game s)
 //   stillUntilLit: { speed }: lost when the player swims faster than speed (px/s) before the light's flash
@@ -44,9 +59,12 @@ const FEEDING_SYSTEMS = ['nerve', 'fluid', 'vascular', 'metabolism', 'food'];
 const ARMOUR_SYSTEMS = [...FEEDING_SYSTEMS, 'secretions'];
 const GROWTH_SYSTEMS = [...ARMOUR_SYSTEMS, 'regrow'];
 const MOODS_SYSTEMS = [...GROWTH_SYSTEMS, 'chemical', 'scent'];
-// chapter 7 is hidden for now (HIDDEN in data/rules.js)
+// chapter 8 is hidden for now (HIDDEN in data/rules.js)
 const CHAPTER_NAMES = { 1: 'Reflexes', 2: 'Memory and logic', 3: 'Circulation', 4: 'Feeding', 5: 'Armour',
-  6: 'Growth', 7: 'Moods' };
+  6: 'Growth', 7: 'Breaking the rules', 8: 'Moods' };
+// Tumour's guards: a Phagocyte at each corner of the middle, about 400 px from the start
+const TUMOUR_GUARDS = [[350, 200], [1050, 200], [350, 600], [1050, 600]]
+  .map(([x, y]) => ({ design: 'phagocyte', x, y, heading: 0, behaviour: 'guard' }));
 const WATCHER_LIGHT = { x: 700, y: 60, range: 2000 };     // px: above the top ring, bright all over the arena
 const TOP_RING = { kind: 'reach', x: 700, y: 200, radius: 70 };   // px
 const START_BOTTOM = { x: 700, y: 680, heading: 0 };      // px, rad: bottom middle, facing up
@@ -56,6 +74,70 @@ const FOOD_TRAIL = [[200, 600], [220, 510], [270, 430], [340, 370], [430, 340], 
 const DRIFTING_LIGHT = {                                  // round a loop of points (px) at 18 px/s
   path: [[700, 420], [1050, 250], [1100, 550], [350, 600], [300, 250]], speed: 18, range: 450,
 };
+// Metastasis: a long body to cross, left to right, past four dens. Zone 1 the tissue the tumour broke out of
+// (Motes to hunt, Grazers, an old scar hiding a secret), zone 2 a blood vessel (rock walls with a capillary up to a
+// secret, a current flowing on, Phagocytes and a Killer cell), zone 3 a lymph node (rock nodules, more of both, and
+// the Mast cell in a side chamber), a current pulling down before the last den, zone 4 the Macrophage.
+const BODY_ARENA = { width: 5600, height: 1600 };         // px
+const BODY_VIEW = { width: 1400, height: 800 };           // px of arena on screen
+const BODY_DENS = [{ x: 300, y: 800 }, { x: 1750, y: 800 }, { x: 3600, y: 800 }, { x: 4950, y: 800 }];   // px
+const VESSEL_LEFT = 1950;                                 // px
+const VESSEL_RIGHT = 3350;                                // px
+const CAPILLARY_LEFT = 2470;                              // px: a shaft up through the vessel's top wall
+const CAPILLARY_RIGHT = 2590;                             // px
+const BODY_ROCKS = [
+  { x: 40, y: 260, width: 260, height: 40 },              // the old scar: a shelf over the start, a secret above it
+  { x: VESSEL_LEFT, y: 0, width: CAPILLARY_LEFT - VESSEL_LEFT, height: 430 },
+  { x: CAPILLARY_RIGHT, y: 0, width: VESSEL_RIGHT - CAPILLARY_RIGHT, height: 430 },
+  { x: VESSEL_LEFT, y: 1170, width: VESSEL_RIGHT - VESSEL_LEFT, height: 430 },
+  { x: 3900, y: 960, width: 120, height: 120 },           // the lymph node's nodules
+  { x: 4180, y: 590, width: 120, height: 120 },
+  { x: 4180, y: 960, width: 120, height: 120 },
+  { x: 3780, y: 1260, width: 340, height: 40 },           // the Mast cell's chamber: a roof, a wall, open right
+  { x: 3780, y: 1300, width: 40, height: 300 },
+];
+const BODY_CURRENTS = [
+  { x: VESSEL_LEFT, y: 600, width: VESSEL_RIGHT - VESSEL_LEFT, height: 400, flowX: 12, flowY: 0 },
+  { x: 4700, y: 0, width: 100, height: 1600, flowX: 0, flowY: 12 },   // pulls down before the last den
+];
+// a sleeping level creature of Metastasis, waking within range px, with what it drops
+const sleeper = (design, x, y, wakeRange, drop) => ({ design, x, y, heading: 0, behaviour: 'guard', wakeRange, drop });
+const SMALL_DROP = { name: 'Remains', materials: { protein: 6, sugar: 4 } };
+const IMMUNE_DROP = { name: 'Remains', materials: { protein: 6, sugar: 4, mineral: 2 } };
+const BODY_CREATURES = [
+  sleeper('grazer', 800, 520, 260, SMALL_DROP),
+  sleeper('grazer', 1050, 1150, 260, SMALL_DROP),
+  sleeper('grazer', 1350, 760, 260, SMALL_DROP),
+  sleeper('phagocyte', 2300, 640, 380, IMMUNE_DROP),
+  sleeper('phagocyte', 2650, 980, 380, IMMUNE_DROP),
+  sleeper('phagocyte', 2950, 700, 380, IMMUNE_DROP),
+  sleeper('killerCell', 3200, 880, 420,
+    { name: 'Killer cell', materials: { protein: 10, sugar: 6 }, cells: ['nettle', 'eyespot'] }),
+  sleeper('phagocyte', 3950, 520, 380, IMMUNE_DROP),
+  sleeper('phagocyte', 4050, 1100, 380, IMMUNE_DROP),
+  sleeper('killerCell', 4350, 800, 420,
+    { name: 'Killer cell', materials: { protein: 10, sugar: 6 }, cells: ['spitter'] }),
+  sleeper('phagocyte', 4600, 500, 380, IMMUNE_DROP),
+  sleeper('killerCell', 4650, 1150, 420, { name: 'Killer cell', materials: { protein: 10, sugar: 6, mineral: 4 } }),
+  { design: 'mote', x: 550, y: 480, heading: 0, behaviour: 'flee', drop: SMALL_DROP },
+  { design: 'mote', x: 620, y: 1000, heading: 0, behaviour: 'flee', drop: SMALL_DROP },
+  sleeper('puffer', 3960, 1440, 240, { name: 'Mast cell', materials: { protein: 16, sugar: 6, mineral: 6 },
+    cells: ['acid', 'protease'], secret: true }),
+  { ...sleeper('macrophage', 5350, 800, 520, null), leash: 600, waves: [
+    { share: 0.67, design: 'phagocyte', count: 1, name: 'The Macrophage sends out a Phagocyte!' },
+    { share: 0.34, design: 'phagocyte', count: 2, name: 'The Macrophage sends out two more!' },
+  ] },
+];
+const BODY_PICKUPS = [
+  { x: 700, y: 1150, name: 'Bone spur', materials: { mineral: 6 }, cells: ['thorn'] },
+  { x: 1100, y: 300, name: 'Protein clump', materials: { protein: 10 } },
+  { x: 1450, y: 1250, name: 'Protein clump', materials: { protein: 10 } },
+  { x: 2650, y: 500, name: 'Shell fragment', materials: { mineral: 6 }, cells: ['shell'] },
+  { x: 4200, y: 330, name: 'Healing factor', materials: { protein: 8 }, cells: ['mender'] },
+  { x: 4450, y: 1350, name: 'Bud tissue', materials: { protein: 12, fat: 2 }, cells: ['bud'] },
+  { x: 150, y: 140, name: 'Old scar', materials: { protein: 6, fat: 2 }, cells: ['bloater'], secret: true },
+  { x: 2530, y: 90, name: 'Capillary cache', materials: { protein: 10, sugar: 8 }, cells: ['snare'], secret: true },
+];
 // a clam fixed to the rock in the upper middle, with the light on it so Light eyes find it
 const ANCHORED_CLAM = { design: 'clam', x: 700, y: 200, heading: 0, behaviour: 'wired', anchored: true };
 const CLAM_LIGHT = { carriedBy: 0, range: 900 };          // px
@@ -82,6 +164,25 @@ function createLevel(definition) {
   return { arena: ARENA, systems: CHAPTER_1_SYSTEMS, seepFactor: 1, waterOxygen: 1, limits: {}, start: START_BOTTOM,
     light: null, creatures: [], rocks: [], currents: [], hint: '', ...definition,
     unlocks: { cells: [], neurons: [], ...definition.unlocks } };
+}
+
+// The Macrophage: a Nucleus deep in Shell (so Nettles reach it only after the front is broken), with a Command; a
+// front of Mouths with two Nettles the Command fires, and Gills at the sides
+function macrophageDesign() {
+  const design = designFromArt([
+    '    M x M x M',
+    '   M S S S S M',
+    '  S S S S S S S',
+    ' t G S S N S S G t',
+    '  S S S S S S S',
+    '   S t t t t S',
+    '    S S S S S',
+  ]);
+  const nucleus = design.cells.find(cell => cell.q === 0 && cell.r === 0);
+  nucleus.neuron = createNeuron('command');
+  // the two Nettles, the x's in the top row
+  const nettles = [{ q: 0, r: -3 }, { q: 2, r: -3 }];
+  return { cells: design.cells, fibres: nettles.map(nettle => ({ from: { q: 0, r: 0 }, to: nettle })) };
 }
 
 // every level, the hidden ones (HIDDEN in data/rules.js) too
@@ -483,7 +584,51 @@ const ALL_LEVELS = [
     timeLimit: 90, par: { seconds: 50, biomass: 10 },
   }),
   createLevel({
-    id: 'fight-or-flight', chapter: 7, name: 'Fight or flight',
+    id: 'tumour', chapter: 7, name: 'Tumour',
+    brief: 'You are a tumour in a host. The host\'s rule: no body has more than 8 cells, a part growing on a Bud ' +
+      'included. Its guards sleep while you keep it, and wake the moment you break it. Have 30 cells alive for 10 s.',
+    hint: 'A launched Bud part is a body of its own, so the rule counts it on its own. Keep the body to a Nucleus, a ' +
+      'Bud, a Fat and a Gill, and give the Bud a part of 4 cells: no body ever has more than 8, but together they ' +
+      'have as many as you like. Put a Cilia in the part, so it keeps its fuel: Tissue alone rots.',
+    systems: GROWTH_SYSTEMS,
+    limits: { maxCells: 8, kit: { protein: 60, sugar: 8, fat: 2 } },
+    food: { maxCount: 0 },
+    start: { x: 700, y: 400, heading: 0 },
+    creatures: TUMOUR_GUARDS,
+    hostRule: { maxBodyCells: 8 },
+    goal: { kind: 'spread', count: 30, seconds: 10 },
+    timeLimit: 120, par: { seconds: 45, biomass: 10 },
+  }),
+  createLevel({
+    id: 'metastasis', chapter: 7, name: 'Metastasis',
+    unlocks: { neurons: ['command'] },
+    brief: 'You broke the rule: the tumour is loose. Here the game breaks its rules too: you steer, and you take ' +
+      'what you kill. Swim through the body, grow at the dens, and destroy the Macrophage at the far end.',
+    hint: 'Start from the Steerer, or steer with Command neurons of your own: put one in a cell, click it and press ' +
+      'a key to bind it, and wire it to a Siphon or a Muscle. W in the Nucleus wired to both back Siphons (and a ' +
+      'Heart, to pump while you swim) swims you on; A wired to the right one turns you left, D to the left one ' +
+      'right. Swim over what you find, then press E in a den to rebuild. Some things are off the way.',
+    starter: 'steerer',
+    systems: GROWTH_SYSTEMS,
+    arena: BODY_ARENA,
+    view: BODY_VIEW,
+    limits: { maxCells: 40, kit: { protein: 26, sugar: 10, fat: 2 } },
+    food: { maxCount: 90, interval: 0.4 },
+    start: { x: BODY_DENS[0].x, y: BODY_DENS[0].y, heading: Math.PI / 2 },
+    rocks: BODY_ROCKS,
+    currents: BODY_CURRENTS,
+    creatures: BODY_CREATURES,
+    adventure: {
+      cells: ['tissue', 'siphon', 'cilia', 'muscle', 'joint', 'gill', 'mouth', 'fat', 'pore', 'heart', 'airsac'],
+      neurons: ['command', 'pacemaker', 'inhibitor', 'delay', 'latch', 'synapse', 'ganglion'],
+      dens: BODY_DENS,
+      pickups: BODY_PICKUPS,
+    },
+    goal: { kind: 'kill', creature: BODY_CREATURES.length - 1 },
+    timeLimit: 3600, par: { seconds: 1200, biomass: 60 },
+  }),
+  createLevel({
+    id: 'fight-or-flight', chapter: 8, name: 'Fight or flight',
     unlocks: { cells: ['adrenal'] },
     brief: 'The ring is right across the water and the clock is short: two Siphons alone are too slow. Reach it ' +
       'in 26 s.',
@@ -497,7 +642,7 @@ const ALL_LEVELS = [
     timeLimit: 26, par: { seconds: 24, biomass: 20 },
   }),
   createLevel({
-    id: 'lie-low', chapter: 7, name: 'Lie low',
+    id: 'lie-low', chapter: 8, name: 'Lie low',
     unlocks: { cells: ['calmgland'] },
     brief: 'Stay near the drifting light for 120 s in all, on the little sugar you start with. There is no food.',
     hint: 'Calm halves what a cell burns, and lasts. A Calm gland with an Inhibitor in it is always on and costs ' +
@@ -510,7 +655,7 @@ const ALL_LEVELS = [
     timeLimit: 170, par: { seconds: 160, biomass: 22 },
   }),
   createLevel({
-    id: 'feast-and-famine', chapter: 7, name: 'Feast and famine',
+    id: 'feast-and-famine', chapter: 8, name: 'Feast and famine',
     unlocks: { cells: ['fedgland', 'starvedgland', 'receptor'] },
     brief: 'Food blooms round the drifting light for the first 40 s, then never again. Stay near the light for ' +
       '220 s in all.',
@@ -525,7 +670,7 @@ const ALL_LEVELS = [
     timeLimit: 310, par: { seconds: 290, biomass: 37 },
   }),
   createLevel({
-    id: 'lullaby', chapter: 7, name: 'Lullaby',
+    id: 'lullaby', chapter: 8, name: 'Lullaby',
     brief: 'An urchin sits on the rock with the light on it. Its Nettles sting anything its Eyespot sees within ' +
       '120 px, and they would digest your glands before you digest it. Calm it down, then destroy its Nucleus.',
     hint: 'Hormones leak into the water (C shows them), and cells take in what is around them. Calm raises a ' +
@@ -543,7 +688,7 @@ const ALL_LEVELS = [
     timeLimit: 90, par: { seconds: 50, biomass: 44 },
   }),
   createLevel({
-    id: 'moods', chapter: 7, name: 'Moods',
+    id: 'moods', chapter: 8, name: 'Moods',
     brief: 'Hold still until the light flashes, then swim to the ring. Your nerves are short: 3 units of fibre in ' +
       'all, not enough to reach from an eye to the Siphons.',
     hint: 'Send the flash as adrenaline: a Light eye into an Adrenal holding a Latch, so it stays on. A Receptor ' +
@@ -572,7 +717,9 @@ const darterCells = () => [
 // Creatures that live in levels. The Darter holds still until its Eyespot sees an enemy within reach (120 px), then
 // jets straight ahead on both Siphons. The skittish Darter has no nerves: the AI makes it flee (behaviour 'flee',
 // ai.js), so its Siphons' bursts can't add to its sprint. The Clam is a Nucleus inside two rings of Shell, and does
-// nothing. The Grazer is a small hunter with a Mouth in front, which bites soft cells.
+// nothing. The Grazer is a small hunter with a Mouth in front, which bites soft cells. The Phagocyte, an immune
+// cell, has two. The Killer cell stings with a Nettle when close (the AI holds its Command), and the Macrophage
+// is a big Phagocyte behind a Shell back, with Nettles among its Mouths.
 const LEVEL_CREATURES = {
   darter: {
     cells: darterCells(),
@@ -598,6 +745,18 @@ const LEVEL_CREATURES = {
       createDesignCell(0, 1, 'tissue')],
     fibres: [],
   },
+  phagocyte: {
+    cells: [createDesignCell(0, 0, 'nucleus'), createDesignCell(0, -1, 'mouth'), createDesignCell(1, -1, 'mouth'),
+      createDesignCell(-1, 1, 'tissue'), createDesignCell(0, 1, 'tissue')],
+    fibres: [],
+  },
+  killerCell: {
+    cells: [createDesignCell(0, 0, 'nucleus', { neuron: createNeuron('command') }), createDesignCell(0, -1, 'nettle'),
+      createDesignCell(1, -1, 'tissue'), createDesignCell(-1, 0, 'tissue'), createDesignCell(1, 0, 'gill'),
+      createDesignCell(-1, 1, 'tissue'), createDesignCell(0, 1, 'tissue')],
+    fibres: [{ from: { q: 0, r: 0 }, to: { q: 0, r: -1 } }],
+  },
+  macrophage: macrophageDesign(),
   clam: designFromArt([
     '  S S S',
     ' S S S S',

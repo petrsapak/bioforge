@@ -13,6 +13,7 @@ function setUpBriefing(app) {
   app.briefedLevels = readStorage('briefed-levels', []);
   onButton('briefing-build', () => closeBriefing(app));
   onButton('briefing-hint', toggleBriefingHint);
+  onButton('briefing-starter', () => startFromStarter(app));
   byId('briefing-sheet').onclick = event => {
     if (event.target === byId('briefing-sheet')) closeBriefing(app);
   };
@@ -21,10 +22,12 @@ function setUpBriefing(app) {
 const isBriefingOpen = () => byId('briefing-sheet').style.display === 'flex';
 
 // Each frame: opens the briefing for the chosen level the first time the Lab builds for it, unless the level is won
-// already, the tutorial teaches it, or something covers the Lab.
+// already, the tutorial teaches it, or something covers the Lab. A den's rebuild is in the middle of the level: no
+// briefing.
 function runBriefing(app) {
   const level = app.level;
   if (app.mode !== 'build' || !level || isBriefingOpen() || app.briefedLevels.includes(level.id)) return;
+  if (app.adventureRun) return;
   if (app.progress.isSandboxSession || bestResult(app, level) || isTutorialCovered(app)) return;
   if (isLevelTaught(app.tutorial.record, level.id)) return;
   openBriefing(app, level);
@@ -44,8 +47,21 @@ function openBriefing(app, level) {
   byId('briefing-hint-text').textContent = level.hint;
   byId('briefing-hint-text').style.display = 'none';
   byId('briefing-hint').textContent = 'Hint';
+  byId('briefing-starter').style.display = level.starter ? '' : 'none';
+  byId('briefing-starter').textContent = level.starter ? `Start from the ${starterName(level)}` : '';
   byId('briefing-sheet').style.display = 'flex';
   playSound(app, 'open');
+}
+
+// the name a level's starter design goes by: its template's name with a capital
+const starterName = level => level.starter[0].toUpperCase() + level.starter.slice(1);
+
+// Start from: loads the level's starter design into the Lab and closes the card
+function startFromStarter(app) {
+  const level = app.level;
+  loadDesign(app, TEMPLATES[level.starter], starterName(level), '');
+  closeBriefing(app);
+  showMessage(`The ${starterName(level)} is in the Lab. Its keys are bound: W swims, A and D turn.`);
 }
 
 // hides the card, back to building

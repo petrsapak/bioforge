@@ -67,7 +67,10 @@ function setUpMenus(app) {
   else if (startWith === 'new-game') beginNewGame(app);
   else openMainMenu(app);
   if (startWith === 'load-game') openGamesScreen(app);     // after deleting the current game there
-  if (startWith) fadeInAtStart(app);
+  if (startWith) {
+    skipSplash(app);                                      // the splash only plays before the main menu
+    fadeInAtStart(app);
+  }
 }
 
 // the main menu over the title scene, coming up out of black

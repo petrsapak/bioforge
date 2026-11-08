@@ -4,8 +4,8 @@
 // piece or level the game no longer has.
 const { load } = require('./load');
 const { check, done } = require('./check');
-const { X: sim } = load({}, ['CELLS', 'NEURONS', 'LEVELS', 'levelUnlocks', 'TIPS', 'NEURON_TIPS', 'GUIDE_CELLS',
-  'GUIDE_NEURONS', 'GUIDE_TOPICS', 'GUIDE_TERMS', 'TUTORIAL_LESSONS']);
+const { X: sim } = load({}, ['CELLS', 'NEURONS', 'LEVELS', 'levelUnlocks', 'adventureUnlocks', 'TIPS', 'NEURON_TIPS',
+  'GUIDE_CELLS', 'GUIDE_NEURONS', 'GUIDE_TOPICS', 'GUIDE_TERMS', 'TUTORIAL_LESSONS']);
 
 // pieces and levels taken out of the game, which old help texts may still name
 const GONE_NAMES = ['Valve', 'Vessel', 'Moth', 'Resilin', 'Snap', 'Tanner', 'Tanned hide'];
@@ -56,7 +56,9 @@ check('every level has a brief and a hint', perLevel.every(({ level }) => level.
 check('the tutorial has words for levels 1 and 2', perLevel[0].texts.length > 2 && perLevel[1].texts.length > 2);
 
 const lockedNamed = perLevel.flatMap(({ level, texts }) => {
-  const unlocked = sim.levelUnlocks(level);
+  // an adventure's dock has its own list (adventure.js), not what the levels before it bring
+  const unlocked = level.adventure ? sim.adventureUnlocks(level.adventure.cells, level.adventure.neurons)
+    : sim.levelUnlocks(level);
   const isOpen = typeName => unlocked.cells.has(typeName) || unlocked.neurons.has(typeName);
   return texts.flatMap(text => piecesNamed(text).filter(([typeName]) => !isOpen(typeName))
     .map(([, name]) => `${level.id}: ${name}`));

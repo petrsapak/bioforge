@@ -7,6 +7,21 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.7.42 (2026-11-08)
+- New chapter 7, Breaking the rules, starting with Tumour. You are a tumour in a host whose rule is that no body
+  has more than 8 cells. Its four guards sleep while you keep the rule and wake the moment you break it. Find the
+  loophole and have 30 cells alive for 10 s.
+- Chapter 7 ends with Metastasis, a journey of about 20 minutes where the game breaks its own rules: you steer
+  with Command keys you wire yourself, and you take what you kill. Cross the host's body, pick up materials and
+  new cells from what you find and kill, rebuild your creature in the dens on the way (E), and destroy the
+  Macrophage at the far end. A lost Nucleus grows back at the last den, and R takes you back there yourself.
+  The briefing can start you off with the Steerer, a creature already wired to W, A and D. On the way: Motes to
+  hunt, a capillary up through the vessel wall, a lymph node of rock nodules, a current to cross, and three
+  secrets with rare cells, one of them guarded by the Mast cell. The Macrophage stays in its lair and sends out
+  Phagocytes as you break it. The result shows the secrets you found.
+- The Bioforge splash only plays when the game starts, before the main menu. New game and Load game go straight
+  into the game.
+
 ## 0.7.41 (2026-11-07)
 - The Resilin gland and the Tanner are gone, and with them the Snap and Tanned hide levels that taught them. A
   saved creature with either gets Tissue in its place. Growth is now chapter 6, right after Armour, and Swarm is the

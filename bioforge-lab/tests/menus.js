@@ -292,6 +292,8 @@ async function main() {
   const fresh = startApp({ ...before.storage.items }, { atMainMenu: true });
   fresh.runFrames(2);
   const firstLevelId = fresh.readGlobal('LEVELS[0].id');
+  check('the page loaded again into the new game shows no splash',
+    fresh.byId('loading-screen').classList.contains('done'));
   check('the new game starts at once at level 1 with the tutorial (not the Levels sheet), no creatures and the ' +
     'settings kept',
     fresh.byId('menu-sheet').style.display === 'none' && fresh.byId('levels-sheet').style.display !== 'flex' &&

@@ -114,9 +114,11 @@ function createCreature(team, cells, options = {}) {
     cells,
     alive: true,
     aiControlled: false,
-    aiBehaviour: 'hunt',                                  // what the AI does: 'hunt' its enemies or 'flee' them
+    aiBehaviour: 'hunt',                                  // what the AI does: 'hunt' its enemies, 'flee' or 'guard'
     fleeSprintLeft: FLEE_SPRINT_SECONDS,                  // fleeing prey: game s of sprint it has left
     fleeTired: false,                                     // fleeing prey: slowed until its sprint is all back
+    guardAwake: false,                                    // a guard: the rule was broken or the player came near
+    post: null,                                           // a guard's { x, y } (px), where it goes back to sleep
     autonomous: false,                                    // moves only by its own cells: no free swimming or turning
     resting: false,                                       // a sandbox enemy holding still: its cilia rest too
     anchored: false,                                      // fixed to the rock: its cells never move (a level's clam)

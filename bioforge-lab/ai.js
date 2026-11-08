@@ -1,8 +1,10 @@
 'use strict';
 // Simple AI for creatures the player doesn't wire: sandbox enemies and a level's hunters swim at the nearest enemy
-// and fire when close; a level's prey swims away from it, bending off the walls. Pure: no DOM.
+// and fire when close; a level's guards sleep until the player breaks the level's host rule, then hunt; a level's
+// prey swims away from it, bending off the walls. Pure: no DOM.
 
 const AI_ABILITY_RANGE = 170;                             // px between centres within which the AI fires
+const POST_RADIUS = 40;                                   // px from its post within which a sleeping guard rests
 const FLEE_RANGE = 260;                                   // px between centres within which prey notices an enemy
 const FLEE_SPRINT_EFFORT = 2;                            // share of full free swimming while prey sprints away
 const FLEE_TIRED_EFFORT = 0.3;                            // share while it is tired
@@ -11,10 +13,27 @@ const FLEE_RECOVERY_RATE = 1;                             // game s of sprint wo
 const FLEE_WALL_MARGIN = 160;                             // px from a wall within which fleeing prey turns off it
 const FLEE_WALL_WEIGHT = 1.5;                             // a wall's push right at it (the enemy's push is 1)
 
-// Steers an AI creature by its behaviour: 'hunt' at the nearest enemy, 'flee' away from it.
+// Steers an AI creature by its behaviour: 'hunt' at the nearest enemy, 'flee' away from it, 'guard' hold still at
+// its post until woken (guardAwake, set by the level's host rule in levels.js or by the player coming near in an
+// adventure), then hunt.
 function steerAiCreature(world, creature, dt) {
   if (creature.aiBehaviour === 'flee') fleeFromNearestEnemy(world, creature, dt);
+  else if (creature.aiBehaviour === 'guard' && !creature.guardAwake) returnToPost(creature);
   else steerTowardNearestEnemy(world, creature);
+}
+
+// A sleeping guard swims back to its post (an adventure's sleepers have one), and holds still there.
+function returnToPost(creature) {
+  const post = creature.post;
+  const distance = post ? vectorLength(post.x - creature.centerX, post.y - creature.centerY) : 0;
+  if (distance < POST_RADIUS) {
+    holdStill(creature);
+    return;
+  }
+  creature.swimX = (post.x - creature.centerX) / distance;
+  creature.swimY = (post.y - creature.centerY) / distance;
+  creature.targetHeading = arcTangent2(creature.swimX, -creature.swimY);
+  creature.abilityHeld = false;
 }
 
 // The nearest living creature of another team and its distance between centres; { target: null } if there is none.

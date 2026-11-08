@@ -143,7 +143,8 @@ function runDataIndex() {
 // { world, player }; levelDesign: the design a level runs (for Retry and the score). The snapshot is kept as one JSON
 // text: it nests deeply, and the desktop save file is written indented.
 function savedRun(mode, run, levelDesign) {
-  return { mode, levelDesign, snapshot: JSON.stringify(takeSnapshot(run, runDataIndex())) };
+  const levelKey = mode === 'level' ? levelFingerprint(run.level) : null;
+  return { mode, levelDesign, levelKey, snapshot: JSON.stringify(takeSnapshot(run, runDataIndex())) };
 }
 
 // the level run or the Sandbox's { world, player } that savedRun kept
@@ -151,15 +152,27 @@ function restoredRun(saved) {
   return restoreSnapshot(JSON.parse(saved.snapshot), runDataIndex());
 }
 
+// A short text that changes whenever the level's data does (FNV-1a over its JSON). A run keeps its own state per
+// creature, pickup and wave in the level's order, so it can't go on in a level whose data changed under it.
+function levelFingerprint(level) {
+  const text = JSON.stringify(level);
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) hash = Math.imul(hash ^ text.charCodeAt(i), 0x01000193) >>> 0;
+  return hash.toString(16);
+}
+
 // The saved resume state, ready to use, or null if there is none or it can't be read. Its design is brought to the
-// current format. A run saved by another version of the game is dropped, since the sim may have changed under it;
-// the design and the level stay.
+// current format. A run saved by another version of the game, or in a level whose data has changed since, is
+// dropped, since the sim may have changed under it; the design and the level stay.
 function readResumeState(saved) {
   if (!saved || typeof saved !== 'object' || !(saved.version <= SAVE_VERSION)) return null;
   const design = saved.design && checkedDesign(saved.design);
   if (!design) return null;
-  const levelId = LEVELS.some(level => level.id === saved.levelId) ? saved.levelId : null;
-  const isRunUsable = !!saved.run && saved.gameVersion === GAME_VERSION && (saved.run.mode !== 'level' || levelId);
+  const level = LEVELS.find(entry => entry.id === saved.levelId);
+  const levelId = level ? level.id : null;
+  const isLevelRunUsable = run => !!level && run.levelKey === levelFingerprint(level);
+  const isRunUsable = !!saved.run && saved.gameVersion === GAME_VERSION &&
+    (saved.run.mode !== 'level' || isLevelRunUsable(saved.run));
   return createResumeState(design, levelId, isRunUsable ? saved.run : null);
 }
 
