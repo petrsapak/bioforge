@@ -159,8 +159,6 @@ button.big:hover { background: #4a8044; }
 .stepper { display: flex; align-items: center; gap: 6px; margin-top: 5px; }
 .stepper button.small { flex: none; width: 26px; padding: 2px 0; font-size: 14px; }
 .stepper span { flex: 1; text-align: center; }
-.hormone-choice { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
-.hormone-choice button.selected { color: #f2e39b; font-weight: bold; }
 #info button.small { flex: none; margin-top: 5px; }
 .fibre-row {
   display: flex; align-items: center; gap: 6px; margin-top: 3px; padding: 1px 2px 1px 6px; background: #1c2a31;
@@ -683,16 +681,6 @@ button.small.primary:hover { background: #3d6b38; }
   .guide-demo canvas { max-width: 100%; height: auto; }
   .guide-stat { grid-template-columns: 70px 80px 1fr; }
 }
-
-/* ---------- Chemical lens (lens.js) ---------- */
-#lens-legend {
-  display: none; position: absolute; left: 50%; top: 140px; transform: translateX(-50%); z-index: 5; gap: 12px;
-  align-items: center; padding: 5px 12px; background: #0e181dcc; border: 1px solid #23323a; border-radius: 8px;
-  font-size: 12px; color: #c7d0d8; pointer-events: none;
-}
-#lens-legend b { color: #e8ecef; }
-#lens-legend i { display: inline-block; width: 10px; height: 10px; margin-right: 5px; border-radius: 50%; }
-#lens-legend em { color: #6f7b88; font-style: normal; }
 
 /* ---------- Tooltip ---------- */
 #tooltip {

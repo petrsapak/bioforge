@@ -7,8 +7,8 @@
 //   reached), 'food' (a speck placed the same way), 'enemy' (a dummy enemy just in front, there every other 2 s),
 //   'key' (Space held every other 2 s, for a Command); left out: nothing;
 //   dummyType: the enemy's cell type (default Tissue); dummyTouches: the enemy is held touching the creature;
-//   fluidView: the fluid shown (1 + its index in FLUIDS: 1 = O2 .. 5 = adrenaline, 6 = calm,
-//   7 = fed, 8 = starved); startsHurt: cell types that start damaged; budPart: the part a Bud grows;
+//   fluidView: the fluid shown (1 + its index in FLUIDS: 1 = O2, 2 = sugar, 3 = waste,
+//   4 = repair); startsHurt: cell types that start damaged; budPart: the part a Bud grows;
 //   traces (neurons): the [q, r] cells whose signals are drawn as lanes under the tank.
 // Hex neighbours of (0, 0): front (0, -1) and (1, -1), sides (-1, 0) and (1, 0), back (-1, 1) and (0, 1).
 
@@ -251,7 +251,7 @@ const TIPS = {
     },
   },
   airsac: {
-    howToUse: 'Put it near Gills and the cells that need lots of O₂. It fills while you are calm and drains ' +
+    howToUse: 'Put it near Gills and the cells that need lots of O₂. It fills while you rest and drains ' +
       'during heavy work.',
     example: {
       cells: [
@@ -300,20 +300,6 @@ const TIPS = {
       startsHurt: ['shell'],
     },
   },
-  adrenal: {
-    howToUse: 'Give it a nerve signal and sugar. Adrenaline seeps from cell to cell and fades, so cells nearest ' +
-      'the Adrenal get the most; a beating Heart carries it across the body fast. It also lowers Synapse ' +
-      'thresholds and speeds up Pacemakers. Here a slow Pacemaker in the Adrenal makes a burst every 4 s, and ' +
-      'the Siphons beside it push harder while it lasts.',
-    example: {
-      cells: [
-        [0, 0, 'nucleus', 'pacemaker', 1.4], [-1, 0, 'gill'], [1, 0, 'fat'], [-1, 1, 'siphon'], [0, 1, 'siphon'],
-        [-1, 2, 'adrenal', 'pacemaker', 0.25],
-      ],
-      fibres: fibresToBackSiphons(0, 0),
-      fluidView: 5,
-    },
-  },
   acid: {
     howToUse: 'Put it on the surface where it will touch the enemy, and wire it to an Eyespot so it fires only ' +
       'when something is near. Use it to open shells; protease or weapons finish the soft cells.',
@@ -359,48 +345,6 @@ const TIPS = {
         [0, 0, 'nucleus'], [0, -1, 'photophore', 'pacemaker', 0.5], [1, -1, 'protease'], [-1, 0, 'protease'],
         [1, 0, 'fat'], [-1, 1, 'gill'],
       ],
-    },
-  },
-  receptor: {
-    howToUse: 'Click it to choose its hormone, then lay fibres from it like from any sense. Its signal rises and ' +
-      'falls slowly with the hormone, so a Synapse after it turns it into on and off: a mood becomes a switch, ' +
-      'even where no fibre reaches. Here an Adrenal\'s bursts reach the Receptor, whose Synapse (threshold 0.5) ' +
-      'swims the Siphons while the adrenaline lasts.',
-    example: {
-      cells: [
-        [0, 0, 'nucleus'], [0, -1, 'adrenal', 'pacemaker', 0.25], [1, -1, 'receptor', 'synapse', 0.5],
-        [-1, 0, 'gill'], [1, 0, 'fat'], [-1, 1, 'siphon'], [0, 1, 'siphon'],
-      ],
-      fibres: fibresToBackSiphons(1, -1),
-    },
-  },
-  calmgland: {
-    howToUse: 'Signal it while there is nothing to do: a calm body burns less and its Pacemakers slow, so it lasts ' +
-      'longer. Calm fades slowly, so stop it a little before you need to move fast. Here an Inhibitor keeps it on, ' +
-      'and the Muscle\'s beat slows as the Calm spreads.',
-    example: {
-      cells: [[0, 0, 'nucleus', 'pacemaker', 2], [0, 1, 'muscle'], [0, 2, 'tissue'], [-1, 0, 'calmgland', 'inhibitor'],
-        [-1, 1, 'tissue'], [1, 0, 'fat']],
-      fibres: [[0, 0, 0, 1]],
-    },
-  },
-  fedgland: {
-    howToUse: 'Signal it while food is coming in (a Nose smelling food, say): Fat cells that get Fed bank the ' +
-      'sugar as fat early, instead of only when they are nearly full.',
-    example: {
-      cells: [[0, 0, 'nucleus'], [0, -1, 'nose'], [1, -1, 'nose'], [0, 1, 'fedgland'], [1, 0, 'fat'], [-1, 1, 'fat'],
-        [1, 1, 'fat'], [-1, 0, 'mouth']],
-      fibres: [[0, -1, 0, 1], [1, -1, 0, 1]],
-      stimulus: 'food',
-      fluidView: 7,
-    },
-  },
-  starvedgland: {
-    howToUse: 'Signal it when food runs out: Fat cells that get Starved release their fat early, and the body ' +
-      'burns less. A Receptor for Fed holding an Inhibitor makes a good trigger: on once the Fed fades.',
-    example: {
-      cells: [[0, 0, 'nucleus'], [0, 1, 'starvedgland', 'inhibitor'], [1, 0, 'fat'], [-1, 1, 'fat'], [1, 1, 'fat']],
-      fluidView: 8,
     },
   },
 };

@@ -30,8 +30,6 @@
     <svg viewBox="0 0 24 24"><path d="M7 17L17 7" stroke="#f2d36b" stroke-width="2"/><path d="M17 7l-5.5 1.2M17 7l-1.2 5.5" stroke="#f2d36b" stroke-width="2" stroke-linecap="round"/><circle cx="6" cy="18" r="3.6" fill="#f2e35b"/><circle cx="18" cy="6" r="2.4" fill="#6fc3e0"/></svg>
     <span>Nerves</span><kbd>2</kbd></button>
   <span class="tabs-gap"></span>
-  <button class="tool" id="chemical-lens" title="Hormones: see the hormones in the cells and in the water (C)">
-    <svg viewBox="0 0 24 24"><circle cx="9" cy="10" r="5" fill="#e05ad0" fill-opacity=".75"/><circle cx="15" cy="10" r="5" fill="#5a9ee8" fill-opacity=".75"/><circle cx="12" cy="15" r="5" fill="#d08a40" fill-opacity=".75"/></svg></button>
   <button class="tool" id="unlimited-biomass" title="Unlimited biomass (the Sandbox takes any size)">
     <svg viewBox="0 0 24 24"><path d="M12 12c-2-2.8-3.6-4-5.4-4a4 4 0 000 8c1.8 0 3.4-1.2 5.4-4s3.6-4 5.4-4a4 4 0 010 8c-1.8 0-3.4-1.2-5.4-4z" fill="none" stroke="#e8c547" stroke-width="1.8"/></svg></button>
   <button class="tool" id="mirror-axes" title="Symmetry: mirror what you add and remove across axes">
@@ -40,7 +38,6 @@
     <svg viewBox="0 0 24 24"><path d="M5 7h14M10 4h4M7 7l1 13h8l1-13" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/></svg></button>
 </div>
 <div id="budget"></div>
-<div id="lens-legend"></div>
 <div id="run-buttons">
   <button class="run-button" id="show-library" title="Templates: your creatures and parts, and examples (T)">
     <svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.6" fill="#7cc4de"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.6" fill="#7cc4de" fill-opacity=".7"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.6" fill="#7cc4de" fill-opacity=".7"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.6" fill="#7cc4de" fill-opacity=".45"/></svg>
@@ -86,9 +83,7 @@
       <span><b>F</b></span><span>show the whole grid</span>
       <span><b>G</b></span><span>the field guide, at the clicked cell or the one you place</span>
       <span><b>T</b></span><span>the Templates screen: your creatures, parts and examples</span>
-      <span><b>Shift</b>+<b>1</b>–<b>9</b></span><span>fluid views</span>
-      <span class="keys-hormones"><b>C</b></span>
-      <span class="keys-hormones">hormones on / off (here, in levels and in the Sandbox)</span>
+      <span><b>Shift</b>+<b>1</b>–<b>5</b></span><span>fluid views</span>
       <span><b>M</b></span><span>music on / off</span>
       <span><b>N</b></span><span>sounds on / off</span>
       <span><b>Esc</b></span><span>let go · holding nothing: the menu</span>
@@ -348,8 +343,6 @@
 <script src="nerve.js"></script>
 <script src="fluid.js"></script>
 <script src="vascular.js"></script>
-<script src="chemical.js"></script>
-<script src="scent.js"></script>
 <script src="metabolism.js"></script>
 <script src="combat.js"></script>
 <script src="actuators.js"></script>
@@ -376,7 +369,6 @@
 <script src="titlescene.js"></script>
 <script src="cellart.js"></script>
 <script src="render.js"></script>
-<script src="lens.js"></script>
 <script src="builder.js"></script>
 <script src="fieldguide.js"></script>
 <script src="windows.js"></script>

@@ -35,11 +35,8 @@ const GUIDE_CELLS = {
     watch: 'Wire each eye to the Siphon on the far side to turn toward the light, to the same side to turn away. ' +
       'An uneven body curves past what the eyes are aiming at.' },
   nose: { summary: 'Signals how near food lies on its side.',
-    pairs: ['mouth', 'siphon', 'fedgland'],
+    pairs: ['mouth', 'siphon', 'fat'],
     watch: 'It smells only the nearest speck, so it can be pulled about between two.' },
-  receptor: { summary: 'Signals how much of one hormone it holds.',
-    pairs: ['synapse', 'inhibitor', 'siphon'],
-    watch: 'Hormones rise and fall slowly, so its signal does too. A Synapse after it makes a clean on and off.' },
   muscle: { summary: 'Shrinks on a signal, bending the body.',
     pairs: ['pacemaker', 'inhibitor', 'joint'],
     watch: 'A muscle only bends the body. To swim, it needs a fin of Joints behind it, or it swims tail first. ' +
@@ -84,7 +81,7 @@ const GUIDE_CELLS = {
     pairs: ['heart', 'gill'],
     watch: 'It only stores O₂: it doesn\'t make any.' },
   fat: { summary: 'Stores sugar, and fat where metabolism runs.',
-    pairs: ['heart', 'fedgland', 'starvedgland', 'mouth'],
+    pairs: ['heart', 'mouth', 'nose'],
     watch: 'Plain cells only pass sugar on, holding little, so cells far from a Fat run dry first.' },
   pore: { summary: 'Dumps waste into the water.',
     pairs: ['heart'],
@@ -92,19 +89,6 @@ const GUIDE_CELLS = {
   mender: { summary: 'Heals cells and regrows lost ones.',
     pairs: ['tissue', 'heart', 'fat'],
     watch: 'Regrowing a lost cell takes seconds; healing a hurt one takes far longer.' },
-  adrenal: { summary: 'Makes adrenaline on a signal.',
-    pairs: ['eyespot', 'lighteye', 'latch', 'siphon', 'heart'],
-    watch: 'Adrenaline fades in a few seconds, and it makes everything burn more fuel while it lasts.' },
-  calmgland: { summary: 'Makes Calm on a signal.',
-    pairs: ['receptor', 'pacemaker', 'synapse'],
-    watch: 'Calm lasts a long time. It slows your Pacemakers and raises your own thresholds too, and its cloud in ' +
-      'the water calms whoever swims through it.' },
-  fedgland: { summary: 'Makes Fed on a signal.',
-    pairs: ['nose', 'mouth', 'fat', 'receptor'],
-    watch: 'Fed left on keeps storing, even when you need the sugar: switch it off when food runs out.' },
-  starvedgland: { summary: 'Makes Starved on a signal.',
-    pairs: ['receptor', 'inhibitor', 'fat'],
-    watch: 'Starved cancels Fed. It saves fuel, but a starved body is a slow body.' },
   acid: { summary: 'Dissolves enemy cells it touches, on a signal.',
     pairs: ['eyespot', 'protease', 'photophore'],
     watch: 'Slow on soft cells. Pair it with protease to finish what it opens.' },
@@ -119,8 +103,7 @@ const GUIDE_CELLS = {
 const GUIDE_NEURONS = {
   pacemaker: { summary: 'Turns on and off by itself, at its rate.',
     pairs: ['muscle', 'siphon', 'heart'],
-    watch: 'Calm slows it and adrenaline speeds it up, so a mood changes your rhythm. Its beat reaches every ' +
-      'cell wired to it at the same moment, however long the fibres.' },
+    watch: 'Its beat reaches every cell wired to it at the same moment, however long the fibres.' },
   command: { summary: 'On while its key is held: wire it to steer.',
     pairs: ['nettle', 'bloater', 'spitter'],
     watch: 'It acts only while its key is held, so it steers (Metastasis) but does nothing on its own. A creature ' +
@@ -136,10 +119,10 @@ const GUIDE_NEURONS = {
     pairs: ['lighteye', 'siphon', 'photophore'],
     watch: 'With nothing wired into it, it is always on: the easy way to keep a gland or a Photophore working.' },
   synapse: { summary: 'On while its inputs add up to its threshold.',
-    pairs: ['lighteye', 'receptor', 'siphon'],
-    watch: 'Moods move its threshold: adrenaline lowers it, Calm raises it.' },
+    pairs: ['lighteye', 'inhibitor', 'siphon'],
+    watch: 'Two Light eyes into one at 1.5 fire only when the light is near and straight ahead.' },
   latch: { summary: 'Each pulse on its input flips it on or off.',
-    pairs: ['lighteye', 'adrenal'],
+    pairs: ['lighteye', 'heart'],
     watch: 'Each pulse flips it, so a flickering input flips it more than once.' },
 };
 
@@ -176,13 +159,12 @@ const GUIDE_TOPICS = [
     demo: 'nose',
     paragraphs: [
       'An Eyespot is on or off: an enemy is near, or not. A Light eye and a Nose are graded: how far the light or ' +
-        'the nearest food lies on their side of the body, stronger the nearer it is. A Receptor reads a hormone ' +
-        'inside its own cell.',
+        'the nearest food lies on their side of the body, stronger the nearer it is.',
       'Where a sense sits matters as much as what it is: a Light eye on the left sees more of a light on the left.',
     ],
     example: 'Two Light eyes into a Synapse at threshold 1.5: on only when the light is near and straight ahead, ' +
       'a way to stop short of it.',
-    related: ['eyespot', 'lighteye', 'nose', 'receptor'],
+    related: ['eyespot', 'lighteye', 'nose'],
   },
   {
     id: 'logic', title: 'Memory and logic', chapter: 2,
@@ -229,7 +211,7 @@ const GUIDE_TOPICS = [
         'cells far from a Gill or a Fat run dry first.',
       'Gills make O₂ from the water, Fat and Air sacs store sugar and O₂, Pores dump waste at the surface.',
     ],
-    example: 'Watch the O₂, Sugar and Waste bars while a run goes on; Shift+1–9 shows each fluid on the cells.',
+    example: 'Watch the O₂, Sugar and Waste bars while a run goes on; Shift+2–5 shows each fluid on the cells.',
     related: ['gill', 'fat', 'airsac', 'pore'],
   },
   {
@@ -239,7 +221,6 @@ const GUIDE_TOPICS = [
       `Seeping is slow. A beating Heart pumps every fluid between the cells within ${HEART_REACH} steps of it, ` +
         'many times faster. It beats only while it gets a signal, as hard as the signal, and burns fuel as it ' +
         'beats.',
-      'Hormones ride in the blood too, so a Heart spreads a mood evenly through the body.',
     ],
     example: 'A Heart wired to the Light eyes beats only while the Siphons work, which is when they need the ' +
       'blood: on a long swim it burns less than a Heart that never stops.',
@@ -282,34 +263,6 @@ const GUIDE_TOPICS = [
       'the glands (the anglerfish).',
     related: ['photophore', 'lighteye', 'protease'],
   },
-  {
-    id: 'moods', title: 'Hormones and moods', chapter: 8,
-    demo: 'adrenal',
-    paragraphs: [
-      'Glands turn sugar into hormones, which seep through the body and ride in the blood. A cell\'s mood comes ' +
-        'from what it holds: Adrenaline lowers Synapse thresholds, speeds Pacemakers and makes actions work ' +
-        'harder; Calm raises thresholds, slows Pacemakers and saves fuel; Fed makes Fat store sooner and without ' +
-        'loss; Starved makes Fat give sugar back and saves fuel, and cancels Fed.',
-      'A Receptor turns a hormone back into a nerve signal, so a mood can switch behaviour where no fibre reaches.',
-      'Press C to see the hormones: each cell glows with the hormones it holds.',
-    ],
-    example: 'A Nose into a Fed gland: food in reach means store. A Receptor for Fed holding an Inhibitor, into a ' +
-      'Starved gland: no Fed means give the stores back.',
-    related: ['adrenal', 'calmgland', 'fedgland', 'starvedgland', 'receptor', 'synapse'],
-  },
-  {
-    id: 'scent', title: 'Hormones in the water', chapter: 8,
-    demo: 'calmgland',
-    paragraphs: [
-      'Every cell gives off a scent of the hormones it holds into the water around it, without losing them, and ' +
-        'takes in a hormone the water holds more of than it does. The clouds spread and fade; adrenaline\'s ' +
-        'fades fast, Calm\'s lingers.',
-      'So moods are catching. A creature in your Calm cloud is calmed, its Synapses harder to set off, and an ' +
-        'enemy\'s Adrenaline reaches your Receptors. With C on you see the clouds in the water.',
-    ],
-    example: 'Wait out of an enemy\'s reach with Calm glands on until its threshold rises, then go in.',
-    related: ['calmgland', 'adrenal', 'receptor', 'synapse'],
-  },
 ];
 
 const GUIDE_TERMS = [
@@ -320,15 +273,13 @@ const GUIDE_TERMS = [
   ['Fibre', 'A nerve line from one cell to another, carrying the first cell\'s signal. Each step costs a unit.',
     'lighteye'],
   ['Neuron', 'The logic one cell can hold: Pacemaker, Command, Ganglion, Delay, Inhibitor, Synapse or Latch.', 'latch'],
-  ['Threshold', 'The sum of inputs a Synapse needs to be on. Adrenaline lowers it, Calm raises it.', 'synapse'],
+  ['Threshold', 'The sum of inputs a Synapse needs to be on.', 'synapse'],
   ['Blood', `Fluids pumped between the cells within ${HEART_REACH} steps of a beating Heart.`, 'heart'],
   ['Seeping', 'Fluids moving slowly from a fuller cell to an emptier neighbour, with no Heart beating.', 'airsac'],
   ['Starving', 'A working cell short of O₂ or sugar: it works weaker, and a Photophore goes dark.', 'siphon'],
   ['Poisoned', 'A working cell too full of waste: it loses health until a Pore takes the waste away.', 'pore'],
   ['Hard cell', 'A cell built with mineral or hardened by a Mineralizer. Acid eats it; protease can\'t.', 'shell'],
   ['Debris', 'Cells cut off from their Nucleus. They float, rot, and can be eaten.', 'nucleus'],
-  ['Mood', 'What the hormones in a cell do to it: thresholds, clocks, fuel burn and fat storage.', 'calmgland'],
-  ['Scent', 'The hormones a creature leaves in the water. Other creatures take them in.', 'adrenal'],
   ['Lure', 'A lit Photophore, which other creatures\' Light eyes follow.', 'photophore'],
   ['Par', 'The time and biomass a level\'s stars ask for.', 'pacemaker'],
 ];

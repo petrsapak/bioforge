@@ -420,12 +420,6 @@ const CELL_SYMBOLS = {
     context.rect(-0.52, -0.15, 1.04, 0.3);
     fillIn(context, palette.light);
   },
-  // a lightning bolt
-  adrenal(context, cell, palette) {
-    tracePolyline(context, [[0.12, -0.6], [-0.25, 0.05], [0.02, 0.05], [-0.12, 0.6], [0.28, -0.08], [0.02, -0.08]]);
-    context.closePath();
-    fillIn(context, palette.ink);
-  },
   // a drop with bubbles, bright while it secretes
   acid(context, cell, palette) {
     const isOn = cell.signal > SIGNAL_ON;
@@ -464,37 +458,6 @@ const CELL_SYMBOLS = {
     traceCircle(context, 0.2, -0.28, 0.24);
     fillIn(context, isGlowing(cell) ? '#fff' : translucent('#ffffff', 0.2));
     strokeIn(context, palette.ink, THIN_SYMBOL_WIDTH);
-  },
-  // a Y-shaped receptor holding a drop of the hormone it senses, which fills as the hormone rises
-  receptor(context, cell, palette) {
-    const hormone = FLUIDS[fluidIndex(cell.sensedHormone || DEFAULT_SENSED_HORMONE)];
-    tracePolyline(context, [[0, 0.6], [0, 0.05]]);
-    strokeIn(context, palette.ink, SYMBOL_WIDTH);
-    tracePolyline(context, [[-0.42, -0.42], [0, 0.05], [0.42, -0.42]]);
-    strokeIn(context, palette.ink, SYMBOL_WIDTH);
-    traceCircle(context, 0, -0.38, 0.17);
-    fillIn(context, cell.signal > 0.03 ? hormone.color : translucent(hormone.color, 0.45));
-  },
-  // a slow wave
-  calmgland(context, cell, palette) {
-    tracePolyline(context, [[-0.55, 0.05], [-0.3, -0.18], [0, 0.05], [0.3, 0.28], [0.55, 0.05]]);
-    strokeIn(context, cell.signal > SIGNAL_ON ? palette.light : palette.ink, 0.12);
-  },
-  // a full bowl
-  fedgland(context, cell, palette) {
-    context.beginPath();
-    context.arc(0, -0.05, 0.5, 0, Math.PI);
-    context.closePath();
-    fillIn(context, cell.signal > SIGNAL_ON ? palette.light : palette.ink);
-    traceCircle(context, 0, -0.2, 0.16);
-    fillIn(context, palette.light);
-  },
-  // an empty bowl
-  starvedgland(context, cell, palette) {
-    context.beginPath();
-    context.arc(0, -0.05, 0.5, 0, Math.PI);
-    context.closePath();
-    strokeIn(context, cell.signal > SIGNAL_ON ? palette.light : palette.ink, SYMBOL_WIDTH);
   },
   // a crystal that fills from the bottom with the mineral it stores
   mineralizer(context, cell, palette) {

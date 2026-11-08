@@ -12,7 +12,7 @@ const { X: sim } = load({}, ['createEditedDesign', 'canPlaceCell', 'placeCell', 
   'nerveRemovalTarget', 'hexToPixel', 'mirrorImages', 'mirroredPlacement', 'placeMirrored', 'removeMirrored',
   'hexesAlongStroke', 'MIRROR_AXIS_COUNT', 'FRONT_TO_BACK_AXIS', 'extendFibrePath', 'laidOutBodyFibres',
   'planFibreToggle', 'fibreUnits', 'mirrorKeyMaps', 'placeNeuronMirrored', 'changeNeuronSettingMirrored',
-  'removeNeuronMirrored', 'toggleFibreMirrored', 'removeFibreMirrored', 'setSensedHormoneMirrored',
+  'removeNeuronMirrored', 'toggleFibreMirrored', 'removeFibreMirrored',
   'cellInDirection', 'cellKeysInBox']);
 
 const cellsOf = list => list.map(([q, r, typeName]) => sim.createDesignCell(q, r, typeName));
@@ -299,7 +299,7 @@ const editedFrom = (cells, biomassLimit) => sim.createEditedDesign({ cells, fibr
   const key = sim.hexKey;
   const front = [sim.FRONT_TO_BACK_AXIS];
   const edited = editedFrom(cellsOf([[0, 0, 'nucleus'], [1, 0, 'muscle'], [-1, 0, 'muscle'], [2, 0, 'tissue'],
-    [-2, 0, 'tissue'], [0, 1, 'receptor'], [-1, 1, 'receptor']]), Infinity);
+    [-2, 0, 'tissue']]), Infinity);
   check('crossing axes make every combination of their mirrors once',
     sim.mirrorKeyMaps(edited, [0, 3]).length === 3 && sim.mirrorKeyMaps(edited, [0, 2, 4]).length === 5 &&
     sim.mirrorKeyMaps(edited, [0, 1, 2, 3, 4, 5]).length === 11 && sim.mirrorKeyMaps(edited, []).length === 0);
@@ -337,10 +337,6 @@ const editedFrom = (cells, biomassLimit) => sim.createEditedDesign({ cells, fibr
   sim.toggleFibre(edited, key(1, 0), key(-1, 0));
   sim.toggleFibreMirrored(edited, key(2, 0), key(1, 0), null, []);
   check('with no axes, one fibre is laid', edited.fibres.length === 1);
-
-  sim.setSensedHormoneMirrored(edited, key(0, 1), 'fed', front);
-  check('a Receptor\'s hormone is copied onto the mirrored Receptor',
-    edited.cells.get(key(-1, 1)).sensedHormone === 'fed');
 }
 
 { // painting: a stroke passes over every hex between two mouse points, each once

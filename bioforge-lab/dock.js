@@ -80,7 +80,6 @@ function makeDockSections(onPickCell, onPickNeuron) {
   const neuronButtons = new Map();
   for (const [typeName, cellType] of Object.entries(CELLS)) {
     if (cellType.isNucleus) continue;                     // every creature has exactly one, placed for you
-    if (HIDDEN.cells.includes(typeName)) continue;
     let section = sections[sections.length - 1];
     if (!section || section.category !== cellType.category) {
       section = makeDockSection(cellType.category, 'body');

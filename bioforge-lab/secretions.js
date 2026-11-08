@@ -42,7 +42,7 @@ function isGlandReady(cell) {
 
 // the gland's secretion works on every cell of another creature (debris too) that touches it
 function secreteOnTouchingEnemies(world, gland, dt) {
-  const power = gland.efficiency * gland.adrenalineBoost;
+  const power = gland.efficiency;
   const secretion = SECRETIONS[gland.type.secretes];
   for (const other of world.creatures) {
     if (other.team === gland.creature.team || !isNearBounds(gland, other.bounds)) continue;

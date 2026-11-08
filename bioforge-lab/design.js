@@ -185,7 +185,7 @@ function checkSignals(body, warn) {
   const driven = body.cells.filter(needsSignal);
   if (driven.length && !sources.length) {
     warn('signal', 'problem', 'add a Pacemaker',
-      'Muscles, Bloaters, Siphons, Nettles, Snares, Spitters, Adrenals and Buds need a nerve signal: ' +
+      'Muscles, Bloaters, Siphons, Nettles, Snares, Spitters and Buds need a nerve signal: ' +
       'a Pacemaker or Command neuron, or an Eyespot, with fibres to them (Nerves, 2).', keysOf(driven));
   }
   const reached = new Set(keysOf(sources));
@@ -337,8 +337,7 @@ function sugarSupply(body) {
 
 // ---------- Saved design format ----------
 // A design cell: { q, r, typeName }, plus on a Bud: budPart ({ name, cells }), partRotation (60° steps), partOffset
-// ([q, r] of the part's anchor from the Bud) and partAim (radians clockwise from the front); on a Command: boundKey;
-// on a Receptor: sensedHormone (a hormone's id, data/fluids.js; left out: DEFAULT_SENSED_HORMONE).
+// ([q, r] of the part's anchor from the Bud) and partAim (radians clockwise from the front); on a Command: boundKey.
 function createDesignCell(q, r, typeName, extras = {}) {
   return { q, r, typeName, ...extras };
 }
@@ -356,6 +355,11 @@ const REMOVED_CELL_TYPES = {
   valve: 'tissue',                                        // 2026-11-02: no level used it
   resilin: 'tissue',                                      // 2026-11-07: the user found it useless
   tanner: 'tissue',                                       // 2026-11-07: it did the Mineralizer's job without its cost
+  adrenal: 'tissue',                                      // 2026-11-08: the hormones went for the release
+  calmgland: 'tissue',
+  fedgland: 'tissue',
+  starvedgland: 'tissue',
+  receptor: 'tissue',
 };
 
 // a saved design cell in the current format, whichever format it was saved in
@@ -367,6 +371,7 @@ function migrateDesignCell(savedCell) {
     cell[name] = name === 'budPart' ? migrateBudPart(value) : value;
   }
   if (Object.hasOwn(REMOVED_CELL_TYPES, cell.typeName)) cell.typeName = REMOVED_CELL_TYPES[cell.typeName];
+  delete cell.sensedHormone;                             // the Receptor's hormone (Receptors went 2026-11-08)
   return cell;
 }
 

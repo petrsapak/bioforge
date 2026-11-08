@@ -12,9 +12,7 @@ const LEAVE_TITLE_FRAMES = 40;                            // frames for the titl
 // A 2D canvas context that accepts every call and property and draws nothing. A call returns the context itself, so
 // what a call makes (a gradient) accepts calls too.
 function createIgnoringContext() {
-  // pixel data is real, so that code filling it in (the chemical lens) runs as in a browser
-  const createImageData = (width, height) => ({ width, height, data: new Uint8ClampedArray(width * height * 4) });
-  const context = new Proxy({ createImageData }, {
+  const context = new Proxy({}, {
     get: (target, name) => (name in target ? target[name] : () => context),
     set: (target, name, value) => {
       target[name] = value;

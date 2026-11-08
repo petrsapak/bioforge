@@ -1,12 +1,13 @@
 'use strict';
 // The vascular system (sim and design rules): a beating Heart pumps blood between the cells within its reach, much
-// faster than they seep; it beats only on a signal and as hard as it; cold water doesn't slow a Heart; hormones ride
-// in the blood; the system can be switched off; the builder warns about cells out of reach; designs from before the
-// Heart's areas keep their Hearts beating; and a saved Valve (taken out 2026-11-02) loads as Tissue.
+// faster than they seep; it beats only on a signal and as hard as it; cold water doesn't slow a Heart; the system
+// can be switched off; the builder warns about cells out of reach; designs from before the
+// Heart's areas keep their Hearts beating; and a saved Valve (taken out 2026-11-02), hormone gland or Receptor
+// (2026-11-08) loads as Tissue.
 const { load } = require('./load');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['newWorld', 'spawn', 'step', 'createDesignCell', 'createNeuron', 'FLUID_OXYGEN',
-  'FLUID_ADRENALINE', 'HEART_REACH', 'migrateLibraryEntry', 'readCreatureFile', 'designWarnings', 'TEMPLATES',
+  'HEART_REACH', 'migrateLibraryEntry', 'readCreatureFile', 'designWarnings', 'TEMPLATES',
   'CELLS', 'heartBeat']);
 
 const STEP = 1 / 40;                                      // game s per step
@@ -82,16 +83,14 @@ const withValve = sim.migrateLibraryEntry({ name: 'old', isCreature: true, fibre
 check('a saved Valve loads as Tissue, keeping its neuron, also in a Bud\'s part',
   withValve.cells[1].typeName === 'tissue' && withValve.cells[1].neuron.kind === 'inhibitor' &&
   withValve.cells[2].budPart.cells[0].typeName === 'tissue', JSON.stringify(withValve.cells));
+// the hormone glands and the Receptor went on 2026-11-08: saved ones load as Tissue, without the Receptor's hormone
+const withGlands = sim.migrateLibraryEntry({ name: 'old', isCreature: true, fibres: [], cells: [
+  sim.createDesignCell(0, 0, 'nucleus'), sim.createDesignCell(0, 1, 'adrenal', inhibitor()),
+  sim.createDesignCell(1, 0, 'receptor', { sensedHormone: 'calm' })] });
+check('a saved Adrenal or Receptor loads as Tissue, keeping its neuron',
+  withGlands.cells.slice(1).every(cell => cell.typeName === 'tissue' && !('sensedHormone' in cell)) &&
+  withGlands.cells[1].neuron.kind === 'inhibitor', JSON.stringify(withGlands.cells));
 
-const hormone = createColumn();
-cellAt(hormone.creature, 0, 0).fluids[sim.FLUID_ADRENALINE] = 1;
-const hormoneSeeped = createColumn({ middleType: 'tissue' });
-cellAt(hormoneSeeped.creature, 0, 0).fluids[sim.FLUID_ADRENALINE] = 1;
-siphonOxygenAfter(hormone, 0.3);
-siphonOxygenAfter(hormoneSeeped, 0.3);
-const adrenalineAt = column => column.siphon.fluids[sim.FLUID_ADRENALINE];
-check('hormones ride in the blood too', adrenalineAt(hormone) > 3 * adrenalineAt(hormoneSeeped),
-  `${adrenalineAt(hormone).toFixed(4)} vs ${adrenalineAt(hormoneSeeped).toFixed(4)}`);
 
 // ---------- The builder's warnings ----------
 const warningTexts = design => sim.designWarnings(design, []).map(warning => warning.text).join(' | ');

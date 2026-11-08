@@ -9,23 +9,11 @@ const RULES = {
   allLevelsOpen: true,                                // all levels open (user, 2026-10-29, for testing; kept on for the
                                                       // release, user 2026-11-07: "do not switch it off")
   // systems stepped each tick: nerve = signals;
-  // fluid = O2, sugar, waste and hormones burn and seep (off: cells work at full power);
+  // fluid = O2, sugar and waste burn and seep (off: cells work at full power);
   // vascular = beating Hearts pump blood between the cells in their reach;
   // metabolism = Fat cells store spare sugar as fat and turn it back;
   // food = food specks in the water; regrow = Menders and lost-cell regrowth;
-  // secretions = acid, protease and Mineralizer glands; chemical = hormones set moods (thresholds, clocks, burn,
-  // stores); scent = hormones in the water, traded with the cells in it
-  systems: ['nerve', 'fluid', 'vascular', 'metabolism', 'food', 'regrow', 'secretions', 'chemical', 'scent',
-  ],
+  // secretions = acid, protease and Mineralizer glands
+  systems: ['nerve', 'fluid', 'vascular', 'metabolism', 'food', 'regrow', 'secretions'],
 };
 
-// Kept out of the game for now with their code in place (user, 2026-11-07: hide the hormones, which don't work
-// properly yet): cell types left out of the dock and the field guide, levels left out of the level list, field guide
-// topics and glossary terms, and whether the hormone view (C) is hidden. Empty lists and false bring them back.
-const HIDDEN = {
-  cells: ['adrenal', 'calmgland', 'fedgland', 'starvedgland', 'receptor'],
-  levels: ['fight-or-flight', 'lie-low', 'feast-and-famine', 'lullaby', 'moods'],
-  guideTopics: ['moods', 'scent'],
-  guideTerms: ['Mood', 'Scent'],
-  hormoneView: true,
-};

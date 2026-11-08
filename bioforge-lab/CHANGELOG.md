@@ -7,6 +7,13 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.8.0 (2026-11-08)
+The game jam release ("Break the rules").
+- The hormones are gone: the Adrenal, the Calm, Fed and Starved glands, the Receptor, the hormone levels and the
+  hormone view (C). Creatures you saved with them load with Tissue in their place, keeping its neuron.
+- The Eel and the Manta (Templates, Showcase) no longer release adrenaline on Space.
+- Shift+1–5 are the fluid views (O₂, sugar, waste and repair fluid); Shift+1 goes back to the normal view.
+
 ## 0.7.42 (2026-11-08)
 - New chapter 7, Breaking the rules, starting with Tumour. You are a tumour in a host whose rule is that no body
   has more than 8 cells. Its four guards sleep while you keep the rule and wake the moment you break it. Find the

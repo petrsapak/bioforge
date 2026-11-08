@@ -323,12 +323,6 @@ function changeNeuronSettingMirrored(edited, key, steps, axes) {
   for (const twinKey of neuronTwinKeys(edited, key, axes)) edited.cells.get(twinKey).neuron.setting = setting;
 }
 
-// sets which hormone the Receptor at key senses, and the mirrored Receptors with it
-function setSensedHormoneMirrored(edited, key, hormoneId, axes) {
-  setSensedHormone(edited, key, hormoneId);
-  for (const twinKey of mirrorTwinKeys(edited, key, axes)) setSensedHormone(edited, twinKey, hormoneId);
-}
-
 // Lays, reroutes or removes a fibre as toggleFibre does, and does the same to its mirror images: a laid or rerouted
 // fibre is laid on each image (replacing one already there), a removed one takes its images out. Returns
 // toggleFibre's result.
@@ -412,17 +406,6 @@ function removeNeuron(edited, key) {
   if (!cell) return;
   delete cell.neuron;
   delete cell.boundKey;
-}
-
-// the hormones a Receptor can sense, as their fluid channels (data/fluids.js)
-const HORMONES = FLUIDS.filter(fluid => fluid.layer === 'chemical');
-
-// sets which hormone the Receptor at key senses; the default one is left out of the design
-function setSensedHormone(edited, key, hormoneId) {
-  const cell = edited.cells.get(key);
-  if (!cell || CELLS[cell.typeName].senses !== 'hormone' || !HORMONES.some(fluid => fluid.id === hormoneId)) return;
-  if (hormoneId === DEFAULT_SENSED_HORMONE) delete cell.sensedHormone;
-  else cell.sensedHormone = hormoneId;
 }
 
 // moves the cell's neuron setting by steps of its step size, within its limits

@@ -4,4 +4,4 @@
 // 0.x until the first release: the minor number follows the finished milestone, the patch number counts the
 // changes between milestones.
 
-const GAME_VERSION = '0.7.42';
+const GAME_VERSION = '0.8.0';

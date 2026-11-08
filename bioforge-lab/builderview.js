@@ -105,7 +105,6 @@ function drawBuilder(app) {
   drawGridHexes(app, origin);
   drawMirrorAxes(app);
   drawDesignCells(app);
-  if (app.isLensOn) drawBuilderLens(app);
   drawHeartReach(app);
   drawNerveLayer(app, laidOutBodyFibres(app.edited, FIBRE_COLORS.length));
   drawBudParts(app);
@@ -292,7 +291,7 @@ function drawDesignCells(app) {
 }
 
 // a test tank cell with everything that comes and goes switched off: no signal or its glow, no heartbeat, no flash,
-// no hunger marks, and its fluids (hormone rims too) shown only while a fluid view is on
+// no hunger marks, and its fluids shown only while a fluid view is on
 function stillCell(live, fluidView) {
   const still = { ...live, signal: 0, senseOutput: 0, beat: 0, cooldown: 0, hitFlash: 0 };
   still.starving = false;

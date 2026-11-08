@@ -122,35 +122,6 @@ byId('start-sandbox').onclick();
 runFrames(30);
 check('the sandbox starts again with a new design', byId('sandbox-bar').style.display === 'flex' && playerAlive());
 
-// ---------- The chemical lens ----------
-// hidden for now (HIDDEN in data/rules.js): no button, and C does nothing
-const hidden = readGlobal('HIDDEN');
-pressKey('c');
-check('while the hormones are hidden, the lens button is gone and C does nothing',
-  !hidden.hormoneView || (byId('chemical-lens').style.display === 'none' &&
-    byId('lens-legend').style.display !== 'flex'));
-const wasHidden = hidden.hormoneView;
-hidden.hormoneView = false;                               // the lens itself still works, for when it comes back
-pressKey('c');
-runFrames(20);
-check('C turns the chemical lens on: its legend shows, and the run goes on drawing it',
-  byId('lens-legend').style.display === 'flex' && byId('chemical-lens').classList.contains('selected') &&
-  playerAlive());
-pressKey('c');
-check('C again turns it off', byId('lens-legend').style.display === 'none' &&
-  !byId('chemical-lens').classList.contains('selected'));
-hidden.hormoneView = wasHidden;
-const shadeCalls = [];
-const shadeRecorder = {
-  canvas: { width: 1600, height: 900 },
-  save: () => shadeCalls.push('save'),
-  restore: () => shadeCalls.push('restore'),
-  setTransform: (...values) => shadeCalls.push('setTransform ' + values.join(',')),
-  fillRect: (...values) => shadeCalls.push('fillRect ' + values.join(',')),
-};
-readGlobal('shadeWholeScreen')(shadeRecorder);
-check('the lens shades the whole screen out to its edges, not a box the size of the arena (no frame round it)',
-  shadeCalls.join(' | ') === 'save | setTransform 1,0,0,1,0,0 | fillRect 0,0,1600,900 | restore');
 // ---------- The vitals panel moves ----------
 const vitals = byId('hud-vitals');
 Object.assign(vitals, { offsetLeft: 14, offsetTop: 500, offsetWidth: 270 });  // the fake DOM has no layout

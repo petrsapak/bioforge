@@ -34,7 +34,7 @@ for (const level of sim.LEVELS) {
     stateText(restored) === stateText(run) && restored.time === run.time);
 }
 
-// a fight with an AI hunter, acid, nettles and adrenaline, saved in the middle of it
+// a fight with an AI hunter, acid and nettles, saved in the middle of it
 {
   const world = sim.newWorld(900, 700, { seed: 7 });
   const player = sim.spawn(world, sim.TEMPLATES.eel, 300, 400, 0, 0);

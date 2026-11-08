@@ -1,16 +1,15 @@
 'use strict';
-// The Body and Nerves tabs at the top with their tools (Hormones, Unlimited biomass, Symmetry, Delete
-// all), the built-in designs, the keys sheet (H) and the fluid views (Shift+1–9) (browser only).
+// The Body and Nerves tabs at the top with their tools (Unlimited biomass, Symmetry, Delete all),
+// the built-in designs, the keys sheet (H) and the fluid views (Shift+1–5) (browser only).
 
 const MIRROR_MENU_WIDTH = 200;                            // px, as #mirror-menu in style.css
 
-// wires the toolbar: view tabs, design buttons, symmetry, keys sheet and lens
+// wires the toolbar: view tabs, design buttons, symmetry and keys sheet
 function setUpToolbar(app) {
   setUpLayerSwitch(app);
   setUpDesignButtons(app);
   setUpMirrorMenu(app);
   setUpKeysSheet();
-  setUpChemicalLens(app);
 }
 
 // the tabs at the top centre; the keys 1 and 2 are in ui.js
@@ -19,7 +18,7 @@ function setUpLayerSwitch(app) {
   byId('layer-nerve').onclick = () => showLayer(app, 'nerve');
 }
 
-// shows fluid view number `view` (0 = normal, otherwise 1 + its index in FLUIDS): from Shift+1–9, and in the builder
+// shows fluid view number `view` (0 = normal, otherwise 1 + its index in FLUIDS): from Shift+1–5, and in the builder
 // from a click on a Needs row (panel.js)
 function showFluidView(app, view) {
   app.fluidView = view;

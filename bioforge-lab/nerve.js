@@ -15,12 +15,12 @@ const PHOTOPHORE_RANGE = 400;                             // px a lit Photophore
 // What each neuron kind makes of its input sum. The cell's previous signal and neuronMemory are its state. time is
 // the nerve step's own moment (s), between one game step's world.time and the next.
 const NEURON_RULES = {
-  pacemaker: (cell, input, world, stepTime, time) => pacemakerSignal(cell, stepTime, time),
+  pacemaker: (cell, input, world, stepTime, time) => pacemakerSignal(cell, time),
   command: (cell, input, world) => commandOutput(world, cell),
   ganglion: (cell, input, world, stepTime) =>
     cell.signal + (clamp01(input) - cell.signal) * Math.min(1, GANGLION_RATE * stepTime),
   inhibitor: (cell, input) => (input > SIGNAL_ON ? 0 : 1),
-  synapse: (cell, input) => (input >= cell.neuron.setting * cell.thresholdFactor ? 1 : 0),
+  synapse: (cell, input) => (input >= cell.neuron.setting ? 1 : 0),
   latch: (cell, input) => {
     const isPulse = input > SIGNAL_ON;
     if (isPulse && !cell.neuronMemory) cell.signal = cell.signal > SIGNAL_ON ? 0 : 1;   // a new pulse flips it
@@ -30,13 +30,11 @@ const NEURON_RULES = {
   delay: (cell, input, world, stepTime) => delayedSignal(cell, input, stepTime),
 };
 
-// On and off at its rate. A mood (chemical.js) speeds the rate up or slows it down: the cycles gained or lost are
-// kept in clockShift, so a change of rate never makes it jump. On for exactly the first half of each cycle: a sine's
-// sign would count its zeros as off, giving one half an extra nerve step at some rates.
-function pacemakerSignal(cell, stepTime, time) {
+// On and off at its rate, for exactly the first half of each cycle: a sine's sign would count its zeros as off,
+// giving one half an extra nerve step at some rates.
+function pacemakerSignal(cell, time) {
   const rate = cell.neuron.setting;
-  cell.clockShift += rate * (cell.clockFactor - 1) * stepTime;
-  const cycles = rate * time + cell.clockShift;
+  const cycles = rate * time;
   return cycles - Math.floor(cycles) < 0.5 ? 1 : 0;
 }
 
@@ -71,10 +69,6 @@ const SENSES = {
   enemy: (world, cell) => (enemyNear(world, cell) ? 1 : 0),
   light: (world, cell) => lightSeen(world, cell),
   food: (world, cell) => foodSmelled(world, cell),
-  hormone: (world, cell) => {
-    const fluid = fluidIndex(cell.sensedHormone);
-    return clamp01(cell.fluids[fluid] / cell.fluidCapacity[fluid]);
-  },
 };
 
 // What a sense organ feels now. In the test tank, Space stands in for every sense.

@@ -5,7 +5,7 @@
 const { load } = require('./load');
 const { startApp } = require('./dom');
 const { check, done } = require('./check');
-const { X: sim } = load({}, ['LEVELS', 'ALL_LEVELS', 'HIDDEN', 'withEverythingUnlocked', 'TEMPLATES', 'runLevel',
+const { X: sim } = load({}, ['LEVELS', 'TEMPLATES', 'runLevel',
   'levelScore', 'levelLimits', 'buildCheck',
   'createDesignCell', 'createNeuron', 'isLevelLightOn', 'isLevelOpen', 'isLevelEarned', 'RULES', 'FLUID_OXYGEN',
   'linksFromList', 'CELLS', 'NEURONS', 'isCellLocked', 'isNeuronLocked',
@@ -92,44 +92,11 @@ const quarryBuild = rightTypeName => ({ cells: [cell(0, 0, 'nucleus'), cell(0, -
   cell(-1, 1, 'siphon'), cell(0, 1, 'siphon'), cell(-1, 0, 'mouth'),
   cell(1, 0, rightTypeName, rightTypeName === 'mineralizer' ? { neuron: sim.createNeuron('pacemaker') } : {})],
   fibres: CROSSED });
-// Fight or flight: Siphons driven by an always-on Inhibitor in the Nucleus, Fat beside them, Gills at the front, and
-// at the back between the Siphons this cell (an Adrenal is fired with them)
-const sprinterBuild = backTypeName => ({ cells: [cell(0, 0, 'nucleus', { neuron: sim.createNeuron('inhibitor') }),
-  cell(-1, 1, 'siphon'), cell(0, 1, 'siphon'), cell(0, -1, 'gill'), cell(1, -1, 'gill'), cell(-1, 0, 'fat'),
-  cell(1, 0, 'fat'), cell(-1, 2, backTypeName)],
-  fibres: [fibre(0, 0, -1, 1), fibre(0, 0, 0, 1), ...(backTypeName === 'adrenal' ? [fibre(0, 0, -1, 2)] : [])] });
-// Lie low: the crossed Seeker with this cell at the back (a Calm gland holds an Inhibitor). No Fat: a Fat cell takes
-// most of the starting sugar into its big store, away from the Siphons.
-const calmSeekerBuild = backTypeName => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons,
-  cell(-1, 2, backTypeName, backTypeName === 'calmgland' ? { neuron: sim.createNeuron('inhibitor') } : {})],
-  fibres: CROSSED });
-// Feast and famine: Bloom's body with a Nose at the front middle into a Fed gland beside the Fat, and a Receptor for
-// Fed holding an Inhibitor into a Starved gland; Tissue where a gland is left out, so the body keeps its balance
-const feastBuild = (fed, starved) => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(-1, 0, 'fat'),
-  cell(1, 0, 'mouth'), cell(-1, 2, 'pore'), cell(-2, 1, 'gill'), cell(1, 1, 'gill'),
-  cell(1, -2, fed ? 'nose' : 'tissue'), cell(-1, -1, starved ? 'starvedgland' : 'tissue'),
-  cell(2, -1, starved ? 'receptor' : 'tissue',
-    starved ? { neuron: sim.createNeuron('inhibitor'), sensedHormone: 'fed' } : {}),
-  cell(-2, 0, fed ? 'fedgland' : 'tissue'), cell(2, 0, 'tissue')],
-  fibres: [...CROSSED, ...(fed ? [fibre(1, -2, -2, 0)] : []), ...(starved ? [fibre(2, -1, -1, -1)] : [])] });
 // Anglerfish: a lit cell (a Photophore, or Tissue) at the front, in a cup of four always-on protease glands
 const lit = () => ({ neuron: sim.createNeuron('inhibitor') });
 const cupBuild = lureTypeName => ({ cells: [cell(0, 0, 'nucleus'), cell(0, -1, lureTypeName, lit()),
   cell(-1, -1, 'protease', lit()), cell(1, -2, 'protease', lit()), cell(-1, 0, 'protease', lit()),
   cell(1, -1, 'protease', lit()), cell(1, 0, 'fat')] });
-// Lullaby: protease across the front, Light eyes behind, Calm glands (or Tissue) at the sides, and a Receptor for
-// Calm at the back; each Siphon holds a Synapse, so with isGated it swims only once a crossed eye and the Receptor
-// add up to 1, that is once the body is calm
-const lullabyBuild = (sideTypeName, isGated = true) => {
-  const sideExtra = () => (sideTypeName === 'calmgland' ? lit() : {});
-  const siphonExtra = isGated ? () => ({ neuron: { kind: 'synapse', setting: 1 } }) : () => ({});
-  return { cells: [cell(0, 0, 'nucleus'), cell(0, -1, 'lighteye'), cell(1, -1, 'lighteye'),
-    cell(-1, 1, 'siphon', siphonExtra()), cell(0, 1, 'siphon', siphonExtra()),
-    ...[[0, -2], [1, -2], [-1, -1], [2, -2]].map(([q, r]) => cell(q, r, 'protease', lit())),
-    ...[[-1, 0], [1, 0], [-2, 1], [1, 1]].map(([q, r]) => cell(q, r, sideTypeName, sideExtra())),
-    cell(2, -1, 'fat'), cell(-1, 2, 'receptor', { sensedHormone: 'calm' })],
-  fibres: [...CROSSED, fibre(-1, 2, -1, 1), fibre(-1, 2, 0, 1)] };
-};
 // Grazed: a Nucleus inside a ring of Tissue, with this cell on both sides (left and right)
 const grazedBuild = sideTypeName => ({ cells: [cell(0, 0, 'nucleus'), cell(1, 0, sideTypeName),
   cell(-1, 0, sideTypeName), ...[[0, 1], [0, -1], [1, -1], [-1, 1]].map(([q, r]) => cell(q, r, 'tissue'))] });
@@ -151,13 +118,6 @@ const tumourBuild = partSize => ({ cells: [cell(0, 0, 'nucleus', { neuron: { kin
   cell(0, -1, 'bud', { budPart: { name: 'lump', cells: [cell(0, 0, 'cilia'),
     ...[[0, -1], [1, -1], [1, 0], [-1, 0]].slice(0, partSize - 1).map(([q, r]) => cell(q, r, 'tissue'))], fibres: [] },
   partRotation: 0 }), cell(1, 0, 'fat'), cell(-1, 0, 'gill')], fibres: [fibre(0, 0, 0, -1)] });
-// Moods: a Light eye at the front middle into an Adrenal holding a Latch; a Fat each side; beside each Siphon this
-// cell (a Receptor drives its Siphon); a Heart at the back, kept beating by an Inhibitor
-const moodsBuild = (sideTypeName, withHeart = true) => ({ cells: [cell(0, 0, 'nucleus'), cell(1, -2, 'lighteye'),
-  cell(0, -1, 'adrenal', { neuron: sim.createNeuron('latch') }), cell(1, -1, 'gill'), cell(-1, 0, 'fat'),
-  cell(1, 0, 'fat'), cell(-1, 1, 'siphon'), cell(0, 1, 'siphon'), cell(-2, 1, sideTypeName), cell(1, 1, sideTypeName),
-  ...(withHeart ? [cell(-1, 2, 'heart', { neuron: sim.createNeuron('inhibitor') })] : [])],
-  fibres: [fibre(1, -2, 0, -1), ...(sideTypeName === 'receptor' ? [fibre(-2, 1, -1, 1), fibre(1, 1, 0, 1)] : [])] });
 // Crevice: a worm two cells wide, front to back: a pair of Bloaters, the Nucleus with a Pacemaker at the rate (Hz),
 // rows of Muscles (pairs on odd rows, one on even rows), a Tissue with an Inhibitor of the Pacemaker, and the back
 // cells (Bloaters, or backTypeName; a pair after an odd number of Muscle rows). The front Bloaters and the Muscles are
@@ -223,11 +183,6 @@ const SOLUTIONS = {
   quarry: quarryBuild('mineralizer'),
   siege: siegeBuild(),
   spit: spitBuild,
-  'fight-or-flight': sprinterBuild('adrenal'),
-  'lie-low': calmSeekerBuild('calmgland'),
-  'feast-and-famine': feastBuild(true, true),
-  lullaby: lullabyBuild('calmgland'),
-  moods: moodsBuild('receptor'),
   grazed: grazedBuild('mender'),
   swarm: swarmBuild(HOMING_PART),
   tumour: tumourBuild(4),
@@ -259,11 +214,6 @@ const WRONG_TOOLS = {
   quarry: quarryBuild('tissue'),
   siege: siegeBuild(['acid', 'acid', 'acid'], 'tissue'),
   spit: glandRowBuild(['acid', 'protease', 'acid']),
-  'fight-or-flight': sprinterBuild('tissue'),
-  'lie-low': calmSeekerBuild('tissue'),
-  'feast-and-famine': feastBuild(false, false),
-  lullaby: lullabyBuild('tissue'),
-  moods: moodsBuild('tissue'),
   grazed: grazedBuild('tissue'),
   swarm: swarmBuild(NETTLE_PART),
   tumour: tumourBuild(5),
@@ -280,35 +230,24 @@ function piecesNotInDock(design, level) {
   return [...new Set([...cells, ...neurons])];
 }
 
-// Hidden levels (HIDDEN in data/rules.js) are run too, so they still work when they come back. They have no place
-// in the level list, so no dock: they are checked with everything unlocked.
-const isHiddenLevel = level => sim.HIDDEN.levels.includes(level.id);
-// Feast and famine was hidden (2026-11-07) because it no longer balances once a speck's sugar spreads over the
-// body: the glands decide little. Its balance checks come back with the level.
-const isUnbalanced = level => level.id === 'feast-and-famine' && isHiddenLevel(level);
 // an adventure is played with keys and rebuilt on the way, so runLevel can't win it: tests/adventure.js plays it
-for (const level of sim.ALL_LEVELS.filter(entry => !entry.adventure)) {
+for (const level of sim.LEVELS.filter(entry => !entry.adventure)) {
   const solution = SOLUTIONS[level.id];
-  const missing = isHiddenLevel(level) ? [] : piecesNotInDock(solution, level);
+  const missing = piecesNotInDock(solution, level);
   check(`"${level.name}": the reference solution uses only pieces the dock has`, !missing.length, missing.join(', '));
-  const limits = isHiddenLevel(level) ? sim.withEverythingUnlocked(sim.levelLimits(level)) : sim.levelLimits(level);
-  const problem = sim.buildCheck(solution, limits);
+  const problem = sim.buildCheck(solution, sim.levelLimits(level));
   const run = sim.runLevel(level, solution);
   check(`"${level.name}": the reference solution fits and wins with 3 stars`,
     !problem && run.outcome === 'won' && sim.levelScore(run, solution).stars === 3,
     `${problem} ${run.outcome} ${run.reason} in ${run.time.toFixed(1)} s`);
   const wrongTool = WRONG_TOOLS[level.id];
-  if (!wrongTool || isUnbalanced(level)) continue;
+  if (!wrongTool) continue;
   const wrongRun = sim.runLevel(level, wrongTool);
   check(`"${level.name}": the wrong tool doesn't win`, wrongRun.outcome === 'lost', wrongRun.reason);
 }
 
-// hidden levels (HIDDEN in data/rules.js) are still checked, so they work when they come back
-const levelById = id => sim.ALL_LEVELS.find(level => level.id === id);
+const levelById = id => sim.LEVELS.find(level => level.id === id);
 {
-  const rushing = sim.runLevel(levelById('lullaby'), lullabyBuild('calmgland', false));
-  check('"Lullaby": Calm glands alone lose, swimming in before the urchin is calm', rushing.outcome === 'lost',
-    rushing.reason);
   const plainRow = { cells: [cell(0, 0, 'nucleus'), cell(0, -1, 'photophore', lit()), cell(0, -2, 'protease', lit()),
     cell(1, -2, 'protease', lit()), cell(-1, -1, 'protease', lit()), cell(1, -1, 'protease', lit()),
     cell(1, 0, 'fat')] };
@@ -318,30 +257,17 @@ const levelById = id => sim.ALL_LEVELS.find(level => level.id === id);
 const dockRuns = [1, 2].map(threshold => sim.runLevel(levelById('dock'), eyesThroughSynapse(threshold)));
 check('"Dock": the Synapse\'s threshold matters: 1 stops short of the ring, 2 never stops',
   dockRuns.every(run => run.outcome === 'lost'), dockRuns.map(run => run.player.centerY.toFixed(0)).join());
-check('"Lullaby" doesn\'t allow Spitters, which kill the urchin from out of reach without calming it',
-  /Spitter/.test(sim.buildCheck(spitBuild, sim.levelLimits(levelById('lullaby')))));
 // Six Mouths round the Nucleus survived every Puffer level (2026-11-05): they bit the soft front of the Puffer's
 // crown away and the Nucleus rode in the hole. Mouths now can't bite hard cells, and a fifth Thorn closes the gap.
 const PUFFER_LEVELS = ['bulwark', 'pincushion', 'quarry', 'siege'];
 const mouthRingRuns = PUFFER_LEVELS.map(id => sim.runLevel(levelById(id), ringBuild('mouth')));
 check('a ring of Mouths loses every Puffer level', mouthRingRuns.every(run => run.outcome === 'lost'),
   mouthRingRuns.map(run => `${run.outcome} ${run.time.toFixed(0)} s`).join(', '));
-// the bare crossed Seeker won Lie low with no Calm while the kit had 5 sugar and the Calm gland burned as much as it
-// saved (user, 2026-11-07: "lie low level can be won with this creature")
-const bareSeeker = { cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons], fibres: CROSSED };
-const bareLieLow = sim.runLevel(levelById('lie-low'), bareSeeker);
-check('"Lie low": the bare Seeker runs dry before 120 s near the light', bareLieLow.outcome === 'lost',
-  `${bareLieLow.outcome} ${bareLieLow.goalTime.toFixed(0)} s near the light`);
-const calmLayouts = [cell(1, -2, 'calmgland', lit()), [cell(1, 0, 'fat'), cell(-1, 2, 'calmgland', lit())]]
-  .map(extra => sim.runLevel(levelById('lie-low'), { ...bareSeeker, cells: [...bareSeeker.cells, ...[extra].flat()] }));
-check('"Lie low": a Calm gland at the front, or one at the back with a Fat cell, wins too',
-  calmLayouts.every(run => run.outcome === 'won'), calmLayouts.map(run => `${run.outcome} ${run.time.toFixed(0)} s`)
-    .join(', '));
 // Cilia steered by side Muscles won the endurance levels with no stores while Cilia burned nothing (2026-11-05)
 const ciliaCruiser = { cells: [cell(0, 0, 'nucleus'), cell(-1, 0, 'muscle'), cell(1, 0, 'muscle'),
   cell(-2, 0, 'lighteye'), cell(2, 0, 'lighteye'), cell(0, -1, 'tissue'), cell(1, -1, 'tissue'), cell(-1, 1, 'cilia'),
   cell(0, 1, 'cilia'), cell(-1, 2, 'cilia')], fibres: [fibre(-2, 0, -1, 0), fibre(2, 0, 1, 0)] };
-const ENDURANCE_LEVELS = ['long-haul', 'exhaust', 'cold-water', 'marathon', 'packed-lunch', 'bloom', 'lie-low'];
+const ENDURANCE_LEVELS = ['long-haul', 'exhaust', 'cold-water', 'marathon', 'packed-lunch', 'bloom'];
 const cruiserRuns = ENDURANCE_LEVELS.map(id => sim.runLevel(levelById(id), ciliaCruiser));
 check('a Cilia cruiser with no stores loses every endurance level', cruiserRuns.every(run => run.outcome === 'lost'),
   cruiserRuns.map(run => `${run.outcome} ${run.time.toFixed(0)} s`).join(', '));
@@ -410,14 +336,6 @@ check('"Grazing": without a Fat the body is soon full of sugar and eats too litt
 const noStore = sim.runLevel(levelById('bloom'), bloomBuild('tissue'));
 check('"Bloom": with Tissue for the Fat, the bloom\'s food has nowhere to go', noStore.outcome === 'lost',
   `near the light ${noStore.goalTime.toFixed(0)} s, ate ${noStore.player.foodEaten}`);
-const fedOnly = sim.runLevel(levelById('feast-and-famine'), feastBuild(true, false));
-if (!isUnbalanced(levelById('feast-and-famine'))) {
-  check('"Feast and famine": Fed left on loses: it locks the food away for the famine', fedOnly.outcome === 'lost',
-    `near the light ${fedOnly.goalTime.toFixed(0)} s`);
-}
-const seeped = sim.runLevel(levelById('moods'), moodsBuild('receptor', false));
-check('"Moods": Receptors without a Heart get the adrenaline unevenly and miss the ring', seeped.outcome === 'lost',
-  seeped.reason);
 const keptRule = sim.runLevel(levelById('tumour'), tumourBuild(4));
 const brokenRule = sim.runLevel(levelById('tumour'), tumourBuild(5));
 const isAwake = run => run.creatures.filter(guard => guard.guardAwake).length;

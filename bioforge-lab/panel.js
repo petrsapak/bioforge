@@ -36,10 +36,6 @@ function wirePanelButtons(app) {
   // each change is copied onto the mirrored cells too, across the axes on when the button is clicked
   onClick('neuron-setting-down', () => changeNeuronSettingMirrored(app.edited, app.focusKey, -1, app.mirrorAxes));
   onClick('neuron-setting-up', () => changeNeuronSettingMirrored(app.edited, app.focusKey, 1, app.mirrorAxes));
-  for (const hormone of HORMONES) {
-    onClick('sense-' + hormone.id,
-      () => setSensedHormoneMirrored(app.edited, app.focusKey, hormone.id, app.mirrorAxes));
-  }
   app.cardFibres.forEach((fibre, i) => {
     onClick('remove-fibre-' + i, () => removeFibreMirrored(app.edited, fibre, app.mirrorAxes));
   });
@@ -161,7 +157,7 @@ function showCard(app) {
 // whether the clicked cell has something to set up in its card
 function hasCardSettings(app, cell) {
   const cellType = CELLS[cell.typeName];
-  return app.layer === 'nerve' || !!cell.neuron || !!cellType.growsParts || cellType.senses === 'hormone';
+  return app.layer === 'nerve' || !!cell.neuron || !!cellType.growsParts;
 }
 
 // the first sentence of a description, for the card; the whole text is its tooltip
@@ -180,21 +176,19 @@ function describeStamp(stamp) {
     '<span class="mouse right"></span> stop</div>';
 }
 
-// The clicked cell: Buds show and take their part, a Receptor its hormone; its neuron shows its setting, and a
-// Command its key; its fibres.
+// The clicked cell: Buds show and take their part; its neuron shows its setting, and a Command its key; its fibres.
 function describeFocusedCell(app, cell) {
   const cellType = CELLS[cell.typeName];
   const heading = `<b>${cellType.name}</b> <span class="dim">clicked · Esc</span>` +
     '<button class="small card-guide" id="card-guide" title="Read about it in the field guide (G)">Guide</button>';
   const fibres = describeCellFibres(app, app.focusKey);
   if (cellType.growsParts) return heading + describeBud(cell, cellType) + fibres;
-  const receptor = cellType.senses === 'hormone' ? describeReceptor(cell) : '';
   if (!cell.neuron) {
     const offer = app.layer === 'nerve' && app.selectedNeuron ?
       ` Click it again: ${NEURONS[app.selectedNeuron].name} in.` : '';
-    return heading + receptor + `<div class="line dim">No neuron.${offer}</div>` + fibres;
+    return heading + `<div class="line dim">No neuron.${offer}</div>` + fibres;
   }
-  return heading + receptor + describeNeuron(cell) + fibres;
+  return heading + describeNeuron(cell) + fibres;
 }
 
 // The cell's fibres, one row each: its colour on the grid, the cell at the other end, and a × that removes the
@@ -238,17 +232,6 @@ function describeNeuron(cell) {
   return text;
 }
 
-// the Receptor's hormone, as a row of buttons in the hormones' colours with the chosen one selected
-function describeReceptor(cell) {
-  const sensed = cell.sensedHormone || DEFAULT_SENSED_HORMONE;
-  const buttons = HORMONES.map(hormone => {
-    const selected = hormone.id === sensed ? ' selected' : '';
-    return `<button class="small${selected}" id="sense-${hormone.id}" style="border-color:${hormone.color}">` +
-      `${hormone.name}</button>`;
-  }).join('');
-  return `<div class="line">Senses <b>${FLUIDS[fluidIndex(sensed)].name}</b>:</div>` +
-    `<div class="hormone-choice">${buttons}</div>`;
-}
 
 // the Bud's part in its card: what it grows, how long it takes and where it is aimed
 function describeBud(bud, cellType) {

@@ -13,28 +13,27 @@ const DEMO_STIMULUS_LABELS = {
 };
 let tooltipDemo = null;
 
-// starts the example for a cell type, drawn into canvas, with the cells of that type ringed; options.showsLens
-// draws the hormone lens over it
-function startDemo(typeName, canvas, options = {}) {
-  startExample(TIPS[typeName].example, cell => cell.typeName === typeName, canvas, null, options);
+// starts the example for a cell type, drawn into canvas, with the cells of that type ringed
+function startDemo(typeName, canvas) {
+  startExample(TIPS[typeName].example, cell => cell.typeName === typeName, canvas, null);
 }
 
 // starts the example for a neuron kind, drawn into canvas, with its cells ringed and the example's traces drawn
 // into tracesCanvas
-function startNeuronDemo(kind, canvas, tracesCanvas, options = {}) {
+function startNeuronDemo(kind, canvas, tracesCanvas) {
   const isShown = cell => !!cell.neuron && cell.neuron.kind === kind;
-  startExample(NEURON_TIPS[kind].example, isShown, canvas, tracesCanvas, options);
+  startExample(NEURON_TIPS[kind].example, isShown, canvas, tracesCanvas);
 }
 
 // Starts the example in a fresh test tank. isShown picks the cells the tooltip is about; tracesCanvas (or null)
-// gets a lane per cell in example.traces. options: { showsLens }, kept when the example restarts.
-function startExample(example, isShown, canvas, tracesCanvas, options = {}) {
+// gets a lane per cell in example.traces.
+function startExample(example, isShown, canvas, tracesCanvas) {
   const run = createExampleRun(example);
   const probes = createProbes();
   probes.creature = run.creature;
   const tracedCells = (example.traces || []).map(([q, r]) => run.creature.cellsByHex.get(hexKey(q, r)));
   probes.lanes = tracedCells.filter(Boolean).map((cell, i) => createDemoLane(cell, i + 1));
-  tooltipDemo = { example, isShown, run, canvas, tracesCanvas, probes, options };
+  tooltipDemo = { example, isShown, run, canvas, tracesCanvas, probes };
 }
 
 // A signal lane for the example. A neuron's lane is named and coloured by the neuron ("1 Pacemaker") instead of the
@@ -58,8 +57,8 @@ function runDemo(dt) {
   if (!tooltipDemo) return;
   const { example, run } = tooltipDemo;
   if (run.time > DEMO_RESET_TIME) {
-    const { isShown, canvas, tracesCanvas, options } = tooltipDemo;
-    startExample(example, isShown, canvas, tracesCanvas, options);
+    const { isShown, canvas, tracesCanvas } = tooltipDemo;
+    startExample(example, isShown, canvas, tracesCanvas);
     return;
   }
   stepExampleRun(run, dt);
@@ -73,7 +72,7 @@ function runDemo(dt) {
 // draws the example tank: the world round the creature, its light, a ring on the cells the tooltip is about, and
 // the labels
 function drawDemo() {
-  const { example, isShown, run, options } = tooltipDemo;
+  const { example, isShown, run } = tooltipDemo;
   const { world, creature } = run;
   const context = tooltipDemo.canvas.getContext('2d');
   drawWater(context, world, DEMO_WIDTH, DEMO_HEIGHT, run.cameraX, run.cameraY);
@@ -82,7 +81,6 @@ function drawDemo() {
   drawLight(context, world.light, false);
   drawWorld(context, world, example.fluidView || 0);
   if (!example.fluidView) drawWorldFibres(context, world);
-  if (options.showsLens) drawChemicalLens(context, world);
   // the cell type or neuron being explained gets a pulsing dashed ring
   context.strokeStyle = '#fff';
   context.lineWidth = 1.5;

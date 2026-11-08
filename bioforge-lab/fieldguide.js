@@ -22,14 +22,14 @@ function guideEntry(kind, key, name, chapter) {
 // The guide's sections in order: [{ title, entries }]. Cells come by category, as the dock shows them.
 function guideSections() {
   const cellEntries = category => Object.entries(CELLS)
-    .filter(([typeName, type]) => type.category === category && !HIDDEN.cells.includes(typeName))
+    .filter(([, type]) => type.category === category)
     .map(([typeName, type]) => guideEntry('cell', typeName, type.name, pieceChapter(typeName)));
   return [
     ...CELL_CATEGORY_ORDER.map(category => ({ title: `Cells: ${category}`, entries: cellEntries(category) })),
     { title: 'Neurons', entries: Object.entries(NEURONS)
       .map(([kind, type]) => guideEntry('neuron', kind, type.name, pieceChapter(kind))) },
-    { title: 'How it works', entries: GUIDE_TOPICS.filter(topic => !HIDDEN.guideTopics.includes(topic.id))
-      .map(topic => guideEntry('topic', topic.id, topic.title, topic.chapter)) },
+    { title: 'How it works',
+      entries: GUIDE_TOPICS.map(topic => guideEntry('topic', topic.id, topic.title, topic.chapter)) },
     { title: 'Glossary', entries: [guideEntry('term', 'all', 'All terms', 1)] },
   ];
 }
@@ -57,12 +57,6 @@ function guideName(name) {
   if (CELLS[name]) return CELLS[name].name;
   if (NEURONS[name]) return NEURONS[name].name;
   return '';
-}
-
-// whether pictures of this cell type or neuron should show the hormones: it makes one or senses one
-function showsHormones(name) {
-  const type = CELLS[name];
-  return !!type && (type.product === 'hormone' || type.senses === 'hormone');
 }
 
 // the entry a related name points at: a cell type, a neuron kind, or a topic id
@@ -129,7 +123,6 @@ function behaviourFacts(type) {
     enemy: `an enemy cell within ${EYESPOT_RANGE} px`,
     light: `the level's light within its reach, or another creature's Photophore within ${PHOTOPHORE_RANGE} px`,
     food: `the nearest food speck within ${NOSE_RANGE} px`,
-    hormone: 'how full of its hormone its own cell is',
   };
   if (type.senses) facts.push(['Senses', senses[type.senses]]);
   if (type.glows) facts.push(['Light', `reaches ${PHOTOPHORE_RANGE} px`]);
@@ -151,7 +144,6 @@ function behaviourFacts(type) {
     facts.push(['Hardens', `one cell every ${MINERALIZE_TIME} s within ${MINERALIZE_REACH} hexes, for 1 mineral ` +
       `(stores ${MINERALIZER_CAPACITY})`]);
   }
-  if (type.product === 'hormone') facts.push(['Makes', FLUIDS[fluidIndex(type.hormone)].name]);
   if (type.breathes) facts.push(['Makes', `${GILL_OXYGEN_RATE} O₂ per s, more while swimming fast`]);
   if (type.dumpsWaste) facts.push(['Dumps', `${PORE_RATE} waste per s, from the surface`]);
   if (type.fatCapacity) facts.push(['Stores', `${type.fatCapacity} fat`]);

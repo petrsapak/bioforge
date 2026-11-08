@@ -8,7 +8,8 @@ const { X: sim } = load({}, ['CELLS', 'NEURONS', 'LEVELS', 'levelUnlocks', 'adve
   'GUIDE_CELLS', 'GUIDE_NEURONS', 'GUIDE_TOPICS', 'GUIDE_TERMS', 'TUTORIAL_LESSONS']);
 
 // pieces and levels taken out of the game, which old help texts may still name
-const GONE_NAMES = ['Valve', 'Vessel', 'Moth', 'Resilin', 'Snap', 'Tanner', 'Tanned hide'];
+const GONE_NAMES = ['Valve', 'Vessel', 'Moth', 'Resilin', 'Snap', 'Tanner', 'Tanned hide', 'Adrenal', 'Adrenaline',
+  'Calm', 'Calm gland', 'Fed gland', 'Starved gland', 'Receptor', 'Hormone', 'Mood'];
 
 // whether the text names the thing: the name as a whole word, or its plural (Siphons, Light eyes, Noses)
 function names(text, name) {

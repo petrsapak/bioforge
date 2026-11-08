@@ -1,5 +1,5 @@
 'use strict';
-// Vascular system: a beating Heart pumps blood (every fluid: O2, sugar, waste, repair fluid and hormones) between the
+// Vascular system: a beating Heart pumps blood (every fluid: O2, sugar, waste and repair fluid) between the
 // touching cells within its reach, far faster than they seep on their own. A Heart beats only while signalled, as hard
 // as its signal, and burns fuel as it beats. Pure: no DOM.
 // (Until 2026-11-01 a Heart pumped the vessels it sat on, laid in a Vessels view; the user chose areas instead.)

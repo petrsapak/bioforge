@@ -6,7 +6,7 @@ Games about soft-body creatures built from cells. You design a creature on a hex
 
 | Folder | What it is | Status |
 |---|---|---|
-| [`bioforge-lab/`](bioforge-lab/) | **Bioforge Lab**: single player. Program a creature through its body, nerve, blood and hormone layers, then watch it solve challenges on its own. | **Active.** See [`PLAN.md`](bioforge-lab/PLAN.md). |
+| [`bioforge-lab/`](bioforge-lab/) | **Bioforge Lab**: single player. Program a creature through its body, nerve and blood layers, then watch it solve challenges on its own. | **Active.** Version 0.8.0 is the game jam release (2026-11-08, "Break the rules": chapter 7, Tumour and Metastasis). See [`PLAN.md`](bioforge-lab/PLAN.md). |
 | [`bioforge-moba/`](bioforge-moba/) | Bioforge Arena: a 5v5 MOBA against bots. Two lanes, towers, minion waves, one core per team. | Dropped on 2026-10-28, kept as it was. |
 | [`bioforge-online/`](bioforge-online/) | Bioforge Online: an open-world MMORPG slice (Tidepool biome, levels, unlocks). | Dropped on 2026-10-27, kept as it was. |
 | [`bioforge-v3/`](bioforge-v3/) | Single-file prototype: the full builder and a wave arena. The later versions are built from it. | Frozen. |
@@ -25,7 +25,7 @@ cd desktop
 npm install           # once: Electron and electron-builder
 npm start             # runs the live bioforge-lab folder in the desktop window
 npm run icon          # redraws the icon (icon.ico, bioforge-lab/icon.png) from icon.html in headless Edge
-npm run dist          # builds dist/Bioforge Lab Setup <version>.exe and a portable .exe
+npm run dist          # builds dist/Bioforge Lab Setup <version>.exe and dist/Bioforge Lab <version> portable.exe
 ```
 
 The desktop build saves to `%APPDATA%\Bioforge Lab\save.json` instead of the browser's storage. F11 or Alt+Enter switches fullscreen, as does Settings in the game's menus, which also have Quit; F12 opens the developer tools when run with `npm start`. The version is in `bioforge-lab/data/version.js`, and [`bioforge-lab/CHANGELOG.md`](bioforge-lab/CHANGELOG.md) lists what each version brought.

@@ -7,8 +7,7 @@
 //   swimPower (free swimming force); damageFactor (share of damage taken: 0.5 = half)
 //   senses: what the cell feels, as a nerve signal its fibres carry: 'enemy' (an enemy cell is near, on or off) or
 //     'light' (graded: how far the light lies on the cell's side of the body, fading with distance) or 'food' (the
-//     same for the nearest food speck) or 'hormone' (graded: how full of its hormone the cell is; the design cell's
-//     sensedHormone says which, DEFAULT_SENSED_HORMONE if none)
+//     same for the nearest food speck)
 //   fuelBurn: O2 + sugar burned per second at full work (each unit burned becomes one unit of waste)
 //   oxygenCapacity, sugarCapacity: how much the cell holds; fatCapacity: how much fat it stores (metabolism.js);
 //   mineralCapacity: how much mineral it stores (a kit's leftover mineral and eaten mineral specks go there)
@@ -17,9 +16,7 @@
 //   work (fluid): how hard it works, which sets its fuel use: 'graded' (with its signal), 'onSignal' (fully while
 //     signalled), 'snare' (signalled or holding a line), 'beating' (unless the creature rests), 'always',
 //     'refillRepair' (until its repair fluid is nearly full), 'growPart' (while its Bud part is unfinished)
-//   product (fluid): what its burned fuel turns into: 'repair', 'hormone' or 'budPart'; hormone: which hormone
-//     (a chemical fluid's id, data/fluids.js); hormoneYield: how many times the usual amount of hormone it makes
-//     from each unit of fuel (1 if not set)
+//   product (fluid): what its burned fuel turns into: 'repair' or 'budPart'
 //   breathes: makes O2 from the water; dumpsWaste: dumps waste into the water from the surface
 //   pumps: while signalled, pumps blood between the cells in its reach (Heart, vascular.js)
 //   eatsFood: takes in food specks; bites: bites cells it touches; spiked: damages enemy cells it hits
@@ -33,7 +30,6 @@
 //   storesSugar: a sugar reservoir (Fat); storesMineral: a mineral store
 // Cells that burn no fuel are pipes: they pass O2 and sugar on to their neighbours but hold only a little.
 const PIPE_CAPACITY = 0.3;                                // share of a full cell's O2 and sugar a pipe holds
-const DEFAULT_SENSED_HORMONE = 'adrenaline';            // what a new Receptor senses
 
 // a cell type: the definition over the defaults
 function cellType(definition) {
@@ -46,7 +42,6 @@ function cellType(definition) {
     swimPower: 1,
     damageFactor: 1,
     fuelBurn: 0,
-    hormoneYield: 1,
     oxygenCapacity: pipeOrStore,
     sugarCapacity: pipeOrStore,
     fatCapacity: 0,
@@ -99,11 +94,6 @@ const CELLS = {
     category: 'Sense', name: 'Nose', cost: 3, health: 20, senses: 'food', color: '#c98ad8',
     description: 'Smells the nearest food speck: signals how far it lies on its side of the body, like a Light eye ' +
       `sees the light, and stronger the closer it is, up to ${NOSE_RANGE} px away.`,
-  }),
-  receptor: cellType({
-    category: 'Sense', name: 'Receptor', cost: 3, health: 20, senses: 'hormone', color: '#d07ad0',
-    description: 'Signals how much of one hormone it holds: none, up to full. Click it to choose the hormone: ' +
-      'Adrenaline, Calm, Fed or Starved.',
   }),
   muscle: cellType({
     category: 'Action', name: 'Muscle', cost: 3, health: 30, mass: 1.2, stiffness: 0.05, fuelBurn: 0.1,
@@ -199,32 +189,6 @@ const CELLS = {
     work: 'refillRepair', product: 'repair', rebuildsCells: true,
     description: 'Turns O₂ and sugar into repair fluid. Damaged cells that receive it heal slowly, and lost cells ' +
       'regrow within seconds, one at a time, nearest the Mender first, from the protein a kit leaves over.',
-  }),
-  adrenal: cellType({
-    category: 'Gland', name: 'Adrenal', cost: 3, health: 25, fuelBurn: 0.2, color: '#e04090',
-    work: 'onSignal', product: 'hormone', hormone: 'adrenaline', needsSignal: true,
-    description: 'On a nerve signal, turns sugar into adrenaline. Muscles, cilia, siphons, bloaters and nettles ' +
-      'that receive it work up to 80% harder.',
-  }),
-  calmgland: cellType({
-    // a quarter of a gland's usual fuel for the same Calm, so a gland that is always on saves more than it burns
-    // (at 0.02 it cost about what it saved, and a Seeker without one won Lie low; 2026-11-07)
-    category: 'Gland', name: 'Calm gland', cost: 3, health: 25, fuelBurn: 0.005, hormoneYield: 4, color: '#4a86d0',
-    work: 'onSignal', product: 'hormone', hormone: 'calm', needsSignal: true,
-    description: 'On a nerve signal, turns a little sugar into Calm, which lasts. Cells that receive it burn up to ' +
-      'half the fuel, but their Pacemakers slow down and their Synapses need more to fire.',
-  }),
-  fedgland: cellType({
-    category: 'Gland', name: 'Fed gland', cost: 3, health: 25, fuelBurn: 0.05, color: '#c07a34',
-    work: 'onSignal', product: 'hormone', hormone: 'fed', needsSignal: true,
-    description: 'On a nerve signal, turns a little sugar into Fed. Fat cells that receive it store sugar as fat ' +
-      'from 30% full instead of 90%, three times as fast and without the usual loss, and keep it.',
-  }),
-  starvedgland: cellType({
-    category: 'Gland', name: 'Starved gland', cost: 3, health: 25, fuelBurn: 0.05, color: '#8a80a8',
-    work: 'onSignal', product: 'hormone', hormone: 'starved', needsSignal: true,
-    description: 'On a nerve signal, turns a little sugar into Starved. Cells that receive it burn up to half the ' +
-      'fuel, and Fat cells turn fat back into sugar from 85% full instead of 50%, three times as fast.',
   }),
   acid: cellType({
     category: 'Gland', name: 'Acid gland', cost: 3, health: 25, fuelBurn: 0.12, color: '#ff7a3c',

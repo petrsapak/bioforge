@@ -138,12 +138,12 @@ function applySteering(creature) {
     const swimPower = isLaunchedPart ? 0 : cell.type.swimPower;
     // cilia beat toward the creature's front, at their own place, so cilia on one side turn it
     const isBeating = cell.type.beats && !creature.resting;
-    const ciliaThrust = isBeating ? SWIM_FORCE * CILIA_SWIM_POWER * cell.efficiency * cell.adrenalineBoost : 0;
+    const ciliaThrust = isBeating ? SWIM_FORCE * CILIA_SWIM_POWER * cell.efficiency : 0;
     const swimForce = SWIM_FORCE * swimPower;
     cell.forceX += cell.type.mass * turnTorque * -offsetY + swimForce * creature.swimX + ciliaThrust * forwardX;
     cell.forceY += cell.type.mass * turnTorque * offsetX + swimForce * creature.swimY + ciliaThrust * forwardY;
     if (cell.type.jets && cell.signal > 0) {
-      const thrust = SIPHON_FORCE * clamp01(cell.signal) * cell.efficiency * cell.adrenalineBoost;
+      const thrust = SIPHON_FORCE * clamp01(cell.signal) * cell.efficiency;
       cell.forceX += forwardX * thrust;
       cell.forceY += forwardY * thrust;
     }
@@ -260,7 +260,7 @@ function applySnarePull(world) {
     directionX /= distance;
     directionY /= distance;
     const stretch = Math.max(0, distance - cell.snareLine.restLength);
-    const pull = Math.min(SNARE_MAX_PULL, SNARE_PULL_STIFFNESS * stretch) * cell.efficiency * cell.adrenalineBoost;
+    const pull = Math.min(SNARE_MAX_PULL, SNARE_PULL_STIFFNESS * stretch) * cell.efficiency;
     target.forceX += pull * directionX;
     target.forceY += pull * directionY;
     cell.forceX -= SNARE_RECOIL_SHARE * pull * directionX;

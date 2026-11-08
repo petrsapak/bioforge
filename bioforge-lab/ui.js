@@ -25,7 +25,6 @@ function createApp(canvas) {
     mode: 'build',                                        // or 'sandbox' or 'level'
     layer: 'body',                                        // the builder's view: 'body' or 'nerve'
     fluidView: 0,                                         // 0 = normal, otherwise 1 + the index of the fluid shown
-    isLensOn: false,                                      // the chemical lens (lens.js): hormones shown, bodies dimmed
     keysHeld: new Set(),                                  // lower-case key names
     commandKeysHeld: new Set(),                           // letter and number keys held, for bound Commands
     adventureRun: null,                                   // an adventure's run waiting while the Lab rebuilds in a den
@@ -389,7 +388,6 @@ function listenToKeyboard(app) {
       return;
     }
     if (key === 't' && !event.repeat && app.mode !== 'build') toggleProbes(app);
-    if (key === 'c' && !event.repeat && !event.ctrlKey && !event.metaKey) toggleChemicalLens(app);
     const digit = digitOf(event);
     const commandKey = commandKeyOf(event);
     if (digit && event.shiftKey) {

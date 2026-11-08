@@ -190,17 +190,6 @@ function createCell(typeName, q, r, creature) {
     efficiency: 1,                                        // share of its fuel demand it got
     beat: 0,                                              // Heart: how hard it beats this step (vascular.js)
     heartPump: 0,                                         // the beats of the Hearts whose reach it lies in
-    adrenalineBoost: 1,
-    thresholdFactor: 1,                                   // mood (chemical.js): share of a Synapse's threshold
-    clockFactor: 1,                                       // mood: share of a Pacemaker's rate
-    clockShift: 0,                                        // Pacemaker: cycles gained or lost to moods so far
-    burnFactor: 1,                                        // mood: share of the fuel the cell's work burns
-    storeFillShift: 0,                                    // mood: added to the sugar fill at which Fat stores
-    releaseFillShift: 0,                                  // mood: added to the sugar fill at which Fat releases
-    storeRateFactor: 1,                                   // mood: share of the usual speed Fat stores at
-    releaseRateFactor: 1,                                 // mood: share of the usual speed Fat releases at
-    storeLoss: 1,                                         // mood: share of the usual loss when Fat stores sugar
-    sensedHormone: null,                                  // Receptor: the id of the hormone it senses
     onSurface: false,                                     // touches the water
     skinNeighbours: [],                                   // the cells next to it along the skin
     fat: 0,                                               // fat stored in the cell (metabolism.js)
@@ -238,7 +227,6 @@ function spawn(world, design, x, y, angle, team) {
     const cell = createCell(blueprintCell.typeName, blueprintCell.q, blueprintCell.r, creature);
     if (blueprintCell.boundKey) cell.boundKey = blueprintCell.boundKey;
     if (blueprintCell.neuron) cell.neuron = { ...blueprintCell.neuron };
-    if (cell.type.senses === 'hormone') cell.sensedHormone = blueprintCell.sensedHormone || DEFAULT_SENSED_HORMONE;
     if (cell.type.growsParts && blueprintCell.budPart) cell.budGrowth = newBudGrowth(design.cells, blueprintCell);
     creature.cells.push(cell);
     world.cells.push(cell);

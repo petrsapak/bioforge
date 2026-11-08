@@ -13,8 +13,8 @@ const SANDBOX_SPEEDS = [1, 2, 4, 0.5, 0.25];              // game seconds per re
 const SANDBOX_KEYS_HELP = '<b>Mouse</b> is the light (Light eyes)<br>' +
   '<b>Click</b> spawn (on your cell: probe it) &nbsp;<b>Right-click</b> remove &nbsp;<b>R</b> respawn<br>' +
   '<b>Space</b> and bound keys: Commands &nbsp;<b>P</b> pause &nbsp;<b>.</b> one step &nbsp;<b>,</b> speed<br>' +
-  '<b>T</b> signals &nbsp;' + (HIDDEN.hormoneView ? '' : '<b>C</b> hormones &nbsp;') +
-  '<b>Shift+1–9</b> view &nbsp;<b>Esc</b> menu';
+  '<b>T</b> signals &nbsp;' +
+  '<b>Shift+1–5</b> view &nbsp;<b>Esc</b> menu';
 
 // the top bar: who you play, what a click spawns, and the enemy, clear, respawn and exit buttons
 function setUpSandboxBar(app) {
@@ -183,12 +183,11 @@ function runTimeControlled(app, dt, stepWorld) {
   for (let i = 0; i < stepCount; i++) stepWorld(gameTime / stepCount);
 }
 
-// draws one Sandbox frame: water, light, world, lens and probes
+// draws one Sandbox frame: water, light, world and probes
 function drawSandbox(app) {
   drawWater(app.context, app.world, app.canvas.width, app.canvas.height);
   drawLight(app.context, app.world.light);
   drawWorld(app.context, app.world, app.fluidView);
-  if (app.isLensOn) drawChemicalLens(app.context, app.world);
   drawProbes(app, app.world);
   showSandboxHud(app);
 }

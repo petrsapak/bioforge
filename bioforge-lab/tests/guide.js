@@ -7,17 +7,13 @@ const { startApp } = require('./dom');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['CELLS', 'NEURONS', 'GUIDE_CELLS', 'GUIDE_NEURONS', 'GUIDE_TOPICS', 'GUIDE_TERMS',
   'guideSections', 'guideEntries', 'findGuideEntry', 'relatedGuideEntry', 'cellFacts', 'neuronFacts', 'TIPS',
-  'NEURON_TIPS', 'EYESPOT_RANGE', 'NETTLE_DAMAGE', 'CHAPTER_NAMES', 'LEVELS', 'cellStats', 'exampleWiring',
-  'showsHormones', 'HIDDEN']);
+  'NEURON_TIPS', 'EYESPOT_RANGE', 'NETTLE_DAMAGE', 'CHAPTER_NAMES', 'LEVELS', 'cellStats', 'exampleWiring']);
 
 // ---------- The entries ----------
 const entries = sim.guideEntries();
 const ids = entries.map(entry => entry.id);
-// pieces and topics kept out of the game for now (HIDDEN in data/rules.js) have no entry, and links to them are
-// left out
-const isHidden = name => sim.HIDDEN.cells.includes(name) || sim.HIDDEN.guideTopics.includes(name);
-check('every cell type has notes, and an entry unless it is hidden',
-  Object.keys(sim.CELLS).every(typeName => ids.includes('cell:' + typeName) !== isHidden(typeName) &&
+check('every cell type has an entry and notes',
+  Object.keys(sim.CELLS).every(typeName => ids.includes('cell:' + typeName) &&
     sim.GUIDE_CELLS[typeName]),
   Object.keys(sim.CELLS).filter(typeName => !sim.GUIDE_CELLS[typeName]).join(' '));
 check('every neuron has an entry and notes',
@@ -31,7 +27,7 @@ const linked = [
   ...Object.values(sim.GUIDE_NEURONS).flatMap(notes => notes.pairs),
   ...sim.GUIDE_TOPICS.flatMap(topic => topic.related),
 ];
-const broken = linked.filter(name => !sim.relatedGuideEntry(name) && !isHidden(name));
+const broken = linked.filter(name => !sim.relatedGuideEntry(name));
 check('every "works well with" and related link opens an entry', broken.length === 0, broken.join(' '));
 const chapters = [...sim.GUIDE_TOPICS.map(topic => topic.chapter),
   ...entries.filter(entry => entry.kind === 'cell' || entry.kind === 'neuron').map(entry => entry.chapter)];
@@ -53,7 +49,6 @@ check('a cell\'s facts give its recipe and health',
 check('an Eyespot\'s reach is the sim\'s',
   factOf(sim.cellFacts('eyespot'), 'Senses').includes(`${sim.EYESPOT_RANGE} px`));
 check('a Nettle\'s sting is the sim\'s', factOf(sim.cellFacts('nettle'), 'Sting').startsWith(`${sim.NETTLE_DAMAGE} `));
-check('a gland says which hormone it makes', factOf(sim.cellFacts('calmgland'), 'Makes') === 'Calm');
 check('every cell has facts with no blanks or undefined',
   Object.keys(sim.CELLS).every(typeName => sim.cellFacts(typeName).every(([label, value]) =>
     label && value && !value.includes('undefined') && !value.includes('NaN'))));
@@ -74,16 +69,12 @@ check('the Light eye\'s example wiring is eye → Siphon, listed once',
 const allWiring = [...Object.values(sim.TIPS), ...Object.values(sim.NEURON_TIPS)]
   .flatMap(tip => sim.exampleWiring(tip.example));
 check('every example\'s wiring names cells and neurons the guide has pages for',
-  allWiring.every(pair => [pair.from, pair.to].every(name => sim.relatedGuideEntry(name) || isHidden(name))),
-  JSON.stringify(allWiring.filter(pair => [pair.from, pair.to].some(name => !sim.relatedGuideEntry(name) &&
-    !isHidden(name)))));
+  allWiring.every(pair => [pair.from, pair.to].every(name => sim.relatedGuideEntry(name))),
+  JSON.stringify(allWiring.filter(pair => [pair.from, pair.to].some(name => !sim.relatedGuideEntry(name)))));
 check('every topic runs the example of a cell or neuron that has one',
   sim.GUIDE_TOPICS.every(topic => sim.TIPS[topic.demo] || sim.NEURON_TIPS[topic.demo]));
 check('every glossary term has a picture of a cell or neuron',
   sim.GUIDE_TERMS.every(([, , picture]) => sim.CELLS[picture] || sim.NEURONS[picture]));
-check('the hormone glands and the Receptor show the hormone lens, a Muscle doesn\'t',
-  ['adrenal', 'calmgland', 'fedgland', 'starvedgland', 'receptor'].every(sim.showsHormones) &&
-  !sim.showsHormones('muscle') && !sim.showsHormones('latch'));
 
 // ---------- In the app ----------
 const { byId, fire, runFrames } = startApp({}, { atMainMenu: true });

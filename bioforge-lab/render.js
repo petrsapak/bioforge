@@ -263,7 +263,7 @@ function drawWorldFibres(context, world) {
 }
 
 // ---------- Cells ----------
-// One cell: its body and symbol (cellart.js), then overlays for key binding, signal, hormones, starving,
+// One cell: its body and symbol (cellart.js), then overlays for key binding, signal, starving,
 // poison and hits.
 function drawCell(context, cell, view, showRanges = true) {
   const radius = cell.radius * 0.9;
@@ -288,25 +288,6 @@ function drawEyespotRange(context, cell) {
   strokeCircle(context, cell.x, cell.y, EYESPOT_RANGE);
 }
 
-// the hormones whose fluid channels are drawn as a rim (data/fluids.js)
-const RIM_HORMONES = FLUIDS.map((fluid, index) => index).filter(index => FLUIDS[index].layer === 'chemical');
-
-// a rim in the colour of the hormone the cell holds most of, as strong as it is full
-function drawHormoneRim(context, cell, radius) {
-  let strongest = -1;
-  let strongestFill = 0.05;
-  for (const fluid of RIM_HORMONES) {
-    const fill = cell.fluids[fluid] / cell.fluidCapacity[fluid];
-    if (fill <= strongestFill) continue;
-    strongest = fluid;
-    strongestFill = fill;
-  }
-  if (strongest < 0) return;
-  context.globalAlpha = clamp01(strongestFill);
-  context.strokeStyle = FLUIDS[strongest].color;
-  context.lineWidth = 1.5;
-  strokeCircle(context, cell.x, cell.y, radius + 1);
-}
 
 // fluid view: the cell filled by how full it is of one fluid
 function drawFluidLevel(context, cell, radius, fluid) {
@@ -377,7 +358,6 @@ function drawCellOverlays(context, cell, radius) {
     fillCircle(context, cell.x, cell.y, radius * 0.75);
   }
   if (cell.mineralized) drawHardenedCrust(context, cell, radius);   // hardened by a Mineralizer
-  drawHormoneRim(context, cell, radius);
   if (cell.starving) {
     context.globalAlpha = 0.5;
     context.fillStyle = '#000';

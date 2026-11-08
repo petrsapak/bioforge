@@ -5,7 +5,7 @@
 //     level before it add (levelUnlocks in levels.js)
 //   arena: { width, height } in px; systems: the switchable systems that run (chapters 1 and 2: nerve only, so
 //     every cell works at full power and nothing starves; chapter 3 adds fluid and vascular; chapter 4 metabolism
-//     and food; chapter 5 secretions; chapters 6 and 7 regrow; chapter 8 chemical and scent)
+//     and food; chapter 5 secretions; chapters 6 and 7 regrow)
 //   seepFactor: share of the usual seeping between cells (cold water: less); a Heart's pumping is not slowed
 //   waterOxygen: share of the usual O₂ a Gill makes from the water (stale water: less)
 //   limits: design limits ({ budget, maxCells, maxNeurons, maxFibreUnits, bannedCells: cell type names the level
@@ -58,10 +58,8 @@ const CIRCULATION_SYSTEMS = ['nerve', 'fluid', 'vascular'];
 const FEEDING_SYSTEMS = ['nerve', 'fluid', 'vascular', 'metabolism', 'food'];
 const ARMOUR_SYSTEMS = [...FEEDING_SYSTEMS, 'secretions'];
 const GROWTH_SYSTEMS = [...ARMOUR_SYSTEMS, 'regrow'];
-const MOODS_SYSTEMS = [...GROWTH_SYSTEMS, 'chemical', 'scent'];
-// chapter 8 is hidden for now (HIDDEN in data/rules.js)
 const CHAPTER_NAMES = { 1: 'Reflexes', 2: 'Memory and logic', 3: 'Circulation', 4: 'Feeding', 5: 'Armour',
-  6: 'Growth', 7: 'Breaking the rules', 8: 'Moods' };
+  6: 'Growth', 7: 'Breaking the rules' };
 // Tumour's guards: a Phagocyte at each corner of the middle, about 400 px from the start
 const TUMOUR_GUARDS = [[350, 200], [1050, 200], [350, 600], [1050, 600]]
   .map(([x, y]) => ({ design: 'phagocyte', x, y, heading: 0, behaviour: 'guard' }));
@@ -185,8 +183,8 @@ function macrophageDesign() {
   return { cells: design.cells, fibres: nettles.map(nettle => ({ from: { q: 0, r: 0 }, to: nettle })) };
 }
 
-// every level, the hidden ones (HIDDEN in data/rules.js) too
-const ALL_LEVELS = [
+// the levels in the game, in order
+const LEVELS = [
   createLevel({
     id: 'first-stroke', chapter: 1, name: 'First stroke',
     unlocks: { cells: ['tissue', 'siphon'], neurons: ['pacemaker'] },
@@ -627,84 +625,7 @@ const ALL_LEVELS = [
     goal: { kind: 'kill', creature: BODY_CREATURES.length - 1 },
     timeLimit: 3600, par: { seconds: 1200, biomass: 60 },
   }),
-  createLevel({
-    id: 'fight-or-flight', chapter: 8, name: 'Fight or flight',
-    unlocks: { cells: ['adrenal'] },
-    brief: 'The ring is right across the water and the clock is short: two Siphons alone are too slow. Reach it ' +
-      'in 26 s.',
-    hint: 'Adrenaline makes working cells up to 80% stronger. Put an Adrenal behind the Siphons, touching both, and ' +
-      'fire it with them, so it reaches both evenly. Fat beside the Siphons keeps them fed.',
-    systems: MOODS_SYSTEMS,
-    limits: { kit: { protein: 30, sugar: 16, fat: 2 } },
-    food: { maxCount: 0 },
-    start: { x: 100, y: 400, heading: Math.PI / 2 },
-    goal: { kind: 'reach', x: 1300, y: 400, radius: 70 },
-    timeLimit: 26, par: { seconds: 24, biomass: 20 },
-  }),
-  createLevel({
-    id: 'lie-low', chapter: 8, name: 'Lie low',
-    unlocks: { cells: ['calmgland'] },
-    brief: 'Stay near the drifting light for 120 s in all, on the little sugar you start with. There is no food.',
-    hint: 'Calm halves what a cell burns, and lasts. A Calm gland with an Inhibitor in it is always on and costs ' +
-      'little: put it at the back between the Siphons, where the burning is.',
-    systems: MOODS_SYSTEMS,
-    limits: { kit: { protein: 30, sugar: 3, fat: 2 } },   // at 5 sugar a Seeker without Calm won (2026-11-07)
-    food: { maxCount: 0 },
-    light: DRIFTING_LIGHT,
-    goal: { kind: 'stayNear', radius: 100, seconds: 120 },
-    timeLimit: 170, par: { seconds: 160, biomass: 22 },
-  }),
-  createLevel({
-    id: 'feast-and-famine', chapter: 8, name: 'Feast and famine',
-    unlocks: { cells: ['fedgland', 'starvedgland', 'receptor'] },
-    brief: 'Food blooms round the drifting light for the first 40 s, then never again. Stay near the light for ' +
-      '220 s in all.',
-    hint: 'Starved halves what the body burns once the food is gone. Fed banks food fast while it lasts, but ' +
-      'locks it away if it stays on; Starved cancels it. A Nose fires a Fed gland, and a Receptor for Fed with an ' +
-      'Inhibitor in it fires a Starved gland when the Fed fades.',
-    systems: MOODS_SYSTEMS,
-    limits: { kit: { protein: 45, sugar: 2, fat: 2 } },
-    food: { maxCount: 8, interval: 2, nearLight: 120, until: 40 },
-    light: { ...DRIFTING_LIGHT, speed: 10 },
-    goal: { kind: 'stayNear', radius: 100, seconds: 220 },
-    timeLimit: 310, par: { seconds: 290, biomass: 37 },
-  }),
-  createLevel({
-    id: 'lullaby', chapter: 8, name: 'Lullaby',
-    brief: 'An urchin sits on the rock with the light on it. Its Nettles sting anything its Eyespot sees within ' +
-      '120 px, and they would digest your glands before you digest it. Calm it down, then destroy its Nucleus.',
-    hint: 'Hormones leak into the water (C shows them), and cells take in what is around them. Calm raises a ' +
-      'Synapse\'s threshold, and the urchin\'s Eyespot has one. Wait out of its reach while Calm glands fill the ' +
-      'water: a Receptor for Calm and a Light eye both into a Synapse in each Siphon swim only once you are calm. ' +
-      'Protease across the front.',
-    systems: MOODS_SYSTEMS,
-    // Spitters kill the urchin from out of its reach, as in Spit, without calming it
-    limits: { kit: { protein: 45, sugar: 8, fat: 2 }, bannedCells: ['spitter'] },
-    food: { maxCount: 0 },
-    start: { x: 700, y: 430, heading: 0 },
-    light: { carriedBy: 0, range: 900 },
-    creatures: [{ design: 'urchin', x: 700, y: 250, heading: 0, behaviour: 'wired', anchored: true }],
-    goal: { kind: 'kill', creature: 0 },
-    timeLimit: 90, par: { seconds: 50, biomass: 44 },
-  }),
-  createLevel({
-    id: 'moods', chapter: 8, name: 'Moods',
-    brief: 'Hold still until the light flashes, then swim to the ring. Your nerves are short: 3 units of fibre in ' +
-      'all, not enough to reach from an eye to the Siphons.',
-    hint: 'Send the flash as adrenaline: a Light eye into an Adrenal holding a Latch, so it stays on. A Receptor ' +
-      'for adrenaline beside each Siphon turns it back into a nerve signal. Seeping is slow and uneven: a beating ' +
-      'Heart between the Adrenal and both Receptors carries it to them evenly.',
-    systems: MOODS_SYSTEMS,
-    limits: { kit: { protein: 40, sugar: 8, fat: 2 }, maxFibreUnits: 3 },
-    food: { maxCount: 0 },
-    light: { ...WATCHER_LIGHT, flash: { at: 5, length: 0.5 } },
-    stillUntilLit: { speed: 10 },
-    goal: TOP_RING,
-    timeLimit: 35, par: { seconds: 30, biomass: 30 },
-  }),
 ];
-// the levels in the game, in order
-const LEVELS = ALL_LEVELS.filter(level => !HIDDEN.levels.includes(level.id));
 
 // the Darter's body: a Nucleus, an Eyespot in front and two Siphons behind
 const darterCells = () => [
@@ -726,8 +647,7 @@ const LEVEL_CREATURES = {
     fibres: [{ from: { q: 0, r: -1 }, to: { q: -1, r: 1 } }, { from: { q: 0, r: -1 }, to: { q: 0, r: 1 } }],
   },
   skittishDarter: { cells: darterCells(), fibres: [] },
-  // an urchin: its Eyespot (on the far side, away from the light's approach) holds a Synapse wired to four Nettles,
-  // so Calm in the water, which raises the threshold, puts it to sleep
+  // an urchin: its Eyespot (on the far side, away from the light's approach) holds a Synapse wired to four Nettles
   urchin: {
     cells: [
       createDesignCell(0, 0, 'nucleus'),

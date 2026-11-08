@@ -5,7 +5,7 @@
 const { load } = require('./load');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['TIPS', 'NEURON_TIPS', 'CELLS', 'NEURONS', 'createExampleRun', 'stepExampleRun',
-  'hexKey', 'FLUID_ADRENALINE']);
+  'hexKey']);
 
 const STEP = 1 / 60;                                      // game s per step, as a demo at 60 frames a second
 const RUN_TIME = 12;                                      // game s: a demo's run before it starts again
@@ -76,7 +76,7 @@ for (const typeName of ['lighteye', 'nose']) {
 }
 // (the Bloater's is left out: swelling against the enemy rocks the body back and forth, about 1.2 rad in all, without
 // turning it round)
-const spinners = ['nucleus', 'shell', 'cilia', 'thorn', 'siphon', 'adrenal', 'receptor', 'tissue']
+const spinners = ['nucleus', 'shell', 'cilia', 'thorn', 'siphon', 'tissue']
   .filter(typeName => cellResults[typeName].turned > MOST_TURNING);
 check(`still or straight examples turn less than ${MOST_TURNING} rad in a run`, spinners.length === 0,
   spinners.map(typeName => `${typeName} ${cellResults[typeName].turned.toFixed(1)}`).join(', '));
@@ -89,11 +89,6 @@ check('the Cilia, Thorn and Siphon examples swim', ['cilia', 'thorn', 'siphon'].
   ['cilia', 'thorn', 'siphon'].map(name => `${name} ${travelled(name).toFixed(0)} px`).join(', '));
 check('the Mineralizer example hardens cells',
   cellResults.mineralizer.run.creature.cells.some(cell => cell.mineralized));
-check('the Adrenal example\'s adrenaline reaches the Siphons beside it',
-  cellResults.adrenal.run.creature.cells.filter(cell => cell.typeName === 'siphon')
-    .every(cell => cell.fluids[sim.FLUID_ADRENALINE] > 0.1));
-check('the Receptor example\'s Synapse turns the adrenaline into on and off',
-  cellResults.receptor.highest > 0.8 && cellResults.receptor.lowest < 0.2);
 
 // ---------- Neuron examples ----------
 for (const kind of Object.keys(sim.NEURONS)) {

@@ -34,7 +34,7 @@ function updateActuators(world, dt) {
   for (const cell of world.cells) {
     cell.cooldown -= dt;
     cell.hitFlash = Math.max(0, cell.hitFlash - dt);
-    const power = cell.efficiency * cell.adrenalineBoost;
+    const power = cell.efficiency;
     updateSize(cell, power, dt, world.time);
     const canAct = !cell.creature.debris || cell.creature.launchedPart;
     const ready = cell.signal > SIGNAL_ON && cell.efficiency > MIN_FIRING_EFFICIENCY && cell.cooldown <= 0 && canAct;

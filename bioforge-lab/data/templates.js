@@ -13,7 +13,7 @@ const linksFromList = list => list.map(([fromQ, fromR, toQ, toR]) =>
 const ART_CELL_CODES = {
   N: 'nucleus', t: 'tissue', S: 'shell', j: 'joint', c: 'cilia', n: 'nerve', g: 'ganglion', p: 'pacemaker',
   k: 'command', e: 'eyespot', m: 'muscle', b: 'bloater', s: 'siphon', x: 'nettle', T: 'thorn', G: 'gill', M: 'mouth',
-  h: 'heart', a: 'airsac', f: 'fat', o: 'pore', r: 'mender', d: 'adrenal', H: 'snare', P: 'spitter',
+  h: 'heart', a: 'airsac', f: 'fat', o: 'pore', r: 'mender', H: 'snare', P: 'spitter',
 };
 
 // a design from hex art: rows of letters (ART_CELL_CODES), placed around the N
@@ -258,7 +258,7 @@ const TEMPLATES = {
     '   x e e x',
     '  G f N f G',
     '   a h r f',
-    '  c f d k c',
+    '  c f t k c',
     '   o t t o'])), { firstRow: 4, muscleRows: 4, rate: 2, rowDelay: 0.1, fin: [2, 3, 2] }),
   // the Nucleus's Pacemaker swells the ring of Bloaters about once a second; a pulsing bell barely moves it, so it
   // drifts and stings what comes near
@@ -283,7 +283,7 @@ const TEMPLATES = {
     ' j b b b b f f b b b b j',
     '          t k t',
     '         o s s o',
-    '          c d c',
+    '          c t c',
     '           j j',
     '            T'])), 2.4),
   crab: designFromArt([
@@ -356,14 +356,12 @@ const EXAMPLE_GROUPS = [
     title: 'Showcase (over the budget: try them in the Sandbox)',
     examples: [
       { template: 'eel', name: 'Eel',
-        about: 'A wave runs down its tail of Muscles (Delay neurons) to a Joint fin; eyespots fire the head nettles; ' +
-          'Space releases adrenaline' },
+        about: 'A wave runs down its tail of Muscles (Delay neurons) to a Joint fin; eyespots fire the head nettles' },
       { template: 'jelly', name: 'Jelly',
         about: 'A ring of bloaters pulses the bell as it drifts; thorn tentacles trail behind; the eyespot ' +
           'cap stings' },
       { template: 'manta', name: 'Manta',
-        about: 'Both wings flap, muscles in front and bloaters behind; cilia carry it; Space fires the jets and ' +
-          'adrenaline' },
+        about: 'Both wings flap, muscles in front and bloaters behind; cilia carry it; Space fires the jets' },
       { template: 'crab', name: 'Crab',
         about: 'Space snaps both pincers shut and fires the back jets; shell carapace' },
     ],

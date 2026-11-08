@@ -1,7 +1,7 @@
 'use strict';
 // The field guide sheet: a list of every cell, neuron, topic and glossary term down the left, each with its picture,
 // and a filter; the chosen entry on the right, told in pictures first: the cell or neuron with its live example tank
-// (tipdemo.js, with the hormone lens for hormones), its cost, health and fuel as pips and bars, the example's wiring
+// (tipdemo.js), its cost, health and fuel as pips and bars, the example's wiring
 // as icons joined by moving fibres, then the words: how to use it, what to watch out for, and what it
 // works with as picture tiles. Opened from the menus, G in the builder and the clicked cell's card; Esc or ✕ closes
 // it (browser only). The entries are built in fieldguide.js.
@@ -129,12 +129,11 @@ function entryDemo(entry) {
   return TIPS[name] || NEURON_TIPS[name] ? name : '';
 }
 
-// runs the example of a cell type or neuron in the page's tank, with the hormone lens if it is about hormones
+// runs the example of a cell type or neuron in the page's tank
 function startGuideDemo(name) {
   const canvas = byId('guide-demo');
-  const options = { showsLens: showsHormones(name) };
-  if (TIPS[name]) startDemo(name, canvas, options);
-  else if (NEURON_TIPS[name]) startNeuronDemo(name, canvas, byId('guide-traces'), options);
+  if (TIPS[name]) startDemo(name, canvas);
+  else if (NEURON_TIPS[name]) startNeuronDemo(name, canvas, byId('guide-traces'));
 }
 
 const guideTopic = id => GUIDE_TOPICS.find(topic => topic.id === id);
@@ -191,8 +190,7 @@ function topicPageHtml(topic) {
 
 // every term as a card with its picture
 function glossaryHtml() {
-  const shownTerms = GUIDE_TERMS.filter(([term]) => !HIDDEN.guideTerms.includes(term));
-  const cards = shownTerms.map(([term, meaning, picture]) => `<div class="guide-term">` +
+  const cards = GUIDE_TERMS.map(([term, meaning, picture]) => `<div class="guide-term">` +
     guideIconHtml(picture, GUIDE_TILE_ICON_SIZE) +
     `<div><b>${escapeHtml(term)}</b><span>${escapeHtml(meaning)}</span></div></div>`);
   return `<div class="guide-terms">${cards.join('')}</div>`;
@@ -210,10 +208,9 @@ function heroHtml(picture, kind, color, text, under, demo) {
 
 // the example tank (and a neuron's signal lanes under it), started by showGuideEntry, with a line on what is ringed
 function demoHtml(withTraces, name) {
-  const lens = showsHormones(name) ? ' Hormones show as glowing clouds.' : '';
   return `<div class="guide-demo"><canvas id="guide-demo" width="${DEMO_WIDTH}" height="${DEMO_HEIGHT}"></canvas>` +
     (withTraces ? `<canvas id="guide-traces" width="${DEMO_WIDTH}" height="0"></canvas>` : '') +
-    `<div class="guide-caption">Live: the ringed cells are the ${escapeHtml(guideName(name))}.${lens}</div></div>`;
+    `<div class="guide-caption">Live: the ringed cells are the ${escapeHtml(guideName(name))}.</div></div>`;
 }
 
 // a cell type's recipe as coloured pips, and its health and fuel burn as bars against the most any cell has
