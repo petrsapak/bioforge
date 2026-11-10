@@ -45,7 +45,7 @@ function wakeTitleScene(app) {
 function runTitleFrame(app, dt) {
   wakeTitleScene(app);
   const scene = app.title.scene;
-  const stepCount = Math.ceil(dt / SANDBOX_MAX_STEP - 1e-6);
+  const stepCount = Math.ceil(dt / MAX_STEP_TIME - 1e-6);
   for (let i = 0; i < stepCount; i++) stepTitleScene(scene, dt / stepCount);
   moveTitleCamera(app, dt);
   drawTitleScene(app);

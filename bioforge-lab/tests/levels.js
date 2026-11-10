@@ -54,15 +54,25 @@ const coldWaterBuild = (heartBeat = 'inhibitor') => {
   const { heart, fibres } = heartAtFront(heartBeat);
   return { cells: [...EXHAUST_BODY.cells, heart], fibres: [...CROSSED, ...fibres] };
 };
-// The Cold water build lasting longer: two Fats on the sides and a Gill beside each Siphon, and its Heart beating in
-// pulses. airSac: an Air sac on the right side instead of the second Fat.
-const marathonBuild = ({ airSac = false, heartBeat = 'pacemaker' } = {}) => {
-  const coldWater = coldWaterBuild(heartBeat);
-  const cells = coldWater.cells.map(bodyCell =>
-    bodyCell.typeName === 'airsac' && !airSac ? cell(1, 0, 'fat') : bodyCell);
-  return { cells: [...cells, cell(-2, 1, 'gill'), cell(1, 1, 'gill')], fibres: coldWater.fibres };
-};
-// Long haul and Packed lunch: the crossed Seeker with this store on the left, a Gill on the right and this cell (a
+// Shape: no nerves. Cilia in a row left of the Nucleus, a Tissue right of it (if asked) and Cilia behind it, on the
+// left, the right or both: more push on the left, so it curves right
+const shapeBuild = ({ leftCilia = 2, rightTissue = true, backCilia = [[-1, 1], [0, 1]] } = {}) => ({
+  cells: [cell(0, 0, 'nucleus'), ...Array.from({ length: leftCilia }, (unused, i) => cell(-1 - i, 0, 'cilia')),
+    ...(rightTissue ? [cell(1, 0, 'tissue')] : []), ...backCilia.map(([q, r]) => cell(q, r, 'cilia'))],
+  fibres: [] });
+// Packed lunch: a straight swimmer with even sides. This neuron in the Nucleus drives both Siphons; a Fat on each
+// side, a cell of gillTypeName at each front corner and a Pore at the back
+const crossingBuild = (neuronKind = 'inhibitor', gillTypeName = 'gill') => ({
+  cells: [cell(0, 0, 'nucleus', { neuron: sim.createNeuron(neuronKind) }), cell(-1, 1, 'siphon'), cell(0, 1, 'siphon'),
+    cell(-1, 0, 'fat'), cell(1, 0, 'fat'), cell(0, -1, gillTypeName), cell(1, -1, gillTypeName), cell(-1, 2, 'pore')],
+  fibres: [fibre(0, 0, -1, 1), fibre(0, 0, 0, 1)] });
+// Reel: an Eyespot at the front left wired to the cell of snareTypeName at the front right and to a Nettle in front
+// of each
+const reelBuild = (snareTypeName = 'snare') => ({
+  cells: [cell(0, 0, 'nucleus'), cell(0, -1, 'eyespot'), cell(1, -1, snareTypeName), cell(0, -2, 'nettle'),
+    cell(2, -2, 'nettle')],
+  fibres: [fibre(0, -1, 1, -1), fibre(0, -1, 0, -2), fibre(0, -1, 2, -2)] });
+// Long haul: the crossed Seeker with this store on the left, a Gill on the right and this cell (a
 // Pore) at the back
 const lunchBuild = (storeTypeName, backTypeName = 'pore') => ({ cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons,
   cell(-1, 0, storeTypeName), cell(1, 0, 'gill'), cell(-1, 2, backTypeName)], fibres: CROSSED });
@@ -162,6 +172,7 @@ const SOLUTIONS = {
   shade: { cells: [pacemakerNucleus(), ...eyesAndSiphons],
     fibres: [...SAME_SIDE, fibre(0, 0, -1, 1), fibre(0, 0, 0, 1)] },
   hunt: huntBuild,
+  shape: shapeBuild(),
   freeze: eyesThroughNucleus('inhibitor'),
   'false-start': eyesThroughNucleus('latch'),
   metronome: eyesThroughNucleus('inhibitor', { kind: 'delay', setting: 3 }),
@@ -171,11 +182,11 @@ const SOLUTIONS = {
   'long-haul': lunchBuild('fat'),
   exhaust: EXHAUST_BODY,
   'cold-water': coldWaterBuild(),
-  marathon: marathonBuild(),
-  'packed-lunch': lunchBuild('fat'),
+  'packed-lunch': crossingBuild(),
   grazing: grazingBuild('fat'),
   bloom: bloomBuild('fat'),
   sting: stingBuild(),
+  reel: reelBuild(),
   bulwark: ringBuild('shell'),
   pincushion: ringBuild('thorn'),
   clam: glandRowBuild(['acid', 'protease', 'acid']),
@@ -192,6 +203,7 @@ const WRONG_TOOLS = {
   lighthouse: sim.TEMPLATES.jet,
   shade: SOLUTIONS.lighthouse,
   hunt: SOLUTIONS.lighthouse,
+  shape: shapeBuild({ leftCilia: 1, rightTissue: false, backCilia: [] }),   // one Cilia: it spins on the spot
   freeze: SOLUTIONS.lighthouse,
   'false-start': SOLUTIONS.freeze,
   metronome: SOLUTIONS.freeze,
@@ -201,12 +213,12 @@ const WRONG_TOOLS = {
   'long-haul': SOLUTIONS.lighthouse,
   exhaust: SOLUTIONS['long-haul'],
   'cold-water': SOLUTIONS.exhaust,
-  marathon: SOLUTIONS['cold-water'],
-  'packed-lunch': lunchBuild('tissue'),
+  'packed-lunch': crossingBuild('inhibitor', 'tissue'),     // no Gills: it runs out of O2 on the way
   grazing: { cells: [cell(0, 0, 'nucleus'), ...eyesAndSiphons, cell(-1, 0, 'mouth'), cell(1, 0, 'fat')],
     fibres: CROSSED },
-  bloom: SOLUTIONS['packed-lunch'],
+  bloom: SOLUTIONS['long-haul'],
   sting: stingBuild(false),
+  reel: reelBuild('tissue'),                                // no Snare: the Whirler never comes near
   bulwark: ringBuild('tissue'),
   pincushion: ringBuild('shell'),
   clam: glandRowBuild(['acid', 'acid', 'acid']),
@@ -267,7 +279,7 @@ check('a ring of Mouths loses every Puffer level', mouthRingRuns.every(run => ru
 const ciliaCruiser = { cells: [cell(0, 0, 'nucleus'), cell(-1, 0, 'muscle'), cell(1, 0, 'muscle'),
   cell(-2, 0, 'lighteye'), cell(2, 0, 'lighteye'), cell(0, -1, 'tissue'), cell(1, -1, 'tissue'), cell(-1, 1, 'cilia'),
   cell(0, 1, 'cilia'), cell(-1, 2, 'cilia')], fibres: [fibre(-2, 0, -1, 0), fibre(2, 0, 1, 0)] };
-const ENDURANCE_LEVELS = ['long-haul', 'exhaust', 'cold-water', 'marathon', 'packed-lunch', 'bloom'];
+const ENDURANCE_LEVELS = ['long-haul', 'exhaust', 'cold-water', 'bloom'];
 const cruiserRuns = ENDURANCE_LEVELS.map(id => sim.runLevel(levelById(id), ciliaCruiser));
 check('a Cilia cruiser with no stores loses every endurance level', cruiserRuns.every(run => run.outcome === 'lost'),
   cruiserRuns.map(run => `${run.outcome} ${run.time.toFixed(0)} s`).join(', '));
@@ -319,17 +331,66 @@ const heavyHunter = { ...huntBuild, cells: [...huntBuild.cells, cell(-1, 0, 'tis
 const heavyHunt = sim.runLevel(levelById('hunt'), heavyHunter);
 check('"Hunt": the Darter outruns a heavier hunter', heavyHunt.outcome === 'lost',
   `${heavyHunt.outcome} ${heavyHunt.time.toFixed(0)} s`);
-// Packed lunch was beaten by the Marathon build (user, 2026-10-30: "14 can be finished with the same vessel as 13")
-const lunchProblem = sim.buildCheck(SOLUTIONS.marathon, sim.levelLimits(levelById('packed-lunch')));
-check('"Packed lunch": the Marathon build doesn\'t fit its kit', /Too much protein/.test(lunchProblem), lunchProblem);
+// Shape (2026-11-10): the level that needs Cilia. With no neurons and no fibres only the body's shape steers.
+{
+  const shape = levelById('shape');
+  const shapeLimits = sim.levelLimits(shape);
+  check('"Shape" allows no neurons and no fibres: Hunt\'s build doesn\'t fit',
+    /Too many neurons/.test(sim.buildCheck(SOLUTIONS.hunt, shapeLimits)) &&
+    /Too many fibre units/.test(sim.buildCheck(SOLUTIONS.lighthouse, shapeLimits)));
+  const evenSides = { cells: [cell(0, 0, 'nucleus'), cell(-1, 0, 'cilia'), cell(1, 0, 'cilia')], fibres: [] };
+  const evenRun = sim.runLevel(shape, evenSides);
+  check('"Shape": a Cilia on each side swims straight up, past the ring', evenRun.outcome === 'lost' &&
+    Math.abs(evenRun.player.centerX - shape.start.x) < 20, evenRun.player.centerX.toFixed(0) + ' px');
+  const otherRun = sim.runLevel(shape, shapeBuild({ backCilia: [[0, 1]] }));
+  check('"Shape": with one Cilia behind, on the right, the body curves into the ring too', otherRun.outcome === 'won',
+    `${otherRun.outcome} ${otherRun.time.toFixed(0)} s`);
+  const mirrored = { cells: SOLUTIONS.shape.cells.map(bodyCell =>
+    cell(-bodyCell.q - bodyCell.r, bodyCell.r, bodyCell.typeName)), fibres: [] };
+  check('"Shape": the mirrored body curves left, away from the ring',
+    sim.runLevel(shape, mirrored).outcome === 'lost');
+}
+// Packed lunch (2026-11-10: a crossing; until then Long haul's chase from a kit, won by Long haul's body)
+{
+  const lunch = levelById('packed-lunch');
+  const lunchLimits = sim.levelLimits(lunch);
+  const stillSeeker = sim.runLevel(lunch, SOLUTIONS['long-haul']);
+  check('"Packed lunch": Long haul\'s Seeker has no light to follow and never leaves', stillSeeker.outcome === 'lost' &&
+    Math.abs(stillSeeker.player.centerX - lunch.start.x) < 50, stillSeeker.player.centerX.toFixed(0) + ' px');
+  const bareJet = sim.runLevel(lunch, SOLUTIONS['first-stroke']);
+  check('"Packed lunch": a body with no stores runs dry on the way', bareJet.outcome === 'lost' &&
+    bareJet.player.centerX > 2000 && bareJet.player.centerX < lunch.goal.x - lunch.goal.radius,
+    bareJet.player.centerX.toFixed(0) + ' px');
+  const pulsed = sim.runLevel(lunch, crossingBuild('pacemaker'));
+  check('"Packed lunch": the same body on a Pacemaker crosses too, slower than the par',
+    pulsed.outcome === 'won' && sim.levelScore(pulsed, crossingBuild('pacemaker')).stars === 2,
+    `${pulsed.outcome} ${pulsed.time.toFixed(0)} s`);
+  const ciliaPair = { cells: [cell(0, 0, 'nucleus'), cell(-1, 1, 'cilia'), cell(0, 1, 'cilia')], fibres: [] };
+  check('"Packed lunch" allows no Cilia (a pair crosses with no stores at all)',
+    /No Cilia allowed/.test(sim.buildCheck(ciliaPair, lunchLimits)) &&
+    sim.runLevel(lunch, ciliaPair).outcome === 'won');
+  check('"Packed lunch" is three screens long, and the camera follows the creature',
+    lunch.arena.width === 3 * lunch.view.width && lunch.arena.height === lunch.view.height);
+}
+// Reel (2026-11-10): the level that needs the Snare
+{
+  const reel = levelById('reel');
+  check('"Reel" brings the Snare', sim.levelBringing('snare') === reel);
+  const beaten = { cells: [cell(0, 0, 'nucleus', { neuron: sim.createNeuron('inhibitor') }), cell(0, -1, 'nettle'),
+    cell(1, -1, 'nettle'), cell(1, -2, 'snare')],
+  fibres: [fibre(0, 0, 1, -2), fibre(0, 0, 0, -1), fibre(0, 0, 1, -1)] };
+  const beatenRun = sim.runLevel(reel, beaten);
+  check('"Reel": a Snare and Nettles that are always on win too, with no Eyespot', beatenRun.outcome === 'won',
+    `${beatenRun.outcome} ${beatenRun.time.toFixed(0)} s`);
+  const losers = [SOLUTIONS.sting, ringBuild('nettle'), { cells: [cell(0, 0, 'nucleus',
+    { neuron: sim.createNeuron('inhibitor') }), cell(1, -1, 'snare')], fibres: [fibre(0, 0, 1, -1)] }];
+  const loserRuns = losers.map(build => sim.runLevel(reel, build));
+  check('"Reel": Sting\'s build, a ring of Nettles and a Snare with no Nettles lose',
+    loserRuns.every(run => run.outcome === 'lost'), loserRuns.map(run => run.outcome).join(', '));
+}
 const unbeating = sim.runLevel(levelById('cold-water'), coldWaterBuild('none'));
 check('"Cold water": a Heart without a signal doesn\'t beat, and loses', unbeating.outcome === 'lost',
   `${unbeating.reason} ${unbeating.goalTime.toFixed(0)} s near the light`);
-const marathonRuns = [marathonBuild({ heartBeat: 'inhibitor' }), marathonBuild({ airSac: true })]
-  .map(build => sim.runLevel(levelById('marathon'), build));
-check('"Marathon": a Heart that never stops beating runs the body dry, and so does an Air sac for the second Fat',
-  marathonRuns.every(run => run.outcome === 'lost'),
-  marathonRuns.map(run => `${run.reason} ${run.goalTime.toFixed(0)} s near the light`).join(', '));
 const fullMouth = sim.runLevel(levelById('grazing'), grazingBuild('tissue'));
 check('"Grazing": without a Fat the body is soon full of sugar and eats too little',
   fullMouth.outcome === 'lost' && fullMouth.player.foodEaten < 13, `ate ${fullMouth.player.foodEaten}`);
@@ -633,11 +694,15 @@ check('after it, Run level points at level 1 again', byId('run-next-label').text
 {
   const resultsWithout = skippedId => JSON.stringify(Object.fromEntries(sim.LEVELS.filter(level => level.id !==
     skippedId).map(level => [level.id, { stars: 1, seconds: 1, biomass: 1 }])));
-  const skipping = startApp({ 'bioforge-lab-game-1-level-results': resultsWithout(sim.LEVELS[2].id) });
+  // a save of the current version: an older one forgets its Packed lunch result (savegame.js, version 4)
+  const CURRENT_SAVE = { 'bioforge-lab-save-version': '4',
+    'bioforge-lab-games': JSON.stringify({ list: [{ id: 1, playedAt: 0 }], current: 1, nextId: 2 }) };
+  const skipping = startApp({ ...CURRENT_SAVE,
+    'bioforge-lab-game-1-level-results': resultsWithout(sim.LEVELS[2].id) });
   skipping.runFrames(3);
   check('Run level points at the first level not won, even with later ones won',
     skipping.byId('run-next-label').textContent === 'Run level 3', skipping.byId('run-next-label').textContent);
-  const allWon = startApp({ 'bioforge-lab-game-1-level-results': resultsWithout(null) });
+  const allWon = startApp({ ...CURRENT_SAVE, 'bioforge-lab-game-1-level-results': resultsWithout(null) });
   allWon.runFrames(3);
   check('once every level is won, Run level points at the last level',
     allWon.byId('run-next-label').textContent === `Run level ${sim.LEVELS.length}` &&

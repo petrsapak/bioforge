@@ -1,638 +1,508 @@
 # Bioforge Lab: plan
 
-A single-player game about programming living creatures. Each level is a puzzle: you build a creature from cells, wire its nervous system, beat its Heart, set its glands and plan its metabolism. Then you let it loose and watch it act **on its own**. When it fails you look inside it, find out why, and rewire it. The fun is the moment a creature you wired does something lifelike that you never explicitly told it to do.
+A single-player game about programming living creatures. Each level is a puzzle: you build a creature from cells,
+wire its nervous system, beat its Heart, set its glands and plan its metabolism. Then you let it loose and watch it
+act **on its own**. When it fails you look inside it, find out why, and rewire it. The fun is the moment a creature
+you wired does something lifelike that you never explicitly told it to do.
 
-Started 2026-10-28. It was copied from `bioforge-moba/`, which is now frozen.
+Started 2026-10-28, copied from `bioforge-moba/`, which is now frozen. This file describes the game as it is. How
+it got here is in `sessions/`; the long form of this plan up to version 0.8.0 is in git (`lab-v0.8.0`).
 
-## Decisions (2026-10-28)
-- **The verb is programming, not piloting.** Creatures run on their own wiring. Nothing steers them in secret: no WASD and no AI steering of the player's creature.
-- **Manual triggers stay:** Command cells bound to keys let the player fire chosen circuits by hand. A level may limit or forbid them. An unbound Command fires on Space. A bound one fires on any letter or number key that has no job of its own (2026-10-28, user: "command can bind to any key on keyboard apart from the important ones"; until then only 1–9). Reserved: 1, 2, 3 (the builder's tabs), C, E, F, G, H, M, N, Q, and P, R, T (runs). Click the Command, then press the key; the same key again unbinds it.
-- **Signals are both analog and binary.** Graded levels (0..1) flow through nerves. Spiking cells and threshold cells turn levels into on/off pulses, and sensors give graded output (stronger when closer).
-- **The nerve and fluid systems are redesigned as layers** with much more depth. See "Layers" below; that design is still a proposal.
-- **The nerve layer (milestone 1), decided 2026-10-28:**
-  - **Signals travel only along fibres.** Touching cells no longer pass signals to each other (user: "1 no", read as agreeing with "no more leaking"). The Nerve cell type goes.
-  - **Pacemaker, Ganglion and Command become neurons** that sit inside any body cell. **Eyespot stays a body cell** (a sense organ), and its fibres carry what it senses.
-  - **A pulse reaches every wired cell at once** (2026-11-02, user: "Simple pulse from pacemaker should arrive into every connected cell at the same time"). Each nerve step the cells settle in order, every cell after the cells its fibres come from, so a signal crosses any number of fibres in one nerve step. Only a Delay or a Ganglion makes it late. A fibre that closes a loop delivers the signal from the nerve step before, so a loop still oscillates the same way on every run. Until 2026-11-02 every fibre took one nerve step (1/160 game s), so wiring one side of a swimming tail one fibre further from the Pacemaker turned the creature 1–3.5 rad in 20 s; players had to know that.
-  - **Fibres sharing a cell are drawn side by side** (2026-10-29, user: "They are too thick and the overlaps aren't the best design ... If there are multiple nerve lines in one cell I want them to be lined next to each other color distictive and highlightable (the whole start to end)"). Since 2026-11-05 (user: "One line from cell A to cell B, will go from the edge of the cell in one of the 6 directions (because it is hex) perpendiculary and in the middle. When I add another one the it will line up next to the first one and it will move the first one off the center") a fibre crosses each side between two cells square to it, and the fibres crossing one side lie side by side, spread evenly round its middle: one alone at the middle, two 1.1 px either side of it (2.2 px apart), squeezed to fit 9 px when more than 5 cross one side. Inside a cell a fibre bends from the side it comes in by to the side it leaves by, and its ends run square to their side. Fibres running together keep one order, so they don't cross: where they part, the one turning left keeps to the left. Until then each fibre had one lane for its whole length, tried from the centre outward (0, +1, −1, +2…), so the first fibre kept the centre line and the others, ends included, sat to one side of it. Each fibre has a colour no other fibre through one of its cells has (8 colours, none red). In the Nerve view the fibre under the mouse, or whose row in the cell card is hovered, is drawn bold from start to end with rings round its two end cells, and the others dim. Until then fibres ran through the cells' centres, drawn on top of each other, with a small bridge arc at crossings. Fibres connect only at their ends, so a crossing never connects anything.
-  - **Limits come from `RULES`:** `maxNeurons` and `maxFibreUnits` (user: "limit with rules"). Neither costs biomass.
-  - **Neurons cost no materials** (2026-10-28, user: "neurons do not cost material now"); only the neuron count limits them. This can be revisited when the material kits arrive (milestone 4).
-  - **The neuron set is a trial** (user: "don't know, have to try"): Pacemaker, Ganglion, Inhibitor, Synapse, Latch, Command, and Delay (added 2026-10-28, user: "Delay neuron - ok"). They are data, so any of them can be cut or changed after playing.
-- **Metabolism:** creatures are built from materials, take materials from food and prey, store them, and secrete chemicals that break down or change materials. It is grounded in real biology and chemistry, but fun comes first. There are **5 materials**, introduced gradually (see Chapters).
-- **Puzzles and metabolism:** the level's material kit is the budget, materials you don't spend become the creature's starting reserves, and growth during a run comes from planned cells.
-- **Nerve fibres run from cell centre to cell centre** (changed 2026-10-28, user: "I don't like the nerves following the edges, make them connecting the centers of the cells instead"; until then they ran along hexagon sides). One step from a cell to its neighbour is one unit of nerve, and a level gives a limited number of units. Paths may cross.
-- **Water (2026-10-28):** the water pushes on the skin, not on every cell. A skin cell moving face-on meets 10x the drag of one sliding along the skin, plus a part that grows with the square of the speed; the skin's direction at a cell runs from one skin neighbour to the other, so the hex zig-zag counts as smooth. So shape matters: a tail beating side to side swims, a wave running down it swims faster, a blob that just pulses stays put, and wide bodies are slower than narrow ones. Cilia and siphons stay the easy way to move. Until then every cell had the same drag (1 per px/s) and the skin only a little more sideways.
-- **The default creature is the Jet** (2026-10-28, user: "create a simple creature that will be able to move and make it the default creature"; until then it was the Starter, which swam on cilia with no wiring). A Pacemaker in the Nucleus pulses two Siphons at the back, so it swims on its own and shows the nerve layer from the first second: 7 cells, 17 biomass, 1 neuron, 2 fibres, no warnings, about 23 px/s straight ahead.
-- **Background music** (2026-10-28, user: "I have an ambient music mp3 file that should be wired"). One ambient track, `audio/cellular-bloom.mp3` (Cellular Bloom, 180 s), loops at 0.2 volume in the builder and the Sandbox (0.4 until 2026-10-29, user: "The ambient music is too loud"). It loops without a seam (user, 2026-10-29: "the loop is hearable"): the track fades in over its first 5 s and out over its last 5 s, so after the first play two copies take turns, each running from 6 s to 174 s, with a 4 s equal-power crossfade. The fade follows the track's own clock and is updated every frame; a copy that plays to its end (frames stop in a hidden tab) hands over at full volume. It starts on the first click or key, because browsers block sound before that. Settings and M switch it off and on (the toolbar's note button did until 2026-10-30); off is remembered (`bioforge-lab-music-off`).
-- **Sound effects** (2026-10-29, user: "I want also UX sounds and in simulation sounds. Keep everything in one style - like the ambient background music"). Short sounds in `audio/sfx/`, made with ElevenLabs sound generation; the user picked each from 2 to 4 candidates whose prompts describe a concrete, soft underwater sound (a first set made from one abstract style prompt was "not as good" and too loud). Each pick was then trimmed (silence before the sound, a tail more than 45 dB down), given a 3 ms fade-in and a smooth fade-out, cleared of DC offset and leveled to -18 dB (peaks at most -1 dB), and saved as 16-bit WAV (3.2 MB in all), since a browser can decode MP3 but not encode it. They play through Web Audio, decoded at start-up from `audio/sfx/bank.js` (the WAVs as base64, 4.8 MB, since a page opened from disk can't fetch its files). Until 2026-11-02 each played through an `<audio>` element, which took up to 0.5 s from play() to sound (user: "the SFX have a slight delay like 0,5 seconds after I click"); that stays only as the fallback. The browser holds Web Audio paused until the first press, which wakes it; sounds before then are skipped. A button's click sound plays when the mouse button goes down, not on the click (the release), which felt late (user, 2026-11-02: "the delay comes from clicking on buttons"); Enter or Space on a button still clicks. `data/sounds.js` lists each sound's files (several are picked from at random), each file's measured loudness, the level it is heard at (UX near -42 dB, the creature -40 to -44, win and loss -36; the music peaks near -26), the shortest gap between two plays, and whether each play varies pitch and volume by up to 6% (sounds heard over and over). UX: any button click, removing a cell, neuron, fibre or vessel, laying a fibre or vessel, a refused edit, opening the levels sheet, placing a cell or neuron, starting a run. The goal: a 5 s calm victorious tune (glassy bells over warm pads), played the first time the goal counts up in a run (into a stayNear ring, or resting in a restIn ring), not on every return; the user turned down 5 short chimes and asked for "longer calm vicorious tune". A sound without files is skipped. The creature, heard only in runs (not in the builder's test tank) by comparing the world from frame to frame, so the sim knows nothing about sound: a Siphon whose signal comes on, and again every 0.7 real s while it stays on (a stroke, at most every 0.25 s); a weapon firing: a Spitter spitting and a Nettle stinging (its cooldown jumps up; `TRIGGER_SOUNDS` maps the trigger to the sound), a Snare shooting its line and catching (user, 2026-10-29: "the spitters and snare don't make sounds now?"). Every creature is heard (user, 2026-10-29: "the enemies and other organism don't have sound efects"): the player's cells in full, other creatures' 4 dB quieter right beside the player and fading out 700 px away, only the nearest of each sound per frame, with their own gaps so they never hold back the player's, a Mouth that eats, a cell dying (quieter for other creatures). In a level, the goal tune, then the win or loss. Settings and N switch them off and on (the toolbar's speaker button did until 2026-10-30); off is remembered (`bioforge-lab-sounds-off`).
-- **Levels** (2026-10-28, user: "I want you to continue working on the game"; the format was chosen without asking). A level is data in `data/levels.js`: an arena (1400 x 800 px), the systems that run (chapter 1: nerve only, so cells work at full power and nothing starves), design limits, the player's spawn, an optional light (fixed, going round a path, or carried by a creature; shining all the time, blinking, or flashing once), other creatures (wired, or hunting by the AI), a goal (`reach` a ring, `stayNear` the light for some seconds in all, or `restIn` a ring: inside it and slower than a speed for some seconds without a break), optional stillness rules (`stillWhileLit`: lost when moving while the light has been on for a moment; `stillUntilLit`: lost when moving before the flash), a time limit and a par. Levels are grouped in chapters (`CHAPTER_NAMES`): 1 Reflexes, 2 Memory and logic. A win earns 1 star, plus one for beating the par time and one for staying within the par biomass. The player builds in the builder with the level's limits, runs the design, and watches; Space and the bound keys still reach Command neurons. Levels unlock in order (user, 2026-10-28: "levels unlock in order"): the first is open, and each win opens the next; until then all levels were open from the start. For testing, RULES.allLevelsOpen (on since 2026-10-29, user: "allow me to go to whichever level I want ... this will be removed later") opens every level; the levels sheet still shows the latest earned level first. Remove the switch when testing is over. The best result per level is kept under `bioforge-lab-level-results`.
-- **Light has a reach** (2026-10-28, user: "light range yes"). A light (`createLight` in `core.js`) reaches 450 px by default (`LIGHT_RANGE`); a Light eye's signal is its direction factor times a brightness that falls evenly from 1 at the light to 0 at the edge. So a crossed Seeker speeds up as it nears the light, Braitenberg's "aggressive" vehicle. Levels can give each light its own range. The Sandbox draws the reach as a dashed ring.
-- **The mouse is a light, not a steering wheel** (2026-10-28, user: "I want the creature to always follow the mouse cursor"; chosen: "Cursor as a sense"). A Light eye cell (`senses: 'light'`) signals, graded 0 to 1, how far the light lies on its side of the body; in the Sandbox the mouse is the light. A creature follows the mouse only if it is wired to: the Seeker template crosses two Light eyes to two Siphons (Braitenberg). Turning toward the cursor in the physics was turned down, because it is piloting. Levels can place their own lights later.
-- **The sandbox runs in real time** (2026-10-28, user: "in the sandbox the creature moves so quickly why?", then "yes remove it"), like the builder's live grid; the speed button gives 2×, 4×, ½× and ¼× (2× and 4× added 2026-10-28 for chapter 3's long levels; until then only ½× and ¼×). Until then it ran 2.5 game s per real s, a leftover from steering with WASD.
-- **The Heart pumps an area, and beats on a signal** (2026-11-01, user, choosing from three options: "Heart areas only", "5 cells", "Wired beat"; before that, on 2026-10-30: "like areas again, hearth affects cells in distance of 5 around it"). A beating Heart pumps blood (every fluid: O₂, sugar, waste, repair fluid and hormones) between every pair of touching cells that both lie within 5 hex steps of it (`HEART_REACH`): 2.5 flow per unit of fill difference per Heart at a full beat, up to 8, against 0.1 for seeping, so about 25x faster. Cold water's `seepFactor` doesn't slow it. It beats only while it gets a nerve signal, as hard as the signal (graded, like a Siphon), and burns fuel as it beats: 0.15 at a full beat, as much as a Siphon (it was 0.04, always on, until 2026-11-01). An Inhibitor in it keeps it beating; a Pacemaker beats it in pulses for half the fuel. An unsignalled **Valve** shuts the pumped flow as it shuts seeping. Pumping runs every 0.05 game s, as seeping does. The vascular system is switchable (`vascular` in a level's `systems`). Until 2026-11-01 a fed Heart pumped the **vessels** it sat on instead: lines from cell centre to cell centre laid in a Vessels view (tab 3), limited by `maxVesselUnits` (30); they went because Cold water and Marathon each had one winning build (the vessels to every working cell) and no level needed a Valve. A saved creature or creature file from before then gets an Inhibitor in each Heart without a neuron, so it beats as before, and its vessels are dropped (`upgradeToHeartAreas` in `design.js`; such a save is one with a `vessels` list, or without fibres). The built-in designs got the same Inhibitor. The vessel sound (`audio/sfx/vessel.wav`) is no longer played.
-- **Material kits** (2026-10-29, user chose "Full material kits" over feeding levels on the biomass budget). Materials are data (`data/materials.js`): Protein, Sugar and Fat so far. Each cell type has a recipe: Protein only (its old biomass cost), except Fat (1 Protein, 1 Fat). A level may hand out a kit (`limits.kit`, for example 20 protein · 3 sugar · 1 fat) instead of a biomass budget: the body's recipes must fit it, and the builder refuses a cell or stamp the kit can't pay for. What the body leaves becomes its starting reserves instead of stores two thirds full: the Sugar spread so every cell is equally full, the Fat only into Fat cells; any beyond the body's room is lost, and leftover Protein is kept on the creature for growing (since 2026-11-07: every cell a Bud grows or a Mender regrows takes its recipe's protein from it, and growing waits once it runs out; without a kit growing costs no protein; until then it was kept for nothing). A Mouth starts empty. The limits line shows each material against the kit and the reserves (orange when some has no room); the level card shows the kit. Levels without a kit (chapters 1–3) and the Sandbox keep the biomass budget, and a design's biomass is still its recipes' total, so the par biomass works for both. Neurons still cost nothing.
-- **Fat and feeding** (2026-10-29, chosen without asking while building chapter 4). The `metabolism` system (switchable, `metabolism.js`): a Fat cell stores up to 10 fat; above 9/10 full of sugar it turns the spare into fat (2.5 sugar per fat), below half full it turns fat back into sugar (2 per fat), 0.25 fat per s either way. Fat doesn't flow between cells. Food: a level sets its food supply (how many specks, how often, a fixed trail, near the light, until when); the creature counts the specks it eats, and a new goal `eat` asks for a number of them. Eating is unchanged: any cell touching a speck eats it while a Mouth has room, and a Mouth makes room only by passing sugar on, so it needs a store beside it. The **Nose** is a new sense cell: like a Light eye, but toward the nearest food speck within 300 px.
-- **Loose limits, tight par** (2026-10-29, user: "I want the levels to be completable by everyone on 1 star", with tight spots for 3 stars). A level's budget or kit leaves room to spare; the par biomass and par time stay where the reference solutions are, so the stars still ask for a tight build. Budgets: chapters 1 and 2 40 (Hunt 50), chapter 3 45 (Marathon 50); until then 30 (Hunt 40). Kits: Packed lunch 32 protein · 4 sugar · 7 fat, Grazing 30 · 3 · 2, Bloom 38 · 2 · 3; until then 22 · 3 · 5, 20 · 3 · 1 and 26 · 2 · 2. The kits' sugar and fat grew only as far as the levels' wrong tools still lose: more fuel in Bloom let a build without a Mouth win, and more in Grazing slowed the reference past its par time (86 s), since a fuller body drains the Mouth more slowly.
-- **Levels first, then Growth** (2026-11-01, user: "1. Yes", agreeing that the levels to redesign come before milestone 8). The redesign list is under "Known limits".
-- **The Muscle and the Bloater stay, and levels must need them** (2026-11-01, user: "not a single level needs muscle or expander - and I want to keep them because they are visually appealing"). The redesigned levels should give each of them a job that a Siphon or a Shell can't do. Ideas the user liked (2026-11-01): a narrow crevice the creature has to pass, where Muscles shrink the body to fit and Bloaters can wedge it or hold it in place ("the bloater level could also use muscles because they shrink so the organism needs to go through narrow cravice"); a level with no Siphons or Cilia, where Muscles and Joints are the only way to swim. Done 2026-11-01: Tail (no Siphons or Cilia: swim across the arena by muscle) and Crevice (no Siphons or Cilia: crawl along a crevice against a current, gripping with Bloaters), at the end of chapter 2.
-- **Rock and currents** (2026-11-01, user: "I would like the walls and stones to be constructed from hexes - I think it will fit the design of the game nicely"). A level may have rock (`rocks`: boxes filled with hex tiles on the cells' own grid, so a crevice is measured in cells) and currents (`currents`: boxes of water moving at a set speed). Rock pushes cells out and holds them by friction the harder they press, so a swollen Bloater pressed against both walls of a crevice grips. Water drag is measured against the water, so a body floating in a current drifts with it. `terrain.js` holds both; it is arena data, not a switchable system, and a world without rock or currents runs exactly as before (the goldens didn't change). Chosen without asking: the crevice runs sideways, since hex rows are straight sideways (the walls wobble ±6 px), while a crack running up and down has 10 px teeth that Bloaters only grip on every other row.
-- **Levels may leave out cell types** (2026-11-01, chosen without asking): `limits.bannedCells`. The dock dims them and won't pick them, Run level stays shut while the design has one, and the level card lists them under Not allowed.
-- **A Bloater lets go a little slower than it swells** (2026-11-01, chosen without asking): it relaxes at 6 per s; it was 4 until Crevice, which needs a wedged Bloater to let go of the rock. At 16 (a Muscle's rate) the worm crawled at any rate from 1 to 3 Hz, but the Manta, which swims on the quick swell and slow return, went backwards; at 6 the Manta keeps 9.3 px/s (it was 10.7) and the worm crawls at 1–2 Hz.
-- **Muscle swimming should be a regular way to travel** (2026-11-01, user: "how about making the muscle swimming better? If muscles and joints are used correcly the should be regular way to travel"). Target (user, 2026-11-01: "well-sired fish shouldbe about the same speed as siphon and cilia"): a well-wired muscle fish swims about as fast as the Jet (22.8 px/s) and Cilia swimmers. Chosen without asking: at a size that fits a level, about 11–14 cells, not only at the 24-cell cap. The Paddler and the enemies that swim by Muscles and Joints (Wiggler, Eel, Jelly, Manta) are redesigned for the new swimming (user: "yes redesign them"). Siphon and Cilia speeds stay as they are. Done 2026-11-01: the Pacemaker's two halves are exactly equal, Muscles and Bloaters act on the share of the game step their signal was on, the Delay neuron goes down to 0.05 s (step 0.05; it was 0.25 s), and new Wiggler and Paddler templates (15 cells: Jet speed with plain wiring, nearly Cilia speed wired in a wave); the Eel, Jelly and Manta were redesigned. The 11–14 cell target wasn't reached head first: the smallest good fish has 15 cells. Numbers under "Known limits" (Muscle swimming).
-- **Redesign: simple rules over engine quirks** (2026-11-02, user: "I don't like the muscle movement that we have currenly. Nobody will like this, it requires detailed knowledge of the quirks of the engine and that is not fun. I want it to be simple"). Chosen from a brainstorm; nothing is deleted until it is tried, except the Valve.
-  - **Signals:** a pulse reaches every wired cell at once (built 2026-11-02, see the nerve layer above).
-  - **Movement: a Muscle's timing comes only from its wiring** (2026-11-02, user: "no 2 muscles connected to the same pacemaker will run with the same phase", "If I want delay I will add delay", and "Just contract" for a steady signal). A Muscle contracts while its signal is on and holds; two Muscles on the same source always move together, and only a Delay or an Inhibitor makes them differ. The game adds no rhythm, side turns or wave of its own. Two things are built on top: a Muscle pulls by the square root of its signal, so a weak signal still pulls (a quarter signal at half strength), and a body turns toward the side whose Muscles are held shut (`MUSCLE_TURN_TORQUE` 10 when only one side holds, `physics.js`), counting each Muscle's weakest pull over the last 1-2 s, so a tail that lets go on every beat doesn't steer. That lets two Light eyes steer a Muscle swimmer (the Light eel). Tried and dropped the same day: Muscles that beat by themselves while signalled, the sides taking turns and a wave run by the game (M1 as first decided); the user rejected it because Muscles on one Pacemaker then moved in different phases. M3 (forgiving rhythms) is still open.
-  - **Neurons only in Tissue and the Nucleus** (decided, not built yet), so a creature's brain is a place on its body and an action cell never makes the signal it obeys. Today 14 templates keep a neuron in another cell, mostly an Inhibitor in a Heart to keep it beating.
-  - **Trimming pieces:** chapter 1 and 2 pieces first (the ones every player meets), then the rest.
-  - **The Tanner is gone** (2026-11-07, user, after hearing it differed from the Mineralizer mostly in cost: "yes remove tanner from the game"), and with it Tanned hide and the treatments system (`treatments.js`), which had nothing left to run. A saved Tanner loads as Tissue, keeping its neuron. Growth became chapter 6 and the hidden hormone levels chapter 7, Moods, so no empty chapter shows. Until then a tanned cell took 60% less damage, blunted stings, had 2.5x stiff bonds and moved at half speed, for fuel only and no mineral.
-  - **The Resilin gland is gone** (2026-11-07, user: "remove the resilin gland - it is useless"), and with it Snap, the level that brought it and needed it. A saved Resilin gland loads as Tissue, keeping its neuron (`design.js`). The Tanner stays, so `treatments.js` and the treatments system keep only tanning. Until then the gland made muscles springy: one held contracted charged in 1 s and, let go, snapped open with a kick and a strike of up to 40 damage.
-  - **The Valve is gone** (user: "The valve cell has no use now and it can be removed from the game"). No level needed it. A saved Valve loads as Tissue, keeping its neuron and fibres (`REMOVED_CELL_TYPES` in `design.js`).
-  - **The hormones are gone** (2026-11-08, user, cleaning up for the jam release: "Remove hidden hormone content"; hidden since 2026-11-07). The Adrenal, the Calm, Fed and Starved glands, the Receptor, the four hormone fluids, moods (`chemical.js`), hormones in the water (`scent.js`), the hormone view (`lens.js`, C) and the five hormone levels (Fight or flight, Lie low, Feast and famine, Lullaby, Moods) went, with `HIDDEN` and `ALL_LEVELS`. Saved glands and Receptors load as Tissue, keeping their neuron (`REMOVED_CELL_TYPES`). The Eel and the Manta had an Adrenal on Space; it is Tissue now. Every other level and golden scenario plays bit for bit as before (checked on O₂, sugar, waste and repair over 30 game s, and every level's result).
-- **Desktop build** (2026-10-29, user: "I want this to be a desktop game", then "let's introduce versioning and Electron"). Electron, because it ships its own Chromium: one engine to keep fast everywhere, and the usual way web games reach Steam. It lives in `desktop/` beside the game, with its own npm packages and build; `bioforge-lab/` still opens from disk unchanged. The window is maximized with no menu bar (so no reload, zoom or developer tools keys), F11 or Alt+Enter switch fullscreen (remembered), the page can't navigate away, zoom or open windows, and the sim isn't slowed behind other windows. Saves go to one JSON file, `%APPDATA%\Bioforge Lab\save.json`, written 0.5 s after the last change through a temporary file (renaming it into place is tried 5 times 30 ms apart, and a write that still fails keeps the changes and tries again 2 s later instead of crashing, since 2026-11-05: Windows virus scanners and the indexer briefly hold the file); `readStorage` and `writeStorage` use it through `window.desktopSaves`, which the preload gives the page. The music starts without a click. Only one copy runs at a time. Chosen without asking: a maximized window rather than fullscreen at first start, an installer and a portable .exe. The icon (2026-11-01, user: "update logo … with the hexes that are actually in the game") is the Nucleus in its gold Lab hex, drawn by the game's own cellart.js on a clear background (there was no icon before it). A first try with seven hexes on a teal tile was turned down the same day (user: "can we make the icon the centrail cell Hex?"). Since 2026-10-30 the game's menus have Quit and a Fullscreen setting, through `window.desktopWindow` (the preload's second bridge).
-- **Versions** (2026-10-29): `0.<milestone>.<patch>` until the first release, in `data/version.js`, with `CHANGELOG.md` written for players. 0.4.1 was milestone 4 plus faster building and the desktop build, 0.5.0 was milestone 5, 0.5.1 is it plus the Microscope look (tagged `lab-v0.5.0` before the look), 0.5.2 the routed fibres, 0.6.0 milestone 6; the earlier versions were numbered afterwards from the git history. The keys sheet and the menus show the version. Every version is tagged `lab-v<version>` when its commit is made (user, 2026-10-30: "always do the tag"); until then only when asked. **0.8.0 is the game jam release** (2026-11-08, user chose 0.8.0 over 1.0.0 and over keeping 0.7.42, and a Windows build only: the installer and the portable .exe from `npm run dist`).
-- **The Lab** (2026-11-01, user: "I want Builder to be renamed to Lab in the whole game"): the screen where the creature is built is called the Lab in every text players see (the Lab button after a run and in the Sandbox, Back to the Lab in the Esc menu, the help texts). The code keeps its names (`builder.js`, `builderview.js`, the 'build' mode, `enterBuilder`). Chosen without asking: "the Lab" with a capital, like "the Sandbox".
-- **Menus and saves** (2026-10-30; the user agreed to the menus as proposed and answered the open questions: Continue resumes a running level, creature files are JSON, "the first press should unequip whatever you had in your hand (cursor)", "yes carry the version").
-  - **Main menu** when the game starts (2026-11-01; until then Continue building, Levels, Free build and Profile): **Continue** (only when the current game has a place saved that can still be read) goes back into it where it was left; **New game** starts at level 1 with its card open, in the current game if nothing is saved in it yet, or else in a new one (the others stay); **Load game** opens a screen in the Templates screen's style (user: "I want a screen like we have for the templates") with a card per saved game, played last first: the creature left in the Lab, the chapter, levels won and stars, the level it was left in, its creatures and when it was played; a click plays it, ✕ deletes it (asks first); **Sandbox** is the Lab with free building from just the Nucleus and every cell, without the Levels button (user: "Lab with free building and always with just the base cell"). It saves nothing, so the game's place stays as it was, and Continue after it reloads the page into the game; creatures saved in it go to the current game. Then Field guide, Settings, and Quit in the desktop build. The main menu at the first start saves nothing either: a game is saved from the moment the player enters it.
-  - **Title screen** (2026-10-30, user: "I would like to have more distict starting menu. With some animations in the background of very complex organisms doing cool things. Like in factorio for example. And when player clicks on new game or levels or whatever the screen would dim - there would be a sound effect (subtle) and the lab would appear"). The main menu sits on the left over a living scene that fills the screen (`data/title.js`, `titlescene.js`, `titleview.js`): 2000 x 1150 px of water with 7 Seekers following a light that drifts round a loop at 14 px/s, 2 Jellies, and two rival hunting packs steered by the AI (Eel and Manta; Crab, Snarer and Spitter). Space is held 1.5 s of every 7 s, so Commands fire. No fluid upkeep (with it everything starved within 30 s); a lost creature is replaced after 5 s, near the light for Seekers; debris past 60 cells is cleared, oldest first. The camera follows one subject for 11 s (the light, then each other creature), easing toward it with the subject 17% of the screen right of the middle, clear of the menu, 1150 px of water across. Range rings are left out. The scene uses the real sim, seeded, so it runs the same every time; the game behind it doesn't run. Leaving: the menu slides away, the start sound plays 8 dB softer than usual, the screen dims to black in 0.5 s, the menu's action runs, and the lab fades in over 0.9 s. The game starts out of black (1.4 s), and Main menu from the Esc menu dims (0.35 s) back to the title. The title reads "Bioforge" (no "Lab") in Megrim, a thin curving font bundled in `fonts/` with its SIL Open Font License, chosen from 11 free fonts for strokes that look like membranes (user, 2026-10-30: "remove the Program life let it go ai crap please. Also I want nicer Bioforge font something that will fit the theme more. Also you can drop the Lab part for the title screen"; until then it was "BIOFORGE LAB" in the system font with a tagline). Chosen without asking: the creatures, the camera, the font, and the start sound reused for the dimming instead of a new one. A loading screen (`#loading-screen`) covers the page from its first paint, so the lab doesn't flash up while the scripts load (2026-11-01, user: "I want a loading screen which will be shown first (I do not have the content yet) then main menu"). Since 2026-11-07 (user: "The loading screen when the game starts - before the main menu appears - Bioforge animation - use the same fond that you used for Bioforge in the main menu") it plays a splash: "Bioforge" in Megrim comes into focus letter by letter out of blur, a thin gold line grows under it, and five faint cell membranes drift and wobble behind; it is pure CSS, so it plays while the scripts load. After 3.2 s (or a click) it fades into the title over 0.8 s (`updateSplash` in `titleview.js`); "Loading…" shows only if loading takes longer than 3.4 s. Until then it was black with "Loading…" and went away on the title's first frame. Chosen without asking: the cells, the timings, click to skip.
-  - **Esc menu:** in the builder Esc first closes an open sheet (keys, levels, save menu, Symmetry dial), then lets go of what the mouse holds (a drag, a stamp, the selection, the clicked cell, and the chosen cell type and neuron); with nothing held it opens the menu: Resume, Save creature, Field guide, Settings, Main menu, Quit (Save creature to a file and Load creature from a file until 2026-10-30; they became Export and Import in the Templates window).
-  - **Nothing chosen at first** (2026-10-30, user: "there's always something selected in body and nerves as a default, drop that, there's gonna be nothing until player selects something (esc deselects it)"; until then the Muscle and the Pacemaker were chosen at start). With no cell type chosen a left click on the water does nothing and the cursor is the browser's own; with no neuron chosen a click on an empty cell puts none in. A click on the chosen dock button puts it down too (chosen without asking). In a level or the Sandbox the first Esc opens the menu and pauses the run (Resume puts back whether it was paused): Resume, Retry (levels), Back to the builder, Settings, Main menu, Quit. A menu takes the keys, except M and N. Until 2026-10-30 Esc in a run went straight back to the builder.
-  - **Settings:** music, sounds, fullscreen (desktop: the window, remembered like F11; a browser: the Fullscreen API) and the keys sheet. The toolbar's music, sound and keys buttons were removed once Settings had them (user, 2026-10-30: "now when the sounds and keyboards are in the menu they can be removed from the right panel right?"); M, N and H still work.
-  - **Levels and Sandbox buttons** (2026-10-30, user: "now these buttons are kinda hidden I want them in the bottom left corner of the screen - bigger and with different colors. The levels will be the green triange now. Sandbox will have sand color and the pictogram should somehow give the idea that it is the testing sandbox"). They left the bottom of the toolbar for the builder's bottom-left corner, 76 x 72 px each with a label: Levels green with a white play triangle (it was a flag), Sandbox sand-coloured with a lab flask. The side column now stops 190 px above the bottom to leave them room. Chosen without asking: the flask as the Sandbox's pictogram. Since 2026-11-01 (user: "I want a big button (Lab) in the Sandbox and Level screens (same way we have Sandbox and Levels in the Lab screen)") the Sandbox and a level run have one such button in the same corner, Lab, purple with a hexagon cell, instead of the small Lab button in their bars; the Signals and vitals box starts at 104 px from the left (was 14 px) beside it. Chosen without asking: the colour and the pictogram, dropping the small buttons. Since 2026-11-03 (user: "these buttons in the left bottom corner are visually a different style than the rest of the game. Also Remove the Levels from the left side and place it to the right Side, but make 2 butons out of it. One large that will say Run Level xy, and one smaller that will take player to the list of levels. The big button will always point you to the latest unfinished level") Templates, Sandbox and Lab are dark panels like the rest of the Lab (76 x 68 px, coloured pictogram, gold when selected; they were green, sand, teal and purple), and the bottom-right corner holds a small Levels button (the list, gold-edged while a level is chosen) over a big green **Run level N** naming the level. Run level runs the first open level not won yet (the last one once all are won): it chooses that level, so the Lab takes its limits, and runs the creature if it fits, or says why not. The dock leaves 168 px free on each side for the corners. Chosen without asking: the corner layout, the green of the level card's Run level, choosing the level even when the run is refused, the "Ready" line naming Run level only when the design fits.
-  - **Games** (2026-11-01, user: "I want Continue - if there's functioning save file, New game - for completely new game. Load game for selecting a save file manually, Sandbox = Free Build", then "we should get rid of the profile thing"; profiles from 2026-10-30, user: "b - profiles", and one save before that): each game keeps its own `continue`, `level-results`, `library` and `quicksave` (`GAME_KEYS` in `savegame.js`) under `bioforge-lab-game-<id>-<name>`; settings and window layout stay shared. `bioforge-lab-games` holds `{ list: [{ id, playedAt }], current, nextId }`; games are called "Game <id>" (profiles had names), and ids are never reused. `readStorage` and `writeStorage` pick the current game's key; `readSharedStorage` and `writeSharedStorage` read exactly the name given (the save upgrades and the Load game screen use them). Save version 2 moved an older save into profile 1; version 3 turned the profiles into games with the same ids. Switching games saves where the player is, then reloads the page into the other game (no save on the way out, so one game's Lab can't leak into the next), and `bioforge-lab-start-with` (`continue` or `new-game`) makes the reloaded page go straight into it instead of the main menu. A deleted game's values are written as null, since the desktop save file can't remove a key. **Reset level progress** (2026-10-30, user: "we need to add a way to delete progress in the levels"; in Settings since 2026-11-01, user: "add a way in menu - settings or something that I can delete my whole progress in the levels", and kept there when the Profiles view went) asks first in red, then forgets the current game's level results, so the levels lock again from level 2 and the dock locks again what the last level's win opened; creatures stay. Storage is `localStorage`, or the desktop build's `save.json`, as before.
-  - **Names are asked for in the game's own box** (2026-10-30, user: "a - yes"): the confirm box (`dialog.js`) has a name field for renaming saved creatures and templates and for naming profiles; Enter and Esc work in the field. The title screen hides everything but its menu, so the box is let through.
-  - **Continue** picks up the builder's design (saved within 1 s of a change), the chosen level, and a running level or Sandbox, under `bioforge-lab-continue`. A run is saved whole as a snapshot (`snapshot.js`): every object of the world, with shared objects and loops kept and the game's data (cell types, levels) referred to by path, so a restored run goes on bit for bit as it would have. A level run is saved every 5 real s, when the menu opens and when the page closes; the Sandbox only when the menu opens and the page closes, since a busy one takes 25 ms or more to save. A run saved by another game version is dropped (the sim may have changed), and the design and level stay.
-  - **Builder tools and saving** (2026-10-30, user: "delete all should be red button that will require confirmation. Save creature should be a context menu thing and maybe a shortcut (f5 and ctrl+s quick save and f8 quick load? that is standard in games)"). The tool bar down the left edge is gone. Unlimited biomass and Symmetry sit at the right end of the layer tabs, then Delete all, red, which asks before clearing (not when only the Nucleus is left). Holding Shift and right-dragging draws a marquee (2026-11-07, user: "while holding shift and right click - add a marquee that will be able to select cells and then once i stop holding the shift and right click it will give me dialog on how to name this creature"): the cells whose centres lie in the box, or within half a cell radius of it, light up as it grows, and letting go of the right button or of Shift opens the save menu; with the Nucleus inside it saves a creature, without it a part. It replaced right-clicking the Nucleus or a Ctrl+clicked selection (until 2026-11-07), which the player found weird. F5 quick saves the builder's design to one slot (Ctrl+S did too until the Templates window, 2026-10-30) (`bioforge-lab-quicksave`), apart from My creatures and from Continue; F8 loads it back, leaving a running level or Sandbox for the builder. Both work anywhere outside a menu, and stop the browser's reload and Save page. Chosen without asking: where the tools went (beside the tabs), the Nucleus as the right-click target, one quick slot.
-  - **Creature files:** `<name>.bioforge.json`, the library entry with `kind`, a format `version` and the `gameVersion`. Loading one checks every cell type and neuron, puts it in My creatures (replacing one of the same name) and into the builder; a file without a Nucleus goes to My parts. Files are only for sharing and backups: Export on a card and Import… in the Templates window (2026-10-30, user: "when I clicked on the save this creature it opened windows dialog - I don't want that").
-  - **The Templates window** (2026-10-30, user: "It should saved somewhere more meaningful so that the player doesn't have to leave the game. Like the templates are a good place - which by the way needs a redesign as well"). Three tabs: My creatures, My parts and Examples, each a grid of cards with a picture, the name, the cell count and biomass; a creature that breaks the chosen level's limits gets an "Over the limits" badge saying why. Own cards have Rename, Export and Delete on hover. Save this creature (the button on My creatures, the builder's Esc menu, or Ctrl+S) asks for a name in the game's own box and saves the whole builder design; a name another creature has asks before overwriting it, the creature's own name just saves. The examples, with their groups and lines, are data (`EXAMPLE_GROUPS` in `data/templates.js`); the Starter joined them. Chosen without asking: the tab layout, Examples open first for a player with no creatures, the tab remembered, Ctrl+S moved from quick save to Save creature (F5 stays quick save), "My templates" renamed My parts. Since 2026-11-01 (user: "The templates should have its own screen just like field book"; built when asked, "now I want you to work on the templates - according to the plan") the window is **the Templates screen**: a sheet over the builder like the field guide, the tabs down the left with a Find by name box and the tab's help, the open tab's cards on the right (bigger pictures; examples show their line), Save this creature and Import… in its head. It opens with the Templates button at the bottom left (above the Sandbox), T in the builder, or Templates in the builder's Esc menu, and closes with Esc, T, ✕ or a click beside it; over it only those keys work (and Ctrl+S, F5, F8). Clicking a creature, an example or a part closes it; a part goes to the clicked Bud, else is picked up as a stamp. Dragging a part onto a Bud was dropped, since the screen covers the grid. Saving a creature or a part doesn't open it. Chosen without asking: the layout, the button's place and colour, T as the key, the filter, closing on a pick.
-  - **The Reference window** (2026-11-02, user: "add a way to attach templated creature in the lab view so that I can study it and in the same screen create my creature. That window will be movable"). Each example and each of My creatures has a **Study** button on its card (on hover, like Rename). It closes the Templates screen and shows that creature in a floating window over the Lab, below the Preview, without touching the Lab's design. The window moves by its title bar (the creature's name), resizes from its corner, folds with – and closes with ✕. It shows the creature as the Lab's grid does, scaled to fit: cells on their hexes, live from the window's own test tank (so Pacemakers blink and fibres light up in the Nerve view; the Body view holds still, as the Lab's does, since 2026-11-05), and fibres and neurons as the Lab's layer tab shows them; in the Nerve view the fibre or cell under the mouse is highlighted, as in the Lab. A line under it names the cell under the mouse, its neuron and setting and its fibres in and out. Swim / Grid switches to the creature swimming in its tank, framed close. Its tank has no light and no keys held, so a light follower rests there. The creature shown and the window's place are kept per game, so they come back after a restart. Only in the Lab. Parts have no Study button, since a part can't live alone. Chosen without asking: the name Reference, the Study button, the place below the Preview, following the Lab's layer tab, the hover line, and the Swim view.
-  - **Save version:** `bioforge-lab-save-version` (`SAVE_VERSION`, now 2, in `savegame.js`). `upgradeStoredSave` runs before anything reads the save and applies the steps in `SAVE_UPGRADES`, one per version; the step to 1 stores the library in the current design format, and the step to 2 moves an older save into profile 1 (see Profiles). A save from a newer game is left alone.
-- **Try before deciding:** whether chapter 1 uses Protein only is decided after playing the first version. (Whether hormones get their own layer was too, until they went on 2026-11-08.)
-- **No self-harm** (2026-10-29, user chose "No self-harm"; until then the plan had acid leaks and toxins hurting your own creature, with `RULES.selfHarm` on). Secretions never hurt their own creature, and `RULES.selfHarm` is gone.
-- **Secretions and Mineral** (2026-10-29, user chose all three secretions: acid, Mineralizer and protease; the numbers were chosen without asking while tuning chapter 5). The `secretions` system (switchable, `secretions.js`):
-  - **Mineral** is the fourth material. Shell is built from 1 protein + 1 mineral and a Thorn from 2 protein + 1 mineral, so their biomass cost (2 and 3) is unchanged and budget levels play as before.
-  - **Hard cells** are cells built with mineral (Shell, Thorn) or hardened by a Mineralizer. They feel only a quarter of a thorn hit or a nettle sting, on top of their armour (shell beats spikes), and acid eats them (acid beats shell). A Mouth can't bite them (2026-11-05, user: "Mouths can't bite hardened shells"): until then six Mouths round the Nucleus survived every Puffer level by biting the soft front of its crown away. The Puffer got a fifth Thorn the same day, at (1, -2), which closes that gap. Until 2026-10-29 Shell only halved damage, and a Puffer's thorns broke a ring of Shell in about 15 s.
-  - **Acid gland:** while signalled, 24 health per second to each hard enemy cell within reach (12 through Shell's armour), 2 to a soft one. **Protease gland:** 10 per second to soft enemy cells and debris, none to hard ones, and the gland takes in 0.1 sugar per point of health. A gland reaches cells 12 px beyond touching: with plain touching, whether a row of glands opened a clam depended on how its front happened to line up with the shell.
-  - **Mineralizer:** stores up to 6 mineral (a kit's leftover mineral, and mineral specks). While signalled it hardens one cell every 1.5 s for 1 mineral: the nearest soft cell of its creature within 2 hexes, itself first. A hardened cell takes half damage and counts as hard.
-  - **Mineral specks:** a broken hard cell always leaves one (a soft one a sugar speck 35% of the time, as before), and a level can lay them out. A creature with a Mouth eats them into a mineral store with room.
-  - **Level additions:** `survive` and `kill` goals, creatures that arrive later (`at`), and anchored creatures that nothing moves (a clam on the rock).
-- **Cell look (2026-10-29): Microscope.** Cells are see-through with a coloured membrane and a line-art symbol per type, turned to face away from the body (the Nucleus and Siphon face the way the creature swims). Bonds are soft see-through flesh. Neuron badges are small see-through nerve cells with dendrite ticks and a drawn symbol per kind (a bound Command shows its key). Chosen from six styles on a study page; until 2026-10-29 cells were solid discs with dark details, and Tissue, Joint and Bloater had no symbol.
-- **Every mechanic must be removable** (see "Removable mechanics"). Any part that turns out frustrating can be switched off without breaking the rest.
-- **Bit-identical determinism:** the same design, level and seed must give exactly the same result in every browser and in Node, for fair scoring, solvable puzzles and shareable solutions. The sim uses its own seeded random generator and its own math functions for sin, cos, atan2 and exp.
-- **Code quality:** readable names, no one-letter variables, a 120-character line limit, and one system per file (rules in `CLAUDE.md`). The core is rebuilt to this standard in milestone 0.5, before any layer work.
-- **Late-game ideas: spreading, Hallmarks, reprogramming and the arena** (2026-10-30, user, after a brainstorm for a game jam on "Break the rules": "I like challenges like Spread (using buds players task will be to spread uncontrollably like cancer). And other mechanic is that we could have a cell (in late game) that contains some set of rules and if it connects to another creature nerves or vessels ... it could reprogram that creature"). All of them stay programming, not piloting: the player designs the creature, then watches.
-  - **Spread levels** (chapter 7, Growth): the goal is to spread uncontrollably, like cancer. Buds grow parts that grow Buds of their own, and the level counts the cells or creatures alive at the end. Material and food limit how far it can go, so the puzzle is spreading fast without starving.
-  - **The reprogramming cell** (chapter 8, Takeover): a late-game cell that carries a small program of its own (neurons and fibres, or a set of rules). When it joins an enemy's nerves or vessels, by a nerve fibre or a vessel reaching an enemy cell, its program is written into that creature and the enemy acts on it. The biology behind it is a virus or a vector: it writes its own instructions into a host. Working name: Vector.
-    - **Conversion and takeover are one mechanism** (2026-10-30, user: "I think the takeover should be the same mechanism as the conversion no?"). When a Vector's fibre or vessel reaches a foreign cell, that cell is converted: it joins the Vector's side and runs its program. Converting a host body's cell is a Hallmarks goal; taking over an enemy creature is the same rule at a larger scale, by converting its key cells (its Nucleus, the cell holding its main neuron, or enough of its cells). Where you connect is the puzzle: a converted Muscle is one cell, a converted Pacemaker turns the creature's whole rhythm.
-    - **Converted cells are free** (2026-10-30, user: "no it does not", asked whether they count against your cell cap and fuel). They don't count toward the cell cap and don't draw on your creature's fuel; what limits conversion is reaching the cells: the Vectors in the design, their fibre and vessel units, and the guards.
-  - **Arena** (2026-10-30, user: "arena - two or more players submit their creations and only one survives"): a late-game mode where two or more players each submit a creature, and they are let loose in one arena until one is left. Nobody pilots, so it suits submitting designs ahead of time. Determinism makes a fight replay the same everywhere, so a match can be checked or watched again from the designs and the seed. Open: local or online (`bioforge-online/`, frozen, had a server), the same budget or kit for everyone, a time limit and a tie-break, rounds or a league.
-  - **Hallmarks** (2026-10-30; chosen for the jam's theme "Break the rules", then user: "let's add it to the game as real part of it in the late game"). Chapter 9, the last: the player is a cancer in a host body. The host enforces the rules a body puts on its cells (the hallmarks of cancer, Hanahan and Weinberg, 2000), and the creature has to break them.
-    - **Complex levels for the end of the game** (user: "I imagine them to be quite complex. The player should at that moment have access to almost all concepts and cells in the game"). Every layer and almost every cell is open, and one level asks for several of them at once. It is the finale, not a tutorial chapter.
-    - **Goals are tasks in the host** (user: "convert 5 body's cells. Spread uncontrollably and don't trigger immune system (guarding cells) and so on"), for example: convert 5 of the body's cells (the reprogramming cell of chapter 8, used on tissue); spread to N cells without setting off the guard cells; grow your own vessels to a part of the body the host doesn't feed; outlast the host's die signal; reach a far organ by breaking off and travelling. A level can combine two goals with a restriction ("convert 3 cells, and no guard cell may see you").
-    - **The host's rules, which levels mix:** divide only when told; stop when you touch a neighbour; die when told; no blood supply of your own; stay where you are; the guard cells (immune cells) patrol, and any rule broken near one sets them off.
-    - Breaking a rule is wiring, never a "break" button: the player designs a creature that sends its own growth signals, ignores or turns the host's stop and die signals, and keeps quiet near guards. Proposed, not decided: the host's tissue gives off stop and die chemicals that a new Receptor cell senses as a nerve signal, and guard cells see rule breaking within a range. The host is its own switchable system.
-    - The jam build for "Break the rules" is this chapter, played ahead of its place in the game.
-- **Ideas after chapter 6** (2026-10-30, user: "We need a visual filter to be able to see the hormones in the environment - it won't be always on ... Veins need to be done similar way as the nerves ... We also need a glossary or some kind of encyclopdia ... not with solutions but with detailed explanations and examples ... I want a cell that can emit light - so that we can lure enemies with that"). Built the same day (user: "do what you suggest. 1. yes, 2. which ever is better - it can be even earlier", answering whether hormones should also leak into the water and where the Photophore goes), as version 0.7.2.
-  - **The chemical lens** (`lens.js`, C) and **hormones in the water** (`scent.js`): built then, hidden 2026-11-07 and removed 2026-11-08 with the hormones.
-  - **Vessels drawn like nerve fibres** (until vessels went on 2026-11-01): a thin line in its own lane, sharing one set of lanes with the fibres.
-  - **The field guide** (an encyclopedia, not the solutions page): a sheet opened by Field guide in every menu, G in the builder (at the clicked cell, or what a click would place) and Guide on the clicked cell's card; Esc or ✕ closes it, and it opens again where it was left. A filtered list down the left: Cells by dock category, Neurons, How it works (13 topics with an example each; Swimming by muscle added 2026-11-01) and the Glossary. Pictures first (user, 2026-10-30: "I want the information in pictures and animations"): every list entry has its picture, and a page shows the cell big, its cost as pips, health and fuel as bars, a neuron's setting as a slider, the example's wiring as pictures joined by moving fibres and vessels, and its partners as picture tiles; each topic runs a cell's or neuron's example tank (`demo` in `data/guide.js`). A cell or neuron page has its description, its facts, the tooltip's live example tank and how to use it, what to watch out for, what it works well with, the level that brings it to the dock (read from `unlocks` in `data/levels.js` since 2026-11-01; before, a hand-kept chapter in `data/guide.js`, which had drifted) and the topics about it. No level solutions. The words are data (`data/guide.js`); the facts are read from `data/cells.js`, `data/neurons.js` and the systems' constants (`fieldguide.js`), so they can't drift. Chosen without asking: every entry can be read from the start (proposed: opening as the player meets them), since the dock showed every cell then. Since 2026-11-01 a cell or neuron the player hasn't met yet (the level that brings it not earned, the last level not won) is dimmed in the list, with "Not met yet: it comes with <level>" as its hint, and still opens: Free build shows every cell, so a locked page would block a player there.
-  - **The Photophore, a cell that gives off light** (real: the light organs of deep-sea fish; the anglerfish's lure). Lit while signalled, burning fuel while lit; a Pacemaker makes it blink. The world then has many lights, not one: a Light eye sees the brightest of the level's light and every lit Photophore in reach, but not its own creature's (or it would chase itself). Enemies and prey with Light eyes (moth-like designs, a light-seeking hunter) follow it, so it lures without piloting: the player wires when it lights up. Built: reach 400 px, 0.1 fuel, needs a signal; a lit one draws a glow and a faint reach. Chapter 5 (chosen without asking, as the user left it open: it has the kill goal and protease, and its prey only needs Light eyes from chapter 1) has Anglerfish. Still ideas: a decoy (draw a hunter onto Nettles), a dark level where a creature lights its own way. Open: whether `ai.js` enemies follow light too (they don't yet).
-- **Tutorial** (2026-11-05, user: "I imagine tutorial style when it will guide user on what to click on maybe with voiceover - since I still have credits in eleven labs. The tutorial can be first 2 levels. Showing on what to click and what to do, and presentation of all the functionalitites in the game."). Chosen by the user from options: a spotlight (the screen darkened around what to click, a pulsing ring on it) with a speech bubble and its voice line, where a step moves on only when the player has done it (picked the Siphon, placed two, opened the Nerves view, laid the fibres, pressed Run level); levels 1 and 2 taught step by step, then a short tour of the rest of the Lab after level 2 (Levels, the limits, Templates, Sandbox, the Esc menu and H); voice lines made with ElevenLabs by a Node script the user runs with their own key (`tools/make-voice.js`, no npm packages; the key stays out of the repository); the How to box removed. The lessons are data (`data/tutorial.js`): words, target (a page element, a dock button or builder hexes), and the condition that moves a step on, so new lessons need no code. The rest of the game is locked while a step is on screen (2026-11-05, user: "unless the player presses the skip tutorial, then all buttons and elements are locked and only the ones the tutorial wants me to press are enabled"; until then clicks were never blocked, only dimmed around): blockers catch the mouse everywhere but the bubble (Skip, Next) and the target of a step that waits for the player to do something (`canTouch` opens the target of a Next step, as the hint step's dock for hovering); keys are locked except Esc (the menu, so the player can always leave) and the keys a step names (`keys`, such as 2 for the Nerves view); a step whose target isn't on screen locks nothing, so the player is never trapped. Steps belong to the Lab or a run (`mode`), and the tutorial follows the player between them (`runStep`). Chosen without asking: during a run the screen isn't dimmed; the tutorial is kept per game and starts with New game, and Settings has Replay tutorial and Tutorial voice (on by default); a game from before the tutorial gets none until Replay; a player past levels 1 and 2 gets only the tour; New game no longer opens the Levels sheet, since the tutorial's first steps cover it; a step already done when its turn comes is passed without a word; a line with no voice file yet plays silently, so the game works before the lines are made. The first lesson's words name the Lab button of the result box, the same as the game.
+## Decisions (2026-10-28 to 2026-11-10)
+
+### The game
+- **The verb is programming, not piloting** (2026-10-28). Creatures run on their own wiring. Nothing steers the
+  player's creature: no WASD, no AI, no held heading, in a level, the Sandbox, the Lab's Preview or anywhere else
+  (2026-11-10; until then the Preview and the Reference window held their creature facing up, so a design that
+  steers itself hardly turned there, and the sim still had a direction input only they and the tests used).
+- **Manual triggers stay:** a Command neuron fires while its key is held. An unbound one fires on Space; a bound
+  one on any letter or number key with no job of its own (user, 2026-10-28: "command can bind to any key on
+  keyboard apart from the important ones"). Reserved: 1, 2, C, E, F, G, H, M, N, P, Q, R, T. Only Metastasis
+  brings the Command to a level's dock; it is also in the Sandbox and in every level once the last one is won.
+- **Bit-identical determinism:** the same design, level and seed give exactly the same run in every browser and in
+  Node, for fair scoring, solvable puzzles and shareable solutions. The sim uses its own seeded random generator
+  and its own sine, cosine and arc tangent.
+- **Every run steps in 1/40 game s** (`GAME_STEP`, 2026-11-10), whatever the frame rate and the speed: a frame's
+  time is saved up until it makes a step, and the screen draws part of the way between the last two steps, so
+  motion is smooth at 60 Hz, 144 Hz and in slow motion. Until then each frame's time was cut into steps of its
+  own length, and the same design gave different results on different screens (First stroke: 17.35 s at 40 Hz,
+  17.31 s at 144 Hz), though the headless run that sets the pars always used 1/40 s.
+- **Every mechanic must be removable** (see "Removable mechanics"). The user may cut any that turns out
+  frustrating.
+- **Simple rules over engine quirks** (2026-11-02, user: "it requires detailed knowledge of the quirks of the
+  engine and that is not fun. I want it to be simple"). A piece that needs engine knowledge to use is changed or
+  cut.
+- **Loose limits, tight par** (2026-10-29, user: "I want the levels to be completable by everyone on 1 star"). A
+  level's budget or kit leaves room to spare; the par time and par biomass sit at the reference solution.
+- **Code quality:** readable names, no one-letter variables, a 120-character line limit, one system per file
+  (rules in `CLAUDE.md`).
+
+### Nerves
+- **Signals travel only along fibres** (2026-10-28). Touching cells pass nothing on. A fibre runs from the centre
+  of its start cell through the cells between to its end cell, is directed (drawn with an arrow), and connects
+  only at its two ends. One step from a cell to its neighbour is one unit. A fibre is cut when a cell on it dies.
+- **Neurons sit inside body cells,** one per cell, and take no body space. The set (data, so any can be cut):
+  Pacemaker (a clock, rate in Hz), Inhibitor (on while its input is off), Synapse (on once its inputs add up to
+  its threshold), Latch (each new pulse flips it), Delay (its input, 0.05 to several s late), Ganglion (follows
+  its input slowly) and Command (a key).
+- **Signals are graded and on/off.** Senses give 0 to 1 (stronger when closer), fibres carry levels, and a plain
+  cell passes on the sum of its inputs, clamped to 0..1.
+- **A pulse reaches every wired cell at once** (2026-11-02, user: "Simple pulse from pacemaker should arrive into
+  every connected cell at the same time"). Each nerve step the cells settle in order, each after the cells its
+  fibres come from. Only a Delay, a Ganglion or a loop makes a signal late; a fibre that closes a loop delivers
+  the signal of the nerve step before. Until then every fibre took one nerve step (1/160 game s).
+- **Limits come from `RULES`:** 12 neurons and 40 fibre units; a level may set its own (Shape allows none).
+  Neurons cost no materials (user, 2026-10-28).
+- **The player chooses a fibre's route** (2026-10-29): a drag lays it through the cells the mouse passes over,
+  kept as the fibre's `via` list; a fibre without one takes the shortest way. Fibres crossing one cell side lie
+  side by side, spread evenly round its middle, each in a colour no neighbour has (8 colours); the fibre under the
+  mouse is drawn bold from end to end (user, 2026-10-29 and 2026-11-05).
+- **Neurons only in Tissue and the Nucleus:** decided 2026-11-02, not built. Today 14 templates keep a neuron in
+  another cell, mostly an Inhibitor in a Heart.
+
+### Body, water and senses
+- **The water pushes on the skin** (2026-10-28). A skin cell moving face-on meets 10x the drag of one sliding
+  along the skin, plus a part that grows with the square of the speed. So shape matters: a tail beating side to
+  side swims, a wave down it swims faster, a blob that pulses stays put. Siphons and Cilia are the easy movers.
+- **A Muscle's timing comes only from its wiring** (2026-11-02, user: "If I want delay I will add delay"). It
+  contracts while its signal is on; two Muscles on one source always move together. The game adds no rhythm,
+  side turns or wave. A Muscle pulls by the square root of its signal, and a body turns toward the side whose
+  Muscles are held shut for a second or more (`MUSCLE_TURN_TORQUE` 10), so Light eyes can steer a Muscle swimmer.
+- **Muscle swimming is a regular way to travel** (2026-11-01): a well-wired fish of about 15 cells swims as fast
+  as the Jet (23 px/s), faster with a wave. A Bloater lets go at 6 per s, a little slower than it swells.
+- **Light has a reach** (450 px by default): a Light eye's signal is its direction factor times a brightness that
+  falls evenly to 0 at the edge. In the Sandbox the mouse is the light ("Cursor as a sense", 2026-10-28). A lit
+  Photophore is a light too (400 px), seen by every creature but its own.
+- **The Nose** smells the nearest food speck within 300 px, graded like a Light eye. The **Eyespot** signals
+  while an enemy cell is within 120 px.
+- **Pieces taken out,** each loading as Tissue with its neuron kept (`REMOVED_CELL_TYPES` in `design.js`): the
+  Valve (2026-11-02), the Resilin gland and the Tanner (2026-11-07), the hormone glands and the Receptor
+  (2026-11-08, with hormones, moods, the hormone view and their five levels).
+
+### Fluids, materials and growth
+- **Cells burn O₂ and sugar and make waste,** where a level runs the fluid system. Fluids seep between touching
+  cells at 0.1 flow per unit of fill difference; cold water (`seepFactor`) slows that, and stale water
+  (`waterOxygen`) lets Gills make less.
+- **The Heart pumps an area and beats on a signal** (2026-11-01, user: "Heart areas only", "5 cells", "Wired
+  beat"). It pumps every fluid between touching cells within 5 hex steps of it, about 25x faster than seeping, as
+  hard as its signal, and burns 0.15 fuel at a full beat, as much as a Siphon. Until then it pumped vessels laid
+  by hand in a third view; they went because every Heart level had one winning layout.
+- **Material kits** (2026-10-29): Protein, Sugar, Fat and Mineral (`data/materials.js`). Each cell type has a
+  recipe. A level may hand out a kit instead of a biomass budget: the body must fit it, and what is left is the
+  creature's starting reserves (sugar spread over the body, fat only into Fat cells, protein kept for growing).
+- **Fat and feeding:** a Fat cell stores up to 10 fat, turns spare sugar into fat and back (2.5 and 2 sugar per
+  fat, 0.25 fat per s). Any cell touching a speck eats it while a Mouth has room, so a Mouth needs a store.
+- **Secretions never hurt their own creature** (2026-10-29, "No self-harm"). The Acid gland does 24 health per s
+  to hard enemy cells in reach (2 to soft ones), the Protease gland 10 per s to soft ones (none to hard), 12 px
+  beyond touching. The Mineralizer hardens one of its own cells every 1.5 s for 1 mineral.
+- **Hard cells** (Shell, Thorn, hardened cells) feel a quarter of a thorn hit or sting, and a Mouth can't bite
+  them (2026-11-05). Shell beats spikes, acid beats shell.
+- **Growing costs protein** from the kit's leftover (2026-11-07). A Mender regrows lost cells of the design; a
+  Bud grows a saved part and shoots it off with its share of the body's O₂ and sugar. Hunters chase launched
+  parts that still have fuel.
+
+### Levels
+- **A level is data** (`data/levels.js`): an arena, the systems that run, limits or a kit, the start, an optional
+  light, rock and currents, other creatures (wired, or steered by the AI: hunt, flee, guard), a goal, a time limit
+  and a par. Goals: `reach`, `stayNear`, `restIn`, `eat`, `survive`, `kill`, `spread`. A win earns a star, one
+  more for the par time and one for the par biomass.
+- **Levels unlock in order;** `RULES.allLevelsOpen` opens them all and stays on for now (user, 2026-11-07: "do
+  not switch it off").
+- **The dock fills level by level** (2026-11-01): each level lists what it brings (`unlocks`), and its dock has
+  that and everything before it; the rest is greyed out with a lock. A design holding a locked or banned piece
+  can't run in the level. Everything is open in the Sandbox and once the last level is won.
+- **Rock and currents** (2026-11-01, user: "walls and stones to be constructed from hexes"): rock is hex tiles on
+  the cells' own grid, which push cells out and grip them by friction; a current is a box of moving water.
+- **A level may leave out cell types** (`bannedCells`), allow no neurons or fibres (`maxNeurons` and
+  `maxFibreUnits` 0), and be bigger than the screen (`view`: the camera follows the creature, an arrow at the
+  screen's edge points at a ring out of view, and the goal banner counts the px to go).
+- **The Muscle and the Bloater stay, and levels must need them** (user, 2026-11-01): Tail and Crevice.
+- **Every cell has a level that needs it** (2026-11-10, user chose "A level for each" for Cilia and the Snare):
+  Shape and Reel.
+- **Chapters 3 and 4 no longer repeat one chase** (2026-11-10, user chose "Cut Marathon, regoal one"). Marathon
+  is gone, and Packed lunch is a crossing instead of Long haul's chase from a kit. Until then six levels asked to
+  stay near the drifting light for 100 to 200 s, and their answers were one body with parts added.
+- **Metastasis is the one exception to "you never pilot"** (see "How this differs from Primordialis"). It stays
+  the last level of chapter 7 until players say whether they want more of it (user, 2026-11-10: "Leave it for
+  now").
+- **The briefing** (2026-11-05): the first time the Lab builds for a level not won yet, a card shows what it
+  asks, its arena, the pieces it brings and its rules.
+
+### Runs
+- **Runs are in real time,** with pause (P), one step (.) and speeds 1×, 2×, 4×, ½×, ¼× (,).
+- **Signal probes:** a 6 s trace per sense, neuron and signalled cell of the player's creature, up to 8 lanes; a
+  click on a cell adds or removes its lane; T hides them.
+- **The timeline** (2026-11-10): a level run is recorded (the keys of every step, a snapshot every 5 game s,
+  thinned past 120 snapshots). A slider in the level bar shows any moment it has been through, paused there, with
+  the traces of the 6 s before it; ← and → move 1 s. Running on from the past plays the run as it went, so a look
+  back never changes a result. **Result** (Enter) runs the level to its end at once: Bloom's 320 game s take
+  about 0.3 real s. Not in an adventure, which is played by hand.
+- **The result box** offers Retry and Lab. After a first win the Lab builds for the next level.
+
+### The Lab
+- **The screen where the creature is built is the Lab** in every text (user, 2026-11-01); the code says builder.
+- **Two views, tabs at the top:** 1 Body, 2 Nerves. The Body view is drawn still; the Nerve view and the Preview
+  show the creature live in a test tank, where Space fires every signal source.
+- **The dock** at the bottom: a tab per category, two rows of hexagons, no labels; the hover hint (after 200 ms)
+  gives the name, cost, description, how to use it and a live example.
+- **Nothing is chosen at first** (user, 2026-10-30); Esc lets go of what the mouse holds, then opens the menu.
+- **Building fast:** drag to paint cells, right-drag to remove, and Symmetry mirrors cells, neurons and fibres
+  across up to six axes through the Nucleus.
+- **The panels:** the limits line under the tabs (only the current view's limits, in large numbers), a card for
+  the clicked cell when it has something to set, the Needs card (Sugar lasts N s, then a row per need with a ✓, ✗
+  or ~ and one "Next:" line), and the Traces window in the Nerve view.
+- **Saving:** Shift+right-drag a box round cells and name them (with the Nucleus a creature, without it a part);
+  Ctrl+S saves the creature; F5 and F8 quick save and load. The **Templates screen** (T) has My creatures, My
+  parts and Examples; Export and Import use `<name>.bioforge.json` files. **Study** shows any creature in the
+  floating Reference window beside the Lab.
+- **The corner buttons:** Templates and Sandbox at the bottom left; Levels and the big green Run level N at the
+  bottom right, which runs the first level not won yet (user, 2026-11-03).
+
+### Menus and saves
+- **Main menu** over a living title scene (the real sim, seeded): Continue, New game, Load game, Sandbox, Field
+  guide, Settings, Quit (desktop). The **Esc menu** pauses a run. **Settings:** music, sounds, tutorial voice,
+  fullscreen, keys, Replay tutorial, Reset level progress.
+- **Games** (2026-11-01): each keeps its own design, level results, library, quick save, tutorial and briefings
+  under `bioforge-lab-game-<id>-<name>`; settings are shared. Switching games reloads the page.
+- **Continue** picks up the Lab's design, the chosen level and a running level or Sandbox, saved whole as a
+  snapshot. A run saved by another game version, or in a level whose data changed, is dropped.
+- **Save version 4** (`SAVE_UPGRADES` in `savegame.js`). The step to 4 (2026-11-10) forgets every game's results
+  in Marathon and Packed lunch, since one is gone and the other is another level now.
+- **Storage** is `localStorage`, or the desktop build's `save.json`. Every key starts with `bioforge-lab-`.
+
+### Look, sound and help
+- **Cell look: Microscope** (2026-10-29): see-through cells with a coloured membrane and a line-art symbol per
+  type; neuron badges are small nerve cells.
+- **Music:** one ambient track looping without a seam at 0.2 volume (M). **Sound effects** in one soft underwater
+  style, heard by comparing the world from frame to frame, so the sim knows nothing about sound (N).
+- **The title** reads "Bioforge" in Megrim; a CSS splash plays once, before the main menu.
+- **The tutorial** (2026-11-05): a spotlight and a speech bubble with a voice line; a step moves on when the
+  player has done it, and everything else is locked meanwhile. Lessons are data: First stroke, Lighthouse, the
+  Lab tour, Long haul (fluids) and Packed lunch (kits). Voice: ElevenLabs' Will, made by `tools/make-voice.js`.
+- **The field guide** (G): cells, neurons, 13 topics and a glossary, told in pictures and live examples, with
+  facts read from the game's data. No level solutions. Pieces not met yet are dimmed but open.
+- **Help texts are checked:** a level's words name only pieces its dock has and levels before it
+  (`tests/hints.js`).
+
+### Desktop and versions
+- **Desktop build** in `desktop/` (Electron, 2026-10-29): a maximized window without a menu bar, one save file
+  written through a temporary file, one copy at a time, Quit and Fullscreen through `window.desktopWindow`.
+- **Versions:** `0.<milestone>.<patch>` in `data/version.js`, with `CHANGELOG.md` for players and a
+  `lab-v<version>` tag per version. 0.8.0 was the game jam release (2026-11-08, Windows only).
+
+### Late-game ideas (2026-10-30, none built unless said)
+- **Spread levels:** grow out of control, like cancer; Tumour (chapter 7) is the first.
+- **The reprogramming cell (Vector):** a cell carrying a small program that is written into an enemy when its
+  fibre reaches a foreign cell. Conversion and takeover are one mechanism; converted cells are free.
+- **Hallmarks, the finale:** the player is a cancer in a host body and breaks the rules a body puts on its cells
+  (divide only when told, stop at a neighbour, die when told, no blood supply, stay put), unseen by guard cells
+  that compare each cell with the host's self pattern. Breaking a rule is wiring, never a button.
+- **Arena:** two or more players submit creatures and one survives. Determinism lets a fight be replayed
+  anywhere from the designs and the seed.
 
 ## Design principles
-These come from *A Theory of Fun for Game Design* (Raph Koster) and *The Art of Game Design* (Jesse Schell).
-- **Fun is learning patterns (Koster).** Each chapter teaches one new pattern, and later levels combine the patterns already learned. Once a pattern is mastered, the game moves on before it turns boring.
-- **Small rules, deep space.** Few blocks that don't overlap; the depth comes from combining them, for example base cells × material treatments instead of dozens of cell types. Before adding a block, ask what pattern it allows that can't already be built (Schell: Lens of Elegance).
-- **Lens of the Toy.** Wiring a creature in the sandbox and watching it move must be fun even without a goal.
-- **Lens of the Essential Experience:** "I built a brain and it came alive." Features that don't serve this are cut.
-- **Lens of Feedback.** You can't debug what you can't see, so signal views, probes, slow motion and single-stepping are core features, not extras.
-- **Lens of Emergence.** Simple wiring, rich behaviour. Braitenberg vehicles are the model: two eyes and two motors make a creature that seems "afraid" or "aggressive" depending only on whether the wires cross.
-- **Puzzle principles (Schell):** a clear goal, an easy start, visible progress, many valid solutions, and hints.
-- **Interest curve:** each chapter opens with a striking demo creature, rises in difficulty, and ends with a "boss" puzzle.
-- **Mastery beyond solving:** scores for materials spent, cell count and time, so a solved level can still be solved better.
-- **Test fun early (Schell's loop).** Every milestone ends with a playable chapter, so systems are judged in play and not on paper.
+From *A Theory of Fun for Game Design* (Raph Koster) and *The Art of Game Design* (Jesse Schell).
+- **Fun is learning patterns.** Each chapter teaches one new pattern, and later levels combine those learned.
+- **Small rules, deep space.** Few blocks that don't overlap. Before adding one, ask what pattern it allows that
+  can't already be built.
+- **Lens of the Toy.** Wiring a creature in the Sandbox and watching it move must be fun without a goal.
+- **Lens of the Essential Experience:** "I built a brain and it came alive."
+- **Lens of Feedback.** You can't debug what you can't see: probes, slow motion, single steps and the timeline
+  are core features.
+- **Lens of Emergence.** Simple wiring, rich behaviour; Braitenberg's vehicles are the model.
 
 ## How this differs from Primordialis
-Primordialis (Kaliuresis, 2025) is a roguelike in which you build a cell creature on a hex grid, using springs and conductive cells, **pilot it in fights**, and **collect new cell types from enemies**. Bioforge already shares its base mechanics, so the difference has to come from the verb and the structure:
+Primordialis (Kaliuresis, 2025) is a roguelike in which you build a cell creature on a hex grid, **pilot it in
+fights**, and **collect new cell types from enemies**. Bioforge shares its base mechanics, so the difference has
+to come from the verb and the structure:
 - **Bioforge Lab: you never pilot.** You program and watch, apart from the manual triggers you bind yourself.
-- **The layers are the game:** nerves, blood, secretions and metabolism are systems you design, not a side effect of placing cells.
-- **Food gives raw materials, not cell types.** Your creature's own programmed metabolism processes them; you design the factory, you don't collect loot.
-- **The structure is puzzles and levels, not a roguelite run.** There are no cell drops, mutations or runs.
+- **The layers are the game:** nerves, blood, secretions and metabolism are systems you design.
+- **Food gives raw materials, not cell types.** You design the factory; you don't collect loot.
+- **The structure is puzzles and levels, not a roguelite run.** No cell drops, mutations or runs.
 
-**The one exception** (2026-11-08, user: "can the breaking the rules level be more like a single player game more than a standard level? I want 20 minute adventure, command unlocked - so that player can steer the creature, spots where he can customize his creature and fighting - not much limit - just whatever the player can collect"): Metastasis, the last level of chapter 7, Breaking the rules, breaks these rules on purpose as the game jam's theme. There you steer (with Commands you wire, not a built-in control) and take what you kill. No other level does.
+**The one exception** (2026-11-08, user: "can the breaking the rules level be more like a single player game ...
+I want 20 minute adventure, command unlocked - so that player can steer the creature, spots where he can
+customize his creature and fighting"): Metastasis, the last level of chapter 7, breaks these rules on purpose as
+the game jam's theme. There you steer (with Commands you wire) and take what you kill. No other level does.
 
-Check every new feature against this list. If it pushes the game toward "pilot your fish through fights" or "collect parts from kills", it doesn't belong.
+Check every new feature against this list. If it pushes the game toward "pilot your fish through fights" or
+"collect parts from kills", it doesn't belong.
 
 ## Layers
-The layer split is a proposal, to try in play first. The creature has 4 layers on the same hex grid, like a circuit board with several layers. **Each layer has its own timescale**, which is what keeps them distinct:
+The creature has layers on one hex grid, each with its own timescale.
 
-| Layer | What lives there | Timescale | Today it is |
+| Layer | What lives there | Timescale | Code |
 |---|---|---|---|
-| **Body** | Structural and organ cells: tissue, shell, muscle, gill, fat… They have mass, HP and shape, and each is made of materials. | Static | cells |
-| **Nerve** | Neurons (logic nodes) and nerve fibres from cell centre to cell centre. It carries graded signals and spikes. | Fast (ms) | Neurons inside body cells, fibres between them |
-| **Vascular** | A Heart that pumps blood between the cells within 5 steps of it while it beats (and Valves that shut cells off, until 2026-11-02). It carries O₂, sugar, waste and repair fluid. | Medium (seconds) | Heart areas (2026-11-01; vessels 2026-10-28 to 2026-11-01); fluids also seep cell to cell |
-| **Chemical** | Glands release secretions (which act on cells, your own or others'). Hormones were here until 2026-11-08. | — | Acid, protease and the Mineralizer (`secretions.js`) |
+| **Body** | Cells with mass, health and shape, each built from materials | Static | `core.js`, `physics.js` |
+| **Nerve** | Neurons inside cells and fibres between them | Fast | `nerve.js`, `fibres.js` |
+| **Vascular** | Fluids seeping between cells, and Hearts pumping their areas | Seconds | `fluid.js`, `vascular.js` |
+| **Chemical** | Glands whose secretions act on cells | Seconds | `secretions.js` |
 
-- **Routing:** a nerve fibre runs from the centre of its start cell through the centres of the cells between, to its end cell. One step is one unit, and each level limits the units. (Vessels were routed the same way from 2026-10-28 until they went on 2026-11-01.)
-- **Crossing:** paths may cross, also inside a cell they both pass through; they stay separate, each in its own lane (a bridge arc until 2026-10-29).
-- **Fibres connect only at their two ends** (decided 2026-10-28). The cells it passes through aren't affected.
-- **The player chooses a fibre's route** (2026-10-29, user: "I want to be able to tell in which cell the fibre goes through - now algorithm decides that"). A drag lays the fibre through the cells the mouse passes over; going back over the path cuts it back, and cells the mouse skipped are filled in by the shortest way. The design keeps the cells between the ends as the fibre's `via` list. Drawing a fibre that is already there on another route moves it; drawing it on the same route removes it. Fibres without `via` (older saves, levels, tips, and a fibre whose drawn route lost a cell in the editor) take the shortest route, as all fibres did until then.
-- **Fibres are directed** (decided 2026-10-28), drawn with an arrow, so a fibre is also a diode.
-- **Neurons sit as an overlay inside a body cell** (decided 2026-10-28), one per cell, with fibres attached to it. Logic doesn't take up body space.
-- Nerves **run through body cells and need them**: a fibre is cut when a cell it runs through dies, so injuries can disable circuits.
-- Each layer is a separate view in the editor, and the other layers are dimmed while you edit one. The views are tabs at the top centre: 1 Body (the default) and 2 Nerves; 3 Vessels went with the vessels on 2026-11-01, and 3 is free for Commands since (2026-10-28, user: "I want to introduce tabs with shortcuts, 1 body, 2 nerves, 3 veins. The tabs will be on top - centered, with body the default"; until then they were buttons at the top of the left toolbar, with N and V switching to Nerves and Vessels and back). 1 and 2 always switch tabs, so a Command can't be bound to them. Coming back to the builder from a level or the Sandbox always opens the Body view (2026-11-01, user: "when I go back from level to lab, the default view should be always body"; until then the last view stayed).
-- **The cell dock** (2026-10-28, user: "the bottom menu change it to tabs as well, also remove the names from the cells and the biomass price and move that to the hint"): a tab per category (Body, Sense, Action, Fluid, Gland), and the open tabs' cells as two interlocking rows of hexagons with no labels. A click opens or closes a tab, so several can be open side by side (user, 2026-10-28: "allow the player to expand the tabs - even multiple at once"; for a few hours only one tab was open at a time); the last open one can't be closed. The open tabs are remembered (`bioforge-lab-dock-categories`). Until then every category showed at once in folding sections, in as few rows as fitted the window, each hexagon with its name and cost. The Nerve view's neurons are two rows too. The dock is 75% of the window wide (user, 2026-10-28), with the tabs in the middle of its head and the hexagons centred.
-- **Level briefing** (2026-11-05, user: "now you end up in the lab but you have no idead what you're preparing for"; chosen from options: a briefing card on arrival, yes; a goal strip that stays on screen and the preview running the level's arena, not taken). The first time the Lab builds for a level not won yet, a card opens over it (`briefing.js`): the level's number, chapter, name and brief; its arena as the run starts, with the goal, the light, the rocks and the creatures there from the start, and the player's creature ringed and labelled You; the pieces the level brings to the dock, each with its picture and a one-line summary (`summary` in `data/guide.js`, 60 characters at most, checked by `tests/hints.js`); the same rules as the level card; Hint, and Build (Enter or Esc) to close. It shows once per level per game (`briefed-levels`, kept per game; Reset level progress clears it). Chosen without asking: no briefing for a level the tutorial still teaches (levels 1 and 2 while it is on), so skipping the tutorial briefs the level it was on; none in the Sandbox or for a won level; it opens on any way into the level (after a first win, Build for it, a new game without the tutorial, a loaded game).
-- **The dock fills level by level** (2026-10-30, user: "when the game starts it can be a little overwhelming to the new player. So I would like the things to appear in the bottom bar gradually. Chapter by chapter not at once. They should be all unlocked once you have completed the levels or in free build game"; then 2026-11-01, user: "the levels ... unlock just the cells you might need to completion of that level. And then it unlocks another cells for another level and so the player learns gradually and the bottom bar unlocks gradually as well"). Built 2026-11-01. Since 2026-11-05 (user: "I want to have all the cell types in the bottom panel, but the not relevant will be locked (greyed out with small lock) so the panel doesn't look so empty") the dock shows every piece and every category tab in every level, and the ones not unlocked yet are greyed out with a lock; a click on one says which level opens it. Until then they were hidden, with the tabs of empty categories. Each level lists what it brings (`unlocks` in `data/levels.js`: cell types, neurons, and the Vessels view), and a level's dock has what it and every level before it bring, plus the Nucleus (`levelUnlocks` in `levels.js`). The lists follow the reference solutions, so each level brings exactly what its answer needs; `tests/levels.js` checks that every reference solution is built from what its level's dock has.
-  - What each level brings: First stroke Tissue, Siphon and the Pacemaker; Lighthouse the Light eye; Shade nothing (its lesson is wiring the same pieces the other way); Hunt Cilia (Shade until 2026-11-01: Shade's build didn't use them, and Hunt's hint already offered them; user: "Level 3 unlocks cilia - even though I don't think it make that much sense"); Freeze the Inhibitor; False start the Latch; Metronome the Delay; Dock the Synapse and the Ganglion; Tail the Muscle and the Joint; Crevice the Bloater; Long haul Fat, Gill and the Pore; Stale water (id `exhaust`) the Air sac (until 2026-11-06 Long haul brought Fat and Gill, and Exhaust the Air sac and the Pore); Cold water the Heart and the Vessels view; Grazing the Nose and the Mouth; Sting the Nettle and the Eyespot; Bulwark the Shell; Pincushion the Thorn; Clam the Acid and Protease glands; Anglerfish the Photophore; Quarry the Mineralizer; Spit the Spitter; Fight or flight the Adrenal; Lie low the Calm gland; Feast and famine the Fed and Starved glands and the Receptor; Grazed the Mender; Swarm the Bud (both 2026-11-07). No level brings Snare or the Command yet: they show only in Free build, the Sandbox and after the last level. Chosen without asking (2026-11-01): Cilia with Shade and the Ganglion with Dock, without changing those levels' hints; the Command stays out of the levels, since it is a key the player holds, which is piloting.
-  - The pieces a level brings are marked new (a green rim) in its dock, and their dock tabs open the first time the level is chosen. Chosen without asking: "new" means new in this level, not "not placed yet" as first planned, so nothing has to be stored.
-  - Everything is shown in Free build and the Sandbox, and in every level once the last level is won. Requiring every level would lock a stuck player out.
-  - The dock's category tabs with nothing unlocked in them are hidden, since an empty tab confuses more than a missing one. The Nerves tab is there from First stroke (the Pacemaker).
-  - Locked pieces can't run in a level (2026-11-05, user: "I started a new game, skipped tutorial and went to templates loaded late game template and started level 1 with cells I don't even have access to at lvl 1"): an example or a saved creature that has them still loads into the Lab and runs in the Sandbox and free build, but `buildCheck` refuses it in a level, like a banned cell, saying "Take out the <piece>: a later level brings it" on the level card and Run level. Until 2026-11-05 locked pieces only stayed out of the dock, and such a creature ran (chosen without asking then, because the examples use them). (Until 2026-11-03 a new game started with the Jet in the builder, and First stroke's hint points at it; a new game now starts with just the Nucleus.) A level's `bannedCells` stay a rule: a design with one can't run.
-  - The field guide dims the cells and neurons not met yet (see the field guide above).
-- **Building faster** (2026-10-29, user: "Right now you have to add one cell per click. which sucks"). A click still places one cell; holding the left button and dragging paints the chosen cell on every hex the mouse passes over (hexes between two mouse moves too), and holding the right button removes along the way. Hexes that can't take the cell are passed over quietly. **Symmetry:** the Symmetry button (beside the layer tabs since 2026-10-30) opens a dial of six axes through the Nucleus, every 30°, the only angles that map hexes onto hexes; any number can be on, and they combine (two crossing axes give four copies). Cells placed or removed, by click or drag, are mirrored across them: a mirror image on another cell or a Bud part's hex is skipped, removal takes only images of the same type, and the whole group must fit the budget or kit, or nothing is placed. The hover tint shows every hex a click would fill. The axes are remembered (`bioforge-lab-mirror-axes`). The Nerves and Vessels views follow them too (2026-10-30, user: "I want the nerve fibres, functions and vessels to follow symetry as well"; until then they weren't mirrored): a neuron goes into each mirror cell that has none, a setting or a Receptor's hormone is copied onto the mirrored neurons of the same kind, removal takes the same kind only, and a fibre or vessel laid, rerouted or removed is done on every mirror image whose cells are there (a via cell without a cell drops the image's route to the shortest one). A fibre between two mirror cells gets no copy back the other way (a loop). Command keys are not copied, so mirrored Commands can steer the two sides apart. Faint copies show where a drag will be copied. Stamps are not mirrored. **Shift** held in the Body view outlines every cell of the chosen type, shades the rest and counts them. **The cursor** in the Body view is a small hex filled with the chosen cell's colour, red with a minus while a right-drag removes.
-- **The hover hint** shows after 200 ms (it was 1 s until 2026-10-28) and starts with the name and the biomass cost (◆). Over a dock button it sits above the button, centred on it; over a cell on the grid it sits beside the mouse, on the side towards the middle of the screen. Placed cells give a hint only in the Body view (user, 2026-10-28: "in nerves and fluids we don't need to show so agressive hints about the cells already on the creature"); in the Nerve and Vessels views only the dock's buttons do. Neuron buttons get a hint in the same format as the cells (user, 2026-10-28: "I would like them to follow the same format as the hints in the body layer"): symbol, name and cost (◆ 0), a facts line (makes its own signal or reads the fibres coming in; the setting and its range), the description, How to use, and a live example tank with the neuron's cells ringed and numbered, and a signal lane per numbered cell under it. Until then a neuron's hint was only its name and description.
-- **The builder's panels** (2026-10-28, user: "It contains some bars - which are very small with no description - they are just noise ... That is too much, it is noisy and nobody will watch it"). Until then the left panel had five unlabelled meter bars for every view, a card with a picture and the description of the chosen cell or neuron, a neuron scope with made-up inputs, five figure chips (health, mass, burn, O₂, sugar) and every design warning as a sentence, with an orange "!" on every cell each warning was about.
-  - **Still Body view** (2026-11-05, user: "in the body view I don't want to see any blinking it is disturbing for the build"): in the Body view the grid’s cells and fibres are drawn still, with no signals, glow, heartbeats or flashes, and fluids only in a fluid view. The preview window shows the creature live, and the Nerve view keeps its live signals for checking the wiring. Until then every view showed the test tank live. No view of the grid darkens a starving cell (user: "the siphons did light up in a few miliseconds, but then the tissue dimmed. There was some kind of phase shift"): a cell starves only while it works, so once the test tank ran out of fuel the mark darkened Siphons while signalled, and they looked lit only between pulses. The preview window and runs still show it.
-  - **Limits line:** under the tabs, only the current tab's limits (Body: biomass and cells; Nerves: neurons and fibre). A full limit turns orange; a design over any limit says so below it, in an orange box. Since 2026-11-03 (user: "The texts like Biomass and other are too small and when new player tested it, he didn't notice them") it is a panel like the tabs: each limit has its name in small capitals over a 21 px number and a meter of how much is used (13 px text in one line until then). The Traces window's default place and the hormone legend moved down to 140 px to clear it.
-  - **Card:** shows only for the part being stamped, or a clicked cell that has something to set up: a neuron (its setting, a Command's key), a Bud, or any cell in the Nerve view (its fibres). No picture, no description: the hover hint tells what a cell is. Messages (saved, can't place) have their own line above it.
-  - **Needs card** (user: "if you place muscles 52 warnings shows up, that is not a good experience"): "Sugar lasts N s" in big type (the stock at the start over the most the cells burn, every cell working), then fixed rows Signal, Oxygen, Sugar, Waste, Blood, Weapon (and Buds when there are Buds; since 2026-11-01 the fuel rows and the sugar time only where the chosen level runs the fluid system, Blood only where it runs vascular, so chapters 1 and 2 show Signal and Weapon), each ✓, ✗ with a fix in a few words, ~ when it works poorly (cells far from a pumped vessel, blocked Bud parts) or – when nothing needs it yet. One "Next:" line gives the full text of the first ✗. The "!" marks on the grid show only while the mouse is on a row. "No weapons" is a – in the Weapon row, not an error. Health, mass and O₂ per second are no longer shown.
-  - **Traces window** (user: "I like the graphs, but they should be in some tracing windows when in nerves layer"): a floating window, shown only in the Nerve view, with the run's probe lanes for the builder's test tank: up to 8 senses, neurons and signalled cells of the real creature, 6 s each (with matching number tags on the grid until 2026-10-29, user: "they are too large and disturbing"). Space and bound keys fire Commands in it. It replaced the scope, which ran one neuron on made-up inputs.
-- **Metabolism is a system across the layers, not a 5th grid layer.** Materials travel in the blood, secretions come from glands, and body cells are made of materials. The editor gets a materials panel (stores, recipes), not a 5th view. Its timescale is the slowest: minutes.
+Metabolism runs across the layers, not as a fifth one: materials travel in the blood, and cells are made of them.
 
-### Interfaces between layers (where the depth comes from)
-| From → to | Cells (ideas) |
-|---|---|
-| World → nerve | Eye with a facing cone (graded), chemoreceptor (smell, graded by distance), touch |
-| Body → nerve | Pain (a neighbour is damaged), stretch (a muscle is contracted) |
-| Vascular → nerve | Hunger (low sugar), breathlessness (low O₂), toxin (high waste), a store sensor (a material above or below a level) |
-| Chemical → nerve | (none since the Receptor went, 2026-11-08) |
-| Nerve → body | Muscle, bloater, siphon, cilia, nettle, snare, spitter, bud, mouth (open/close) |
-| Nerve → vascular | The Heart's beat |
-| Nerve → chemical | Gland: releases its secretion while signalled |
-
-### Neuron set (ideas, to trim using the elegance principle)
-| Function | Neuron | Notes |
-|---|---|---|
-| Relay | Nerve fibre (centre to centre) | Directed, so it doubles as a diode. Connects only at its ends. Paths may cross. |
-| Clock | Pacemaker | Rate and phase can be set. |
-| Delay / smoothing | Ganglion | Integrates its input. |
-| NOT | Inhibitor | On while its input is off. |
-| AND / threshold | Synapse | Fires when the sum of its inputs passes a threshold that can be set. Graded in, spike out. |
-| Memory | Latch | A pulse toggles it, or set/reset inputs. |
-| Input | Command | Bound to a free key, or Space. |
-| Gain | Amplifier / attenuator | Scales a graded signal. Maybe merge it into the synapse. |
+Ideas for cells that join layers, none built: pain and stretch senses, hunger and breathlessness senses, a store
+sensor, a Mouth that opens on a signal, an amplifier.
 
 ## Metabolism
-The kit-as-budget, reserves and growth-plan parts are confirmed; recipes and numbers are still to tune.
-### Real biology behind it
-- **Digestion** breaks food into building blocks: proteins into amino acids, starches into sugars, fats into fatty acids, shells into calcium.
-- **External digestion:** starfish and fungi secrete enzymes onto their food.
-- **Biomineralization:** shells and spines are built from calcium carbonate or silica.
-- **Tanning:** insects harden chitin by crosslinking it. (Built as the Tanner, taken out 2026-11-07.)
-- **Resilin:** a spring protein; fleas and mantis shrimp store energy in it and release it with a latch. (Built as the Resilin gland, taken out 2026-11-07.)
-
-### Materials
-| Material | Real basis | Comes from | Builds / used for | Chapter |
-|---|---|---|---|---|
-| **Protein** | Amino acids | Bacteria, other creatures' soft cells | Most cells: muscle, nerves, glands, enzymes | 1 |
-| **Sugar** | Carbohydrates | Algae, plant-like specks | Fuel in the blood; chitin | 3 |
-| **Fat** | Lipids | Most food | Long-term energy store, buoyancy | 4 |
-| **Mineral** | Calcium, silica | Seawater (slowly), diatoms, eaten shells | Shell, spines, thorns | 5 |
-| **Nucleic** (rare) | DNA/RNA | Only whole creatures | Growth, Buds, regrowth | 7 |
-
-- **Each cell type has a recipe.** Eating a cell gives back its recipe minus a digestion loss, so a prey's body tells you what you'll get from it.
-- **Storage cells:** Fat stores fat and sugar; a vacuole stores protein; a deposit stores mineral.
-
-### Secretions
-| Secretion | Does to others | Does to yourself | Real basis |
+| Material | Comes from | Builds / used for | Since chapter |
 |---|---|---|---|
-| **Protease** | Dissolves soft cells (digests prey) | Hurts soft cells if it leaks | Digestive enzymes |
-| **Acid** | Dissolves shell and spines | Hurts your own cells if it leaks | Shell-boring snails |
-| **Mineralizer** | — | Deposits mineral into a cell to make a shell or spine | Shell building |
-| **Crosslinker** | — | Hardens a cell: more armour, stiffer, more brittle | Insect cuticle tanning |
-| **Resilin** | — | Makes a cell springy: better joints, stores energy for a snap | Flea and mantis shrimp springs |
-| **Toxin** | Paralyses: blocks the target's nerves | Costs nucleic; blocks your own nerves if it leaks | Venom |
+| **Protein** | The kit | Most cells; growing | 1 |
+| **Sugar** | The kit, food specks, bites | Fuel in the blood | 3 |
+| **Fat** | The kit, spare sugar | A long-term store in Fat cells | 4 |
+| **Mineral** | The kit, mineral specks, broken hard cells | Shell, Thorns, hardening | 5 |
 
-- **Treatments change existing cells instead of adding cell types:** a tanned muscle is strong but slow, and a resilin joint plus a latch makes a spring-loaded strike.
-- **Counterplay:** shell beats thorns, acid beats shell. A prey's armour tells you what to bring.
-
-### How it fits the puzzles
-A level has two phases:
-1. **Design:** the level hands you a **material kit**, for example "Protein 30, Sugar 10, Mineral 0". This replaces the biomass budget. You build the creature from the kit, and **whatever you don't spend becomes the creature's starting reserves**. That's a real trade-off: a bigger body, or more fuel and building stock.
-2. **Run:** the creature acts on its own. If the level has metabolism turned on, it can eat, digest, store, secrete and **grow**.
-
-**Growth is programmed with planned cells.** The builder already has planned cells: cells drawn but not joined to the body. In Lab they become the **growth plan**. The creature grows them during the run, nearest the body first, when:
-- it has the materials for the cell's recipe, and
-- a growth signal is on, from a nerve or a hormone (for example "fed" + "mineral above 10").
-
-This is like a developmental program: you draw the target body and wire the conditions, but you don't script morphogenesis cell by cell.
-
-### Puzzle types that use metabolism
-| Puzzle | Example | Teaches |
-|---|---|---|
-| **Self-sufficient** | Survive 3 minutes; the only energy is food in the water. | Feeding loop, storage |
-| **Grow to size** | Start with 8 cells, reach 25. | The growth plan, feeding |
-| **Gather and build** | A vent you can only cross with a shell; the kit has no mineral, but there's a field of diatoms. | Eat, then mineralize, then cross |
-| **Armour race** | Catch a shelled prey. | Acid, counterplay |
-| **Efficient factory** | Turn 20 algae into the most stored fat. | Digestion efficiency, valves, hormones |
-| **Metamorphosis** (boss) | Start as a swimmer and finish as an armoured crawler: dissolve your own fins and recycle them into shell. | Everything together |
+Built secretions: acid, protease, the Mineralizer. Ideas not built: a toxin that blocks nerves, digestion loss,
+food that gives protein or fat, a growth plan drawn as planned cells, and the metamorphosis boss (dissolve your
+fins and recycle them into shell).
 
 ## Chapters
-Each chapter teaches one new pattern set. Each development milestone ends with its chapter playable. Memory and logic became chapter 2 on 2026-10-28, so the chapters after it moved up by one (Circulation was chapter 2).
-
-| Chapter | New pattern | Systems on | Materials |
+| Chapter | New pattern | Systems on | Levels |
 |---|---|---|---|
-| 1. **Reflexes** | Neurons and wiring: rhythm, steering (Braitenberg), sensing | Body, nerve | Protein only; it works like a single budget |
-| 2. **Memory and logic** | Inhibitor, Latch, Delay, Synapse: holding still, waiting, timing, thresholds | Body, nerve | Protein only |
-| 3. **Circulation** | The Heart and its beat; fuel delivery | + fluid, vascular | + Sugar (fuel in the blood) |
-| 4. **Feeding** | Material kits and reserves, smelling food (Nose), a Mouth with a store; self-sufficiency | + metabolism (Fat storage), food | + Fat |
-| 5. **Armour** | Shells, mineralizing, acid and protease; counterplay; lures (the Photophore) | + secretions | + Mineral |
-| 6. **Moods** | Removed 2026-11-08 (hormones); the number went to Growth | — | — |
-| 7. **Growth** | Growth plan, Buds, regrowth; hunting for nucleic; Spread levels (grow out of control) | + growth | + Nucleic |
-| 8. **Takeover** | The reprogramming cell: writing your program into an enemy through its nerves | + takeover | — |
-| 9. **Hallmarks** (finale) | Breaking the host body's rules as a cancer, with almost everything open: converting tissue, spreading unseen by guard cells, own vessels, outlasting the die signal | + host | All |
+| 1. **Reflexes** | Rhythm, steering by crossed eyes, the body's shape as steering | nerve | First stroke, Lighthouse, Shade, Hunt, Shape |
+| 2. **Memory and logic** | Holding still, waiting, timing, thresholds; swimming and crawling by muscle | nerve | Freeze, False start, Metronome, Dock, Tail, Crevice |
+| 3. **Circulation** | Stores, waste, the Heart | + fluid, vascular | Long haul, Stale water, Cold water |
+| 4. **Feeding** | Kits and reserves, smelling and eating food | + metabolism, food | Packed lunch, Grazing, Bloom |
+| 5. **Armour** | Weapons, shell, acid and protease, lures | + secretions | Sting, Reel, Bulwark, Pincushion, Clam, Anglerfish, Quarry, Siege, Spit |
+| 6. **Growth** | Regrowth, Buds | + regrow | Grazed, Swarm |
+| 7. **Breaking the rules** | A host's rule and its loophole; the adventure | all | Tumour, Metastasis |
+| 8. Takeover (not built) | Writing your program into an enemy | + takeover | |
+| 9. Hallmarks (not built) | Breaking a host body's rules, with everything open | + host | |
+
+What each level brings to the dock: First stroke Tissue, the Siphon and the Pacemaker; Lighthouse the Light eye;
+Hunt Cilia; Freeze the Inhibitor; False start the Latch; Metronome the Delay; Dock the Synapse and the Ganglion;
+Tail the Muscle and the Joint; Crevice the Bloater; Long haul Fat, the Gill and the Pore; Stale water the Air
+sac; Cold water the Heart; Grazing the Nose and the Mouth; Sting the Nettle and the Eyespot; Reel the Snare;
+Bulwark the Shell; Pincushion the Thorn; Clam the Acid and Protease glands; Anglerfish the Photophore; Quarry
+the Mineralizer; Spit the Spitter; Grazed the Mender; Swarm the Bud; Metastasis the Command. Shade, Shape,
+Packed lunch, Bloom, Siege and Tumour bring nothing.
 
 ## Removable mechanics
-Every mechanic is a separate switch, so any part that turns out frustrating can be turned off or tuned without breaking the rest:
-- **Global switches:** `data/rules.js` holds a `RULES` object with the limits and the switchable systems, for example `{ budget: 50, maxCells: 24, systems: ['nerve', 'fluid', …, 'secretions'] }`. Planned: `digestionLoss`.
-- **Per level:** each level lists the systems it uses (`systems: ['nerve', 'vascular', 'metabolism']`). A system that is off isn't stepped, isn't drawn, and its cells can't be placed.
-- **One system per file:** each system (nerve, vascular, metabolism, secretions, growth) is its own pure file with its own step function, called from one place. Turning a system off must never need edits inside another system.
-- **Tests run with systems on and off,** so turning one off is always known to work.
+- **Global switches:** `RULES` in `data/rules.js` holds the limits and the list of switchable systems.
+- **Per level:** each level lists the systems it runs. A system that is off isn't stepped or drawn.
+- **One system per file** (nerve, fluid, vascular, metabolism, secretions, growth, food), each with its own step
+  function. Turning one off never needs edits inside another.
+- **Tests run with systems on and off** (`tests/systems.js`).
 
 ## Architecture
-The same rules as the other projects apply: plain `<script src>` files and pure sim files (see `CLAUDE.md`). Each sim file registers its systems with `registerSystem({ name, order, switchable, update })`, and `step()` runs them in order. Switchable systems run only when the world's system list names them.
+Plain `<script src>` files in one global scope, pure sim files apart from browser files (see `CLAUDE.md`). Each
+sim file registers its systems with `registerSystem({ name, order, switchable, update })`, and `step()` runs
+them in order.
 
 ```
-data/version.js GAME_VERSION; CHANGELOG.md lists what each version brought (pure data)
+data/version.js GAME_VERSION (pure data)
 data/rules.js   RULES: budget, cell cap, neuron and unit limits, switchable systems (pure data)
-data/fluids.js  FLUIDS: the fluid channels (name, layer, flow rate, decay, capacity, start fill) (pure data)
+data/fluids.js  FLUIDS: the fluid channels (name, capacity, start fill) (pure data)
 math.js         deterministic sine, cosine, arcTangent2 and the seeded random generator (pure)
-core.js         constants, hex and math helpers, world (newWorld, newTestTank, randomFraction), creature and cell
-                factories, spawn, death and splitting, the system registry, step() and the cell-death hooks (pure);
-                systems: clock 30, cleanup 110, particles 120
-fibres.js       nerve fibre routing from cell centre to cell centre, along drawn routes or the shortest way, units,
-                lanes (fibres side by side across each cell side) and colours for drawing, adding fibres to a
-                creature and cutting broken ones (pure)
-terrain.js      a level's rock (hex tiles on the cells' grid, pushing cells out and gripping them) and currents (pure)
-physics.js      input, steering, springs, drag, collisions, integration (anchored creatures stay put) (pure); systems:
-                input 10, physics 20
-nerve.js        signals along fibres, senses, the neuron rules (pure); system: nerve 40 (switchable)
-fluid.js        work levels, fuel burning, products, fluids seeping between touching cells (pure); system: fluid 50
+core.js         constants (GAME_STEP), hex helpers, the world, creature and cell factories, spawn, death and
+                splitting, the system registry, step() and the cell-death hooks (pure); systems: clock 30,
+                cleanup 110, particles 120
+fibres.js       nerve fibre routing, units, lanes and colours for drawing, adding fibres to a creature and cutting
+                broken ones (pure)
+terrain.js      a level's rock (hex tiles that push cells out and grip them) and currents (pure)
+physics.js      Command keys and AI input, turning and thrust, springs, drag, collisions, integration (pure);
+                systems: input 10, physics 20
+nerve.js        signals along fibres, senses, the neuron rules, the settle order (pure); system: nerve 40
                 (switchable)
-vascular.js     the Heart's beat and blood pumped between the touching cells within its reach (pure); system: vascular
-                55 (switchable)
-metabolism.js   Fat cells storing spare sugar as fat and turning it back; filling a new creature's stores from a kit's
-                leftovers (pure); system: metabolism 57 (switchable)
-actuators.js    resizing, a Muscle's pull and the held pull that steers (physics.js turns the body), weapon
-                triggers, timers, debris rot (pure); system: actuators 60
-secretions.js   hard cells; acid and protease glands on touching enemy cells, the Mineralizer hardening its own cells
-                (pure); system: secretions 62 (switchable)
-combat.js       damage (armour, hardening), contact hits (hard cells blunt thorns and stings), aiming, snare lines,
-                globs (pure); system: projectiles 70
+fluid.js        work levels, fuel burning, products, fluids seeping between cells (pure); system: fluid 50
+                (switchable)
+vascular.js     the Heart's beat and blood pumped within its reach (pure); system: vascular 55 (switchable)
+metabolism.js   Fat cells storing sugar as fat and back; a kit's leftovers as reserves (pure); system:
+                metabolism 57 (switchable)
+actuators.js    resizing, a Muscle's pull and held pull, weapon triggers, timers, debris rot (pure); system:
+                actuators 60
+secretions.js   hard cells; acid and protease glands, the Mineralizer (pure); system: secretions 62 (switchable)
+combat.js       damage, contact hits, aiming, snare lines, globs (pure); system: projectiles 70
 growth.js       Bud parts and Mender regrowth (pure); systems: buds 80, regrow 90 (switchable)
-food.js         the food supply (how many specks, how often, where: anywhere, near the light, a fixed trail; until when;
-                mineral specks), eating and counting it, specks left by dead cells (pure); system: food 100 (switchable)
-ai.js           AI steering: sandbox enemies and hunters at the nearest enemy, guards once woken, prey away from
-                it in tiring sprints (pure)
-levels.js       levels: building a level's world, its light, its food and the kit's reserves, creatures arriving later,
-                stepping it, the host rule that wakes guards, the goal checks, the score, a headless run (pure)
-adventure.js    an adventure level (Metastasis): the bank of materials, pickups and kills' drops that fill it and
-                unlock cells, sleepers that wake near the player, dens (rebuild, respawn), giving the body up (pure)
-tutorial.js     the tutorial's rules: which lesson starts next, the steps a condition skips, whether the player has
-                done what a step waits for (pure)
-design.js       hex lookup, buildCheck (cells, biomass or the kit, neurons, fibre units), material kits (a design's
-                materials, the kit's leftovers and reserves), design warnings and the Needs rows they fill, the sugar
-                supply, the saved design format, and the conversion of old saves and of designs from before the nerve
-                layer and the Heart's areas (pure; loaded before data/templates.js, which uses the conversion)
-snapshot.js     any web of objects as plain JSON data and back, shared objects and loops kept, the game's data by path
-                (pure)
-savegame.js     the save's version and upgrade steps, the games (adding, switching, deleting, what a game's card says),
-                the resume state Continue reads, a run's snapshot, creature files (pure)
-titlescene.js   the title screen's living scene: building it, newcomers for lost creatures, clearing old debris, the
-                drifting light, what the camera may follow (pure)
-builder.js      the edited design and every editing rule: cells, neurons and fibres (mirrored across symmetry axes),
-                painting strokes, Bud parts and aim, Command keys, fibres drawn along a route, stamps, saving a
-                selection, the library list (pure)
-fieldguide.js   the field guide's sections and entries, each cell's and neuron's facts and stats read from the game's
-                data; an example build as a design, as its wiring (what feeds what), and running in open water with
-                what its senses need (createExampleRun) (pure)
-data/*.js       cells (stats, recipes and behaviour fields), materials, neurons, fluids, templates (incl. the small
-                builds), tips, levels and the creatures that live in them, sound effects, the title scene, the field
-                guide's words, the tutorial's lessons
-cellart.js      how each cell and neuron badge looks (Microscope style): see-through body, membrane, a symbol per type
-render.js       canvas drawing of a world: bonds, cells (through cellart.js), overlays, Photophore glows, fibres in
-                lanes, food
-windows.js      DOM and storage helpers (localStorage, or the desktop save file), floating windows, remembered menu
-                branches
-dialog.js       the game's own question box (askToConfirm) in place of confirm(): Delete all, deleting a saved creature
-                or template; Enter confirms, Esc cancels
-tipdemo.js      draws the live example in the cell and neuron tooltips and the field guide, the view following the
-                creature, with signal lanes under a neuron's example
+food.js         the food supply, eating, specks left by dead cells (pure); system: food 100 (switchable)
+ai.js           AI steering: hunters, guards once woken, prey fleeing in tiring sprints (pure)
+levels.js       building a level's world, its light, creatures arriving later, stepping it (counting the steps),
+                the host rule, the goal checks, the score, a headless run (pure)
+adventure.js    Metastasis: the bank, pickups and drops, sleepers, dens, giving the body up (pure)
+tutorial.js     the tutorial's rules: which lesson is next, which steps are skipped or done (pure)
+design.js       buildCheck, material kits, design warnings and the Needs rows, the saved design format and the
+                conversion of old saves (pure)
+snapshot.js     any web of objects as plain JSON data and back, shared objects and loops kept (pure)
+savegame.js     the save's version and upgrade steps, the games, the resume state, a run's snapshot, creature
+                files (pure)
+replay.js       the recording of a level run: every step's keys and a snapshot every few seconds; the run as it
+                was at any step (pure)
+titlescene.js   the title screen's living scene (pure)
+builder.js      the edited design and every editing rule: cells, neurons, fibres, symmetry, Bud parts, Command
+                keys, stamps, the library list (pure)
+fieldguide.js   the field guide's entries and facts read from the game's data; an example build running in open
+                water (pure)
+data/*.js       cells, materials, neurons, fluids, templates, tips, levels and their creatures, sounds, the title
+                scene, the field guide's words, the tutorial's lessons
+cellart.js      how each cell and neuron badge looks (Microscope style)
+render.js       canvas drawing of a world: bonds, cells, overlays, glows, fibres in lanes, food
+windows.js      DOM and storage helpers (localStorage, or the desktop save file), floating windows
+dialog.js       the game's own question box, with a name field
+tipdemo.js      draws the live example in the tooltips and the field guide
 hud.js          HUD bars and vitals
-dock.js         the cell dock: a tab per category, two rows of hexagons; the neurons in the Nerve view
-library.js      the Templates screen (a sheet like the field guide; T): tabs My creatures, My parts and Examples, a name
-                filter, cards with pictures, Save this creature; the library, saved in localStorage
-toolbar.js      the Body / Nerves tabs at the top, with Unlimited, Symmetry (its dial of axes) and the red Delete all
-                beside them; the keys sheet (H); Shift+1–6 fluid views
-panel.js        the limits line under the tabs (biomass, or the kit's materials and reserves), a message line, the card
-                of the clicked cell or the stamp, and the Needs card (sugar time, a row per need, a fluid's row clicked
-                to show its fluid view, the next fix)
-builderview.js  drawing the builder grid (with the symmetry axes, the Shift highlight and the reach of the Heart under
-                the mouse) and the preview window; zoom and pan; the builder's cursor
-reference.js    the Reference window: a creature from the Templates screen (Study) beside the Lab, live in its own test
-                tank, drawn as the grid draws a design (or swimming); kept per game
-tooltip.js      the hover hint: name, cost, description, how to use, live example
-guideview.js    the field guide sheet: the list with each entry's picture, an entry's page told in pictures (the example
-                tank, cost pips, health and fuel bars, a setting slider, wiring with moving fibres, picture tiles);
-                opened from the menus, G and the card
-probes.js       signal probes: a live 6 s trace per sense, neuron and signalled cell; in runs for the player (or the
-                cells the player clicked), in the builder's Traces window (Nerve view) for the test tank's creature
-sandbox.js      sandbox mode: its bar, steps, drawing and HUD; the time controls and vitals HUD it shares with levels
-levelview.js    levels in the app: the Run level and Levels buttons, the levels sheet (level tiles, and the chosen
-                level's card beside them), a level run with its bar, arena, HUD and result box, the best results
-adventureview.js an adventure in the app: the camera that follows the player, dens and pickups, its
-                HUD lines, E (the den's rebuild in the Lab, Back to the adventure) and R (back to the last den)
-briefing.js     the level briefing: a card over the Lab the first time it builds for a level not won yet (what it
-                asks, its arena, the pieces it brings, its rules)
-music.js        the background music: starts at once where allowed (desktop), else on the first click or key, loops by
-                crossfading two copies; the Settings and M switch it
-sound.js        sound effects: playing them, Settings and N, the creature's sounds from world changes
-fonts/          Megrim (the title screen's font) and its licence, OFL.txt
-audio/          the music track (mp3) and the sound effects in audio/sfx/ (wav), with audio/sfx/bank.js: the same WAVs
-                as base64 for Web Audio (node tests/soundbank.js --update writes it; the tests' load() skips it)
-titleview.js    the title screen: the scene drawn behind the main menu, the drifting camera, dimming the screen between
-                the title and the lab
-progress.js     Continue: saving the design, the level and a running level or Sandbox as they change, picking them up
-                again; quick save and load; exporting a library entry to a file and importing one
-gamesview.js    the Load game screen: a card per saved game, playing or deleting one
-tutorialview.js the tutorial on screen: the spotlight on what to click, the speech bubble, the voice lines,
-                Skip and Next
-tools/make-voice.js  makes the tutorial's voice lines (audio/voice/<step id>.mp3) with ElevenLabs; Node only, run
-                by hand with the user's key, not part of the game (left out of the desktop build)
-menus.js        the main menu (Continue, New game, Sandbox), the Esc menu (pausing a run), their Settings view
+dock.js         the cell dock and the neurons in the Nerve view
+library.js      the Templates screen (T) and the library
+toolbar.js      the Body / Nerves tabs, Unlimited, Symmetry, Delete all; the keys sheet (H); the fluid views
+panel.js        the limits line, the message line, the clicked cell's card and the Needs card
+builderview.js  drawing the builder grid and the Preview; zoom and pan; the cursor
+reference.js    the Reference window: a creature to study beside the Lab
+tooltip.js      the hover hint
+guideview.js    the field guide sheet
+probes.js       signal probes in runs and in the Lab's Traces window
+timeline.js     a level run's timeline: the slider over what the run has been through, a look back at any
+                moment, and Result, which runs the level to its end at once
+sandbox.js      Sandbox mode; the fixed-step clock, blended drawing, time controls and vitals HUD it shares with
+                levels
+levelview.js    the Run level and Levels buttons, the levels sheet, a level run with its bar, arena, HUD, the
+                arrow to a far ring and the result box, the best results
+adventureview.js an adventure in the app: the camera that follows the player, dens and pickups, E and R
+briefing.js     the level briefing card
+music.js        the background music
+sound.js        sound effects, and the creature's sounds from world changes
+titleview.js    the title screen and the dimming between it and the Lab
+progress.js     Continue, quick save and load, exporting and importing creature files
+gamesview.js    the Load game screen
+tutorialview.js the tutorial on screen: spotlight, bubble, voice, Skip and Next
+menus.js        the main menu, the Esc menu and Settings
 ui.js           the app state, the controls, mouse and keyboard input, the frame loop
-game.js         the entry point: starts the app in a browser, not when the tests load the scripts
-tests/*.js      headless checks: node tests/all.js (adventure, autonomy, builder, crowd, design, determinism, editor,
-                golden, growth, guide, hints, levels, line-endings, menus, metabolism, music, nerve, probes, sandbox, savegame,
-                secretions, showcase, sound, soundbank, style, systems, terrain, tips, title, tutorial, vascular,
-                version, weapons); helpers: load.js, dom.js (fake browser), check.js
+game.js         the entry point
+fonts/, audio/  Megrim and its licence; the music, the sound effects (audio/sfx/bank.js holds them as base64)
+                and the tutorial's voice lines
+tools/make-voice.js  makes the voice lines with ElevenLabs; Node only, run by hand
+tests/*.js      headless checks: node tests/all.js (adventure, autonomy, builder, crowd, design, determinism,
+                editor, golden, growth, guide, hints, levels, line-endings, menus, metabolism, music, nerve,
+                probes, replay, sandbox, savegame, secretions, showcase, sound, soundbank, style, systems,
+                terrain, tips, title, tutorial, vascular, version, weapons); helpers: load.js, dom.js, check.js
 ```
 
-**The saved design format** (2026-10-28): a design is `{ cells, fibres }` (`vessels` too until 2026-11-01); fibres are `{ from: { q, r }, to: { q, r } }`. A design cell is `{ q, r, typeName }`, plus on a Bud `budPart`, `partRotation`, `partOffset` and `partAim`, on a Command `boundKey`, and on a Receptor `sensedHormone` (left out for Adrenaline). A library entry is `{ name, isCreature, cells, fibres }`; one saved with vessels gets an Inhibitor in each Heart without a neuron and loses the vessels (see "The Heart pumps an area"). `migrateLibraryEntry()` in `design.js` reads the old short names (`t`, `tpl`, `bind`, `rot`, `off`, `aim`, `full`). The library lives under `bioforge-lab-library`; the first time, Lab copies Bioforge Moba's `bioforge-templates` list from it, and it never writes to that key, because pages opened from disk can share storage and Moba still uses it. Every Lab storage key starts with `bioforge-lab-`.
+**The saved design format:** a design is `{ cells, fibres }`; a fibre is `{ from: { q, r }, to: { q, r } }` with
+an optional `via` list. A design cell is `{ q, r, typeName }`, plus `neuron`, on a Bud `budPart`, `partRotation`,
+`partOffset` and `partAim`, and on a Command `boundKey`. A library entry is `{ name, isCreature, cells, fibres }`.
+`migrateLibraryEntry()` in `design.js` reads older forms.
 
-**Cell behaviours.** Systems never check a cell's type name. Each cell type in `data/cells.js` declares behaviour fields (`work`, `product`, `trigger`, `resize`, `breathes`, `pumps`, `gatesFlow`, `needsSignal`…), and the systems read those, some through small registries (`WORK_LEVELS` and `PRODUCTS` in `fluid.js`, `TRIGGERS` in `actuators.js`). A new cell type made from existing behaviours needs only data. `tests/determinism.js` fails if a pure file compares `typeName`.
+**Cell behaviours.** Systems never check a cell's type name. Each cell type in `data/cells.js` declares behaviour
+fields (`work`, `product`, `trigger`, `resize`, `breathes`, `pumps`, `needsSignal`…), and the systems read those.
 
-The desktop build sits beside the game, in `desktop/` (Node and Electron, not loaded by the page):
+The desktop build, in `desktop/` (Node and Electron, not loaded by the page):
 
 ```
-main.js         the Electron window around the game page, fullscreen keys, the save file's and the window's messages
-preload.js      gives the page window.desktopSaves (getItem / setItem), read once at start, and window.desktopWindow
-                (quit, toggleFullscreen, isFullscreen) for the menus
-saves.js        the save file: one JSON file, written after a delay through a temporary file, retried (Node only)
+main.js         the Electron window around the game page, fullscreen keys, the save file's and window's messages
+preload.js      gives the page window.desktopSaves and window.desktopWindow
+saves.js        the save file: one JSON file, written after a delay through a temporary file, retried
 copy-game.js    copies bioforge-lab into game/ before a build, without tests, logs and plans
-make-icon.js    npm run icon: draws icon.html in headless Edge and writes icon.ico, icon-1024.png and
-                bioforge-lab/icon.png (the page's and the window's icon)
-icon.html       the icon page; icon.js draws it with the game's own cellart.js (browser-only)
+make-icon.js    npm run icon: draws icon.html in headless Edge and writes the icons
+icon.html       the icon page; icon.js draws it with the game's own cellart.js
 tests/          the save file test, and a CRLF check of these files
 ```
 
 ## Milestones
-0. **Trim.** ✅ Done 2026-10-28.
-   - Removed `moba.js`, `data/arena.js`, the arena drawing in `render.js`, the match code in `ui.js`, and `tests/match.js`. The match button is gone, and the sandbox is the only run mode until levels arrive.
-   - The four small builds (Lancer, Stinger, Spitter, Snarer) moved into `data/templates.js`.
-   - `data/rules.js` holds the budget (50 biomass / 24 cells), `selfHarm`, and the switchable systems: nerve, fluid, food, regrow. `newWorld(width, height, { systems })` takes a list, and `step()` skips the systems that are off. With fluid off, cells work at full power.
-   - Test: `tests/systems.js` covers each system switched off, nothing firing with nerves off, no fluid change with fluids off, and the same result on every run.
-0.5. **Core.** ✅ Done 2026-10-28. The sim core and the UI were rebuilt to the code-quality rules before layers are added. Problems it fixed:
-   - Steering built into the physics (free swimming force on every cell, magic turning torque). It is fixed in milestone 2, behind a switch.
-   - `Math.random` and engine-dependent math, which break determinism.
-   - Cell behaviour scattered across about 8 functions as `if (c.t === …)` checks.
-   - 5 hard-coded fluid channels.
-   - Leftovers from the moba and online projects.
-
-   Steps, each verified by the tests:
-   1. ✅ **Golden tests** (2026-10-28): `tests/golden.js` hashes the exact sim state after 10 s of 10 scenarios (each design against a hunting Nettler, seed 7, all systems on, food included since step 3).
-   2. ✅ **Readable naming** (2026-10-28): the sim, render, HUD, tooltip demo, design checks, cell data, templates and sim tests were rewritten to the code-quality rules. The golden fingerprints stayed bit-identical.
-      - Steps 4 and 5 were mostly done along the way: `sim.js` was split into system files with a registry, and `map.js`, `pin`, `inv` and the map hooks were removed. One creature factory and one cell factory.
-      - Speed: about 69 ms per 10 game s on the golden scenario, against about 107 ms for the old sim (the old run also spawned food).
-      - **Not yet done:** `ui.js` and the UI tests (`dom.js`, `sandbox.js`, `showcase.js`) only had the sim names updated; their own style is unchanged. The saved design format (`{ q, r, t, tpl, bind, rot, off, aim }`) keeps its short field names, because renaming them needs a migration of creatures already saved in the browser.
-   3. ✅ **Determinism** (2026-10-28): `math.js` has `sine`, `cosine` and `arcTangent2` built from `+ - * /` (fdlibm's polynomials, within 1 unit in the last place of `Math`), and a seeded mulberry32 generator. Each world has `randomState` (`newWorld(width, height, { seed })`), and `randomFraction(world)` is the sim's only source of chance. `**` became `square()` and `distanceSquared()`.
-      - The golden fingerprints were recorded again once, on purpose. With food left out, all 10 scenarios end with the same positions (to 0.1 px), health and cell counts under `Math`'s trig and under ours, so only the last bits moved.
-      - `exp` isn't written yet, because the sim doesn't use it. Add it to `math.js` when first needed.
-      - Speed, with the scripts in Node's main context as in a browser: about 29 ms per 10 game s, about 5% more than with `Math`'s trig.
-   4. ✅ **Leftovers out** (2026-10-28): `isTestTank` is gone. `newTestTank()` builds the builder preview and the tooltip demos from plain world settings: the food system off, `waterFeedRate` (the water feeds Mouths) and `spaceFiresAllSources`. Dead cells leave food through the food system's `onCellDeath` hook, so with food off there are none.
-   5. ✅ **Systems split:** done in step 2 (see Architecture).
-   6. ✅ **Cell behaviour hooks** (2026-10-28): see "Cell behaviours" under Architecture. The sim and `design.js` no longer name cell types. Golden fingerprints unchanged.
-   7. ✅ **Channel registry** (2026-10-28): `data/fluids.js` lists the fluids as data (id, name, capacity, start fill; a layer, flow rate and decay rate too, until the hormones went on 2026-11-08). A cell's capacities and start amounts come from it; adrenaline's decay and the flow rate are read from it. Golden fingerprints unchanged.
-   - Test: `tests/golden.js` (unchanged by steps 2, 4, 6, 7 and 8), `tests/determinism.js` (math accuracy, the random sequence, seeds, and the pure-file rules), `tests/systems.js` (the test tank), `tests/builder.js` (editing rules, the format migration), `tests/editor.js` (the builder driven by mouse and keys).
-   8. ✅ **UI rewrite** (2026-10-28): `ui.js` (730 dense lines) became `builder.js` (pure editing rules), `dock.js`, `library.js`, `panel.js`, `builderview.js`, `tooltip.js`, `sandbox.js` and a smaller `ui.js` that holds one `app` state object and the input. `windows.js`, `data/tips.js`, `style.css` and the HTML ids and classes were rewritten with full names too. The saved format was renamed (see Architecture), with a migration of saved creatures. The UI tests were rewritten, and `tests/builder.js` and `tests/editor.js` were added.
-      - Bugs found on the way: the tooltip used the old names `DEMO_W` and `DEMO_H` and threw after 1 s of hovering (since step 2); the library window's position and the library itself were stored under the same name (found in a headless Edge run, fixed by giving windows their own `window-` prefix).
-   - Milestone 0.5 is done. All 8 steps passed their tests; the golden fingerprints changed once, on purpose, in step 3.
-1. **Nerve layer.** ✅ Done 2026-10-28. Nerve fibres from cell centre to cell centre (along hexagon edges at first, changed the same day), with limited units; crossing paths; the neuron set; the editor's layer views. Blood keeps today's seeping for now.
-   - Built: `fibres.js`, `data/neurons.js`, the rewritten `nerve.js`, fibres and neurons in `core.js` (spawn, cleanup), `growth.js` (Bud parts and regrowth), `design.js` (limits, warnings, conversion), `builder.js` (neurons, settings, fibres, stamps and Bud parts keep them), the Nerve view in `ui.js`, `dock.js`, `panel.js` and `builderview.js`, and fibres and neuron badges in `render.js`.
-   - The Nerve, Ganglion, Pacemaker and Command cell types are gone; Eyespot is a sense organ (`senses: 'enemy'`); `conductsSignal` and `signalCapacity` are gone.
-   - **The model.** Every nerve step, each cell adds up what its incoming fibres deliver, plus its own sense (an Eyespot near an enemy gives 1). A cell with no neuron passes the sum on, clamped to 0..1, so plain cells are relays. A cell with a neuron hands the sum to the neuron, which decides the cell's signal. Actuators react to their cell's signal as before.
-   - **The neurons** (trial set, `data/neurons.js`):
-     - Pacemaker: on and off at its rate (setting: rate in Hz); ignores its inputs.
-     - Command: on while its key is held (Space, or the number key bound to it); ignores its inputs.
-     - Ganglion: follows its input slowly, as a delay and smoother.
-     - Inhibitor (NOT): on while its input is off.
-     - Synapse: on while its input sum reaches its threshold (setting: threshold). Threshold 1 is OR; with two inputs, 2 is AND.
-     - Latch: each new pulse on its input flips it on or off.
-   - **Fibres** are routed automatically from the start cell's centre through the fewest cells to the end cell's centre. Neighbours are 1 unit. A fibre is cut when its start, its end or a cell it runs through dies. Regrown cells and growing Bud parts get their fibres back once both ends are there.
-   - **Old designs** (built-in, tooltip examples, saved creatures) are converted when loaded: Nerve cells become Tissue, Pacemaker, Ganglion and Command cells become Tissue with that neuron, and the old touch-wiring becomes fibres. Each signal source is wired outward through the cells that used to carry signals.
-   - **The editor** gets a Body view and a Nerve view. In the Nerve view the dock shows the neurons; a click puts the chosen neuron into a cell, and a drag from one cell to another lays a fibre. A right-click takes out whatever is drawn red under the mouse: the neuron near a cell's centre, otherwise the fibre whose line is nearest (changed 2026-10-28, user: "we need better system for fibre removal"; until then a right-click only took out neurons, and a fibre went only by repeating its drag, which still works). The panel shows the units used, the clicked cell's neuron setting, and its fibres, each with a × that removes it.
-   - Chosen without asking: two fibres may share cells and steps; fibres are routed automatically (choosing a route by hand came on 2026-10-29); the sandbox limits are 12 neurons and 40 fibre units.
-   - Test: the logic neurons give the expected truth tables, a chain of fibres delays by one step each, fibres route and get cut as described, old designs still move after conversion, and the same design gives the same result on every run.
-2. **Autonomy, debugging and chapter 1.** ✅ Done 2026-10-28. No hidden steering. Probes with signal traces, slow motion and single-stepping. The level format, win checks, scores, and 5 Reflexes levels ending in a Braitenberg hunt.
-   - Test: a scripted reference solution beats every level headless.
-   - Done so far (2026-10-28): autonomy and time controls. The player's creature is `autonomous`: no free swimming, no held heading, no WASD and no autopilot; Space and the bound keys still reach its Command neurons. Cilia push toward the front from where they sit, so cilia on one side turn it. Muscles move a creature only by pushing water (decided 2026-10-28, user: "I would like the movement behave like in water"; for a few hours before, a contracting muscle kicked the creature forward directly). See "Water" below. The sandbox has pause (P), one step (.) and speeds 1×, 2×, 4×, ½×, ¼× (,). Test: `tests/autonomy.js`, `tests/sandbox.js`.
-   - Done 2026-10-28: the Delay neuron, light with a reach, and the level format with chapter 1's levels, 4 since Moth was dropped on 2026-11-01: First stroke (reach a ring ahead: a Pacemaker on two Siphons), Lighthouse (reach a light: crossed Light eyes), Shade (turn away from a light to a dark ring: same-side eyes plus a Pacemaker), Hunt (keep near the Darter, prey that flees in sprints that tire it). Each has a reference solution that wins with 3 stars headless, and a wrong tool that loses. Test: `tests/levels.js`.
-   - Done 2026-10-28: chapter 2, Memory and logic: Freeze (swim to a ring, hold still while a blinking light is on: two Light eyes into an Inhibitor) and False start (hold still until a single flash, then swim: two Light eyes into a Latch). The levels sheet shows chapter headings; a blinking light that is off shows as a dim lamp; the HUD says "Light on: hold still", "Dark: go" or "Wait for the flash". Test: `tests/levels.js`.
-   - Done 2026-10-28: signal probes. In Sandbox and level runs the box at the bottom left shows a lane per sense, neuron and signalled cell of the player (senses first, up to 8), each with its last 6 game s of signal. T hides or shows them, remembered under `bioforge-lab-probes-shown`. The box can be dragged anywhere, and its place is remembered (2026-10-30, user: "Allow this piece of HUD to be movable"; until then it was fixed at the bottom left). With pause and one step, they show a circuit working step by step. Test: `tests/probes.js`.
-   - Done 2026-10-28: levels unlock in order (a locked row is dimmed, shows a lock and names the win that opens it), and Metronome, chapter 2's third level: the light comes on every 4 s and you must already be still (0.25 s grace): a Delay of 2.5–3 s in one Light eye stops the Freeze build before the next flash. Test: `tests/levels.js`.
-   - Done 2026-10-28: Dock, chapter 2's fourth level and its Synapse level: a fixed light (900 px reach) above a ring; come to rest in the ring for 2 s. The eyes grow brighter on the way in, and a Synapse at threshold 1.5 into an Inhibitor stops the creature in the ring. New goal kind `restIn`. Test: `tests/levels.js`.
-   - Done 2026-10-28: choosing which cells to probe. While the signals show, a left click on one of your own cells in a run adds its lane at the end, or removes it if it is probed (the rest are numbered again; a ninth lane replaces the eighth). In the Sandbox a click anywhere else still spawns an enemy. The choice is kept through respawns and retries, and a new run from the builder goes back to the automatic pick. Test: `tests/probes.js`.
-3. **Vascular layer and chapter 3.** ✅ Done 2026-10-29. Vessels, the Heart, valves; Sugar as fuel (vessels gave way to the Heart's areas on 2026-11-01). Chapter 3 has 4 levels: Long haul (reserves and waste), Stale water (an O₂ store; it was Exhaust, about waste, until 2026-11-06), Cold water (the Heart) and Marathon (all three at once, and a Heart that beats sparingly). (Until 2026-10-28 this was "chapter 2"; the later milestones moved up by one with it.)
-   - Test: `tests/levels.js`, `tests/vascular.js`.
-   - Done 2026-10-28: vessels (see Decisions). `vascular.js` with its own switchable system; the Heart pumps only the vessels it sits on, and the old "within 3 cells" boost is gone from `fluid.js`. The builder has a Vessels view (toolbar button or V): drag from cell to cell to lay a vessel or remove the one there, right-click a vessel to take it out, a vessel meter, and its own How to steps. Vessels are drawn bright while pumped, dark while idle, grey and dashed while a Valve shuts them, in the builder and in runs. Stamps, saved parts and creatures keep their vessels. Warnings: a Heart on no vessel, and fuel-burning cells more than 2 cells from the end of a pumped vessel. The Jet, Seeker, Paddler and the four small builds got vessels from their Hearts; their swim speeds are unchanged. Test: `tests/vascular.js`, `tests/editor.js`.
-   - Done 2026-10-28: seeping between touching cells is 4x slower (0.1 flow per unit of fill difference), so a busy cell far from a store runs short: two Siphons held on behind a 1-cell neck get 59% of their fuel, behind 5 cells 40%, and 100% on a pumped vessel. The templates swim as before (Jet 22.8 px/s, Paddler 30–35 px/s). Level runs and the Sandbox have 2× and 4× (,).
-   - Done 2026-10-28: Long haul, chapter 3's first level, the first with the fluid and vascular systems on: follow a drifting light for 150 s in all, within 300 s (240 s until 2026-11-06). It brings Fat, the Gill and the Pore. Its answer is a Seeker with a Fat on the left, a Gill on the right and a Pore at the back touching both Siphons (20 biomass): it wins in 193 s (par 195 s; 180 s until 2026-11-06), and the other way round in 266 s. A bare crossed Seeker runs out of O₂ and sugar (117 s near the light before its first cell dies), with a Fat each side it runs out of O₂ (94 s), and a Gill and a Fat with Tissue for the Pore are poisoned. Until 2026-11-06 the Pore came a level later, and every body that lasted long enough was poisoned near the end: the old answer (a Fat each side and a Gill at the back, 169 s) had 2 s to spare, and the player's Gill and Fat body lost both Siphons to waste at 116 s (user: "my creature dies of poisoning because it doesn't have pores, But pore is locked"). Test: `tests/levels.js`.
-   - Done 2026-10-28: Stale water (id `exhaust`; called Exhaust until 2026-11-06), chapter 3's second level: the same drifting light at 24 px/s, 120 s near it in all, within 240 s, in water with no O₂ in it: a level's `waterOxygen` (0 here, 1 elsewhere) scales what Gills make. It brings the Air sac. Its answer is a Seeker with a Fat and an Air sac on the sides and the Pore at the back (20 biomass): it wins in 176 s. The Long haul build reaches 85 s near the light, and with Tissue for the Pore 95 s. Gills fill their small O₂ store at any `waterOxygen` from 0.3 up, so only 0 makes the Air sac needed. Until 2026-11-06 the water had O₂, the level brought the Pore too, and its lesson was waste. Test: `tests/levels.js`.
-   - Done 2026-10-28: the fuel is called Sugar (it was "energy"): the fluid, the HUD bar, the cell texts and tips, and the code names (`FLUID_SUGAR`, `sugarCapacity`, `storesSugar`). The Fat cell holds Sugar until metabolism (milestone 4) turns fat into sugar. Test: `tests/all.js` (golden fingerprints unchanged).
-   - Done 2026-10-29: Cold water, chapter 3's third level and the first that needs vessels: Stale water's chase in cold water with O₂ in it ("Exhaust" below is Stale water's old name). A level's `seepFactor` (0.05 here, 1 elsewhere) slows seeping between cells and the unpumped flow in vessels 20x; a Heart's pumping is not slowed. Its answer is Exhaust's body with a Heart at the front between the eyes and a vessel from it to the Fat, the Air sac, each Siphon and the Pore (23 biomass, 14 vessel units): it wins in 174 s, never starving or poisoned. Without a pumped vessel the Siphons starve: of the 120 s near the light, the Exhaust build reaches 16 s, with a Gill 17 s, with a Fat for the Air sac and a Gill 15 s, the same vessels without a Heart 80 s, and a Heart with vessels to the stores only 15 s. A Heart whose vessels skip the Pore is poisoned (88 s). Test: `tests/levels.js`, `tests/vascular.js`.
-   - Done 2026-10-29: Marathon, chapter 3's last level: cold water and the drifting light at Long haul's 18 px/s, 200 s near it in all, within 300 s. Its answer is the Cold water build with a Fat for the Air sac and a Gill beside each Siphon, the Heart's vessels reaching both Gills too (27 biomass, 20 vessel units): it wins in 267 s. The Cold water build runs out of O₂ and sugar together (193 s near the light); with an Air sac for the second Fat it runs out of sugar (163 s); Gills off the vessels feed nothing (87 s); a Gill in place of the Pore is poisoned (127 s); without the Heart 45 s. Test: `tests/levels.js`.
-   - Decided 2026-10-29 (user chose "Capstone level" over reworking the vessel numbers):
-     - **The Heart's rate stays fixed.** It was tried following a nerve signal (up to 2x pumping and fuel), but a resting Heart already delivers about 100x what two Siphons burn: Cold water still wins with the Heart at 3% of its beat. A faster Heart would change nothing unless the vessel numbers, and with them the templates, were retuned. (Changed 2026-11-01: the Heart beats only on a signal and burns as much as a Siphon, so its beat is worth wiring.)
-     - **Blood stays two-way,** from fuller to emptier.
-     - **Vessels in Bud parts** move to milestone 8 (growth; it was milestone 7 until 2026-10-29).
-     - A capstone joining chapter 2's logic with circulation was tried and dropped: a blinking drifting light (a Delay echo, a Ganglion or a cruising Pacemaker to swim through the dark) won only at a few settings, and Freeze in cold water ends in about 30 s, before the Siphons' own stores run dry.
-4. **Metabolism and chapter 4.** ✅ Done 2026-10-29. Material recipes and kits (Protein, Sugar, Fat), Fat storage, the Nose, a level's food supply and the eat goal. Chapter 4, Feeding, has 3 levels: Packed lunch (the kit), Grazing (the Nose, a Mouth with a store), Bloom (everything so far).
-   - Test: `tests/metabolism.js`, `tests/levels.js`.
-   - Done 2026-10-29: Packed lunch: Long haul's chase (150 s near the light, within 240 s) with no food and a kit of 32 protein · 4 sugar · 7 fat (22 · 3 · 5 until the limits were loosened the same day). The Seeker with a Fat, a Gill and a Pore (20 biomass) wins in 193 s on the fat in its Fat cell; with Tissue for the Fat, the kit's fat has nowhere to go and it starves at 97 s near the light (77 s with the old kit); without the Gill 112 s.
-   - Done 2026-10-29: Grazing: eat 13 of a trail of 15 specks about 90 px apart, within 100 s; kit 30 protein · 3 sugar · 2 fat (20 · 3 · 1 until loosened). Two Noses crossed to two Siphons, a Mouth and a Fat beside it (18 biomass) eat 13 in 64.5 s. Without the Fat the Mouth stays full and eats 9; crossed Light eyes, a Jet and same-side Noses eat none.
-   - Done 2026-10-29: Bloom: the drifting light, 180 s within 140 px of it within 320 s (100 px and 260 s until 2026-11-06); food grows within 120 px of the light every 2 s (8 at most) for the first 80 s; kit 38 protein · 2 sugar · 3 fat (26 · 2 · 2 until loosened). The Seeker with a Fat and a Mouth on its sides, a Pore at the back and a Gill beside each Siphon (24 biomass) eats 12 and wins in 225.6 s (244.5 s before loosening). Tissue for the Fat: 74 s near the light; Packed lunch's answer (no Mouth): 161 s near the light of 180; a Mouth without Gills runs out of O₂ (about 100 s). It still wins with food ending at 70–90 s or growing within 100 px; with a kit of 1 sugar it loses.
-   - Open: digestion loss (a speck gives its whole sugar; the `RULES.digestionLoss` named under Removable mechanics does not exist yet), food that gives Protein or Fat, eating other creatures' recipes, and a use for leftover Protein.
-5. **Secretions and chapter 5.** ✅ Done 2026-10-29. Mineral, hard cells, the Acid gland, the Protease gland and the Mineralizer, mineral specks; survive and kill goals, late arrivals, anchored creatures. Chapter 5, Armour, has 8 levels: Sting (the Nettle, added 2026-11-01), Bulwark (Shell), Pincushion (the Thorn, added 2026-11-01), Clam (acid and protease), Anglerfish (the Photophore, added 2026-10-30), Quarry (the Mineralizer), Siege (everything) and Spit (the Spitter, added 2026-11-01).
-   - Test: `tests/secretions.js`, `tests/levels.js`.
-   - Done 2026-10-29: Bulwark: the Puffer hunts from the start; keep the Nucleus alive 60 s; kit 30 protein · 4 sugar · 6 mineral. A Nucleus in a ring of six Shell wins (its first cell lost at 57.2 s); a ring of Tissue dies at 22.1 s. A ring of Thorns wins too, by killing the Puffer.
-   - Done 2026-10-29: Clam: an anchored clam (a Nucleus in two rings of Shell, 19 cells) carries the light; destroy its Nucleus within 50 s; kit 30 protein · 4 sugar · 3 fat. The crossed Seeker with acid, protease, acid across the front, fired by an Eyespot, wins in about 34 s; protease, acid, protease in about 46 s. Three acid glands run out of fuel on the soft Nucleus; three protease glands can't open the Shell; Nettles and Thorns don't get through in time (Nettles took 46–63 s with a looser kit).
-   - Done 2026-10-30: Anglerfish: dark; a wired Seeker (the template) rests 360 px away and swims to any light; destroy its Nucleus within 55 s; kit 30 protein · 4 sugar · 2 fat. A Photophore held on by an Inhibitor in a cup of four protease glands (held on too) wins at about 41 s without swimming. Without the light the Seeker never comes; with the glands in a row in front of the light the Seeker's eyes are digested first and it stops, blind, short of them; acid alone is too slow.
-   - Done 2026-10-29: Quarry: Grazing's trail as mineral specks, the Puffer arriving at 30 s; survive 80 s; kit 30 protein · 6 sugar · 2 fat, no mineral. Grazing's body with a Mineralizer (with a Pacemaker) for the Fat eats 13 specks and hardens its whole body; with Tissue for the Mineralizer it dies at about 74 s.
-   - Done 2026-10-29: Siege: the clam again and the Puffer at 50 s; survive 120 s; kit 40 protein · 6 sugar · 2 fat, no mineral. Three acid glands open the clam, a Mouth eats 6 mineral specks from the broken Shell and a Mineralizer hardens 6 cells by 40 s. Without the Mineralizer, the acid or the Mouth it dies at 75–80 s.
-   - Done 2026-11-01: Sting: the glowing Darter (Hunt's prey); destroy its Nucleus within 60 s; kit 36 protein · 4 sugar · 3 fat. The crossed Seeker with three Nettles across the front, fired by an Eyespot, wins in 28.7 s; two Nettles don't kill it in time, nor do three that no fibre fires. Brings the Eyespot too (until then it came with Clam).
-   - Done 2026-11-01: Pincushion: Bulwark's hunting Puffer; destroy its Nucleus within 60 s; kit 30 protein · 4 sugar · 6 mineral. A ring of six Thorns wins in about 20 s, as the Puffer charges into it; Bulwark's ring of Shell survives but never kills it. Nettles against a stinging urchin were tried first: they kill the Thorns in about 4 s (a sting reaches every cell within 45 px, from every Nettle).
-   - Done 2026-11-01: Spit: Lullaby's urchin, anchored and carrying the light, 370 px off; destroy its Nucleus within 50 s; kit 30 protein · 6 sugar · 2 fat. The crossed Seeker with two always-on Spitters at the front wins in 30.7 s: the spits' recoil holds it about 290 px from the urchin, out of the Nettles' reach. Clam's gland row loses. Last in the chapter, because always-on Spitters also beat Quarry, Siege and Lullaby (by killing the Puffer, or the urchin from afar); Lullaby bans Spitters. A Mender level (survive the Puffer without mineral) was tried and dropped: a Tissue ring with one Mender lasts 52.6 s instead of 22.1 s, two Menders 46.1 s, so the Mender heals too slowly to carry a level against the Puffer.
-   - Open: protease isn't needed in Siege (Clam teaches it); a level where digesting prey is the only food; whether hardening should make a cell heavier or stiffer.
-6. **Menus and saves.** ✅ Done 2026-10-30 (asked 2026-10-29, user: "we need a main menu and also some menu when player presses Esc. Also we need a save and load mechanism."). See "Menus and saves" under Decisions.
-   - The main menu at the start, over the living title scene, with the screen dimming into the lab; the Esc menu over the builder and over runs, pausing them; Settings (music, sounds, fullscreen, keys).
-   - Continue: the design and level saved as they change; a level or Sandbox run saved whole and picked up bit for bit, also after the game is closed.
-   - Creature files to save and load; a save version with upgrade steps; Quit and Fullscreen in the desktop build.
-   - Test: `tests/savegame.js` (snapshots of every level and a fight, the resume state, creature files, upgrades), `tests/menus.js` (the menus, Esc, Continue after a restart, Quit and Fullscreen, loading a file, New game, Load game, the Sandbox), `tests/title.js` (the scene stays alive and repeatable, the dimming).
-7. **Chemical layer and chapter 6.** ✅ Done 2026-10-30, hidden 2026-11-07 and removed 2026-11-08 (see "The hormones are gone" under Decisions). It brought hormones (Adrenaline, Calm, Fed, Starved), moods, the Receptor, the Tanner and the Resilin gland, chapter 6 Moods, the chemical lens and hormones in the water. What stays from it: the Photophore with Anglerfish, and the field guide. Test: the removal is checked in `tests/vascular.js` (saved glands load as Tissue) and `tests/hints.js` (no help text names a hormone piece).
-8. **Growth and chapter 6** (chapter 7 until 2026-11-07). The growth plan, Buds, regrowth, Nucleic, and the metamorphosis boss.
-   - **Built for the release (2026-11-07,** user: "go to design buds and menders", then "decide and go"). Chapter 6, Growth (`GROWTH_SYSTEMS`: chapter 5's with regrow, no hormones), after Spit:
-     - **Grazed** brings the Mender: three Grazers (a Nucleus, a Mouth in front, two Tissue; behaviour 'hunt') from the corners, survive 60 s, kit 40 protein · 6 sugar, Nettle, Spitter, Protease and Acid banned (each won by killing the grazers). A Tissue ring with Menders on both sides wins, wherever the two sit; a Tissue ring (27 s), a ring with one Mender (55 s), a body of 18 Tissue (37 s) and a Tanner ring (45 s, before the Tanner went) lose. Regrowth spends about 16 protein over the run.
-     - **Swarm** brings the Bud: Spit's urchin with the light on it, destroy its Nucleus in 90 s, kit 50 protein · 8 sugar · 2 fat, Spitter banned. A Bud at the front fired by a 0.2 Hz Pacemaker, growing a Nucleus-less Seeker with a Nettle always on at its front middle, wins in 41 s with 5 parts (the kit's protein allows 5; at 40 protein, 4 parts left the urchin's Nucleus at 17 health). Nettle parts that can't steer, homing parts without a Nettle, a Seeker ramming with Nettles, Snap's Resilin build and a protease row lose. A Nettle off the part's middle makes it veer away from the light.
-     - **Bud parts are stocked at launch** like a yolk: the creature's O2 and sugar are shared out evenly over body and part (`shareFuelEvenly` in `growth.js`). Seeping through the Bud alone left a part 0.1 sugar after its 4 s of growing, so a swimming part drifted 50 px in 80 s. Waiting for the part to fill before launch was tried first and dropped: through one link it took about 40 s.
-     - **Growing costs protein** (see Material kits), so a kit sets how many parts a Bud can send and how many cells a Mender can bring back.
-     - **Hunters chase launched parts** that still have fuel (`nearestEnemy` in `ai.js`), not only creatures with a Nucleus. A decoy level built on it (Bud parts drawing off the Puffer) was tried and dropped: the Puffer still went for the parent.
-   - **Tumour, chapter 7, Breaking the rules: the jam level** (2026-11-07, user: "Breaking the Rules, I need some level that will allow me to do this", the day before the release). Built from Buds instead of the host system of milestone 10, which isn't built. You are a tumour in a host; the host's rule (`hostRule: { maxBodyCells: 8 }`) says no body of yours has more than 8 cells, a part growing on a Bud included. The goal (`spread`) is 30 living cells, held 10 s without a break: the body's and those of its launched parts that still have fuel. Four Phagocytes (a Nucleus, two Mouths, two Tissue; behaviour 'guard') sleep at about 400 px until any body breaks the rule, then all wake and hunt. The loophole is the point: each launched part is a body of its own, so a body of 4 (Nucleus with a 0.5 Hz Pacemaker, Bud, Fat, Gill) budding parts of 4 (a Cilia and three Tissue, so the part keeps its fuel) keeps the letter of the rule and has 40 cells by 36 s. Kit 60 protein · 8 sugar · 2 fat, cell limit 8, 120 s, par 45 s and 10 biomass. Every build tried that breaks the rule loses (parts of 5 or 7, two Buds): the guards reach the Nucleus in 17 to 33 s. Chosen without asking: guards wake only on the rule, not when you come near (tried first, at 200 px: the body drifts from each launch's recoil and woke guards by accident); the hold of 10 s (without it, two Buds breaking the rule won in 11 s, before the guards arrived); the hormone levels, still hidden, became chapter 8.
-   - **Metastasis, chapter 7's adventure** (2026-11-08, user's words under "How this differs from Primordialis"; answers: the level breaks the game's rules as the theme, the rest stays; steering is "you use commad nerves to move muscles"; kills and pickups give materials and new cells; a compact version for the release). A 5600 × 1600 px body seen through a 1400 × 800 px window that follows the player (`view`), left to right: the tissue (3 Grazers), a blood vessel (rock walls, a 12 px/s current, 3 Phagocytes and a Killer cell, which drops the Nettle), a lymph node (3 Phagocytes, 2 Killer cells) and the Macrophage (45 cells, its Nucleus three rows deep in Shell). Four dens: E in one opens the Lab on the waiting run, with the bank (the kit plus everything collected) as the kit and only the cells found so far (`adventureLimits`); Back to the adventure grows the new design there with the bank's leftover as its reserves. A lost Nucleus grows back at the last den with nothing lost; R does the same by hand (for a creature stuck or starving). Creatures sleep until the player comes within their range, sleep again past twice that or while the player is in a den. The dock starts with Tissue, Siphon, Cilia, Muscle, Joint, Gill, Mouth, Fat, Pore, Heart, Air sac and every neuron, the Command included. Metastasis is the level that brings the Command (`unlocks`, so the dock marks it new and the briefing lists it; user, 2026-11-08: "why isn't command unlocked when I told you so"); it was first left out of the unlock list, so the game said "Not in the levels yet". Pickups: the Bone spur (Thorn), a Shell fragment, the Healing factor (Mender), Bud tissue; protein clumps; kills drop protein, sugar and mineral. Kit 26 protein · 10 sugar · 2 fat, 40 cells, 3600 s, par 1200 s and 60 biomass. Chosen without asking: the level is new and Tumour stays as the chapter's first level; the den is a safe place; R gives the body up instead of retrying (a 20 min run shouldn't restart on one key); the Killer cell has one Nettle (with two, a Thorn build lost 24 times); drops carry sugar, so the bank's sugar grows and Fat is worth building. Round 2, the same day (user: "the level is not bad but could be better"; picked all four: variety, a better boss, a smoother start, rewards and secrets): the briefing's Start from the Steerer (`starter`, the `steerer` template); two Motes to hunt in zone 1 and the Grazers waking at 260 px instead of 330; the old scar (a rock shelf over the start, the Bloater above it), a capillary shaft up through the vessel's top wall (the Snare at its top), three rock nodules in the lymph node, and a 12 px/s current pulling down before the last den; the Mast cell (the Puffer, a mini-boss in a side chamber; it drops the Acid and Protease glands); sleepers go back to their posts (`post`, ai.js); the Macrophage has a 600 px leash and sends out waves of Phagocytes at 67% and 34% of its cells (one, then two); secrets (`secret`) are counted in the result (`adventureSummary`). No minimap and no goal banner (user, 2026-11-08: "I don't want the weird map, the green text about what I need to do"): the news (pickups, growing back, the waves) shows for 6 game s in the clock chip at the top. Chosen without asking: a fourth nodule went, and the first moved off den 3's doorway (both trapped anyone swimming straight); the current is 12 px/s, not 30 (faster than the creature swims, it dragged it onto a Killer cell); waves of 2 and 3 were too many. Measured: a bot pressing only W, A, D, turning on hunters near it, wins in 792 game s (13 min) with 5 deaths; the starting creature doesn't kill the Macrophage in 120 s.
-   - **Spread levels** (2026-10-30, see "Late-game ideas" under Decisions). Open: does a Bud part break off as a new creature, or stay joined; what is counted (cells, creatures or area covered); how fast spreading is limited (material, Nucleic, food), so it is a puzzle and not just a bigger number.
-9. **Takeover and chapter 8.** The reprogramming cell (2026-10-30, see "Late-game ideas" under Decisions), as its own switchable system.
-   - Open: how a fibre or vessel reaches an enemy during a run, since the design's fibres are fixed (a fibre that grows out and latches on when the cell touches an enemy, or a stinger that injects on contact); what the program is (a stamped part with neurons and fibres, or a few rules such as "turn toward light", "stop", "attack your own kind"); whether a converted cell keeps the enemy's wiring or takes the Vector's; which cells, or how many, take over a whole creature; how long it lasts; counterplay (shell, cutting the fibre, an enemy's own Vector); whether enemies can do it to the player's creature.
-10. **Hallmarks and chapter 9, the finale.** The host body, its stop and die signals, guard cells, the host goals (convert, spread unseen and so on), and complex levels that use almost every cell (2026-10-30, see "Late-game ideas" under Decisions).
-   - **Guard cells** (2026-10-30, user: "The guard cell checks that the other body cells are healthy and of the same type (size and outer shell materian I guess)"). A guard compares each cell it inspects with the host's **self pattern**, which the level sets: health (`health`, `starving`, `poisoned`), material (the recipe, `mineralized`) and `size`. A cell that doesn't match raises the alarm. The check reads cell state the sim already has and never a type name, so camouflage comes from the design: build from the host's materials, keep still near a guard (Muscles shrink and Bloaters swell, which changes `size`), and don't get hurt. An Eyespot and an Inhibitor can make a "freeze when a guard is near" circuit. Still to build: the host body (anchored, not hostile), guards patrolling and inspecting (on top of `ai.js`), the alarm (a chemical, milestone 7) and conversion (milestone 9).
-   - Open: how the host's signals reach the creature (the Receptor proposal), what a guard does once alarmed, how the host is drawn, the level list and the boss, and how the jam build gets this chapter before milestones 7–9 are done.
-11. **Arena.** Two or more players submit creatures and only one survives (2026-10-30, see "Late-game ideas" under Decisions). Open questions are listed there.
-12. **Hints, animations and a tutorial.** ✅ Done 2026-11-05 (asked 2026-11-03, user: "Hints contain old information, the animations are old this all needs to be redesigned. Also we need to add tutorial."). The help texts and their animations no longer match the game after the changes to movement, nerves and the removed Valve, and a new player has no guided start.
-   - ✅ **Redesign the hints** (2026-11-03): the level hints (`hint` in `data/levels.js`), the hover hints and their texts (`data/cells.js`, `data/tips.js`) and the field guide (`data/guide.js`) describe the game as it is now: held Muscles steer, a weak signal still pulls a Muscle, the Command is a Sandbox piece, First stroke no longer points at the Jet.
-   - ✅ **Redesign the animations** (2026-11-03): every hover hint example is written with its own neurons and fibres (no more wiring by touch) and runs in open water with what its senses need, the creature autonomous as in a level and the view following it (`createExampleRun` in `fieldguide.js`, drawn by `tipdemo.js`). Only the Command's own example uses a key. The How to box (`coach.js`) showed Siphons, a drag-to-paint step, and a Pacemaker pulsing two Siphons at once, until the tutorial replaced it on 2026-11-05. Test: `tests/tips.js`.
-   - ✅ **Add a tutorial** (2026-11-05, see "Tutorial" under Decisions): three lessons in `data/tutorial.js`. First stroke (15 steps: the Nucleus, the dock, picking and placing two Siphons, the Preview, the Nerves view, a Pacemaker in the Nucleus, a fibre to each Siphon, Run level, the result), Lighthouse (11 steps: new pieces glow green, two Light eyes, crossed fibres, hover hints and the field guide, the signals in a run, the run controls) and the Lab tour (6 steps). Added 2026-11-06 (user, asked why there are two energy stores: "keep it but we need to explain it to the player - maybe another tutorial session when these things are introduced?"): Long haul (9 steps: fluids, the Creature panel, Fat as a sugar tank, the Gill, the Pore, the O₂, Sugar and Waste bars in the run) and Packed lunch (7 steps: the kit, Reserves, sugar against fat). Their voice lines are not made yet. `tutorial.js` holds the rules (pure), `tutorialview.js` the spotlight, bubble and voice; `tools/make-voice.js` makes `audio/voice/<step id>.mp3`. The How to box is gone. Test: `tests/tutorial.js`.
-   - The voice (2026-11-05, user: "I want you to pick a voice. I want a young male confident calm voice"): Will,
-     one of ElevenLabs' own voices (young American male, relaxed and steady), with a calm, even delivery (stability
-     0.6, style 0.1); the default in `tools/make-voice.js`. Chosen without hearing it: ElevenLabs gives nothing
-     without a key, so the script looks the voice up first and `--first` makes one line to listen to.
-   - ✅ **Hints kept up to date** (2026-11-05): a level's brief, hint and tutorial words name only the cells and neurons its dock has and only levels before it, and no help text names a gone piece or level (Valve, Vessel, Moth). It caught Long haul's hint naming the Pore (one level early) and Bulwark's naming Thorns (since Pincushion came after it). The 32 voice lines are made (`audio/voice/`). Test: `tests/hints.js`.
-13. **Clean gates: nerve logic like a program (after the release).** Asked 2026-11-07, user: "I want to be able to
-    build a logic like in a computer - pacemaker is processor that sends impulses and the rest of the nerves would be
-    functions or conditions, like if, for, while, and, or ... I want to keep the bilogical names though." Four
-    approaches were drawn up (A clean gates, B the impulse is the program, C Ganglion scripts, D moods as states); the
-    user chose A ("I like the approach A").
-   - **What today has:** clock (Pacemaker), if and/or (Synapse at threshold 1 or 2), not (Inhibitor), a one-bit
-     memory that only flips (Latch), wait (Delay), global variables (hormones and the Receptor). Missing: counting
-     (for), a memory that can be reset, and a readable while. What makes it feel complicated: signals from 0 to 1 that
-     add up, the Synapse's meaning hidden in a number, moods moving thresholds during a run, and loops taking a hidden
-     nerve step.
-   - **The plan:**
-     - **On or off between neurons.** Nothing adds up. A sense wired straight into a Siphon or Muscle stays graded, so
-       Braitenberg steering (Lighthouse, Shade) works as now. Show the two kinds apart in the Nerve view: graded
-       fibres as a gradient, on/off ones solid.
-     - **Veto fibre** (an inhibitory fibre, drawn with a bar end): while it is on, its target is off, whatever else
-       feeds it. One rule for "unless", reset and gating: a vetoed Pacemaker beats only while the veto is off (while).
-     - **Coincidence** (∧, a real coincidence detector) replaces the Synapse: on while all its inputs are on. "Or"
-       needs no piece: two fibres into one cell.
-     - **Integrator** (∑, an integrate-and-fire neuron, setting: count 1-9): sends one pulse on every Nth pulse in
-       (for).
-     - **Engram** (◐, replaces the Latch): a fibre switches it on, a veto fibre off (remember, forget).
-     - **A brightness setting on senses**, in 2-3 named steps (dim, bright), for levels like Dock once eyes no longer
-       add up.
-     - **Goes away:** the Synapse threshold, the Ganglion's smoothing, and moods moving thresholds (moods would change
-       only Pacemaker rates and how hard effectors work).
-   - **Levels:** chapter 1 and most answers stay. Freeze, False start and Metronome keep their wiring (Latch becomes
-     Engram); Dock is rebuilt on Coincidence and a bright eye; Lullaby and Moods are retuned. New levels, one per
-     piece: Hunter (eyes veto a Pacemaker: roam in the dark, steer in the light), Third flash (an Integrator counts 3
-     flashes, then an Engram keeps swimming) and Stinger as the boss (sting 3 times at 3 Hz, turn away for 2 s, come
-     back: 4 neurons, about 11 today).
-   - **Later, if A works:** B (each Pacemaker beat sends one visible impulse that the neurons route) as a prototype in
-     a copied folder, and D (hormones as crisp states with a fade setting) for chapter 6.
-   - Open: queue or drop a pulse that arrives while an Integrator is counting; whether the brightness setting is on
-     the eye or on the fibre.
+0. **Trim.** ✅ Done 2026-10-28. The moba's match code out; `RULES` and switchable systems in.
+   Test: `tests/systems.js`.
+0.5. **Core.** ✅ Done 2026-10-28. Golden tests, readable names, deterministic math and random numbers, systems
+   split into files, cell behaviour fields, the fluid registry, the UI split out of `ui.js`.
+   Test: `tests/golden.js`, `tests/determinism.js`, `tests/builder.js`, `tests/editor.js`.
+1. **Nerve layer.** ✅ Done 2026-10-28. Fibres with limited units, the neuron set, the Nerve view, old designs
+   converted. Test: `tests/nerve.js`.
+2. **Autonomy, debugging and chapters 1 and 2.** ✅ Done 2026-10-28. No hidden steering; pause, single steps and
+   speeds; probes; the level format, goals and scores; chapter 1 and chapter 2's first four levels.
+   - Added 2026-11-01: Tail and Crevice (rock, currents, banned cells).
+   - Added 2026-11-10: the fixed step, the timeline and Result, the Preview without a held heading, and Shape.
+   - Test: `tests/autonomy.js`, `tests/sandbox.js`, `tests/probes.js`, `tests/levels.js`, `tests/terrain.js`,
+     `tests/replay.js`.
+3. **Vascular layer and chapter 3.** ✅ Done 2026-10-29. Sugar as fuel, the Heart (areas since 2026-11-01), Long
+   haul, Stale water and Cold water (Marathon until 2026-11-10). Test: `tests/vascular.js`, `tests/levels.js`.
+4. **Metabolism and chapter 4.** ✅ Done 2026-10-29. Recipes and kits, Fat, the Nose, food and the eat goal;
+   Packed lunch (a crossing since 2026-11-10), Grazing, Bloom. Test: `tests/metabolism.js`, `tests/levels.js`.
+5. **Secretions and chapter 5.** ✅ Done 2026-10-29. Mineral, hard cells, acid, protease, the Mineralizer;
+   survive and kill goals, late arrivals, anchored creatures; nine levels, Reel since 2026-11-10.
+   Test: `tests/secretions.js`, `tests/weapons.js`, `tests/levels.js`.
+6. **Menus and saves.** ✅ Done 2026-10-30. The main menu and title scene, the Esc menu, Settings, games,
+   Continue, creature files, save upgrades. Test: `tests/savegame.js`, `tests/menus.js`, `tests/title.js`.
+7. **Chemical layer.** ✅ Done 2026-10-30, removed 2026-11-08. What stays from it: the Photophore with
+   Anglerfish, and the field guide. Test: `tests/guide.js`; the removal in `tests/vascular.js`, `tests/hints.js`.
+8. **Growth and chapters 6 and 7.** Partly built for the jam (2026-11-07 and 2026-11-08): the Mender (Grazed),
+   the Bud (Swarm), Tumour (a host rule and guards) and Metastasis (the adventure).
+   Test: `tests/growth.js`, `tests/adventure.js`, `tests/levels.js`.
+   - Open: more Spread levels (what is counted, what limits spreading), the growth plan, Nucleic, the
+     metamorphosis boss.
+9. **Takeover and chapter 8.** The reprogramming cell, as its own switchable system.
+   - Open: how a fibre reaches an enemy during a run; what the program is; whether a converted cell keeps the
+     enemy's wiring; which cells take over a whole creature; how long it lasts; counterplay; whether enemies can
+     do it to the player.
+10. **Hallmarks and chapter 9, the finale.** The host body, its stop and die signals, guard cells, the host goals.
+   - Open: how the host's signals reach the creature, what an alarmed guard does, how the host is drawn, the
+     level list and the boss.
+11. **Arena.** Open: local or online, the same kit for everyone, a time limit and tie-break, rounds or a league.
+12. **Hints, animations and a tutorial.** ✅ Done 2026-11-05. Help texts and examples rewritten for the game as
+   it is; five tutorial lessons with 32 voice lines (Long haul's and Packed lunch's lines are not made yet).
+   Test: `tests/tips.js`, `tests/hints.js`, `tests/tutorial.js`.
+13. **Clean gates: nerve logic like a program.** Asked 2026-11-07 (user: "I want to be able to build a logic like
+   in a computer ... if, for, while, and, or ... I want to keep the bilogical names though"); the user chose
+   approach A of four.
+   - **The plan:** on or off between neurons, nothing adds up (a sense wired straight into a Siphon or Muscle
+     stays graded, so Braitenberg steering works as now). A **veto fibre** (drawn with a bar end): while it is
+     on, its target is off. **Coincidence** (∧) replaces the Synapse: on while all its inputs are on; "or" is two
+     fibres into one cell. **Integrator** (∑, count 1 to 9): one pulse out on every Nth pulse in. **Engram** (◐)
+     replaces the Latch: a fibre switches it on, a veto fibre off. A brightness setting on senses in 2 or 3 named
+     steps. The Synapse's threshold and the Ganglion's smoothing go.
+   - **Levels:** chapter 1 and most answers stay. Dock is rebuilt on Coincidence and a bright eye. New levels,
+     one per piece: Hunter (eyes veto a Pacemaker), Third flash (an Integrator counts 3 flashes) and Stinger as
+     the boss.
+   - Open: queue or drop a pulse that arrives while an Integrator is counting; whether brightness is set on the
+     eye or on the fibre.
 
 ## Open questions
-- **Movement redesign (2026-11-02), still open:** M3, making the water forgiving about the beat rate (a fish's speed still swings with the Pacemaker's rate); whether a body one cell heavier on one side should still swim in circles (6.4 rad in 10 s for a two-row fish with one extra cell at the head); and how a Heart keeps beating once neurons sit only in Tissue and the Nucleus. Muscles keep their timing from the wiring (see Decisions).
-- **Where do the levels live in the UI?** Since 2026-10-28 (user: "this why this stretches from top to bottom, make it more UX friendly. Also remove this window from the screen and make it visible once someone clicks on a challenge") the flag button opens a sheet with the levels as small tiles (number, name, stars) in a grid under their chapter headings, and down the sheet's whole right side one level's card: the chosen level, or at first the latest open one (user: "By default select the latest unlocked level"). The card has the goal, the limits and what earns the stars as a list, the best result, Build for it and Hint, and a big Run level at the bottom; its header holds the sheet's ✕. Run level is shut, with the reason under it, while the builder's design doesn't fit the level (2026-10-30, user: "when you are over the biomass you will not be able to click on the run level button, now you are able and nothig happens"). After a level's first win, going back to the Lab (the result box's Lab, the big Lab button or the Esc menu) chooses the level Run level now points at, so the dock and limits match it (2026-11-05, user: the Lab stayed on level 1 with the Light eye locked while Run level said level 2); a replay of a won level keeps it chosen. After a run the result box offers Retry and Builder (user, 2026-10-30: "next level is the same as builder. remove it"; until then a win also offered Next level, which chose the next level and went back to the builder). A click on a tile only shows its card; Build for it and Run level choose the level. While a level is chosen, a "Leave …: back to free build" line under the tiles leaves it (for a few hours that was a "Free build" button in the card, which the user found unclear). The sheet closes with ✕, Esc or a click outside. In the builder the Levels button lights up while a level is chosen, and the limits line shows its limits; there is no level card on screen any more. Until then the sheet was a column of full-width rows with each brief, taller than the screen, and choosing one closed it and put the card above the side panel. Since 2026-11-03 the Levels button is at the bottom right, and the big Run level button under it runs the next unfinished level in one click (see "Levels and Sandbox buttons").
-- **How does a crossing look in the editor?** (milestone 1)
-- **Which current cells stay, change or go?** Nerve cells and the Heart radius were replaced by the layers (2026-10-28).
-- **Is Protein-only in chapter 1 too abstract?** Decide after trying it.
+- **Movement:** whether the water should forgive the beat rate (a fish's speed swings with its Pacemaker's rate),
+  and whether a body one cell heavier on one side should still swim in circles.
+- **How a Heart keeps beating** once neurons sit only in Tissue and the Nucleus.
+- **Metastasis:** a mode of its own, or the one exception it is now. Waiting for players.
+- **`RULES.allLevelsOpen`:** on since testing; switch it off for a release that should unlock levels in order.
 
 ## Known limits
-- **Levels with one idea (2026-11-05):** Bulwark and Siege have one idea each since the Mouth ring stopped working.
-- **The Preview and the Reference window hold the creature's heading (2026-11-03):** their creatures are not
-  `autonomous`, so the tank turns them back to face up, and a design that steers itself (crossed Light eyes, a held
-  Muscle) hardly turns there: the crossed Seeker turned 0.08 rad in 27 s toward a light 45° off, against reaching it
-  within 6 s when autonomous. Levels, the Sandbox and the hover hint examples run autonomous creatures.
-- **Big Sandbox crowds (2026-11-02):** 30 Crabs (1364 cells) cost 10.9 ms of sim and 7.4 ms of drawing per frame
-  in headless Edge, which showed 21 fps there (its software painting adds the rest); 40 Jets (273 cells) stay at
-  60 fps. The collision check tests every pair of creatures whose boxes overlap.
-- **Crevice (2026-11-01):** a band of rock with a crevice three hex rows high (46 to 58 px between the rock hexes) and a current of 30 px/s out of it. The reference worm (a pair of Bloaters, the Nucleus with a 1.5 Hz Pacemaker, three rows of Muscles, a Tissue with an Inhibitor and a back pair of Bloaters; 11 cells, 28 biomass) crawls the 560 px in 19 s. It wins with 3 or 5 Muscle rows at 1–2 Hz (1 Hz 28 s, 5 rows at 2 Hz 36 s), but not with an even number of rows (one Bloater at the back, which can't press both walls), not at 2.5 Hz or faster (the Bloaters can't let go in time), and not without the back Bloaters. The Jet, the Wiggler and the Paddler get nowhere. A 60 px/s current beats every worm at 2 Hz and up. Rock costs nothing where there is none. In Crevice it adds about 0.4 ms of sim per game second: the worm takes 0.71 ms in Crevice against 0.29 ms in open water, the Paddler 1.26 against 0.81 (Node, every script in one scope as in a browser; the test harness's vm is several times slower).
-- **Tail (2026-11-01):** across the arena (1000 px to the ring) with no Siphons or Cilia: the Lean paddler (the Paddler with Tissue for its Mouth, Pore, Gills and Heart, which the dock doesn't have yet) wins in 28.2 s (3 stars), the Wiggler in 39.3 s (2 stars, over the 35 s par).
-- Sandbox enemies are still steered by the AI (`ai.js`), with free swimming and a held heading. Only the player's creature is autonomous there. In levels, other creatures either move by their own wiring (behaviour 'wired', such as Sting's Darter and the anchored clams), are steered at the player ('hunt', the Puffers), or away from it ('flee', Hunt's Darter since 2026-11-01).
-- A Seeker crawls at the edge of the light's reach: from 400 px away (450 px range) it needs 22 game s to reach the light, from 220 px about 10 s. Once there it parks on it (within 5 px).
-- Three chapter 1 levels (Lighthouse, Moth, Hunt) were beaten by the same 5-cell crossed Seeker, teaching one idea three times (redesigned 2026-11-01, still to be played: Moth asks you to circle the lamp, Hunt to catch a Darter out of sight; see below). The user confirmed this on 2026-10-30 ("3. moth can be finished with the same design as level 2. light which is a bad level design, this needs to be updated somehow. Level 4 is good. Level5 can be finished with the same design as levels 2,3"). Moth (level 3) and Hunt (level 5) must each need something that the Lighthouse design (level 2) doesn't have. Moth was dropped on 2026-11-01 (user: "the moth design is overcomplicated for level 3. If you can't do it smartly then just drop it"): its circle goal (20 s between 50 and 250 px from a fixed lamp, coming within 50 px loses) was won only by both Light eyes wired to both Siphons and a Pacemaker on one Siphon, and only with some bodies (36 of 62 tried); the goal kind went with it. Done 2026-11-01: **Hunt** starts in the bottom left corner, with the Darter in open water at (1000, 300), 940 px away, out of the Light eyes' 700 px: catch it (within 80 px of it for 0.5 s) within 40 s (50 s until the Darter learned to flee, the same day). The Darter (the skittish one: no nerves) flees (behaviour 'flee', `ai.js`; user: "the hunt level is kinda boring - improve the hunted organism so that it actually has a chance to avoid the player's organism if it is slow"): once the hunter is within 260 px it sprints away for 3 s at twice full free swimming, bending off the walls within 160 px, then tires to 0.3 until it has rested as long. The crossed Seeker sees nothing and never moves; a Pacemaker in the Nucleus pulsing both Siphons with crossed eyes (32 s, any rate from 0.6 to 2.4 Hz, 45 px/s against the Darter's 30), Cilia beside the Nucleus (32 s) or four Siphons (33 s) catch it; the reference with two Tissue cells more (31 px/s) never gets within 230 px; the Jet loses. Par 33 s and 14 biomass. Until then the Darter jetted straight ahead when its Eyespot saw the hunter, 85 px into the corner, where every follower caught it, the slowest as fast as the fastest. Tried on the way: the AI flee with the Darter's Eyespot still firing its Siphons (its bursts within 120 px kept even a faster hunter just out of the 80 px ring, so the result swung with the start point), and plain fleeing without tiring (it ends against a wall, where a slow hunter catches it too, only later: hence the shorter time limit). Shade (level 4) is good and stays, and so are all four chapter 2 levels, Freeze, False start, Metronome and Dock (levels 6–9; user, 2026-10-30: "level 6 is good, 7 is good, 8is good, 9 is good"). In chapter 3, Long haul and Exhaust (levels 10 and 11) are fine, but Cold water (level 12) needed a redesign (user, 2026-10-30: "12 seems a little complicated, it seems like there's only one design that can finish the assigment"), and Marathon (level 13) was too much like it (user: "very similar"). Redesigned 2026-11-01 with the Heart's areas, still to be played: Cold water is won by a Heart at the front beating all the time, in pulses, or wired to the eyes (143 s each), and asks for 100 s near the light (it was 120); Marathon needs its extra stores and a Heart that doesn't beat all the time (a Pacemaker in it: 267 s), while an always-beating Heart (184 of 200 s) and the Cold water build (166 s) lose. In chapter 4, Packed lunch (level 14) was beaten by the Marathon build (user: "14 can be finished with the same vessel as 13"; since 2026-11-01 its kit has 22 protein instead of 32, and the Marathon build needs 25; Long haul's build and the reference, 20 each, win), Grazing (level 15) is fine, and Bloom (level 16) should need light and the Nose together, with more complex wiring (user: "this way it is boring"). In chapter 5, Bulwark (level 17) is "not bad but too simple for this late stage of the game", and Clam (level 18) is right in complexity, but its 50 s time limit could only be met by a near-perfect design (par 36 s); since 2026-11-01 it is 90 s (the near misses, such as three acid glands or one protease gland, never kill the clam at any limit). Still open: Bloom and Bulwark. Bloom with Noses beside the Light eyes was tried on 2026-11-01: summed with the eyes, the smell pulls the creature from food to food and away from the light; a Synapse in each Nose passing only close smells did no better; and the bigger bodies (30 biomass) steer worse in the chase. Chapter 2 has the Inhibitor, the Latch, the Delay and the Synapse (Dock). A blinking light far away (Afterimage) didn't need the Delay: a Seeker with a Pacemaker cruises through the dark, and far light is too faint to drive the Siphons fast anyway.
-- **Cells no level needs (2026-11-01):** no reference solution in `tests/levels.js` uses Cilia or Snare (Bud
-  and Mender have had Swarm and Grazed since 2026-11-07; Nettle, Thorn and Spitter have had Sting, Pincushion and Spit since 2026-11-01). Muscles and Joints swim only in Tail (the Paddler), and
-  Muscles and Bloaters crawl only in Crevice; both levels leave Siphons and Cilia out, since a Siphon would win.
-  Nettles appear only on Lullaby's urchin, an enemy.
-- All four chapter 2 levels share the same arena (spawn at the bottom, ring and light at the top).
-- Dock has one working threshold: 1.5 (thresholds step by 0.5; 1 stops at y 478 px, short of the ring, and 2 never stops). Its reference build needs a second Tissue cell only to keep the body even, or it turns.
-- A Seeker can't win by Thorns: it slows to a stop on the light, so Thorns barely hit (they need speed), and a Darter's 80-health Nucleus outlasts a 60 s level. So the Hunt asks to keep near the prey, not to kill it. The `kill` goal came with chapter 5 (2026-10-29), where acid and protease glands work by touch.
-- **Secretions (2026-10-29):**
-  - Fights with a hunting Puffer are chaotic: in Bulwark, which ring of Shell and Thorns wins changes with the angle of the first hit (Shell, Thorn, Shell… won, Thorn, Thorn, Shell… lost). The reference solutions are robust; mixed rings are not.
-  - A crossed Seeker drives into an anchored clam well only with an even body; one heavier side curves it past the clam.
-  - A clam costs 3.2 ms of sim per game second with the player's Nucleus alone (a 19-cell anchored body; its own springs are skipped), Siege 5.3 ms with the Puffer; Bloom costs 0.9 ms.
-  - The Needs card doesn't warn about a Mineralizer that can get no mineral (no kit mineral and no Mouth).
-- **Cell look (2026-10-29):** drawing 225 cells and 486 bonds takes 6.9 ms per frame in headless Edge with software rendering, against 5.9 ms with the old solid cells (GPU drawing should be cheaper). Fine detail (inner membrane line, specks) is drawn only from 14 px of radius on screen.
-- **Held Muscles steer (2026-11-02):** the Light eel, Muscles and Light eyes only (24 cells), reaches a light 250 px ahead, left or right within 30 px in 20 s and holds still in the dark; it doesn't turn round for a light straight behind it, and doesn't swim to one 350 px away (its eyes don't open the tail gates). Its eyes must not hold the tail's own Muscles: a held tail Muscle can't beat, and the eel then crawls (4 px/s). Swim speeds over 10 s are as before: the Paddler 30.3 px/s, the Eel 36.9, the Wiggler 20.2. Sim cost unchanged (70 ms per game s for the Eel against a Crab, Node, test harness).
-- **Muscle swimming (2026-11-01),** measured head first over 20 game s after 2 s, all systems on:
-  - What works: Muscles in rows at the front, both sides the same number of fibres from the beat, and a fin of
-    Joints behind (2, 3 or more cells wide; a one-cell chain doesn't work). The fin follows each stroke late and
-    pushes the water back. Plain wiring: the Wiggler (15 cells) 23.7 px/s at 2.2 Hz, the Jet 22.8. A Delay of
-    0.1 s in each back-row Muscle sends a wave down to the fin: the Paddler (the same body) 32.6 px/s, the Starter
-    (Cilia) 35.0. The Eel (45 cells, four Muscle rows, three of them delayed) 40 px/s.
-  - Speed is touchy about the rate: the Wiggler does 6 px/s at 1.6 Hz, 24 at 2.2 and 14 at 2.8; the wave makes
-    it gentler (the Paddler 17–33 px/s from 1.6 to 2.8 Hz). Short bodies want fast beats, long fins slower ones. One
-    cell more or less can halve the speed or double it (a 13-cell fish 7.7 px/s, one with 15 cells 22 px/s).
-  - Fish without a fin, all Muscles, swim tail first (a 12-cell one 24–34 px/s at 3.6 Hz), as the old Paddler
-    did. Without the wave or the fin there is little thrust, because a bend that only goes left and right
-    pushes the water about as much each way.
-  - Mass has to match on both sides: a head with a Gill (0.8 mass) on one side and a Pore (1) on the other swims
-    a third slower (24 against 34 px/s for a 12-cell fish). The Mouth, Pore and Heart weigh the same, so the
-    Wiggler mixes them freely. A Thorn on its nose costs the Wiggler speed (19 against 23 px/s at 2 Hz).
-  - A symmetric fish with symmetric wiring swims straight: under 0.15 rad in 40 s, almost all of it from the first
-    stroke, since one side has to go first. Nothing in the water holds a heading, so any imbalance adds up. Until
-    2026-11-02, when a pulse began reaching every wired cell at once, a fish whose Inhibitor's side was one fibre
-    further from the Pacemaker turned 1–3.5 rad in 20 s; a Tail build with the Pacemaker in its left Muscle turned
-    0.80 rad in 25 s then, and 0.05 rad in 40 s now.
-  - Flapping both sides together can't swim: the half-beats cancel. The Manta's wings alone give 0–7 px/s, so its
-    Cilia carry it (11 px/s with the wings flapping, 15 without). The Jelly's pulsing bell drifts 1 px/s.
-  - Levers that changed little: drag (±1–2 px/s), lighter Muscles (+1.4), stronger Muscle bonds (+1.8). Joint
-    bonds at full strength wreck a fin (22 → 4.5 px/s). Faster Muscles (24 per s instead of 16) help small finless
-    fish but broke the Snap level's reference solution, so they were left at 16.
-  - Hunting enemies (behaviour 'hunt') get a free swim force from every cell, so their Muscles only add to it.
-- Free swimming (the AI enemies) now depends on shape: at `SWIM_FORCE` 200 they average 48 px/s as before (46), but the wide Manta went from 54 to 32 px/s and the narrow Starter from 64 to 62.
-- The showcase designs were built for WASD. The Eel, Jelly and Manta were rewired on 2026-11-01; the Crab still moves on its own only backwards (12 px/s).
-- **Nerve layer (2026-10-28):**
-  - A fibre with a drawn route that loses a cell on it in a run is cut, like any fibre; in the editor, removing that cell puts the fibre back on the shortest route.
-  - With many fibres through one cell the lanes squeeze together (at most 6.5 px from the centre), and colours repeat after 8. Laying out the lanes costs about 0.7 ms per builder frame for 20 fibres on 37 cells.
-  - Most built-in designs are still written in the old format and converted when loaded; the neuron examples in the tips are in the current one.
-  - Converted designs act on sharper signals: the old leaking signals faded slowly, fibres switch off at once. The Puffer's bloaters are on in 137 of 400 golden-scenario steps instead of 194.
-- **Vascular layer (2026-10-28; the Heart's areas since 2026-11-01):**
-  - The Heart's areas cost about 1.4 ms of sim per game second more than vessels did: 9.3 → 10.7 ms for the Seeker against a Nettler in a 1600 × 1200 px world (Node, every script in one scope; the Jet and the Paddler alike). Pumping every step instead of every 0.05 s cost 3 ms.
-  - With a 5-step reach one Heart pumps almost any body (24 cells at most), so where it sits matters little for blood; it matters for balance: a Heart behind the Siphons or on one side makes the Seeker steer badly in Cold water (38 s and 0 s near the light), only one at the front between the eyes wins.
-  - A Heart wired to both Light eyes beats nearly all the time in the chase (the eyes see the light), so in Marathon it saves too little: 199.9 of the 200 s near the light, whatever the time limit. A Pacemaker in the Heart wins.
-  - The Heart's beat is drawn only as its size pulsing (`cellart.js`); the builder shows its reach while the mouse is over it. Runs show no blood moving.
-  - Long haul takes 150 game s near the light; at 4× that is about 50 real s. It teaches reserves and waste (Fat, Gill, Pore), and Stale water the Air sac; neither needs a Heart. Cold water and Marathon are the only levels that do. Marathon takes 267 game s, about 67 real s at 4×.
-  - The Valve went on 2026-11-02: nothing made a creature want to wall off a store.
-  - Bodies longer than 3 rows steer badly in the chase: Marathon's Gills only work as a pair beside the Siphons; a Pore with two Gills behind it reaches 54 s near the light of 200, fully fuelled.
-  - The Heart matters only in cold water (a level's `seepFactor`). At the usual seeping, a working cell burns little beside its own store (a Siphon at full work 0.0375 O₂ and Sugar per second, from a store of 1 that lasts about 27 s), so seeping from the next cell keeps it at full efficiency. Cold water was chosen (2026-10-29) since it leaves the templates and the other levels as they were.
-  - The builder's Needs card and warnings don't know about cold water: they hint at cells no Heart reaches, but not that such a build will starve there.
-  - With the slower seep, waste builds up more in big bodies: the Paddler holds 6.9 waste after 90 s instead of 2.4, with no cell poisoned.
-- **Feeding (2026-10-29):**
-  - Foraging in open water is chaotic. A Nose smells only the nearest speck, so where no speck is within 300 px the creature stops, and with a speck behind it both Noses read nearly 0 and it stalls, often against a wall. With 10 to 18 specks scattered at random, the same crossed-Nose build ate 0 to 13 in 120 s depending on where it started; summing every speck's smell, a longer range, Noses on the sides or an Inhibitor that swims on while nothing is smelled did no better. So Grazing lays a fixed trail, and Bloom grows food near the light, which the Light eyes find.
-  - The Creature card's "Sugar lasts" and the Needs rows assume stores two thirds full, as in the Sandbox, not a level's kit.
-  - A Fat cell's fat isn't shown in the fluid views or the HUD bars; only the limits line's reserves count it before a run.
-  - "Biomass" for the par star is a design's material total (Protein and Fat), whichever way the level limits it.
-  - Bloom's reference eats all its food in the first 80 s and lives on the store; a Mouth beside Tissue fills up and eats 4.
-  - Chapter 4 has 3 levels against chapter 3's 4. Packed lunch and Bloom take 193 and 245 game s (about 48 and 61 real s at 4×).
-- The tests run the scripts in a Node `vm` context, where every call of a global function goes through a slow lookup. The sim runs about 8x slower there than in a browser, and `node tests/all.js` takes about 18 s.
-- `sine` and `cosine` are within 1 unit in the last place for ordinary angles. Right next to a multiple of π/2 the error is larger relative to the tiny result, about 1e-26 in absolute terms, which doesn't matter for the game.
+- **Sim cost** (2026-11-10, Node, every script in one scope as in a browser, ms of sim per game second): Seeker
+  against a Nettler 1.8; Eel against a Crab 9.2; Siege 2.0; Metastasis 13.3 (14.4 before the settle order was
+  kept and the bounds boxes reused); 30 Crabs and a Jet (1417 cells) 146 (162 before). Angle springs and their
+  arc tangents are about a third of the sim's time, and can't be made cheaper without changing results. The
+  collision check tests every pair of creatures whose boxes overlap; it is about 3% of the time in these scenes.
+- **The tests' sim is slower:** Node's `vm` context makes every global call slow, about 8x.
+- **The timeline:** a look back replays up to 11 game s (5 to the snapshot, 6 for the traces): 14 ms in Bloom and
+  38 ms in Siege in headless Edge, so dragging the slider there runs at about 25 frames a second. A snapshot takes
+  0.5 to 0.6 ms. Metastasis has no timeline.
+- **Drawing between steps** blends cells and spit globs only; a creature's centre (the adventure's camera, a
+  carried light) moves in whole steps, at most 2 px at a time.
+- **Drawing cost:** 225 cells and 486 bonds take 6.9 ms per frame in headless Edge with software rendering.
+- **Levels with one idea:** Bulwark and Siege, since a ring of Mouths stopped working (2026-11-05). Bloom should
+  need the Nose and the light together and doesn't.
+- **Shape** (2026-11-10): of 1372 bodies tried (rows of Cilia and Tissue left and right of the Nucleus, and two
+  cells behind it) 60 swim into the ring. The reference (two Cilia left, a Tissue right, two Cilia behind) takes
+  22.6 s with 9 biomass.
+- **Packed lunch** (2026-11-10): 3800 px to the ring. A body with no stores runs dry at 3100 px; two Fats and a
+  Pore without Gills run out of O₂ at 3060 px. The reference (an
+  Inhibitor in the Nucleus on two Siphons, a Fat each side, two Gills in front, a Pore behind; 18 biomass)
+  crosses in 98 s, on a Pacemaker in 152 s. A pair of Cilia crosses in 58 s with no stores, so Cilia are banned.
+- **Reel** (2026-11-10): the Whirler's ring comes within 100 px of the player; Nettles reach 45 px. An Eyespot
+  wired to a Snare and two Nettles wins in 17.5 s; a Snare with no Nettles, Nettles with no Snare and Sting's
+  build lose. At a gap of 115 px a Snare in front with the Nettles beside it loses: the Nettles must sit where
+  the catch ends up.
+- **Crevice:** the reference worm crawls 560 px in 19 s. It wins with 3 or 5 Muscle rows at 1 to 2 Hz, not with
+  an even number of rows, not at 2.5 Hz or faster, and not without the back Bloaters.
+- **Muscle swimming** is touchy about the rate: the Wiggler does 6 px/s at 1.6 Hz, 24 at 2.2 and 14 at 2.8; one
+  cell more or less can halve the speed. Mass has to match on both sides. Flapping both sides together can't
+  swim. Speeds over 10 s: the Paddler 30 px/s, the Eel 37, the Wiggler 20, the Jet 23.
+- **Hunting enemies** get a free swim force from every cell (`ai.js`), so their Muscles only add to it. Only
+  creatures the player wires, and a level's 'wired' ones, move by their cells alone.
+- **A Seeker crawls at the edge of the light's reach:** from 400 px away (450 px range) it needs 22 game s.
+- **Fights with a hunting Puffer are chaotic:** which mixed ring of Shell and Thorns wins changes with the angle
+  of the first hit. The reference solutions are robust.
+- **Foraging in open water is chaotic:** a Nose smells only the nearest speck, so Grazing lays a fixed trail and
+  Bloom grows food near the light.
+- **The Heart matters only in cold water.** One Heart reaches almost any body of 24 cells, so where it sits
+  matters for balance, not for blood. Runs show no blood moving.
+- **The Lab's Needs card** assumes stores two thirds full, not a level's kit, and doesn't know about cold water
+  or a Mineralizer with no mineral to get. A Fat cell's fat isn't shown in the fluid views or the HUD bars.
+- **Dock has one working threshold:** 1.5.
+- **Chapter 2's first four levels share one arena.**
+- **Nerve drawing:** with many fibres through one cell the lanes squeeze together, and colours repeat after 8.
+- **Long levels:** Long haul, Stale water, Cold water and Bloom still take 150 to 250 game s; Result runs them at
+  once.
+- **The Solutions page** (`docs/bioforge-solutions-0.7.42.html`) is for 0.7.42: it lacks Shape and Reel, and
+  still shows Marathon and the old Packed lunch.

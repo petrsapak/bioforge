@@ -5,7 +5,6 @@
 const SANDBOX_DESIGNS = ['jet', 'paddler', 'seeker', 'wiggler', 'squirter', 'nettler', 'puffer', 'starter', 'eel',
   'jelly', 'manta', 'crab'];
 const OWN_DESIGN = 'mine';                                // the select value for the design in the builder
-const SANDBOX_MAX_STEP = MAX_STEP_TIME;                   // game s; longer steps would make the springs unstable
 const PLAYER_BOTTOM_MARGIN = 50;                          // px between the player's spawn and the bottom edge
 const PLAYER_MIN_BOTTOM_DISTANCE = 150;                   // px
 const REMOVE_CLICK_MARGIN = 4;                            // px added to a cell's radius for right-click removal
@@ -87,7 +86,6 @@ function spawnSandboxPlayer(app) {
   const reach = Math.max(...design.cells.map(cell => vectorLength(...hexToPixel(cell.q, cell.r))));
   const y = app.canvas.height - Math.max(PLAYER_MIN_BOTTOM_DISTANCE, reach + PLAYER_BOTTOM_MARGIN);
   app.player = spawn(app.world, design, app.canvas.width / 2, y, 0, 0);
-  app.player.autonomous = true;                           // it moves only by its wiring: nothing steers it
   noteSpawnHealth(app.player);
   resetProbes(app.probes, app.player);
 }
@@ -131,8 +129,8 @@ function trackSandboxLight(app, event) {
 function stepSandbox(app, dt) {
   app.world.light = app.sandboxLight;
   const input = { ability: app.keysHeld.has(' '), heldKeys: app.commandKeysHeld };
-  runTimeControlled(app, dt, stepTime => {
-    step(app.world, stepTime, input);
+  runTimeControlled(app, dt, app.world, () => {
+    step(app.world, GAME_STEP, input);
     recordProbes(app.probes, app.world);
   });
 }
@@ -170,24 +168,72 @@ function showTimeControls(app) {
   }
 }
 
-// Steps a world at the chosen speed (real time at 1×) in steps of at most SANDBOX_MAX_STEP; paused, only the one
-// step asked for. stepWorld(stepTime) does one step. Shared by the Sandbox and level runs.
-function runTimeControlled(app, dt, stepWorld) {
+// What runTimeControlled keeps between frames: the game time (s) the frames have brought that no step has used yet,
+// and where the world's moving things were before its last step (see drawBlended).
+function createStepClock() {
+  return { unusedTime: 0, world: null, points: [], fromX: [], fromY: [] };
+}
+
+// Steps a world at the chosen speed (real time at 1×), always in whole steps of GAME_STEP: a frame's time is saved
+// up until it makes a step, so a run doesn't depend on the frame rate or the speed. Paused, only the one step asked
+// for. stepWorld() does one step. Shared by the Sandbox and level runs.
+function runTimeControlled(app, dt, world, stepWorld) {
+  const clock = app.stepClock;
   if (app.paused) {
-    if (app.stepRequested) stepWorld(SANDBOX_MAX_STEP);
+    if (app.stepRequested) stepWorld();
     app.stepRequested = false;
+    clock.unusedTime = 0;
     return;
   }
-  const gameTime = dt * app.sandboxSpeed;
-  const stepCount = Math.ceil(gameTime / SANDBOX_MAX_STEP - 1e-6);
-  for (let i = 0; i < stepCount; i++) stepWorld(gameTime / stepCount);
+  clock.unusedTime += dt * app.sandboxSpeed;
+  while (clock.unusedTime >= GAME_STEP) {
+    clock.unusedTime -= GAME_STEP;
+    if (clock.unusedTime < GAME_STEP) rememberPositions(clock, world);   // only the frame's last step is blended
+    stepWorld();
+  }
+}
+
+// notes where the world's cells and spit globs are, before a step moves them
+function rememberPositions(clock, world) {
+  clock.world = world;
+  clock.points.length = 0;
+  for (const cell of world.cells) clock.points.push(cell);
+  for (const glob of world.globs) clock.points.push(glob);
+  clock.points.forEach((point, i) => {
+    clock.fromX[i] = point.x;
+    clock.fromY[i] = point.y;
+  });
+}
+
+// Draws the world part of the way from where it was before its last step to where it is now, as far as the frames
+// have come toward the next step: 40 steps a second then move smoothly at any frame rate and in slow motion. The sim
+// isn't changed: every position is put back after drawing. A paused world, or one no step was noted for (a moment
+// picked on the timeline), is drawn as it is.
+function drawBlended(app, world, draw) {
+  const clock = app.stepClock;
+  if (app.paused || clock.world !== world) {
+    draw();
+    return;
+  }
+  const share = clamp01(clock.unusedTime / GAME_STEP);
+  const nowX = clock.points.map(point => point.x);
+  const nowY = clock.points.map(point => point.y);
+  clock.points.forEach((point, i) => {
+    point.x = clock.fromX[i] + (nowX[i] - clock.fromX[i]) * share;
+    point.y = clock.fromY[i] + (nowY[i] - clock.fromY[i]) * share;
+  });
+  draw();
+  clock.points.forEach((point, i) => {
+    point.x = nowX[i];
+    point.y = nowY[i];
+  });
 }
 
 // draws one Sandbox frame: water, light, world and probes
 function drawSandbox(app) {
   drawWater(app.context, app.world, app.canvas.width, app.canvas.height);
   drawLight(app.context, app.world.light);
-  drawWorld(app.context, app.world, app.fluidView);
+  drawBlended(app, app.world, () => drawWorld(app.context, app.world, app.fluidView));
   drawProbes(app, app.world);
   showSandboxHud(app);
 }

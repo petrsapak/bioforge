@@ -9,8 +9,8 @@
 //   seepFactor: share of the usual seeping between cells (cold water: less); a Heart's pumping is not slowed
 //   waterOxygen: share of the usual O₂ a Gill makes from the water (stale water: less)
 //   limits: design limits ({ budget, maxCells, maxNeurons, maxFibreUnits, bannedCells: cell type names the level
-//   doesn't allow }); any left out come from
-//   RULES. kit: { protein, sugar, fat, mineral } (data/materials.js) instead of a budget: the body's recipes must fit
+//   doesn't allow }); any left out come from RULES (maxNeurons and maxFibreUnits 0: a level with no nerves).
+//   kit: { protein, sugar, fat, mineral } (data/materials.js) instead of a budget: the body's recipes must fit
 //   it, and what is left is the creature's starting sugar, fat and mineral, in place of stores two thirds full
 //   food: the food supply (createFoodSupply in food.js), where the food system runs
 //   start: the player's spawn { x, y } in px and heading in rad (0 faces up)
@@ -37,7 +37,7 @@
 //   hostRule: { maxBodyCells }: no body of the player's (its own, with a part growing on a Bud, or a launched part)
 //     may have more cells; the first time one does, every guard wakes
 //   view: { width, height } in px: the arena is bigger than the screen, and the camera follows the player over a
-//     window this big
+//     window this big (Packed lunch's crossing, Metastasis)
 //   adventure: the level is a journey (adventure.js): { cells, neurons: what the builder has at the start; dens:
 //     [{ x, y }] where the creature is rebuilt and comes back, the first at the start; pickups: [{ x, y, name,
 //     materials, cells, neurons, secret }] lying in the water (a secret is off the way, and counted at the end) }.
@@ -53,6 +53,7 @@
 //   time limit: every win earns that star)
 
 const ARENA = { width: 1400, height: 800 };               // px
+const CROSSING_ARENA = { width: 4200, height: 800 };      // px: Packed lunch's water, three screens long
 const CHAPTER_1_SYSTEMS = ['nerve'];
 const CIRCULATION_SYSTEMS = ['nerve', 'fluid', 'vascular'];
 const FEEDING_SYSTEMS = ['nerve', 'fluid', 'vascular', 'metabolism', 'food'];
@@ -154,6 +155,10 @@ const CREVICE_ROCKS = [
 ];
 const CREVICE_CURRENT = { x: CREVICE_LEFT, y: CREVICE_TOP, width: CREVICE_RIGHT - CREVICE_LEFT,
   height: CREVICE_BOTTOM - CREVICE_TOP, flowX: -30, flowY: 0 };
+// Reel: the player's place. The Whirler starts 240 px left of it and 82 px up, and circles to the right of there
+// with a radius of about 80 px: its ring comes within 100 px of the player, off to the left, so a body swimming
+// straight up passes it by.
+const REEL_START = { x: 780, y: 470, heading: 0 };        // px, rad
 // the Puffer hunting from the bottom right corner, arriving at a given game s
 const pufferArriving = at => ({ design: 'puffer', x: 1250, y: 700, heading: 0, behaviour: 'hunt', at });
 
@@ -233,6 +238,18 @@ const LEVELS = [
     creatures: [{ design: 'skittishDarter', x: 1000, y: 300, heading: 0, behaviour: 'flee' }],
     goal: { kind: 'stayNear', radius: 80, seconds: 0.5 },
     timeLimit: 40, par: { seconds: 33, biomass: 14 },
+  }),
+  createLevel({
+    id: 'shape', chapter: 1, name: 'Shape',
+    brief: 'No neurons and no fibres here. Cilia beat on their own and push from where they sit, so the shape of ' +
+      'your body is its steering. Swim into the ring, off to the right.',
+    hint: 'A Cilia on each side of the Nucleus swims straight up, past the ring. More push on the left than on the ' +
+      'right turns you right: the more uneven, the tighter the turn. Two Cilia left of the Nucleus, a Tissue right ' +
+      'of it and two Cilia behind it curve into the ring.',
+    limits: { budget: 40, maxNeurons: 0, maxFibreUnits: 0 },
+    start: { x: 250, y: 650, heading: 0 },
+    goal: { kind: 'reach', x: 850, y: 400, radius: 90 },
+    timeLimit: 60, par: { seconds: 24, biomass: 9 },
   }),
   createLevel({
     id: 'freeze', chapter: 2, name: 'Freeze',
@@ -363,35 +380,24 @@ const LEVELS = [
     timeLimit: 240, par: { seconds: 150, biomass: 25 },
   }),
   createLevel({
-    id: 'marathon', chapter: 3, name: 'Marathon',
-    brief: 'Cold water again, and the light drifts as slowly as in Long haul, but keep close to it for 200 s in ' +
-      'all. That is longer than the Cold water build\'s O₂ and sugar last, and a Heart that never stops beating ' +
-      'burns as much as a Siphon.',
-    hint: 'Everything from this chapter at once. Two Fats on the sides for sugar, a Gill beside each Siphon for ' +
-      'O₂, the Pore at the back for waste, and a Heart at the front. A Gill makes O₂ for every cell only if ' +
-      'blood carries it away, but the Heart needn\'t beat all the time: a Pacemaker in it beats it in pulses, for ' +
-      'half the fuel. Keep the body short and even, or it turns.',
-    systems: CIRCULATION_SYSTEMS,
-    seepFactor: 0.05,
-    limits: { budget: 50 },
-    light: DRIFTING_LIGHT,
-    goal: { kind: 'stayNear', radius: 100, seconds: 200 },
-    timeLimit: 300, par: { seconds: 280, biomass: 28 },
-  }),
-  createLevel({
     id: 'packed-lunch', chapter: 4, name: 'Packed lunch',
-    brief: 'Long haul\'s chase, but you build from a kit of materials instead of a biomass budget, and what you ' +
-      'don\'t use is all the fuel you get: there is no food. The protein is tight: the Marathon build doesn\'t ' +
-      'fit. Keep close to the light for 150 s in all.',
-    hint: 'Cells are built from Protein, and a Fat cell takes one Fat as well. Leftover Sugar spreads over the ' +
-      'body, but leftover Fat goes only into Fat cells, which turn it back into sugar as they run low. Long haul\'s ' +
-      'Seeker with one Fat, a Gill and a Pore carries enough.',
+    brief: 'A long crossing: the ring is three screens away to the right, with no light to follow and no food on ' +
+      'the way. You build from a kit of materials instead of a biomass budget, and what you don\'t use is all the ' +
+      'fuel you get. No Cilia here. Swim into the ring.',
+    hint: 'A Pacemaker in the Nucleus wired to both Siphons swims straight while both sides of the body weigh the ' +
+      'same; an Inhibitor there keeps the Siphons on, which is faster. A bare body runs dry on the way. Cells are ' +
+      'built from Protein, and a Fat cell takes one Fat as well: leftover Sugar spreads over the body, but leftover ' +
+      'Fat goes only into Fat cells. Take a Fat on each side, two Gills at the front for O₂ and a Pore at the back, ' +
+      'touching both Siphons.',
     systems: FEEDING_SYSTEMS,
-    limits: { kit: { protein: 22, sugar: 4, fat: 7 } },
+    arena: CROSSING_ARENA,
+    view: ARENA,
+    // a pair of Cilia crosses with no stores at all (2026-11-10)
+    limits: { kit: { protein: 22, sugar: 4, fat: 7 }, bannedCells: ['cilia'] },
     food: { maxCount: 0 },
-    light: DRIFTING_LIGHT,
-    goal: { kind: 'stayNear', radius: 100, seconds: 150 },
-    timeLimit: 240, par: { seconds: 200, biomass: 20 },
+    start: { x: 150, y: 400, heading: Math.PI / 2 },
+    goal: { kind: 'reach', x: CROSSING_ARENA.width - 150, y: 400, radius: 80 },
+    timeLimit: 240, par: { seconds: 110, biomass: 18 },
   }),
   createLevel({
     id: 'grazing', chapter: 4, name: 'Grazing',
@@ -435,6 +441,22 @@ const LEVELS = [
     creatures: [{ design: 'darter', x: 1050, y: 250, heading: 0, behaviour: 'wired' }],
     goal: { kind: 'kill', creature: 0 },
     timeLimit: 60, par: { seconds: 32, biomass: 34 },
+  }),
+  createLevel({
+    id: 'reel', chapter: 5, name: 'Reel',
+    unlocks: { cells: ['snare'] },
+    brief: 'A Whirler circles nearby, always out of your Nettles\' reach, and it carries no light to follow. ' +
+      'Destroy its Nucleus.',
+    hint: `A signalled Snare shoots a line up to ${SNARE_LENGTH} px at the nearest enemy, and reels the cell it ` +
+      'catches right up to itself. Put an Eyespot and a Snare at the front with a Nettle in front of each, and wire ' +
+      'the Eyespot to the Snare and both Nettles: when the Whirler comes past, the Snare pulls it onto the Nettles.',
+    systems: ARMOUR_SYSTEMS,
+    limits: { kit: { protein: 30, sugar: 4, fat: 3 } },
+    food: { maxCount: 0 },
+    start: REEL_START,
+    creatures: [{ design: 'whirler', x: REEL_START.x - 240, y: REEL_START.y - 82, heading: 0, behaviour: 'wired' }],
+    goal: { kind: 'kill', creature: 0 },
+    timeLimit: 60, par: { seconds: 22, biomass: 18 },
   }),
   createLevel({
     id: 'bulwark', chapter: 5, name: 'Bulwark',
@@ -638,7 +660,8 @@ const darterCells = () => [
 // Creatures that live in levels. The Darter holds still until its Eyespot sees an enemy within reach (120 px), then
 // jets straight ahead on both Siphons. The skittish Darter has no nerves: the AI makes it flee (behaviour 'flee',
 // ai.js), so its Siphons' bursts can't add to its sprint. The Clam is a Nucleus inside two rings of Shell, and does
-// nothing. The Grazer is a small hunter with a Mouth in front, which bites soft cells. The Phagocyte, an immune
+// nothing. The Whirler has Cilia on both sides and a Tissue on the right, so it circles for ever, to the right.
+// The Grazer is a small hunter with a Mouth in front, which bites soft cells. The Phagocyte, an immune
 // cell, has two. The Killer cell stings with a Nettle when close (the AI holds its Command), and the Macrophage
 // is a big Phagocyte behind a Shell back, with Nettles among its Mouths.
 const LEVEL_CREATURES = {
@@ -647,6 +670,11 @@ const LEVEL_CREATURES = {
     fibres: [{ from: { q: 0, r: -1 }, to: { q: -1, r: 1 } }, { from: { q: 0, r: -1 }, to: { q: 0, r: 1 } }],
   },
   skittishDarter: { cells: darterCells(), fibres: [] },
+  whirler: {
+    cells: [createDesignCell(0, 0, 'nucleus'), createDesignCell(-1, 0, 'cilia'), createDesignCell(1, 0, 'cilia'),
+      createDesignCell(2, 0, 'tissue')],
+    fibres: [],
+  },
   // an urchin: its Eyespot (on the far side, away from the light's approach) holds a Synapse wired to four Nettles
   urchin: {
     cells: [

@@ -3,7 +3,7 @@
 // scores a win. Pure: no DOM, so a level can be run headless to prove it can be beaten.
 
 const LEVEL_SEED = 1;                                     // random seed of every level run
-const LEVEL_STEP = 1 / 40;                                // game s per step of a headless run
+const LEVEL_STEP = GAME_STEP;                             // game s per step of a level run, headless or on screen
 
 // Levels open in order: the first one always, any other once the level before it is won. results: the best
 // result per level id, which only wins have.
@@ -79,20 +79,20 @@ function isLastLevelWon(results) {
 }
 
 // A level in play: its world, the player's creature, the level's other creatures, the clock and the outcome
-// ('won', 'lost' or null while it runs). goalTime counts the seconds a stayNear, restIn or spread goal has been
-// met; ruleBroken: one of the player's bodies has broken the level's host rule, which woke its guards. With a
-// material kit, the player starts with the kit's leftovers as its sugar and fat, instead of stores two thirds full.
+// ('won', 'lost' or null while it runs). steps counts the steps taken (replay.js). goalTime counts the seconds a
+// stayNear, restIn or spread goal has been met; ruleBroken: one of the player's bodies has broken the level's host
+// rule, which woke its guards. With a material kit, the player starts with the kit's leftovers as its sugar and fat,
+// instead of stores two thirds full.
 // design: the player's, changed by a rebuild in an adventure's den (adventure.js).
 function startLevel(level, design) {
   const world = newWorld(level.arena.width, level.arena.height, { systems: level.systems, seed: LEVEL_SEED,
     seepFactor: level.seepFactor, waterOxygen: level.waterOxygen, foodSupply: createFoodSupply(level.food),
     terrain: createTerrain(level.rocks, level.currents) });
   const player = spawn(world, design, level.start.x, level.start.y, level.start.heading, 0);
-  player.autonomous = true;
   const kit = levelLimits(level).kit;
   if (kit) stockReserves(player, kitReserves(design, kit));
   const creatures = level.creatures.map(entry => (entry.at ? null : spawnLevelCreature(world, entry)));
-  const run = { level, world, player, creatures, time: 0, goalTime: 0, outcome: null, reason: '',
+  const run = { level, world, player, creatures, time: 0, steps: 0, goalTime: 0, outcome: null, reason: '',
     playerSpeed: 0, ruleBroken: false, design };
   if (level.adventure) startAdventure(run);
   placeLevelLight(run);
@@ -188,6 +188,7 @@ function stepLevel(run, dt, input) {
   const lastY = run.player.centerY;
   step(run.world, dt, input);
   run.time += dt;
+  run.steps++;
   run.playerSpeed = vectorLength(run.player.centerX - lastX, run.player.centerY - lastY) / dt;
   checkHostRule(run);
   if (run.adventure) stepAdventure(run);

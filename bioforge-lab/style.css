@@ -774,6 +774,9 @@ button.small.run:hover { background: #4a8044; }
 }
 #level-bar button.small { flex: none; }
 #level-bar button.time { min-width: 34px; font-size: 15px; }
+#level-timeline { display: flex; align-items: center; gap: 8px; margin-left: 4px; }
+#timeline-slider { width: 240px; accent-color: #7fe0a0; cursor: pointer; }
+#timeline-time { min-width: 92px; color: #b9c3cd; font-variant-numeric: tabular-nums; }
 #level-result {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: none; z-index: 25;
   min-width: 280px; padding: 16px 20px; background: #0d1519f2; border: 1px solid #2c4650; border-radius: 12px;

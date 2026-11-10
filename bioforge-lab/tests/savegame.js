@@ -15,7 +15,7 @@ const STEPS_AFTER_SAVE = 160;                             // 4 game s
 const SPACE_PERIOD = 40;                                  // steps: Space is held every other second
 
 // the input of step i: Space held every other second, so that Commands fire
-const inputAt = i => ({ swimX: 0, swimY: -1, ability: Math.floor(i / SPACE_PERIOD) % 2 === 1, heldKeys: new Set() });
+const inputAt = i => ({ ability: Math.floor(i / SPACE_PERIOD) % 2 === 1, heldKeys: new Set() });
 // the whole state as text, to compare two runs exactly (JSON keeps every digit of a number)
 const stateText = run => JSON.stringify(sim.takeSnapshot(run, sim.runDataIndex()));
 // what savedRun keeps, through JSON as the save does
@@ -165,6 +165,23 @@ for (const level of sim.LEVELS) {
     stored.games.list.map(game => game.id).join() === '1,3' && stored['game-3-library'][0].name === 'Kept' &&
     stored['game-1-level-results'][sim.LEVELS[0].id].stars === 2 &&
     stored['profile-3-library'] === null && stored.profiles === null);
+}
+
+// ---------- Forgetting the results of levels that changed (save version 4) ----------
+{
+  const kept = { stars: 3, seconds: 20, biomass: 12 };
+  const stored = { 'save-version': 3, 'games': { list: [{ id: 1, playedAt: 0 }, { id: 2, playedAt: 5 }], current: 2,
+    nextId: 3 }, 'game-1-level-results': { 'first-stroke': kept, marathon: kept, 'packed-lunch': kept },
+  'game-2-level-results': { 'long-haul': kept }, 'game-1-briefed-levels': ['first-stroke', 'packed-lunch'] };
+  const read = (name, fallback) => (name in stored && stored[name] !== null ? stored[name] : fallback);
+  const write = (name, value) => {
+    stored[name] = value;
+  };
+  sim.upgradeStoredSave(read, write);
+  check('every game forgets its results in Marathon (gone) and Packed lunch (another level now), and keeps the rest',
+    Object.keys(stored['game-1-level-results']).join() === 'first-stroke' &&
+    Object.keys(stored['game-2-level-results']).join() === 'long-haul' && stored['save-version'] === 4);
+  check('and Packed lunch briefs again', stored['game-1-briefed-levels'].join() === 'first-stroke');
 }
 
 // ---------- Games ----------

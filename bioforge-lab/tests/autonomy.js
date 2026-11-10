@@ -1,7 +1,8 @@
 'use strict';
-// Autonomy: an autonomous creature ignores the swimming input and isn't held to a heading; only its own cells move
-// and turn it. Cilia push toward the front from where they sit, so cilia on one side turn the creature; muscles move
-// it only by pushing water.
+// Autonomy: nothing steers the player's creature and nothing holds it to a heading; only its own cells move and turn
+// it (until 2026-11-10 a creature not marked autonomous swam on a direction input, as the Lab's Preview did). Cilia
+// push toward the front from where they sit, so cilia on one side turn the creature; muscles move it only by pushing
+// water.
 const { load } = require('./load');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['newWorld', 'spawn', 'step', 'blueprintFromList', 'createDesignCell', 'createNeuron',
@@ -11,21 +12,19 @@ const RUN_STEPS = 200;                                    // 5 game s at 1/40 s 
 const STILL_DISTANCE = 2;                                 // px a creature with no movers may drift
 const TURNED_ANGLE = 0.3;                                 // rad that counts as having turned
 
-// runs a creature for 5 game s with "swim up" held; returns how far it went and turned. A design is a cell list or a
-// design with neurons and fibres.
-function runCreature(design, isAutonomous) {
+// runs a creature for 5 game s; returns how far it went and turned. A design is a cell list or a design with neurons
+// and fibres.
+function runCreature(design) {
   const world = sim.newWorld(2000, 2000, { seed: 1 });
   const cells = Array.isArray(design) ? { cells: sim.blueprintFromList(design) } : design;
   const creature = sim.spawn(world, cells, 1000, 1000, 0, 0);
-  creature.aiControlled = false;
-  creature.autonomous = isAutonomous;
-  sim.step(world, 1 / 40, { swimX: 0, swimY: 0, ability: false });
+  sim.step(world, 1 / 40, { ability: false });
   const startX = creature.centerX;
   const startY = creature.centerY;
   let turned = 0;                                         // rad, summed step by step so it doesn't wrap at ±π
   for (let i = 0; i < RUN_STEPS; i++) {
     const before = creature.heading;
-    sim.step(world, 1 / 40, { swimX: 0, swimY: -1, ability: false });
+    sim.step(world, 1 / 40, { ability: false });
     turned += Math.atan2(Math.sin(creature.heading - before), Math.cos(creature.heading - before));
   }
   return {
@@ -36,13 +35,13 @@ function runCreature(design, isAutonomous) {
 }
 
 const plainBody = [[0, 0, 'nucleus'], [-1, 0, 'tissue'], [1, 0, 'tissue']];
-const steered = runCreature(plainBody, false);
-const autonomous = runCreature(plainBody, true);
-check('a steered creature swims on the input', steered.distance > 50, steered.distance.toFixed(1) + ' px');
-check('an autonomous creature with nothing to move it stays put', autonomous.distance < STILL_DISTANCE,
+const autonomous = runCreature(plainBody);
+check('the player\'s creature is autonomous from its spawn',
+  sim.spawn(sim.newWorld(100, 100), { cells: sim.blueprintFromList(plainBody) }, 50, 50, 0, 0).autonomous === true);
+check('a creature with nothing to move it stays put', autonomous.distance < STILL_DISTANCE,
   autonomous.distance.toFixed(2) + ' px');
 
-const bothSides = runCreature([[0, 0, 'nucleus'], [-1, 0, 'cilia'], [1, 0, 'cilia']], true);
+const bothSides = runCreature([[0, 0, 'nucleus'], [-1, 0, 'cilia'], [1, 0, 'cilia']]);
 check('cilia on both sides swim it forward without turning',
   bothSides.forward > 50 && Math.abs(bothSides.heading) < TURNED_ANGLE,
   `${bothSides.forward.toFixed(1)} px, ${bothSides.heading.toFixed(2)} rad`);
@@ -60,7 +59,7 @@ check('cilia on both sides swim it forward without turning',
   check('beating Cilia burn fuel in an autonomous creature', cilia.fluids[sim.FLUID_SUGAR] < startSugar,
     `${startSugar.toFixed(3)} -> ${cilia.fluids[sim.FLUID_SUGAR].toFixed(3)} sugar`);
 }
-const rightSide = runCreature([[0, 0, 'nucleus'], [-1, 0, 'tissue'], [1, 0, 'cilia']], true);
+const rightSide = runCreature([[0, 0, 'nucleus'], [-1, 0, 'tissue'], [1, 0, 'cilia']]);
 check('cilia on the right side turn it to the left', rightSide.heading < -TURNED_ANGLE,
   rightSide.heading.toFixed(2) + ' rad');
 
@@ -74,7 +73,7 @@ const pulsingBlob = {
   cells: [designCell(0, 0, 'nucleus', 'pacemaker'), designCell(-1, 0, 'muscle'), designCell(1, 0, 'muscle')],
   fibres: [fibre(0, 0, -1, 0), fibre(0, 0, 1, 0)],
 };
-const pulsing = runCreature(pulsingBlob, true);
+const pulsing = runCreature(pulsingBlob);
 check('a blob that just pulses its muscles goes nowhere', pulsing.distance < 10, pulsing.distance.toFixed(1) + ' px');
 const SPINE = [[0, 1], [-1, 2], [-1, 3], [-2, 4], [-2, 5], [-3, 6], [-3, 7], [-4, 8]];
 const LEFT_MUSCLES = [[-1, 1], [-2, 2], [-2, 3], [-3, 4], [-3, 5], [-4, 6]];
@@ -87,22 +86,22 @@ const fish = {
   fibres: [fibre(0, 0, 1, 0), ...LEFT_MUSCLES.map(([q, r]) => fibre(0, 0, q, r)),
     ...RIGHT_MUSCLES.map(([q, r]) => fibre(1, 0, q, r))],
 };
-const swimming = runCreature(fish, true);
+const swimming = runCreature(fish);
 check('a tail beating side to side swims it forward', swimming.forward > 20, swimming.forward.toFixed(1) + ' px');
-const unwired = runCreature([[0, 0, 'nucleus'], [-1, 0, 'muscle'], [1, 0, 'muscle']], true);
+const unwired = runCreature([[0, 0, 'nucleus'], [-1, 0, 'muscle'], [1, 0, 'muscle']]);
 check('muscles with no signal do nothing', unwired.distance < STILL_DISTANCE, unwired.distance.toFixed(2) + ' px');
-const jet = runCreature(sim.TEMPLATES.jet, true);
+const jet = runCreature(sim.TEMPLATES.jet);
 check('the default Jet swims straight ahead on its own wiring',
   jet.forward > 50 && Math.abs(jet.heading) < TURNED_ANGLE,
   `${jet.forward.toFixed(1)} px, ${jet.heading.toFixed(2)} rad`);
 // The Wiggler: two rows of Muscles taking turns and a fin of Joints. Mirror-symmetric and wired so both sides are
 // the same number of fibres from the beat, so it swims head first and straight, at about the Jet's speed. The
 // Paddler is the same body with a Delay in each back-row Muscle: a wave runs down to the fin, and it swims faster.
-const wiggler = runCreature(sim.TEMPLATES.wiggler, true);
+const wiggler = runCreature(sim.TEMPLATES.wiggler);
 check('the Wiggler swims head first and straight by muscle alone',
   wiggler.forward > 80 && Math.abs(wiggler.heading) < TURNED_ANGLE,
   `${wiggler.forward.toFixed(1)} px, ${wiggler.heading.toFixed(2)} rad`);
-const paddler = runCreature(sim.TEMPLATES.paddler, true);
+const paddler = runCreature(sim.TEMPLATES.paddler);
 check('the Paddler, wired in a wave, swims head first and straight, faster than the Wiggler',
   paddler.forward > 1.2 * wiggler.forward && Math.abs(paddler.heading) < TURNED_ANGLE,
   `${paddler.forward.toFixed(1)} px, ${paddler.heading.toFixed(2)} rad`);

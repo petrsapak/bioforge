@@ -266,7 +266,7 @@ const TUTORIAL_LESSONS = [
   },
   {
     id: 'packed-lunch', level: 'packed-lunch', runStep: 'packed-lunch-run', after: 'long-haul',
-    needsWin: 'marathon',
+    needsWin: 'cold-water',
     steps: [
       {
         id: 'packed-lunch-welcome',

@@ -175,7 +175,6 @@ function noteDen(run) {
 function spawnPlayerAtDen(run, design, denIndex) {
   const den = run.level.adventure.dens[denIndex];
   const player = spawn(run.world, design, den.x, den.y, run.level.start.heading, 0);
-  player.autonomous = true;
   stockReserves(player, kitReserves(design, run.adventure.bank));
   run.player = player;
   run.design = design;

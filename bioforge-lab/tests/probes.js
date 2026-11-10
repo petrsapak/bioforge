@@ -33,7 +33,8 @@ check('the Sandbox probes the senses first, then the cells acting on a signal',
 check('the signal panel shows', byId('hud-probes').style.display === 'block');
 runFrames(20);
 const sampleCount = probes().lanes[0].samples.length;
-check('each sim step adds a sample', sampleCount >= 20, sampleCount + ' samples');
+// 25 frames of 16 ms are 0.4 s: 16 steps of 1/40 s (until 2026-11-10 every frame was one step, so 20 or more)
+check('each sim step adds a sample', sampleCount >= 14 && sampleCount <= 16, sampleCount + ' samples');
 runFrames(600);
 const samples = probes().lanes[0].samples;
 const oldest = samples[samples.length - 1].time - samples[0].time;

@@ -174,13 +174,30 @@ function settleOrder(world) {
   return order;
 }
 
+// Each world's settle order, kept until its wiring changes, so it isn't worked out again every game step.
+const SETTLE_ORDERS = new WeakMap();
+
+// The world's settle order (settleOrder), worked out again only when its cells or fibres have changed. Cells and
+// fibres are only ever added at the end of their lists, or filtered into new lists, so the same two lists at the
+// same lengths hold the same wiring.
+function keptSettleOrder(world) {
+  const kept = SETTLE_ORDERS.get(world);
+  const isCurrent = kept && kept.cells === world.cells && kept.cellCount === world.cells.length &&
+    kept.fibres === world.fibres && kept.fibreCount === world.fibres.length;
+  if (isCurrent) return kept.order;
+  const order = settleOrder(world);
+  SETTLE_ORDERS.set(world, { cells: world.cells, cellCount: world.cells.length, fibres: world.fibres,
+    fibreCount: world.fibres.length, order });
+  return order;
+}
+
 // Each nerve step the cells settle in order (settleOrder), each taking what its fibres carry now: a pulse reaches
 // every cell wired to it at once, and only a Delay, a Ganglion or a loop makes it late. stepSignal keeps the share of
 // the game step each cell was on, which muscles and bloaters act on.
 function updateNerves(world, dt) {
   for (const cell of world.cells) cell.senseOutput = senseOutput(world, cell);
   const stepTime = dt / NERVE_SUBSTEPS;
-  const order = settleOrder(world);
+  const order = keptSettleOrder(world);
   for (const cell of world.cells) cell.stepSignal = 0;
   for (let i = 0; i < NERVE_SUBSTEPS; i++) {
     const time = world.time + i * stepTime;

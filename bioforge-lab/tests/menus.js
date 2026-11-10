@@ -43,7 +43,7 @@ async function main() {
   check('with nothing saved yet there is no Continue, and no Quit outside the desktop build',
     !isShown(byId, 'menu-continue') && !isShown(byId, 'menu-quit') && isShown(byId, 'menu-new-game') &&
     isShown(byId, 'menu-load-game') && isShown(byId, 'menu-sandbox'));
-  check('the old save was upgraded and carries its version', storage.items['bioforge-lab-save-version'] === '3');
+  check('the old save was upgraded and carries its version', storage.items['bioforge-lab-save-version'] === '4');
   pressKey('2');
   runFrames(1);
   check('the builder\'s keys wait while a menu is open', !byId('layer-nerve').classList.contains('selected'));

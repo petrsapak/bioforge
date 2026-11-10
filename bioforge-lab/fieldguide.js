@@ -212,7 +212,6 @@ function createExampleRun(example) {
   world.spaceFiresAllSources = false;
   const middle = EXAMPLE_WORLD_SIZE / 2;
   const creature = spawn(world, exampleDesign(example), middle, middle, 0, 0);
-  creature.autonomous = true;                             // as in a level: only its own cells move and turn it
   for (const cell of creature.cells) {
     const startsHurt = example.startsHurt && example.startsHurt.includes(cell.typeName);
     if (startsHurt) cell.health = cell.maxHealth * EXAMPLE_HURT_HEALTH;

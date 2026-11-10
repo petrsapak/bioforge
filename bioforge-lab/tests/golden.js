@@ -58,17 +58,16 @@ function fingerprintWorld(world) {
   return fingerprint.result();
 }
 
-// the player's design swims forward and fires its abilities every other second, against a hunting opponent
+// the player's design moves by its own wiring, with Space held every other second, against a hunting opponent
 function runScenario(designName) {
   const world = sim.newWorld(1600, 1200, { seed: SEED });
-  const player = sim.spawn(world, sim.TEMPLATES[designName], 800, 800, 0, 0);
-  player.aiControlled = false;
+  sim.spawn(world, sim.TEMPLATES[designName], 800, 800, 0, 0);
   sim.spawn(world, sim.TEMPLATES[OPPONENT_DESIGN], 800, 450, Math.PI, 1);
   const stepCount = Math.round(SCENARIO_SECONDS / STEP_SECONDS);
   for (let i = 0; i < stepCount; i++) {
     const secondsElapsed = i * STEP_SECONDS;
     const abilityHeld = Math.floor(secondsElapsed) % 2 === 1;
-    sim.step(world, STEP_SECONDS, { swimX: 0, swimY: -1, ability: abilityHeld, heldKeys: new Set() });
+    sim.step(world, STEP_SECONDS, { ability: abilityHeld, heldKeys: new Set() });
   }
   return fingerprintWorld(world);
 }

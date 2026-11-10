@@ -12,7 +12,7 @@ const SIM_FILES = ['math.js', 'core.js', 'fibres.js', 'terrain.js', 'physics.js'
   'metabolism.js', 'actuators.js', 'secretions.js', 'combat.js',
   'growth.js', 'food.js', 'ai.js', 'design.js', 'builder.js', 'fieldguide.js', 'levels.js', 'adventure.js',
   'tutorial.js',
-  'snapshot.js',
+  'snapshot.js', 'replay.js',
   'savegame.js', 'titlescene.js', 'data/version.js', 'data/rules.js', 'data/materials.js', 'data/fluids.js',
   'data/cells.js', 'data/neurons.js', 'data/templates.js', 'data/tips.js', 'data/guide.js', 'data/levels.js',
   'data/sounds.js', 'data/title.js', 'data/tutorial.js'];
@@ -56,7 +56,7 @@ const relativeError = (value, expected) => Math.abs(value - expected) / Math.max
 function foodAfterRun(seed) {
   const world = sim.newWorld(1200, 1200, { seed });
   sim.spawn(world, sim.TEMPLATES.wiggler, 600, 600, 0, 0);
-  for (let i = 0; i < 400; i++) sim.step(world, 1 / 40, { swimX: 0, swimY: -1, ability: false });
+  for (let i = 0; i < 400; i++) sim.step(world, 1 / 40, { ability: false });
   return world.food.map(speck => speck.x + ',' + speck.y).join(' ');
 }
 check('same seed, same food', foodAfterRun(3) === foodAfterRun(3));

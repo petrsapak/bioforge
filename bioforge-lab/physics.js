@@ -16,21 +16,19 @@ const TURN_STIFFNESS = 10;                                // turning torque per 
 const TURN_DAMPING = 5;                                   // turning torque per rad/s of spin
 const MUSCLE_TURN_TORQUE = 10;                            // turning torque when only one side's Muscles pull
 const SIPHON_FORCE = 600;                                 // thrust of a fully signalled siphon
-const TURN_RATE = 2.5;                                    // rad/s, car-style steering
 const WALL_BOUNCE = 0.3;                                  // share of speed kept when a cell hits the world's edge
 
 // ---------- Input ----------
-// Sets each creature's wanted swimming direction, heading and ability from the AI or the player's input. An
-// autonomous creature takes only its Command keys, and only the player's (team 0) keys reach it.
+// Sets each creature's wanted swimming direction, heading and ability. Only the AI steers (ai.js): every other
+// creature moves by its own cells, and takes just the keys its Command neurons listen to, which reach only the
+// player's (team 0).
 function applyInputs(world, dt, input) {
   for (const creature of world.creatures) {
     if (creature.debris) continue;
     creature.resting = creature.team !== 0 && world.enemiesIdle;   // a sandbox target told to hold still
     if (creature.resting) holdStill(creature);
     else if (creature.aiControlled) steerAiCreature(world, creature, dt);
-    else if (creature.autonomous) applyTriggerInput(creature, creature.team === 0 ? input : null);
-    else if (input && 'forward' in input) applyCarStyleInput(creature, input, dt);
-    else if (input) applyDirectionInput(creature, input);
+    else applyTriggerInput(creature, creature.team === 0 ? input : null);
   }
 }
 
@@ -41,31 +39,12 @@ function holdStill(creature) {
   creature.abilityHeld = false;
 }
 
-// An autonomous creature takes no swimming from the input, only the keys its Command neurons listen to.
+// A creature the AI doesn't steer takes no swimming from the input, only the keys its Command neurons listen to.
 function applyTriggerInput(creature, input) {
   holdStill(creature);
   if (!input) return;
   creature.abilityHeld = !!input.ability;
   creature.heldKeys = input.heldKeys;
-}
-
-// turn rotates the heading, forward swims along it (negative = reverse without turning)
-function applyCarStyleInput(creature, input, dt) {
-  creature.abilityHeld = input.ability;
-  creature.heldKeys = input.heldKeys;
-  const turnStep = wrapAngle(creature.targetHeading + input.turn * TURN_RATE * dt - creature.heading);
-  creature.targetHeading = creature.heading + Math.max(-1, Math.min(1, turnStep));
-  creature.swimX = sine(creature.targetHeading) * input.forward;
-  creature.swimY = -cosine(creature.targetHeading) * input.forward;
-}
-
-// the player's swim direction, ability and held keys, and the heading to turn to
-function applyDirectionInput(creature, input) {
-  creature.swimX = input.swimX;
-  creature.swimY = input.swimY;
-  creature.abilityHeld = input.ability;
-  creature.heldKeys = input.heldKeys;
-  if (input.swimX || input.swimY) creature.targetHeading = arcTangent2(input.swimX, -input.swimY);
 }
 
 // ---------- Physics step ----------
@@ -272,25 +251,27 @@ function applySnarePull(world) {
 // Overlapping cells of different creatures push apart; between enemies, thorns and mouths also hit.
 function resolveCollisions(world) {
   const creatures = world.creatures;
-  for (const creature of creatures) creature.bounds = measureBounds(creature);
+  for (const creature of creatures) measureBounds(creature);
   for (let i = 0; i < creatures.length; i++) {
     for (let j = i + 1; j < creatures.length; j++) collideCreatures(world, creatures[i], creatures[j]);
   }
 }
 
-// the box around a creature's cells, for quick overlap checks
+// Measures the box around a creature's cells, for quick overlap checks, into creature.bounds. The box object is made
+// once per creature and filled again every physics step, which would otherwise make four new ones per game step.
 function measureBounds(creature) {
-  let minX = Infinity;
-  let minY = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
+  if (!creature.bounds) creature.bounds = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
+  const bounds = creature.bounds;
+  bounds.minX = Infinity;
+  bounds.minY = Infinity;
+  bounds.maxX = -Infinity;
+  bounds.maxY = -Infinity;
   for (const cell of creature.cells) {
-    minX = Math.min(minX, cell.x - cell.radius);
-    minY = Math.min(minY, cell.y - cell.radius);
-    maxX = Math.max(maxX, cell.x + cell.radius);
-    maxY = Math.max(maxY, cell.y + cell.radius);
+    bounds.minX = Math.min(bounds.minX, cell.x - cell.radius);
+    bounds.minY = Math.min(bounds.minY, cell.y - cell.radius);
+    bounds.maxX = Math.max(bounds.maxX, cell.x + cell.radius);
+    bounds.maxY = Math.max(bounds.maxY, cell.y + cell.radius);
   }
-  return { minX, minY, maxX, maxY };
 }
 
 const boundsOverlap = (first, second) =>

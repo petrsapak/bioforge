@@ -3,7 +3,8 @@
 // (each with its own creatures, level results and saved run), the state Continue picks up (the builder's design,
 // the chosen level, a running level or Sandbox), and creature files (pure).
 
-const SAVE_VERSION = 3;                                   // the save's format; a new one adds a step to SAVE_UPGRADES
+const SAVE_VERSION = 4;                                   // the save's format; a new one adds a step to SAVE_UPGRADES
+const RESET_LEVEL_IDS = ['marathon', 'packed-lunch'];     // levels whose results save version 4 forgets
 // kept per game; the rest is shared
 const GAME_KEYS = ['continue', 'level-results', 'library', 'quicksave', 'tutorial', 'briefed-levels'];
 const CREATURE_FILE_KIND = 'bioforge-lab-creature';       // marks a JSON file as a creature saved by this game
@@ -45,7 +46,25 @@ const SAVE_UPGRADES = [
       current: profiles.current, nextId: profiles.nextId });
     write('profiles', null);
   },
+  // 3 → 4 (2026-11-10): Marathon went and Packed lunch became another level (a crossing), so every game forgets its
+  // results in those two and that Packed lunch's briefing was shown
+  (read, write) => {
+    const games = read('games', null);
+    if (!games) return;
+    for (const game of games.list) {
+      const results = read(gameKey(game.id, 'level-results'), null);
+      if (results) write(gameKey(game.id, 'level-results'), withoutKeys(results, RESET_LEVEL_IDS));
+      const briefed = read(gameKey(game.id, 'briefed-levels'), null);
+      if (Array.isArray(briefed)) {
+        write(gameKey(game.id, 'briefed-levels'), briefed.filter(id => !RESET_LEVEL_IDS.includes(id)));
+      }
+    }
+  },
 ];
+
+// a copy of an object without these keys
+const withoutKeys = (object, keys) =>
+  Object.fromEntries(Object.entries(object).filter(([key]) => !keys.includes(key)));
 
 // Brings the stored save up to SAVE_VERSION; a save from a newer game is left as it is. Returns the version found.
 function upgradeStoredSave(read, write) {

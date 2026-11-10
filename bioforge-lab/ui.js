@@ -68,10 +68,12 @@ function createApp(canvas) {
     sandboxLight: null,                                   // { x, y }: the mouse over the sandbox water, a light
     sandboxSpeed: 1,                                     // game speed: 2 is double, 0.5 is slow motion
     paused: false,
+    stepClock: createStepClock(),                         // the fixed steps' timing (sandbox.js)
     stepRequested: false,                                 // paused: run one step on the next frame
     level: null,                                          // the chosen level (data/levels.js); null: free build
     sheetLevel: null,                                     // the level whose card the levels sheet shows
     levelRun: null,                                       // the level being played (levels.js startLevel)
+    timeline: createTimeline(),                           // the level run's recording and slider (timeline.js)
     levelDesign: null,                                    // the design it runs, kept for a retry and the score
     isFirstWin: false,                                    // the run just won its level for the first time
     briefedLevels: [],                                    // ids of the levels this game has shown the briefing of
@@ -815,11 +817,9 @@ function runFrame(app, now) {
   requestAnimationFrame(time => runFrame(app, time));
 }
 
-// Steps a test tank in real time, its creature held facing up in the middle. input: what step() takes.
+// Steps a test tank in real time, its creature kept in the middle. It moves and turns by its own cells only, as in
+// a level. input: what step() takes.
 function stepTestTank(tank, dt, input) {
-  for (const creature of tank.creatures) {
-    if (!creature.debris) creature.targetHeading = 0;
-  }
   stepInPieces(tank, dt, input);
   const creature = tank.creatures.find(other => !other.debris);
   if (!creature) return;

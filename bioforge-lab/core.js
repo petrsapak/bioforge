@@ -16,6 +16,8 @@ const MIN_DISTANCE = 1e-6;                                // px, stands in for z
 
 const HIT_FLASH_TIME = 0.12;                              // s a hit cell flashes white
 const MAX_STEP_TIME = 1 / 40;                             // game s; longer steps make the springs unstable (NaN)
+const GAME_STEP = MAX_STEP_TIME;                          // game s: the one step length of every level and Sandbox
+                                                          // run, so a run is the same at any frame rate and speed
 
 // ---------- Math and hex helpers ----------
 const hexKey = (q, r) => q + ',' + r;
@@ -54,8 +56,6 @@ function createLight(x, y, range = LIGHT_RANGE) {
 function newWorld(width, height, options = {}) {
   const { systems = RULES.systems, seed = DEFAULT_SEED, ...overrides } = options;
   return {
-
-
     width,
     height,
     time: 0,
@@ -128,9 +128,9 @@ function createCreature(team, cells, options = {}) {
     protein: null,                                        // a kit's leftover protein, spent growing cells (null: no
                                                           // kit, growing costs no protein)
     heading: 0,                                           // radians clockwise from up
-    targetHeading: 0,
+    targetHeading: 0,                                     // the heading the AI turns it to
     launchAim: 0,                                         // launched part: its firing direction in its rest frame
-    swimX: 0,                                             // wanted swimming direction
+    swimX: 0,                                             // the AI's wanted swimming direction
     swimY: 0,
     abilityHeld: false,                                   // Space, or the AI's wish to fire
     heldKeys: null,                                       // letter and number keys held, for bound Commands
@@ -213,6 +213,7 @@ function createCell(typeName, q, r, creature) {
 function spawn(world, design, x, y, angle, team) {
   const creature = createCreature(team, [], {
     aiControlled: team !== 0,
+    autonomous: team === 0,                               // the player's creature is never steered
     heading: angle,
     targetHeading: angle,
     centerX: x,
@@ -444,7 +445,7 @@ function isSystemOn(world, system) {
   return !system.switchable || world.systems.has(system.name);
 }
 
-// input: { swimX, swimY } (direction) or { forward, turn } (car-style), plus ability and heldKeys
+// input: { ability, heldKeys }: Space and the letter and number keys held, for the player's Command neurons
 function step(world, dt, input) {
   for (const system of SYSTEMS) {
     if (isSystemOn(world, system)) system.update(world, dt, input);

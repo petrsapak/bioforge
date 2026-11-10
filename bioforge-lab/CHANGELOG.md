@@ -7,6 +7,19 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.8.1 (2026-11-10)
+- A run is now exactly the same on every screen and at every speed: the game always moves in steps of 1/40 s.
+  Until now a level's time could differ by a few hundredths of a second between a 60 Hz and a 144 Hz screen.
+- The timeline: a slider in the level bar goes back to any moment of the run, paused, with the signal traces of
+  the seconds before it. The left and right arrows move 1 s. Running on from the past plays the run as it went.
+- Result (Enter) runs a level to its end at once, so the long levels need no waiting.
+- The Lab's Preview and the Reference window show the creature as it will swim: nothing holds it facing up.
+- New level 5, Shape: no neurons and no fibres. Cilia push from where they sit, so the body's shape steers.
+- New level 19, Reel, brings the Snare: reel in a Whirler that circles out of your Nettles' reach.
+- Packed lunch is a new level: a crossing three screens long on the kit's fuel, with no light and no food.
+  The camera follows the creature, and an arrow points at the ring. Your old result in it is forgotten.
+- Marathon is gone: it repeated Cold water.
+
 ## 0.8.0 (2026-11-08)
 The game jam release ("Break the rules").
 - The hormones are gone: the Adrenal, the Calm, Fed and Starved glands, the Receptor, the hormone levels and the

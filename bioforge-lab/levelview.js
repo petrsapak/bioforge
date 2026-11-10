@@ -8,9 +8,11 @@ const ARENA_SIDE_MARGIN = 16;                             // px of screen left, 
 const GOAL_COLOR = '127,224,160';                         // r,g,b of the goal rings
 const GOAL_PULSE_RATE = 2;                                // rad/s of the goal ring's breathing
 const DARK_LAMP_RADIUS = 9;                               // px in the arena: a light that is off
-const LEVEL_KEYS_HELP = '<b>Space</b> and bound keys: Commands &nbsp;<b>P</b> pause &nbsp;<b>.</b> one step ' +
-  '&nbsp;<b>,</b> speed<br><b>T</b> signals &nbsp;' +
-  '<b>R</b> retry &nbsp;<b>Esc</b> menu';
+const GOAL_POINTER_MARGIN = 150;                          // px from the screen's edge to the arrow toward a far ring
+const GOAL_POINTER_SIZE = 16;                             // px: the arrow's length
+const LEVEL_KEYS_HELP = '<b>Space</b> and bound keys: Commands<br>' +
+  '<b>P</b> pause &nbsp;<b>.</b> one step &nbsp;<b>,</b> speed &nbsp;<b>Enter</b> result<br>' +
+  '<b>←</b> <b>→</b> back and forward 1 s &nbsp;<b>T</b> signals &nbsp;<b>R</b> retry &nbsp;<b>Esc</b> menu';
 
 // the Run level and Levels buttons, the levels sheet, the level card's buttons, the level bar and the result box
 function setUpLevels(app) {
@@ -44,6 +46,7 @@ function setUpLevels(app) {
   onButton('level-retry', () => (app.levelRun.adventure ? giveUpBody(app) : retryLevel(app)));
   onButton('result-retry', () => retryLevel(app));
   onButton('result-builder', () => enterBuilder(app));
+  setUpTimeline(app);
   showLevelButtons(app);
 }
 
@@ -234,6 +237,7 @@ function startLevelRun(app) {
 function resumeLevelRun(app, design, run) {
   enterLevelMode(app, design);
   app.levelRun = run;
+  startTimeline(app);
   resetProbes(app.probes, run.player);
   app.paused = false;
   app.stepRequested = false;
@@ -258,6 +262,7 @@ function enterLevelMode(app, design) {
 // starts the run over with the same design, running at the chosen speed
 function retryLevel(app) {
   app.levelRun = startLevel(app.level, app.levelDesign);
+  startTimeline(app);
   app.isFirstWin = false;
   playSound(app, 'start');
   noteSpawnHealth(app.levelRun.player);
@@ -276,20 +281,23 @@ function showRetryButton(app) {
   byId('level-retry').title = isAdventure ? 'Grow back at the last den (R)' : 'Start over (R)';
 }
 
-// Steps the level like the Sandbox (time controls apply); when it ends, keeps a win and shows the result.
+// Steps the level like the Sandbox (time controls apply), or straight on to its end after Result (timeline.js);
+// when it ends, keeps a win and shows the result. Pausing stops a run to the result.
 function stepLevelMode(app, dt) {
-  const run = app.levelRun;
-  if (run.outcome) return;
+  if (app.levelRun.outcome) return;
   const input = { ability: app.keysHeld.has(' '), heldKeys: app.commandKeysHeld };
-  runTimeControlled(app, dt, stepTime => {
-    stepLevel(run, stepTime, input);
-    recordProbes(app.probes, run.world);
-  });
-  if (run.outcome) showLevelResult(app, run);
+  if (app.paused) app.timeline.isSkipping = false;
+  if (app.timeline.isSkipping) runTowardResult(app, input);
+  else runTimeControlled(app, dt, app.levelRun.world, () => stepLevelRun(app, input));
+  if (app.levelRun.outcome) showLevelResult(app, app.levelRun);
 }
 
-// The result box: stars, time and biomass for a win (kept if it is the best so far), or why the run was lost.
+// The result box: stars, time and biomass for a win (kept if it is the best so far), or why the run was lost. A
+// run that comes to its end again after a look back along the timeline only shows the box again.
 function showLevelResult(app, run) {
+  byId('level-result').style.display = 'block';
+  if (app.timeline.isResultKnown) return;
+  app.timeline.isResultKnown = true;
   const isWon = run.outcome === 'won';
   playSound(app, isWon ? 'win' : 'lose');
   byId('result-title').textContent = isWon ? 'Level done' : 'Not this time';
@@ -304,7 +312,6 @@ function showLevelResult(app, run) {
     byId('result-stars').innerHTML = '';
     byId('result-text').textContent = run.reason;
   }
-  byId('level-result').style.display = 'block';
 }
 
 // Keeps the score if it beats the best so far: more stars, or as many in less time. Returns whether it did.
@@ -318,7 +325,8 @@ function keepLevelResult(app, level, score) {
   return true;
 }
 
-// level keys: Esc the menu, R retry, P pause, . one step, , speed; an adventure's own first (adventureview.js)
+// level keys: Esc the menu, R retry, P pause, . one step, , speed, Enter the result, the arrows along the timeline;
+// an adventure's own first (adventureview.js)
 function handleLevelKey(app, key) {
   if (handleAdventureKey(app, key)) return;
   if (key === 'escape') openPauseMenu(app);
@@ -326,6 +334,9 @@ function handleLevelKey(app, key) {
   if (key === 'p') togglePause(app);
   if (key === '.') requestOneStep(app);
   if (key === ',') cycleSandboxSpeed(app);
+  if (key === 'enter') skipToResult(app);
+  if (key === 'arrowleft') jumpAlongTimeline(app, -TIMELINE_JUMP_STEPS);
+  if (key === 'arrowright') jumpAlongTimeline(app, TIMELINE_JUMP_STEPS);
 }
 
 // ---------- Drawing ----------
@@ -377,8 +388,9 @@ function drawLevelMode(app) {
   drawAdventure(context, run);
   drawDarkLamp(context, run);
   drawLight(context, world.light);
-  drawWorld(context, world, app.fluidView);
+  drawBlended(app, world, () => drawWorld(context, world, app.fluidView));
   context.restore();
+  drawGoalPointer(app, run, view);
   drawProbes(app, world);
   showLevelHud(app, run);
 }
@@ -394,6 +406,35 @@ function drawLevelGoal(context, run) {
     drawGoalRing(context, run.world.light.x, run.world.light.y, goal.radius, GOAL_COLOR, pulse);
   }
 }
+
+// the ring's place for a goal that has one (reach, restIn), or null
+const goalRingOf = run => (run.level.goal.kind === 'reach' || run.level.goal.kind === 'restIn' ? run.level.goal : null);
+
+// In an arena bigger than the screen, a ring that is out of view gets an arrow at the screen's edge pointing to it.
+function drawGoalPointer(app, run, view) {
+  const ring = goalRingOf(run);
+  if (!ring || !run.level.view) return;
+  const ringX = view.offsetX + ring.x * view.scale;
+  const ringY = view.offsetY + ring.y * view.scale;
+  const x = Math.max(GOAL_POINTER_MARGIN, Math.min(app.canvas.width - GOAL_POINTER_MARGIN, ringX));
+  const y = Math.max(GOAL_POINTER_MARGIN, Math.min(app.canvas.height - GOAL_POINTER_MARGIN, ringY));
+  if (x === ringX && y === ringY) return;                 // the ring is in view
+  const context = app.context;
+  context.save();
+  context.translate(x, y);
+  context.rotate(Math.atan2(ringY - y, ringX - x));
+  context.fillStyle = `rgba(${GOAL_COLOR},0.8)`;
+  context.beginPath();
+  context.moveTo(GOAL_POINTER_SIZE, 0);
+  context.lineTo(-GOAL_POINTER_SIZE / 2, GOAL_POINTER_SIZE * 0.6);
+  context.lineTo(-GOAL_POINTER_SIZE / 2, -GOAL_POINTER_SIZE * 0.6);
+  context.closePath();
+  context.fill();
+  context.restore();
+}
+
+// how far (px) the player still is from the edge of the goal's ring
+const distanceToRing = (run, ring) => Math.max(0, distanceToPlayer(run, ring.x, ring.y) - ring.radius);
 
 // A blinking or flashing light that is off still shows where it is, as a dim lamp.
 function drawDarkLamp(context, run) {
@@ -427,7 +468,9 @@ function showLevelHud(app, run) {
   byId('hud-mode').textContent = `${LEVELS.indexOf(run.level) + 1}. ${run.level.name}`;
   byId('hud-enemies').textContent = `${run.time.toFixed(1)} / ${run.level.timeLimit} s`;
   showGoalBanner(run);
-  showVitalsHud(app, run.world, run.player, []);
+  showTimeline(app);
+  const skipChip = '<span class="chip-time">Running to the result</span>';
+  showVitalsHud(app, run.world, run.player, app.timeline.isSkipping ? [skipChip] : []);
   if (run.adventure) {
     showAdventureHud(app, run);
     return;
@@ -448,9 +491,15 @@ function showGoalBanner(run) {
   byId('hud-goal-rule').textContent = stillness;
 }
 
-// how far along the goal is, 0 to 1, or null for goals that are met in one moment (reach, kill)
+// How far along the goal is, 0 to 1, or null for goals that are met in one moment (reach, kill). A ring to reach in
+// an arena bigger than the screen counts the way covered from the start.
 function goalFraction(run) {
   const goal = run.level.goal;
+  if (goal.kind === 'reach' && run.level.view) {
+    const start = run.level.start;
+    const wholeWay = vectorLength(goal.x - start.x, goal.y - start.y) - goal.radius;
+    return 1 - distanceToRing(run, goal) / wholeWay;
+  }
   if (goal.kind === 'stayNear' || goal.kind === 'restIn') return run.goalTime / goal.seconds;
   if (goal.kind === 'eat') return run.player.foodEaten / goal.count;
   if (goal.kind === 'survive') return run.time / goal.seconds;
@@ -488,5 +537,6 @@ function goalProgress(run) {
     const cells = `Your cells ${livingPlayerCells(run)} / ${goal.count}`;
     return run.goalTime ? `${cells}, held ${run.goalTime.toFixed(1)} / ${goal.seconds} s` : cells;
   }
+  if (run.level.view) return `Reach the ring: ${Math.round(distanceToRing(run, goal))} px to go`;
   return 'Reach the ring';
 }
