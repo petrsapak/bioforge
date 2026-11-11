@@ -418,6 +418,66 @@ check("Bioforge Moba's old library carries over", byId('library-tab-creatures').
   check('once the mouse moves, the view stays where it is put', view.panX === 0, String(view.panX));
 }
 
+{ // Ctrl+A selects every cell; Delete deletes the selected cells
+  const app = readGlobal('globalThis.testApp');
+  const cell = (q, r, typeName) => readGlobal('createDesignCell')(q, r, typeName);
+  // (3, 0) is off the body: a planned cell
+  const loadTestBody = () => readGlobal('loadDesign')(app, { cells: [cell(0, 0, 'nucleus'), cell(1, 0, 'muscle'),
+    cell(3, 0, 'muscle'), cell(0, -1, 'tissue'), cell(1, -1, 'tissue'), cell(1, -2, 'muscle')], fibres: [] }, 'test');
+  const dragMarquee = () => {
+    fire('game', 'mousedown', { ...screenPointOf(0, -1), button: 2, shiftKey: true, target: canvas });
+    moveMouseTo(1, -1);
+    fire('window', 'mouseup', { ...screenPointOf(1, -1), button: 2, target: canvas });
+  };
+  const message = () => byId('message').textContent;
+  loadTestBody();
+  app.gridView.panX = 0;
+  app.gridView.panY = 0;
+  pressKey('a');
+  check('A alone selects nothing', app.selection.size === 0);
+  dragMarquee();
+  pressKey('Delete');
+  check('Delete deletes the cells a marquee took in, and closes the save menu', app.edited.cells.size === 4 &&
+    !app.edited.cells.has('0,-1') && !app.edited.cells.has('1,-1') && app.selection.size === 0 &&
+    byId('save-menu').style.display === 'none' && /Deleted 2 cells/.test(message()),
+    `${app.edited.cells.size} cells, ${message()}`);
+  pressKey('Delete');
+  check('with nothing selected Delete does nothing', app.edited.cells.size === 4);
+
+  loadTestBody();
+  let isPrevented = false;
+  fire('window', 'keydown', { key: 'a', ctrlKey: true, preventDefault: () => { isPrevented = true; } });
+  fire('window', 'keyup', { key: 'a' });
+  check('Ctrl+A selects every cell, the planned one too, and not the page\'s text', app.selection.size === 6 &&
+    app.selection.has('3,0') && isPrevented && /6 cells selected/.test(message()), message());
+  pressKey('Delete');
+  check('Delete with every cell selected asks first, as Delete all does',
+    byId('dialog-sheet').style.display === 'flex' && app.edited.cells.size === 6);
+  pressKey('Escape');
+  check('Esc keeps the cells and the selection', app.edited.cells.size === 6 && app.selection.size === 6);
+  pressKey('Delete');
+  pressKey('Enter');
+  check('Enter confirms: just the Nucleus is left, and nothing is selected',
+    app.edited.cells.size === 1 && app.edited.cells.has('0,0') && app.selection.size === 0);
+  fire('window', 'keydown', { key: 'a', ctrlKey: true });
+  pressKey('Backspace');
+  check('the Nucleus alone can\'t be deleted', app.edited.cells.size === 1 &&
+    byId('dialog-sheet').style.display !== 'flex');
+  pressKey('Escape');
+
+  loadTestBody();
+  dragMarquee();
+  byId('save-menu-delete').onclick();
+  check('the save menu\'s Delete deletes the selected cells too', app.edited.cells.size === 4 &&
+    byId('save-menu').style.display === 'none');
+  pressKey('2');
+  fire('window', 'keydown', { key: 'a', metaKey: true });
+  pressKey('Backspace');
+  pressKey('Enter');
+  check('in the Nerve view too, with Cmd+A and Backspace', app.edited.cells.size === 1);
+  pressKey('1');
+}
+
 { // the Body view holds still: what the test tank's cells and fibres are doing doesn't change how it is drawn
   const app = readGlobal('globalThis.testApp');
   templateButton('starter').onclick();

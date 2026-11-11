@@ -131,6 +131,16 @@ function removeCell(edited, q, r) {
   }
 }
 
+// removes the cells on the hexes with these keys, as removeCell does (the Nucleus stays); the number removed
+function removeCells(edited, keys) {
+  const countBefore = edited.cells.size;
+  for (const key of keys) {
+    const cell = edited.cells.get(key);
+    if (cell) removeCell(edited, cell.q, cell.r);
+  }
+  return countBefore - edited.cells.size;
+}
+
 // ---------- Symmetry ----------
 // A mirror axis runs through the Nucleus at a multiple of 30° (its number of turns, 0–5, clockwise on screen from
 // the horizontal; 3 is the front-to-back line). Only those angles map every hex onto a hex.

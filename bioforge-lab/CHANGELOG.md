@@ -7,6 +7,11 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.8.3 (2026-11-11)
+- Ctrl+A in the Lab selects every cell, and Delete (or Backspace) deletes the selected cells with their neurons
+  and fibres. The Nucleus always stays. Deleting every cell asks first, as Delete all does.
+- The menu that opens after a Shift+right-drag has a Delete button too.
+
 ## 0.8.2 (2026-11-10)
 - The ghost: after you change your creature, the next run in the same level shows the last run's creature faint,
   where it was at the same moment, with the way it took as a dashed line. You see at once whether the change

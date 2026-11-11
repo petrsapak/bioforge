@@ -9,8 +9,8 @@ const MAX_FRAME_TIME = 0.05;                              // s; a slower frame (
 const FPS_SMOOTHING = 0.05;                               // share of the newest frame in the shown fps
 const TANK_MARGIN = 160;                                  // px of water around the test tank's creature
 const TANK_CENTER_PULL = 0.05;                            // share of the creature's offset from the middle, per frame
-const SAVE_MENU_WIDTH = 230;                              // px kept free right of the save menu's corner
-const SAVE_MENU_HEIGHT = 120;                             // px
+const SAVE_MENU_WIDTH = 290;                              // px kept free right of the save menu's corner
+const SAVE_MENU_HEIGHT = 130;                             // px
 const LAYER_BY_KEY = { 1: 'body', 2: 'nerve' };           // the builder's tab each number key opens
 // the builder's arrow keys: the screen direction each steps the clicked cell in
 const ARROW_STEPS = { arrowleft: [-1, 0], arrowright: [1, 0], arrowup: [0, -1], arrowdown: [0, 1] };
@@ -252,6 +252,7 @@ function setUpSaveMenu(app) {
     app.selection.clear();
     closeSaveMenu();
   };
+  byId('save-menu-delete').onclick = () => deleteSelection(app);
   byId('save-menu-name').addEventListener('keydown', event => {
     if (event.key === 'Enter') byId('save-menu-save').onclick();
     if (event.key === 'Escape') closeSaveMenu();
@@ -391,6 +392,7 @@ function listenToKeyboard(app) {
       if ((key === 't' || key === 'escape') && !event.repeat) closeLibrary(app);
       return;
     }
+    if (handleSelectAllKey(app, event)) return;
     if (key === 't' && !event.repeat && app.mode !== 'build') toggleProbes(app);
     const digit = digitOf(event);
     const commandKey = commandKeyOf(event);
@@ -444,6 +446,15 @@ function handleSaveKey(app, event) {
   return true;
 }
 
+// Ctrl+A in the builder selects every cell. True if the key was that.
+function handleSelectAllKey(app, event) {
+  const isSelectAll = event.key.toLowerCase() === 'a' && (event.ctrlKey || event.metaKey);
+  if (!isSelectAll || app.mode !== 'build') return false;
+  event.preventDefault();                                 // not the browser's Select all
+  if (!event.repeat) selectAllCells(app);
+  return true;
+}
+
 // in the builder, 1 and 2 open the Body and Nerves tabs, and any other free key binds the clicked Command
 function pressKeyInBuilder(app, commandKey) {
   if (app.mode !== 'build') return;
@@ -461,8 +472,9 @@ function bindFocusedCommand(app, commandKey) {
 
 // F fits the grid; G opens the field guide; H shows the keys; T opens the Templates screen; Esc closes a sheet or
 // drops what is in hand, or else opens the menu; Q/E turn the stamp, the dragged part or the clicked Bud's part; the
-// arrows step between cells
+// arrows step between cells; Delete (or Backspace) deletes the selected cells
 function handleBuilderKey(app, key) {
+  if (key === 'delete' || key === 'backspace') deleteSelection(app);
   if (key === 'f') fitGridToScreen(app);
   if (key === 'g') openGuideFromBuilder(app);
   if (key === 'h') toggleKeysSheet();
@@ -761,6 +773,32 @@ function finishMarquee(app) {
   if (!marquee) return;
   app.marquee = null;
   if (app.selection.size) openSaveMenu(app, marquee.screenX, marquee.screenY);
+}
+
+// Ctrl+A: selects every cell of the design, the planned ones too
+function selectAllCells(app) {
+  app.marquee = null;
+  app.selection = new Set(app.edited.cells.keys());
+  closeSaveMenu();
+  const count = app.selection.size;
+  showMessage(`${count} cell${count === 1 ? '' : 's'} selected. Delete removes them, Esc lets go of them.`);
+}
+
+// Delete: removes the selected cells with their neurons and fibres. The Nucleus stays. A selection that would leave
+// only the Nucleus is a Delete all, and asks first as that does.
+function deleteSelection(app) {
+  const keys = [...app.selection].filter(key => !isNucleusHex(app, key));
+  if (!keys.length) return;
+  closeSaveMenu();
+  if (keys.length === app.edited.cells.size - 1) {
+    clearDesign(app);
+    return;
+  }
+  const count = removeCells(app.edited, keys);
+  app.selection.clear();
+  playSound(app, 'remove');
+  rebuildTank(app);
+  showMessage(`Deleted ${count} cell${count === 1 ? '' : 's'}.`);
 }
 
 // lets go of a dragged Bud part or aim arrow, or ends a marquee; a drop that doesn't fit says why

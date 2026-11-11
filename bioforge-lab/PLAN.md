@@ -161,7 +161,9 @@ it got here is in `sessions/`; the long form of this plan up to version 0.8.0 is
   gives the name, cost, description, how to use it and a live example.
 - **Nothing is chosen at first** (user, 2026-10-30); Esc lets go of what the mouse holds, then opens the menu.
 - **Building fast:** drag to paint cells, right-drag to remove, and Symmetry mirrors cells, neurons and fibres
-  across up to six axes through the Nucleus.
+  across up to six axes through the Nucleus. Ctrl+A selects every cell; Delete (or Backspace, or the save menu's
+  Delete) removes the selected cells, never the Nucleus, and asks first if only the Nucleus would be left (user,
+  2026-11-11).
 - **The panels:** the limits line under the tabs (only the current view's limits, in large numbers), a card for
   the clicked cell when it has something to set, the Needs card (Sugar lasts N s, then a row per need with a ✓, ✗
   or ~ and one "Next:" line), and the Traces window in the Nerve view.

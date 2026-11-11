@@ -395,7 +395,7 @@ button.small.primary:hover { background: #3d6b38; }
 }
 
 #save-menu {
-  position: absolute; display: none; z-index: 20; width: 220px; padding: 8px; background: #0d1519f2;
+  position: absolute; display: none; z-index: 20; width: 280px; padding: 8px; background: #0d1519f2;
   border: 1px solid #2c4650; border-radius: 7px; font-size: 13px;
 }
 #save-menu input {
