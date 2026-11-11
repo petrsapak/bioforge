@@ -7,6 +7,19 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.8.2 (2026-11-10)
+- The ghost: after you change your creature, the next run in the same level shows the last run's creature faint,
+  where it was at the same moment, with the way it took as a dashed line. You see at once whether the change
+  helped. G or the Ghost button hides it. A Retry of the same creature keeps the ghost it had.
+- Marks on the timeline show what happened and when: a cell lost (with its name), cells out of O₂ or sugar, waste
+  poisoning, the first hit taken and landed, the first food, a creature arriving or dying, the goal's count
+  starting and stopping, and in a lost run the moment you were nearest to the ring. Hover a mark to read it,
+  click it to go there, or hop between marks with Shift and the arrows. The run stops one step before the
+  moment, so one step (.) shows it happen.
+- The goal banner says what just happened, for a moment.
+- Fixed: after Result, the creature was drawn a little away from where it really ended.
+- The timeline's times now always match the level's clock.
+
 ## 0.8.1 (2026-11-10)
 - A run is now exactly the same on every screen and at every speed: the game always moves in steps of 1/40 s.
   Until now a level's time could differ by a few hundredths of a second between a 60 Hz and a 144 Hz screen.

@@ -1,7 +1,8 @@
 'use strict';
 // The recording of a level run: the keys held in every step, and a snapshot of the whole run every few game seconds.
 // Every step is GAME_STEP long, so a run stepped on from a snapshot with the same keys is the same run, and any
-// moment it has been through can be shown again (the timeline, timeline.js). Pure: no DOM.
+// moment it has been through can be shown again (the timeline, timeline.js). It also keeps the player's pose in every
+// step, for the next run's ghost, and the run's events (runevents.js). Pure: no DOM.
 
 const KEYFRAME_STEPS = 200;                               // steps between two snapshots at first (5 game s)
 const MAX_KEYFRAMES = 120;                                // snapshots kept; past that every other one is dropped
@@ -10,8 +11,27 @@ const ABILITY_MARK = '!';                                 // in a step's recorde
 // The one place a recording is built. It starts where the run is now (firstStep), so a run picked up by Continue
 // records from there on. keys: one text per recorded step (encodeStepInput); keyframes: { step, snapshot }, oldest
 // first, keyframeSteps apart; dataIndex: the game's data objects, for the snapshots (savegame.js runDataIndex).
+// level and design: the run's; endSeconds: its clock (game s) at the last recorded step. poses: where the player's
+// cells were at firstStep and after every recorded step (playerPose), which the next run's ghost is drawn from
+// (ghost.js); log: what happened (runevents.js).
 function createRecording(run, dataIndex) {
-  return { firstStep: run.steps, keys: [], keyframes: [], keyframeSteps: KEYFRAME_STEPS, dataIndex };
+  return { level: run.level, design: run.design, firstStep: run.steps, keys: [], keyframes: [],
+    keyframeSteps: KEYFRAME_STEPS, dataIndex, endSeconds: run.time, poses: [playerPose(run)],
+    log: createRunLog(run) };
+}
+
+// Where the player's body is: its centre's x and y, then each living cell's (px). Kept small, one per step.
+function playerPose(run) {
+  const player = run.player;
+  const cells = player.alive ? player.cells : [];
+  const pose = new Float32Array(2 + 2 * cells.length);
+  pose[0] = player.centerX;
+  pose[1] = player.centerY;
+  cells.forEach((cell, i) => {
+    pose[2 + 2 * i] = cell.x;
+    pose[3 + 2 * i] = cell.y;
+  });
+  return pose;
 }
 
 // the number of the step after the last recorded one: as far as the run has ever come
@@ -30,16 +50,22 @@ function decodeStepInput(text) {
 }
 
 // Moves the run on by one step. A step the recording has been through uses the keys held then, whatever is held
-// now; a new step is recorded with the input given, after a snapshot if one is due. A run that has ended stays as it
-// is.
+// now; a new step is recorded with the input given, after a snapshot if one is due, and then its pose and what it
+// brought are noted. A run that has ended stays as it is.
 function stepRecorded(recording, run, input) {
   if (run.outcome) return;
   const index = run.steps - recording.firstStep;
-  if (index === recording.keys.length) {
+  const isNewStep = index === recording.keys.length;
+  if (isNewStep) {
     if (index % recording.keyframeSteps === 0) addKeyframe(recording, run);
     recording.keys.push(encodeStepInput(input));
+    followRun(recording.log, run);
   }
   stepLevel(run, LEVEL_STEP, decodeStepInput(recording.keys[index]));
+  if (!isNewStep) return;
+  recording.endSeconds = run.time;
+  recording.poses.push(playerPose(run));
+  noteRunEvents(recording.log, run);
 }
 
 // Keeps a snapshot of the run as it is. Past MAX_KEYFRAMES every other snapshot goes and they come half as often, so

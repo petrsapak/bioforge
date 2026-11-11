@@ -205,17 +205,29 @@ function rememberPositions(clock, world) {
   });
 }
 
+// How far (0 to 1) the frames have come from the world's last step toward its next one, which is how far between the
+// two steps before it the world is drawn; 1 (drawn as it is) while paused or when no step was noted for this world.
+function blendShare(app, world) {
+  const clock = app.stepClock;
+  return app.paused || clock.world !== world ? 1 : clamp01(clock.unusedTime / GAME_STEP);
+}
+
+// the steps taken since were not noted for blending (a run to the result), so the world is drawn as it is
+function forgetBlend(app) {
+  app.stepClock.world = null;
+}
+
 // Draws the world part of the way from where it was before its last step to where it is now, as far as the frames
 // have come toward the next step: 40 steps a second then move smoothly at any frame rate and in slow motion. The sim
 // isn't changed: every position is put back after drawing. A paused world, or one no step was noted for (a moment
 // picked on the timeline), is drawn as it is.
 function drawBlended(app, world, draw) {
   const clock = app.stepClock;
-  if (app.paused || clock.world !== world) {
+  const share = blendShare(app, world);
+  if (share === 1) {
     draw();
     return;
   }
-  const share = clamp01(clock.unusedTime / GAME_STEP);
   const nowX = clock.points.map(point => point.x);
   const nowY = clock.points.map(point => point.y);
   clock.points.forEach((point, i) => {

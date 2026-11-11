@@ -74,6 +74,8 @@ function createApp(canvas) {
     sheetLevel: null,                                     // the level whose card the levels sheet shows
     levelRun: null,                                       // the level being played (levels.js startLevel)
     timeline: createTimeline(),                           // the level run's recording and slider (timeline.js)
+    ghost: null,                                          // the run before, drawn faint in this one (ghost.js)
+    isGhostShown: true,
     levelDesign: null,                                    // the design it runs, kept for a retry and the score
     isFirstWin: false,                                    // the run just won its level for the first time
     briefedLevels: [],                                    // ids of the levels this game has shown the briefing of

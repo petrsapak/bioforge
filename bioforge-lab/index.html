@@ -104,6 +104,8 @@
       <span><b>P</b> <b>.</b> <b>,</b></span><span>pause, one step, speed</span>
       <span><b>Enter</b></span><span>run to the result at once</span>
       <span><b>←</b><b>→</b></span><span>back and forward 1 s along the timeline</span>
+      <span><b>Shift</b>+<b>←</b><b>→</b></span><span>to the mark before or after: what happened there</span>
+      <span><b>G</b></span><span>the last run's ghost on / off</span>
       <span><b>R</b></span><span>retry</span>
       <span><b>T</b></span><span>signal traces on / off</span>
       <span><b>Esc</b></span><span>the menu: pause, retry, back to the Lab</span>
@@ -166,7 +168,8 @@
   <button class="small time" id="level-speed" title="Speed: normal, 2×, 4×, ½, ¼ (,)">1×</button>
   <button class="small" id="level-skip" title="Run the level to its end at once (Enter)">Result ⏩</button>
   <button class="small" id="level-retry" title="Start over (R)">Retry</button>
-  <span id="level-timeline" title="Drag to look at any moment of the run again (← → move 1 s)"><input type="range" id="timeline-slider" min="0" max="0" step="1" value="0"><span id="timeline-time"></span></span>
+  <span id="level-timeline" title="Drag to look at any moment of the run again (← → move 1 s). The marks show what happened: click one to go there (Shift+← → to the next)"><span id="timeline-track"><input type="range" id="timeline-slider" min="0" max="0" step="1" value="0"><span id="timeline-marks"></span></span><span id="timeline-time"></span></span>
+  <button class="small" id="level-ghost" title="The last run's creature, drawn faint where it was at the same moment (G)">Ghost</button>
 </div>
 <div id="level-result">
   <div id="result-title"></div>
@@ -244,7 +247,7 @@
 </div>
 <div id="hud">
   <div id="hud-top"><div class="hud-chip" id="hud-fps"></div><div class="hud-chip" id="hud-mode"></div><div class="hud-chip" id="hud-enemies"></div></div>
-  <div id="hud-goal"><div id="hud-goal-text"></div><div id="hud-goal-track"><div id="hud-goal-fill"></div></div><div id="hud-goal-rule"></div></div>
+  <div id="hud-goal"><div id="hud-goal-text"></div><div id="hud-goal-track"><div id="hud-goal-fill"></div></div><div id="hud-goal-rule"></div><div id="hud-goal-event"></div></div>
   <div id="hud-vitals"><div id="hud-probes"><div class="probes-title">Signals <span>click a cell to probe · T hides</span></div><canvas id="probe-canvas" width="246" height="17"></canvas><div id="probe-more"></div></div><div id="hud-dead">You died · R respawns</div><div id="hud-bars"></div><div id="hud-chips"></div></div>
   <div id="hud-keys"></div>
 </div>
@@ -369,6 +372,7 @@
 <script src="tutorial.js"></script>
 <script src="snapshot.js"></script>
 <script src="savegame.js"></script>
+<script src="runevents.js"></script>
 <script src="replay.js"></script>
 <script src="data/title.js"></script>
 <script src="titlescene.js"></script>
@@ -389,6 +393,7 @@
 <script src="tooltip.js"></script>
 <script src="guideview.js"></script>
 <script src="probes.js"></script>
+<script src="ghost.js"></script>
 <script src="timeline.js"></script>
 <script src="sandbox.js"></script>
 <script src="levelview.js"></script>

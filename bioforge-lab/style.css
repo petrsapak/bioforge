@@ -775,7 +775,18 @@ button.small.run:hover { background: #4a8044; }
 #level-bar button.small { flex: none; }
 #level-bar button.time { min-width: 34px; font-size: 15px; }
 #level-timeline { display: flex; align-items: center; gap: 8px; margin-left: 4px; }
-#timeline-slider { width: 240px; accent-color: #7fe0a0; cursor: pointer; }
+#timeline-track { position: relative; display: flex; align-items: center; }
+#timeline-slider { width: 320px; margin: 0; accent-color: #7fe0a0; cursor: pointer; }
+/* the marks hang under the slider, over the width its thumb's middle travels (the thumb is 16px wide) */
+#timeline-marks { position: absolute; left: 8px; right: 8px; top: 100%; height: 0; }
+.timeline-mark {
+  position: absolute; top: -3px; width: 5px; height: 9px; margin-left: -2.5px; padding: 0; border: none;
+  border-radius: 2px; background: #e8c547; cursor: pointer; opacity: 0.85;
+}
+.timeline-mark:hover { opacity: 1; height: 12px; }
+.timeline-mark.good { background: #7fe0a0; }
+.timeline-mark.bad { background: #e0796a; }
+.timeline-mark.ghost { background: #bed7eb; }
 #timeline-time { min-width: 92px; color: #b9c3cd; font-variant-numeric: tabular-nums; }
 #level-result {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: none; z-index: 25;
@@ -833,6 +844,12 @@ button.small.run:hover { background: #4a8044; }
 #hud-goal-fill {
   height: 100%; width: 0; background: #7fe0a0; box-shadow: 0 0 8px #7fe0a0; transition: width .15s linear;
 }
+#hud-goal-event {
+  padding: 2px 10px; border-radius: 999px; background: #3d3a1e; color: #f2e39b; font-size: 12px; font-weight: 700;
+  white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+#hud-goal-event.good { background: #173a26; color: #9ff0b8; }
+#hud-goal-event.bad { background: #4a211c; color: #ffb3a6; }
 #hud-goal-rule {
   padding: 2px 10px; border-radius: 999px; background: #3d3a1e; color: #f2e39b; font-size: 12px; font-weight: 700;
   letter-spacing: 1px; text-transform: uppercase;

@@ -12,7 +12,8 @@ const GOAL_POINTER_MARGIN = 150;                          // px from the screen'
 const GOAL_POINTER_SIZE = 16;                             // px: the arrow's length
 const LEVEL_KEYS_HELP = '<b>Space</b> and bound keys: Commands<br>' +
   '<b>P</b> pause &nbsp;<b>.</b> one step &nbsp;<b>,</b> speed &nbsp;<b>Enter</b> result<br>' +
-  '<b>←</b> <b>→</b> back and forward 1 s &nbsp;<b>T</b> signals &nbsp;<b>R</b> retry &nbsp;<b>Esc</b> menu';
+  '<b>←</b> <b>→</b> back and forward 1 s &nbsp;<b>Shift+←</b> <b>→</b> to a mark<br>' +
+  '<b>T</b> signals &nbsp;<b>G</b> ghost &nbsp;<b>R</b> retry &nbsp;<b>Esc</b> menu';
 
 // the Run level and Levels buttons, the levels sheet, the level card's buttons, the level bar and the result box
 function setUpLevels(app) {
@@ -47,6 +48,7 @@ function setUpLevels(app) {
   onButton('result-retry', () => retryLevel(app));
   onButton('result-builder', () => enterBuilder(app));
   setUpTimeline(app);
+  setUpGhost(app);
   showLevelButtons(app);
 }
 
@@ -325,8 +327,8 @@ function keepLevelResult(app, level, score) {
   return true;
 }
 
-// level keys: Esc the menu, R retry, P pause, . one step, , speed, Enter the result, the arrows along the timeline;
-// an adventure's own first (adventureview.js)
+// level keys: Esc the menu, R retry, P pause, . one step, , speed, Enter the result, G the ghost, the arrows along
+// the timeline (with Shift: to the mark before or after); an adventure's own first (adventureview.js)
 function handleLevelKey(app, key) {
   if (handleAdventureKey(app, key)) return;
   if (key === 'escape') openPauseMenu(app);
@@ -335,8 +337,11 @@ function handleLevelKey(app, key) {
   if (key === '.') requestOneStep(app);
   if (key === ',') cycleSandboxSpeed(app);
   if (key === 'enter') skipToResult(app);
-  if (key === 'arrowleft') jumpAlongTimeline(app, -TIMELINE_JUMP_STEPS);
-  if (key === 'arrowright') jumpAlongTimeline(app, TIMELINE_JUMP_STEPS);
+  if (key === 'g') toggleGhost(app);
+  if (key !== 'arrowleft' && key !== 'arrowright') return;
+  const direction = key === 'arrowleft' ? -1 : 1;
+  if (app.keysHeld.has('shift')) jumpToMark(app, direction);
+  else jumpAlongTimeline(app, direction * TIMELINE_JUMP_STEPS);
 }
 
 // ---------- Drawing ----------
@@ -369,8 +374,8 @@ function arenaView(app, world) {
   };
 }
 
-// the arena scaled to the screen: water over the whole screen (no frame round the arena), goal, light and
-// creatures; then the HUD
+// the arena scaled to the screen: water over the whole screen (no frame round the arena), goal, light, the ghost
+// of the run before and the creatures; then the HUD
 function drawLevelMode(app) {
   const context = app.context;
   const run = app.levelRun;
@@ -388,6 +393,7 @@ function drawLevelMode(app) {
   drawAdventure(context, run);
   drawDarkLamp(context, run);
   drawLight(context, world.light);
+  drawGhost(app, run, view.scale);
   drawBlended(app, world, () => drawWorld(context, world, app.fluidView));
   context.restore();
   drawGoalPointer(app, run, view);
@@ -406,9 +412,6 @@ function drawLevelGoal(context, run) {
     drawGoalRing(context, run.world.light.x, run.world.light.y, goal.radius, GOAL_COLOR, pulse);
   }
 }
-
-// the ring's place for a goal that has one (reach, restIn), or null
-const goalRingOf = run => (run.level.goal.kind === 'reach' || run.level.goal.kind === 'restIn' ? run.level.goal : null);
 
 // In an arena bigger than the screen, a ring that is out of view gets an arrow at the screen's edge pointing to it.
 function drawGoalPointer(app, run, view) {

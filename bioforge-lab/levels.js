@@ -243,6 +243,9 @@ function livingPlayerCells(run) {
 
 const distanceToPlayer = (run, x, y) => vectorLength(run.player.centerX - x, run.player.centerY - y);
 
+// the ring's place for a goal that has one (reach, restIn), or null
+const goalRingOf = run => (run.level.goal.kind === 'reach' || run.level.goal.kind === 'restIn' ? run.level.goal : null);
+
 // Won when the goal is met; lost when the player's Nucleus is gone, it was seen moving, or the time is up.
 function checkLevelGoal(run, dt) {
   if (LEVEL_GOALS[run.level.goal.kind](run, run.level.goal, dt)) {

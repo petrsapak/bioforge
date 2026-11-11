@@ -12,7 +12,7 @@ const SIM_FILES = ['math.js', 'core.js', 'fibres.js', 'terrain.js', 'physics.js'
   'metabolism.js', 'actuators.js', 'secretions.js', 'combat.js',
   'growth.js', 'food.js', 'ai.js', 'design.js', 'builder.js', 'fieldguide.js', 'levels.js', 'adventure.js',
   'tutorial.js',
-  'snapshot.js', 'replay.js',
+  'snapshot.js', 'runevents.js', 'replay.js',
   'savegame.js', 'titlescene.js', 'data/version.js', 'data/rules.js', 'data/materials.js', 'data/fluids.js',
   'data/cells.js', 'data/neurons.js', 'data/templates.js', 'data/tips.js', 'data/guide.js', 'data/levels.js',
   'data/sounds.js', 'data/title.js', 'data/tutorial.js'];

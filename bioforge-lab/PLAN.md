@@ -137,6 +137,20 @@ it got here is in `sessions/`; the long form of this plan up to version 0.8.0 is
   the traces of the 6 s before it; ← and → move 1 s. Running on from the past plays the run as it went, so a look
   back never changes a result. **Result** (Enter) runs the level to its end at once: Bloom's 320 game s take
   about 0.3 real s. Not in an adventure, which is played by hand.
+- **Marks on the timeline** (2026-11-10, user: "I want just #1", of three ideas to make players want to
+  experiment). A recorded run notes what happens, told from its state step by step, so the sim knows nothing of
+  it (`runevents.js`): cells lost with their names, a Bud part launched, cells out of O₂ or sugar, waste
+  poisoning, a hit taken, a hit landed, the first food, a creature arriving or dying, the host rule broken, a
+  timed goal's count starting and stopping, the end, and in a lost run the moment nearest to the ring. Events of
+  one kind within 2 game s are one mark; a run keeps 80 at most. Each is a tick under the slider (green good, red
+  bad, yellow a note) with its time and words on hover. A click, or Shift with ← or →, shows the moment one step
+  before it, paused, so one step shows it happen. The goal banner shows a mark's words for 1.5 game s after it.
+- **The ghost** (2026-11-10): a recording keeps the player's pose in every step. When a run of another design
+  starts in the same level, the run before (if it lasted 2 game s) becomes the ghost: its cells drawn as faint
+  rings where they were after the same number of steps, its whole way as a dashed line, and a label that says how
+  it ended once it is over; its end is a grey mark on the timeline. A Retry of the same design keeps the ghost
+  it had, since its own run would lie exactly under the creature. G or the Ghost button hides it. The ghost
+  lives in memory only: it is gone after a reload, and Continue brings none back.
 - **The result box** offers Retry and Lab. After a first win the Lab builds for the next level.
 
 ### The Lab
@@ -324,8 +338,10 @@ design.js       buildCheck, material kits, design warnings and the Needs rows, t
 snapshot.js     any web of objects as plain JSON data and back, shared objects and loops kept (pure)
 savegame.js     the save's version and upgrade steps, the games, the resume state, a run's snapshot, creature
                 files (pure)
-replay.js       the recording of a level run: every step's keys and a snapshot every few seconds; the run as it
-                was at any step (pure)
+runevents.js    what happened in a level run, told from its state step by step: the events the timeline marks
+                and the nearest moment to the goal's ring (pure)
+replay.js       the recording of a level run: every step's keys, a snapshot every few seconds, the player's pose
+                in every step and the run's events; the run as it was at any step (pure)
 titlescene.js   the title screen's living scene (pure)
 builder.js      the edited design and every editing rule: cells, neurons, fibres, symmetry, Bud parts, Command
                 keys, stamps, the library list (pure)
@@ -348,8 +364,9 @@ reference.js    the Reference window: a creature to study beside the Lab
 tooltip.js      the hover hint
 guideview.js    the field guide sheet
 probes.js       signal probes in runs and in the Lab's Traces window
+ghost.js        the ghost in a level run: the run before, drawn faint at the same moment along its way
 timeline.js     a level run's timeline: the slider over what the run has been through, a look back at any
-                moment, and Result, which runs the level to its end at once
+                moment, the marks where something happened, and Result, which runs the level to its end at once
 sandbox.js      Sandbox mode; the fixed-step clock, blended drawing, time controls and vitals HUD it shares with
                 levels
 levelview.js    the Run level and Levels buttons, the levels sheet, a level run with its bar, arena, HUD, the
@@ -369,7 +386,7 @@ fonts/, audio/  Megrim and its licence; the music, the sound effects (audio/sfx/
                 and the tutorial's voice lines
 tools/make-voice.js  makes the voice lines with ElevenLabs; Node only, run by hand
 tests/*.js      headless checks: node tests/all.js (adventure, autonomy, builder, crowd, design, determinism,
-                editor, golden, growth, guide, hints, levels, line-endings, menus, metabolism, music, nerve,
+                editor, ghost, golden, growth, guide, hints, levels, line-endings, menus, metabolism, music, nerve,
                 probes, replay, sandbox, savegame, secretions, showcase, sound, soundbank, style, systems,
                 terrain, tips, title, tutorial, vascular, version, weapons); helpers: load.js, dom.js, check.js
 ```
@@ -405,9 +422,10 @@ tests/          the save file test, and a CRLF check of these files
 2. **Autonomy, debugging and chapters 1 and 2.** ✅ Done 2026-10-28. No hidden steering; pause, single steps and
    speeds; probes; the level format, goals and scores; chapter 1 and chapter 2's first four levels.
    - Added 2026-11-01: Tail and Crevice (rock, currents, banned cells).
-   - Added 2026-11-10: the fixed step, the timeline and Result, the Preview without a held heading, and Shape.
+   - Added 2026-11-10: the fixed step, the timeline and Result, the Preview without a held heading, and Shape;
+     then the marks on the timeline and the ghost.
    - Test: `tests/autonomy.js`, `tests/sandbox.js`, `tests/probes.js`, `tests/levels.js`, `tests/terrain.js`,
-     `tests/replay.js`.
+     `tests/replay.js`, `tests/ghost.js`.
 3. **Vascular layer and chapter 3.** ✅ Done 2026-10-29. Sugar as fuel, the Heart (areas since 2026-11-01), Long
    haul, Stale water and Cold water (Marathon until 2026-11-10). Test: `tests/vascular.js`, `tests/levels.js`.
 4. **Metabolism and chapter 4.** ✅ Done 2026-10-29. Recipes and kits, Fat, the Nose, food and the eat goal;
@@ -467,6 +485,11 @@ tests/          the save file test, and a CRLF check of these files
 - **The timeline:** a look back replays up to 11 game s (5 to the snapshot, 6 for the traces): 14 ms in Bloom and
   38 ms in Siege in headless Edge, so dragging the slider there runs at about 25 frames a second. A snapshot takes
   0.5 to 0.6 ms. Metastasis has no timeline.
+- **Marks and the ghost** (2026-11-10): noting the events and the pose adds about 0.05 ms per game second to a
+  recorded run. A hit is told from a cell's hit flash, so damage that makes no flash (acid, protease, poison,
+  rot) marks nothing until a cell is lost. A creature that arrives or dies has no name in its mark. A stayNear
+  level that is lost has no "nearest" mark. The ghost shows the body only, not its launched Bud parts, and each
+  pose takes 8 bytes per cell (about 3 MB for 30 cells over 300 game s).
 - **Drawing between steps** blends cells and spit globs only; a creature's centre (the adventure's camera, a
   carried light) moves in whole steps, at most 2 px at a time.
 - **Drawing cost:** 225 cells and 486 bonds take 6.9 ms per frame in headless Edge with software rendering.
