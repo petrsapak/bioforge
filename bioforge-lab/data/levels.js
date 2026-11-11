@@ -346,7 +346,9 @@ const LEVELS = [
     limits: { budget: 45 },
     light: DRIFTING_LIGHT,
     goal: { kind: 'stayNear', radius: 100, seconds: 150 },
-    timeLimit: 300, par: { seconds: 195, biomass: 20 },
+    // 240 s (300 until 0.8.5): the light comes round again after about 270 s, and gave a bare Seeker lying out of
+    // fuel since 160 s the last of its 150 s
+    timeLimit: 240, par: { seconds: 195, biomass: 20 },
   }),
   createLevel({
     id: 'exhaust', chapter: 3, name: 'Stale water',
@@ -565,7 +567,7 @@ const LEVELS = [
     light: { carriedBy: 0, range: 900 },
     creatures: [{ design: 'urchin', x: 700, y: 250, heading: 0, behaviour: 'wired', anchored: true }],
     goal: { kind: 'kill', creature: 0 },
-    timeLimit: 50, par: { seconds: 34, biomass: 26 },
+    timeLimit: 50, par: { seconds: 40, biomass: 26 },     // 34 s until 0.8.5; the kicked Seeker now takes 37.6 s
   }),
   createLevel({
     id: 'grazed', chapter: 6, name: 'Grazed',

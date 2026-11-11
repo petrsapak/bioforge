@@ -23,9 +23,10 @@ const GUIDE_CELLS = {
     pairs: ['muscle'],
     watch: 'A body with joints bends where they are: good for a tail, bad for a body that must stay straight. A ' +
       'fin of Joints behind the muscles must be two or three cells wide: a chain one cell wide just flops.' },
-  cilia: { summary: 'Beats all the time, pushing the body forward.',
+  cilia: { summary: 'Always beats, pushing the way its part of the body points.',
     pairs: ['heart', 'fat'],
-    watch: 'They always beat, so they can\'t be switched off, and they burn fuel all the time.' },
+    watch: 'They always beat, so they can\'t be switched off, and they burn fuel all the time. Cilia along a soft ' +
+      'body curl it: stiffen it, or keep them on the head.' },
   eyespot: { summary: 'Signals while an enemy cell is near it.',
     pairs: ['nettle', 'acid', 'protease', 'siphon'],
     watch: 'It is on or off, nothing between: it says something is near, not where. Use Light eyes or a Nose to ' +
@@ -46,10 +47,10 @@ const GUIDE_CELLS = {
     pairs: ['eyespot', 'command'],
     watch: 'Burns fuel while swollen. Swelling shoves your own cells too. It lets go a little slower than it ' +
       'swells, so a gripping Bloater needs a slow beat to let go of the rock.' },
-  siphon: { summary: 'Squirts water back on a signal, pushing the body forward.',
-    pairs: ['lighteye', 'nose', 'pacemaker', 'heart'],
+  siphon: { summary: 'On a signal, pushes the way its part of the body points.',
+    pairs: ['lighteye', 'nose', 'pacemaker', 'heart', 'muscle'],
     watch: 'Thirsty: a Siphon far from O₂ and sugar soon starves and stops. Put them at the back, one on each ' +
-      'side.' },
+      'side. On a tail that a Muscle bends, its push swings with the tail and steers the body.' },
   nettle: { summary: 'Stings enemy cells near it on a signal.',
     pairs: ['eyespot', 'heart'],
     watch: 'Stings barely scratch hard cells. A Nettle burns fuel all the time it is signalled.' },
@@ -277,6 +278,8 @@ const GUIDE_TERMS = [
   ['Threshold', 'The sum of inputs a Synapse needs to be on.', 'synapse'],
   ['Blood', `Fluids pumped between the cells within ${HEART_REACH} steps of a beating Heart.`, 'heart'],
   ['Seeping', 'Fluids moving slowly from a fuller cell to an emptier neighbour, with no Heart beating.', 'airsac'],
+  ['Mass centre', 'The quartered ring on your body in the Lab. The creature turns about it: a Siphon or Cilia ' +
+    'pushing beside it turns the body, one in line with it only moves it.', 'siphon'],
   ['Starving', 'A working cell short of O₂ or sugar: it works weaker, and a Photophore goes dark.', 'siphon'],
   ['Poisoned', 'A working cell too full of waste: it loses health until a Pore takes the waste away.', 'pore'],
   ['Hard cell', 'A cell built with mineral or hardened by a Mineralizer. Acid eats it; protease can\'t.', 'shell'],

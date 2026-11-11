@@ -1,5 +1,5 @@
 'use strict';
-// The Body and Nerves tabs at the top with their tools (Unlimited biomass, Symmetry, Delete all),
+// The Body and Nerves tabs at the top with their tools (Unlimited biomass, Symmetry, Mass centre, Delete all),
 // the built-in designs, the keys sheet (H) and the fluid views (Shift+1–5) (browser only).
 
 const MIRROR_MENU_WIDTH = 200;                            // px, as #mirror-menu in style.css
@@ -25,15 +25,23 @@ function showFluidView(app, view) {
   if (app.mode === 'build') refreshPanel(app);
 }
 
-// Delete all and Unlimited biomass
+// Delete all, Unlimited biomass and Mass centre
 function setUpDesignButtons(app) {
   byId('clear-design').onclick = () => clearDesign(app);
+  byId('mass-centre').onclick = () => toggleMassCentre(app);
   byId('unlimited-biomass').onclick = () => {
     const isUnlimited = app.edited.biomassLimit !== Infinity;
     app.edited.biomassLimit = isUnlimited ? Infinity : chosenLimits(app).budget;
     writeStorage('unlimited-biomass', isUnlimited);
     refreshPanel(app);
   };
+}
+
+// C or the Mass centre button: shows or hides the mass centre's mark, remembered between visits
+function toggleMassCentre(app) {
+  app.isMassCentreShown = !app.isMassCentreShown;
+  writeStorage('mass-centre-shown', app.isMassCentreShown);
+  refreshPanel(app);
 }
 
 // Delete all: starts over with just the Nucleus, after asking if there is anything else to lose

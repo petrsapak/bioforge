@@ -7,6 +7,19 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.8.5 (2026-11-11)
+- A Siphon and a Cilia now push the way their own part of the body points, not the way the whole creature faces.
+  Put a Siphon on a tail and bend the tail with a Muscle: the push swings with it and steers the body, like a
+  rudder. A body that keeps its shape swims as before.
+- The Siphon's nozzle and its puff of water are drawn the way it pushes.
+- The Lab marks the body's mass centre with a small ring in four quarters, on the grid and in the Preview. The
+  creature turns about that point: a Siphon or Cilia pushing beside it turns the body. The field guide's glossary
+  explains it. C, or the new Mass centre button by Symmetry, hides or shows the mark.
+- Click a Pacemaker, Delay or Synapse in the Lab and a slider for its rate, delay or threshold appears in a box
+  right beside the cell, in the hint's style. It replaces the − and + buttons in the top left card.
+- Long haul gives 240 s (it gave 300 s): the light came round a second time and let a body lying out of fuel win.
+- Spit's par time is 40 s (it was 34 s).
+
 ## 0.8.4 (2026-11-11)
 - A cell's hint in the Lab now shows in its own block what the cell burns and makes each second, as bars in the
   fluids' colours: a Muscle's O₂, sugar and waste bars are a quarter of a Bud's, the thirstiest cell. Under them it

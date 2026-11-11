@@ -53,8 +53,9 @@ const kindsOf = recording => recording.log.events.map(event => event.kind);
     marks[1].tone === 'bad', marksText(recording).join('; '));
 }
 
-{ // the Jet in Lighthouse swims past the ring
-  const { run, recording } = recordedRun('lighthouse', sim.TEMPLATES.jet);
+{ // First stroke's body in Lighthouse swims past the ring (the Jet did too until 0.8.5; since its Siphons push the
+  // way their own cells point, it turns off the wall it runs into and slides along it, nearer to the ring to the end)
+  const { run, recording } = recordedRun('lighthouse', FIRST_STROKE);
   const closest = sim.runMarks(recording.log).find(mark => mark.kind === 'closest');
   check('a lost run marks the moment the player was nearest to the ring', run.outcome === 'lost' && !!closest &&
     closest.step > 0 && closest.step < run.steps, marksText(recording).join('; '));

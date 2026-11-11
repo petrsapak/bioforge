@@ -14,7 +14,7 @@ const SAVE_MENU_HEIGHT = 130;                             // px
 const LAYER_BY_KEY = { 1: 'body', 2: 'nerve' };           // the builder's tab each number key opens
 // the builder's arrow keys: the screen direction each steps the clicked cell in
 const ARROW_STEPS = { arrowleft: [-1, 0], arrowright: [1, 0], arrowup: [0, -1], arrowdown: [0, 1] };
-// keys with a job of their own, which a Command can't be bound to: the tabs, Q/E, F, H, M, and P, R, T in runs
+// keys with a job of their own, which a Command can't be bound to: the tabs, C, Q/E, F, H, M, and P, R, T in runs
 const RESERVED_KEYS = new Set(['1', '2', 'c', 'e', 'f', 'g', 'h', 'm', 'n', 'p', 'q', 'r', 't']);
 
 // The one place the app state is built. Every browser file reads and changes the app through this object.
@@ -41,6 +41,7 @@ function createApp(canvas) {
     marquee: null,                                        // that drag: { from, to } in grid px, screenX/Y the mouse
     stamp: null,                                          // a saved part being placed: { template, rotation }
     mirrorAxes: readStorage('mirror-axes', []),           // the symmetry axes on, as turns of 30° (builder.js)
+    isMassCentreShown: readStorage('mass-centre-shown', true), // the mass centre's mark, on the grid and Preview
     paintDrag: null,                                      // a held button painting cells: { isErasing, lastPoint }
     cursorStyle: '',                                      // the canvas's CSS cursor, set when it changes
     partDrag: null,                                       // a Bud part being dragged: { budKey, grab, rotation }
@@ -470,11 +471,13 @@ function bindFocusedCommand(app, commandKey) {
   rebuildTank(app);
 }
 
-// F fits the grid; G opens the field guide; H shows the keys; T opens the Templates screen; Esc closes a sheet or
-// drops what is in hand, or else opens the menu; Q/E turn the stamp, the dragged part or the clicked Bud's part; the
-// arrows step between cells; Delete (or Backspace) deletes the selected cells
+// C shows or hides the mass centre; F fits the grid; G opens the field guide; H shows the keys; T opens the
+// Templates screen; Esc closes a sheet or drops what is in hand, or else opens the menu; Q/E turn the stamp, the
+// dragged part or the clicked Bud's part; the arrows step between cells; Delete (or Backspace) deletes the selected
+// cells
 function handleBuilderKey(app, key) {
   if (key === 'delete' || key === 'backspace') deleteSelection(app);
+  if (key === 'c') toggleMassCentre(app);
   if (key === 'f') fitGridToScreen(app);
   if (key === 'g') openGuideFromBuilder(app);
   if (key === 'h') toggleKeysSheet();
@@ -840,6 +843,7 @@ function runFrame(app, now) {
   updateSplash(app, now);
   if (isGuideOpen(app)) runDemo(dt);                      // the guide's example tank, over any mode or the title
   runTutorial(app);
+  placeSettingPopup(app);                                 // follows the clicked cell, hidden outside the Lab
   if (isTitleShown(app)) {                                // the title covers the game, which waits behind it
     runTitleFrame(app, dt);
     requestAnimationFrame(time => runFrame(app, time));

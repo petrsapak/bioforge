@@ -34,6 +34,8 @@
     <svg viewBox="0 0 24 24"><path d="M12 12c-2-2.8-3.6-4-5.4-4a4 4 0 000 8c1.8 0 3.4-1.2 5.4-4s3.6-4 5.4-4a4 4 0 010 8c-1.8 0-3.4-1.2-5.4-4z" fill="none" stroke="#e8c547" stroke-width="1.8"/></svg></button>
   <button class="tool" id="mirror-axes" title="Symmetry: mirror what you add and remove across axes">
     <svg viewBox="0 0 24 24"><path d="M12 2v20" stroke="#7ec8f0" stroke-width="1.6" stroke-dasharray="2.5 2"/><path d="M9.5 7L4 12l5.5 5z" fill="#b9c3cd"/><path d="M14.5 7L20 12l-5.5 5z" fill="none" stroke="#b9c3cd" stroke-width="1.5" stroke-linejoin="round"/></svg></button>
+  <button class="tool" id="mass-centre" title="Mass centre: show or hide its mark on the grid and in the Preview (C)">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="#0b1418" stroke="#f4f6f8" stroke-width="1.6"/><path d="M12 12V4a8 8 0 018 8zM12 12v8a8 8 0 01-8-8z" fill="#f4f6f8"/></svg></button>
   <button class="tool danger" id="clear-design" title="Delete all: start over with just the Nucleus (asks first)">
     <svg viewBox="0 0 24 24"><path d="M5 7h14M10 4h4M7 7l1 13h8l1-13" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/></svg></button>
 </div>
@@ -82,6 +84,7 @@
       <span><b>Space</b></span><span>fire Commands and Eyespots (test)</span>
       <span><b>1</b><b>2</b></span><span>Body, Nerves</span>
       <span><b>A</b>–<b>Z</b> <b>0</b>–<b>9</b></span><span>bind a clicked Command to a free key</span>
+      <span><b>C</b></span><span>the mass centre's mark on / off</span>
       <span><b>F</b></span><span>show the whole grid</span>
       <span><b>G</b></span><span>the field guide, at the clicked cell or the one you place</span>
       <span><b>T</b></span><span>the Templates screen: your creatures, parts and examples</span>
@@ -325,6 +328,11 @@
 <input type="file" id="creature-file-input" accept=".json,application/json">
 
 <div id="tooltip"></div>
+<div id="setting-popup">
+  <div class="setting-popup-title"><b id="setting-popup-name"></b><span id="setting-popup-value"></span></div>
+  <input type="range" id="setting-popup-slider">
+  <div class="setting-popup-range"><span id="setting-popup-min"></span><span id="setting-popup-max"></span></div>
+</div>
 <div id="tutorial">
   <div class="tutorial-block" id="tutorial-block-top"></div>
   <div class="tutorial-block" id="tutorial-block-bottom"></div>

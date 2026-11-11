@@ -243,6 +243,21 @@ check('the × on a fibre in the card removes it', fibreUnitsShown() === unitsBef
 fire('game', 'mousedown', { ...screenPointOf(1, 0), button: 2, target: canvas });
 runFrames(1);
 check('a right-click on the neuron takes it out', /No neuron/.test(info()), info());
+neuronButton('pacemaker').onclick();
+clickHex(1, 0);
+runFrames(1);
+const settingSlider = byId('setting-popup-slider');
+check('a clicked Pacemaker gets a box with a slider by its cell, set to its rate',
+  byId('setting-popup').style.display === 'block' && Number(settingSlider.value) === 1.4 &&
+  /Pacemaker · Rate/.test(byId('setting-popup-name').textContent) && !/neuron-setting-up/.test(info()),
+  `${byId('setting-popup').style.display} ${settingSlider.value} ${byId('setting-popup-name').textContent}`);
+settingSlider.value = '2.6';
+settingSlider.oninput();
+check('moving the slider sets the rate, shown in the box and the card',
+  byId('setting-popup-value').textContent === '2.6 Hz' && /Rate <b>2.6 Hz<\/b>/.test(info()), info());
+fire('game', 'mousedown', { ...screenPointOf(1, 0), button: 2, target: canvas });
+runFrames(1);
+check('the box goes with the neuron', byId('setting-popup').style.display === 'none');
 pressKey('1');
 check('with no Command clicked, 1 opens the Body tab, which hides the Traces window',
   byId('dock-bar').textContent === 'Cells' && byId('traces').style.display === 'none');
@@ -347,6 +362,15 @@ byId('mirror-none').onclick();
 clickHex(0, 1);
 check('No symmetry places single cells again',
   cellCount() === 5 && !byId('mirror-axes').classList.contains('selected'));
+
+check('the Mass centre button is lit at first', byId('mass-centre').classList.contains('selected'));
+pressKey('c');
+check('C hides the mass centre, unlights its button and remembers it',
+  !readGlobal('globalThis.testApp').isMassCentreShown && !byId('mass-centre').classList.contains('selected') &&
+  storage.items['bioforge-lab-mass-centre-shown'] === 'false');
+byId('mass-centre').onclick();
+check('the Mass centre button shows it again',
+  readGlobal('globalThis.testApp').isMassCentreShown && byId('mass-centre').classList.contains('selected'));
 
 check("Bioforge Moba's old library carries over", byId('library-tab-creatures').innerHTML.includes('>1<'));
 

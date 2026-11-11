@@ -20,7 +20,7 @@
 //   breathes: makes O2 from the water; dumpsWaste: dumps waste into the water from the surface
 //   pumps: while signalled, pumps blood between the cells in its reach (Heart, vascular.js)
 //   eatsFood: takes in food specks; bites: bites cells it touches; spiked: damages enemy cells it hits
-//   beats: pushes the creature forward, always (Cilia); jets: pushes the creature forward while signalled (Siphon)
+//   beats: pushes the way its part of the body points, always (Cilia); jets: the same while signalled (Siphon)
 //   resize: 'contract' or 'swell' with its signal; trigger: what a signal fires: 'nettle', 'snare' or 'spit'
 //   glows (nerve.js): gives off light while signalled, which other creatures' Light eyes see (Photophore)
 //   growsParts: grows a saved part (Bud); rebuildsCells: regrows lost cells from repair fluid (Mender)
@@ -77,8 +77,8 @@ const CELLS = {
   cilia: cellType({
     category: 'Body', name: 'Cilia', cost: 2, health: 20, mass: 0.6, fuelBurn: 0.05, color: '#6ac9a0',
     work: 'beating', beats: true,
-    description: 'Beating hairs push the creature forward from where they sit, while fed O₂ and sugar. Cilia on ' +
-      'one side turn it.',
+    description: 'Beating hairs push the way their part of the body points, from where they sit, while fed O₂ ' +
+      'and sugar. Cilia on one side turn it.',
   }),
   eyespot: cellType({
     category: 'Sense', name: 'Eyespot', cost: 3, health: 20, senses: 'enemy', color: '#4fd1c5',
@@ -111,7 +111,8 @@ const CELLS = {
   siphon: cellType({
     category: 'Action', name: 'Siphon', cost: 4, health: 25, fuelBurn: 0.15, color: '#5fb8e8',
     work: 'graded', jets: true, needsSignal: true,
-    description: 'Squirts water backwards on a nerve signal, pushing the creature forward. Thirsty.',
+    description: 'Squirts water out of its back on a nerve signal and pushes the way its part of the body points: ' +
+      'bend the tail it sits on and the push swings with it. Thirsty.',
   }),
   nettle: cellType({
     category: 'Action', name: 'Nettle', cost: 5, health: 25, fuelBurn: 0.12, color: '#a7b8ff',

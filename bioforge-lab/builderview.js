@@ -1,7 +1,7 @@
 'use strict';
 // Drawing the builder: the hex grid with the design (cells show the test tank's live signals and fluids), Bud parts
-// and aim arrows, selections, warnings, ghosts of what is being placed, and the preview window. Also the grid's
-// zoom and pan (browser only).
+// and aim arrows, the mass centre, selections, warnings, ghosts of what is being placed, and the preview window.
+// Also the grid's zoom and pan (browser only).
 
 const BUILDER_PANEL_WIDTH = 350;                          // px of the windows on each side, kept clear by F
 const FIT_MIN_WIDTH = 300;                                // px the grid fits into at least, on a narrow screen
@@ -38,6 +38,10 @@ const SAME_TYPE_COLOR = '#7fe8ff';                        // Shift: the outline 
 const SAME_TYPE_SHADE = 'rgba(11,20,24,0.55)';            // Shift: laid over the other cells
 const SAME_TYPE_COUNT_Y = 112;                             // px from the top: the Shift count, under the limits
 const CURSOR_SIZE = 32;                                   // px of the cursor image
+const MASS_CENTRE_RADIUS = 4;                             // grid px: the quartered ring on the body's mass centre
+const MASS_CENTRE_LIGHT = '#f4f6f8';
+const MASS_CENTRE_DARK = '#0b1418';
+const MASS_CENTRE_ALPHA = 0.9;                            // opacity of the mark
 
 // ---------- Zoom and pan ----------
 function createGridView() {
@@ -108,6 +112,7 @@ function drawBuilder(app) {
   drawHeartReach(app);
   drawNerveLayer(app, laidOutBodyFibres(app.edited, FIBRE_COLORS.length));
   drawBudParts(app);
+  drawDesignMassCentre(app);
   drawSelection(app);
   drawSameTypeCells(app);
   drawWarningMarks(app);
@@ -556,6 +561,33 @@ function drawAimArrow(context, arrow, isFocused) {
   fillCircle(context, tipX, tipY, 3.5);
 }
 
+// the mass centre of the cells joined to the Nucleus, marked on the grid unless hidden (C)
+function drawDesignMassCentre(app) {
+  if (!app.isMassCentreShown) return;
+  const centre = massCentre(bodyCells(app.edited));
+  if (centre) drawMassCentreMark(app.context, centre.x, centre.y, MASS_CENTRE_RADIUS);
+}
+
+// The mark engineers use for a mass centre: a ring in four quarters, light and dark by turns. The body turns about
+// it, so it shows which way a Siphon or Cilia beside it will turn the creature.
+function drawMassCentreMark(context, x, y, radius) {
+  context.globalAlpha = MASS_CENTRE_ALPHA;
+  context.fillStyle = MASS_CENTRE_DARK;
+  fillCircle(context, x, y, radius);
+  context.fillStyle = MASS_CENTRE_LIGHT;
+  for (const quarter of [0, 2]) {
+    context.beginPath();
+    context.moveTo(x, y);
+    context.arc(x, y, radius, quarter * Math.PI / 2, (quarter + 1) * Math.PI / 2);
+    context.closePath();
+    context.fill();
+  }
+  context.strokeStyle = MASS_CENTRE_LIGHT;
+  context.lineWidth = radius * 0.2;
+  strokeCircle(context, x, y, radius);
+  context.globalAlpha = 1;
+}
+
 // the clicked cell (white), the selection (dashed gold) and the marquee being dragged round it
 function drawSelection(app) {
   drawMarquee(app);
@@ -671,6 +703,8 @@ function drawPreview(app) {
   context.scale(scale, scale);
   drawWater(context, tank, tank.width, tank.height);
   drawWorld(context, tank, app.fluidView);
+  const body = tank.creatures.find(creature => creature.team === 0 && !creature.debris);
+  if (body && app.isMassCentreShown) drawMassCentreMark(context, body.centerX, body.centerY, MASS_CENTRE_RADIUS);
   context.restore();
 }
 

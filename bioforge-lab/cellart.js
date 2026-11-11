@@ -135,7 +135,7 @@ function drawCellArt(context, cell, radius, outward) {
   drawMembrane(context, palette);
   const drawSymbol = CELL_SYMBOLS[cell.typeName];
   if (drawSymbol) {
-    if (SYMBOLS_FACING_HEADING.has(cell.typeName)) context.rotate(cell.creature.heading - towardOutward);
+    if (SYMBOLS_FACING_HEADING.has(cell.typeName)) context.rotate(facingAngle(cell) - towardOutward);
     drawSymbol(context, cell, palette);
   }
   context.restore();
@@ -189,6 +189,13 @@ function drawHardenedCrust(context, cell, radius) {
 // ---------- the symbols ----------
 // Symbols that face the way the creature swims instead of away from the body.
 const SYMBOLS_FACING_HEADING = new Set(['nucleus', 'siphon']);
+
+// The angle such a symbol is drawn at, in radians clockwise from up: the creature's heading, or for a Siphon the way
+// it pushes (physics.js: localForward), so its nozzle and puff swing with the part of the body it sits on.
+function facingAngle(cell) {
+  const ownForward = cell.type.jets ? localForward(cell) : null;
+  return ownForward ? Math.atan2(ownForward[0], -ownForward[1]) : cell.creature.heading;
+}
 
 // The symbol inside each cell type, in the cell's frame (1 = its radius, up = outward): (context, cell, palette).
 const CELL_SYMBOLS = {
@@ -301,7 +308,7 @@ const CELL_SYMBOLS = {
       strokeIn(context, palette.ink, 0.1);
     }
   },
-  // a nozzle at the back (it faces the creature's heading), and a puff of water while it squirts, but not on the
+  // a nozzle at the back (it faces the way the Siphon pushes), and a puff of water while it squirts, but not on the
   // builder's grid, where the puff would lie over the cell behind
   siphon(context, cell, palette) {
     context.beginPath();

@@ -64,6 +64,17 @@ it got here is in `sessions/`; the long form of this plan up to version 0.8.0 is
 - **The water pushes on the skin** (2026-10-28). A skin cell moving face-on meets 10x the drag of one sliding
   along the skin, plus a part that grows with the square of the speed. So shape matters: a tail beating side to
   side swims, a wave down it swims faster, a blob that pulses stays put. Siphons and Cilia are the easy movers.
+- **A Siphon or Cilia pushes the way its own part of the body points** (2026-11-11, user: "if I move a muscle and
+  the position of the siphon changes then the force would push into that direction"). Each one takes the design's
+  forward and turns it as far as the cells bonded to it have turned round it (`localForward` in `physics.js`), so
+  a Muscle that bends a tail steers the jet on it. Until 0.8.5 all of them pushed along the creature's one heading;
+  `RULES.thrustFollowsBody = false` gives that rule back, and is kept for one version (user: "keep the old rule
+  behind a switch for one version"). A launched Bud part still pushes the way it was fired. The helper that turns
+  a body toward the side whose Muscles hold shut (`MUSCLE_TURN_TORQUE`) stays for now.
+- **The Lab marks the mass centre** (2026-11-11, user: "some kind of těžiště so that the player can see it"): a
+  ring in four quarters on the grid, for the cells joined to the Nucleus (`massCentre` in `design.js`), and on the
+  creature in the Preview. The body turns about it. C or the Mass centre button hides it (user: "the center of
+  mass should be toggleable"), remembered in storage.
 - **A Muscle's timing comes only from its wiring** (2026-11-02, user: "If I want delay I will add delay"). It
   contracts while its signal is on; two Muscles on one source always move together. The game adds no rhythm,
   side turns or wave. A Muscle pulls by the square root of its signal, and a body turns toward the side whose
@@ -169,7 +180,10 @@ it got here is in `sessions/`; the long form of this plan up to version 0.8.0 is
   if a selection would leave only the Nucleus (user, 2026-11-11).
 - **The panels:** the limits line under the tabs (only the current view's limits, in large numbers), a card for
   the clicked cell when it has something to set, the Needs card (Sugar lasts N s, a bar each for the O₂, sugar and waste per second with marks for the Gills and Pores, then a row per need with a ✓, ✗
-  or ~ and one "Next:" line), and the Traces window in the Nerve view.
+  or ~ and one "Next:" line), and the Traces window in the Nerve view. A clicked neuron with a setting
+  (Pacemaker, Delay, Synapse) gets a slider in a box beside its cell, in the hint's style (user, 2026-11-11: "I
+  want a slider to appear when I select the pacemaker"); the card only shows the value. The − and + buttons
+  in the card are gone.
 - **Saving:** Shift+right-drag a box round cells and name them (with the Nucleus a creature, without it a part);
   Ctrl+S saves the creature; F5 and F8 quick save and load. The **Templates screen** (T) has My creatures, My
   parts and Examples; Export and Import use `<name>.bioforge.json` files. **Study** shows any creature in the
@@ -296,7 +310,8 @@ the Mineralizer; Spit the Spitter; Grazed the Mender; Swarm the Bud; Metastasis 
 Packed lunch, Bloom, Siege and Tumour bring nothing.
 
 ## Removable mechanics
-- **Global switches:** `RULES` in `data/rules.js` holds the limits and the list of switchable systems.
+- **Global switches:** `RULES` in `data/rules.js` holds the limits, the list of switchable systems and
+  `thrustFollowsBody` (the 0.8.5 thrust rule; off gives the old one).
 - **Per level:** each level lists the systems it runs. A system that is off isn't stepped or drawn.
 - **One system per file** (nerve, fluid, vascular, metabolism, secretions, growth, food), each with its own step
   function. Turning one off never needs edits inside another.
@@ -364,7 +379,7 @@ dock.js         the cell dock and the neurons in the Nerve view
 library.js      the Templates screen (T) and the library
 toolbar.js      the Body / Nerves tabs, Unlimited, Symmetry, Delete all; the keys sheet (H); the fluid views
 panel.js        the limits line, the message line, the clicked cell's card and the Needs card
-builderview.js  drawing the builder grid and the Preview; zoom and pan; the cursor
+builderview.js  drawing the builder grid, the mass centre mark and the Preview; zoom and pan; the cursor
 reference.js    the Reference window: a creature to study beside the Lab
 tooltip.js      the hover hint
 guideview.js    the field guide sheet
@@ -481,6 +496,14 @@ tests/          the save file test, and a CRLF check of these files
 - **`RULES.allLevelsOpen`:** on since testing; switch it off for a release that should unlock levels in order.
 
 ## Known limits
+- **Thrust that follows the body** (2026-11-11, 10 game s each, old rule against new): a Siphon at the end of a
+  tail of 5 Tissue swims 166 px against 164 px and the tail stays 102 px long, so soft tails don't fold. On a tail
+  of 5 Joints the old rule curled the body up (19 px nose to tail, 18 px forward); the new one swims 113 px. A
+  worm of 5 Cilia curls more: it turns 2.33 rad against 1.78 rad. In open water a stiff body's Siphons point
+  within 0.1° of its heading; pressed on a wall within 0.5°, which is enough to turn the Jet off the wall and
+  slide it along. No cost that shows: about 6 ms of sim per game s for these bodies under both rules.
+- **Long haul** (2026-11-11): a bare Seeker runs out of fuel after 160 s with 127 to 140 s of the 150 s near the
+  light. The limit is 240 s so that the light, which comes round again at about 270 s, can't give it the rest.
 - **Sim cost** (2026-11-10, Node, every script in one scope as in a browser, ms of sim per game second): Seeker
   against a Nettler 1.8; Eel against a Crab 9.2; Siege 2.0; Metastasis 13.3 (14.4 before the settle order was
   kept and the bounds boxes reused); 30 Crabs and a Jet (1417 cells) 146 (162 before). Angle springs and their

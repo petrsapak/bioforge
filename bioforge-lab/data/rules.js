@@ -8,6 +8,9 @@ const RULES = {
   maxFibreUnits: 40,                                  // steps of nerve fibre from cell centre to cell centre
   allLevelsOpen: true,                                // all levels open (user, 2026-10-29, for testing; kept on for the
                                                       // release, user 2026-11-07: "do not switch it off")
+  thrustFollowsBody: true,                            // a Cilia or Siphon pushes the way its own part of the body
+                                                      // points (physics.js: localForward); off: along the whole
+                                                      // creature's heading, the rule until 0.8.5, kept for one version
   // systems stepped each tick: nerve = signals;
   // fluid = O2, sugar and waste burn and seep (off: cells work at full power);
   // vascular = beating Hearts pump blood between the cells in their reach;

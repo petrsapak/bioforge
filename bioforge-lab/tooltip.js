@@ -55,6 +55,8 @@ function updateTooltip(app, now) {
   const box = byId('tooltip');
   if (!tooltip.target || app.mode !== 'build' || now - tooltip.since < TOOLTIP_DELAY) return;
   if (box.style.display === 'block') return;
+  // the clicked cell's setting slider sits where its hint would, so the hint waits until the mouse moves on
+  if (tooltip.target === 'grid:' + app.focusKey && focusedSetting(app)) return;
   const cellType = CELLS[tooltip.typeName];
   const neuronType = NEURONS[tooltip.neuronKind];
   if (!cellType && !neuronType) return;

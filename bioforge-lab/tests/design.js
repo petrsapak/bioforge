@@ -3,7 +3,7 @@
 const { load } = require('./load');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['pixelToHex', 'isInGrid', 'hexesReachableFromNucleus', 'designWarnings', 'buildCheck',
-  'designNeeds', 'nextNeed', 'sugarSupply', 'fuelBalance', 'GILL_OXYGEN_RATE', 'PORE_RATE',
+  'designNeeds', 'nextNeed', 'sugarSupply', 'fuelBalance', 'GILL_OXYGEN_RATE', 'PORE_RATE', 'massCentre', 'CELLS',
   'hexToPixel', 'hexKey', 'blueprintFromList', 'createNeuron', 'GRID_RADIUS', 'RULES', 'TEMPLATES']);
 
 // a design from [q, r, typeName] cells and [fromQ, fromR, toQ, toR] fibres
@@ -83,6 +83,19 @@ check('planned cells reported with their keys',
     balance.wasteDumped === sim.PORE_RATE, JSON.stringify(balance));
   check('in stale water the Gills make that share of it',
     sim.fuelBalance(body, 0.5).oxygenMade === sim.GILL_OXYGEN_RATE && sim.fuelBalance(body, 0).oxygenMade === 0);
+}
+
+{ // the mass centre the Lab marks
+  const row = sim.blueprintFromList([[-1, 0, 'tissue'], [0, 0, 'nucleus'], [1, 0, 'tissue']]);
+  const even = sim.massCentre(row);
+  check('an even body\'s mass centre is its middle', Math.abs(even.x) < 1e-9 && Math.abs(even.y) < 1e-9,
+    JSON.stringify(even));
+  const pair = sim.blueprintFromList([[0, 0, 'tissue'], [1, 0, 'cilia']]);
+  const [farX] = sim.hexToPixel(1, 0);
+  const lightShare = sim.CELLS.cilia.mass / (sim.CELLS.cilia.mass + sim.CELLS.tissue.mass);
+  check('a lighter cell pulls the mass centre less than a heavier one',
+    Math.abs(sim.massCentre(pair).x - farX * lightShare) < 1e-9 && lightShare < 0.5, String(sim.massCentre(pair).x));
+  check('no cells, no mass centre', sim.massCentre([]) === null);
 }
 
 { // the nerve limits in RULES

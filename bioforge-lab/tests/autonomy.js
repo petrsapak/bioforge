@@ -6,7 +6,7 @@
 const { load } = require('./load');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['newWorld', 'spawn', 'step', 'blueprintFromList', 'createDesignCell', 'createNeuron',
-  'TEMPLATES', 'createLight', 'LIGHT_RANGE', 'FLUID_SUGAR']);
+  'TEMPLATES', 'createLight', 'LIGHT_RANGE', 'FLUID_SUGAR', 'RULES', 'localForward', 'applySteering']);
 
 const RUN_STEPS = 200;                                    // 5 game s at 1/40 s per step
 const STILL_DISTANCE = 2;                                 // px a creature with no movers may drift
@@ -62,6 +62,64 @@ check('cilia on both sides swim it forward without turning',
 const rightSide = runCreature([[0, 0, 'nucleus'], [-1, 0, 'tissue'], [1, 0, 'cilia']]);
 check('cilia on the right side turn it to the left', rightSide.heading < -TURNED_ANGLE,
   rightSide.heading.toFixed(2) + ' rad');
+
+// A Cilia or a Siphon pushes the way its own part of the body points (0.8.5; until then along the whole creature's
+// heading, which RULES.thrustFollowsBody = false still gives). The body is a head with a tail four cells long and a
+// Siphon at its end; the test swings the tail's last two cells round the cell before them.
+{
+  const TAIL = [[0, 1], [-1, 2], [-1, 3]];
+  const TAIL_SWING = 0.5;                                 // rad clockwise
+  const tailed = [[0, 0, 'nucleus'], [-1, 0, 'tissue'], [1, 0, 'tissue'], ...TAIL.map(([q, r]) => [q, r, 'tissue']),
+    [-2, 4, 'siphon']];
+  const spawnTailed = angle => {
+    const world = sim.newWorld(2000, 2000, { seed: 1 });
+    return sim.spawn(world, { cells: sim.blueprintFromList(tailed) }, 1000, 1000, angle, 0);
+  };
+  const angleOf = ([x, y]) => Math.atan2(x, -y);          // rad clockwise from up
+  // the angle of the push a signalled Siphon gets from applySteering
+  const pushAngle = (creature, siphon) => {
+    for (const cell of creature.cells) [cell.forceX, cell.forceY] = [0, 0];
+    siphon.signal = 1;
+    sim.applySteering(creature);
+    return angleOf([siphon.forceX, siphon.forceY]);
+  };
+  const turnedBody = spawnTailed(1);
+  const straightSiphon = turnedBody.cells[turnedBody.cells.length - 1];
+  check('in a body that keeps its shape, a Siphon pushes along the creature\'s heading',
+    Math.abs(angleOf(sim.localForward(straightSiphon)) - 1) < 1e-9 &&
+    Math.abs(pushAngle(turnedBody, straightSiphon) - 1) < 1e-9, String(angleOf(sim.localForward(straightSiphon))));
+
+  const bent = spawnTailed(0);
+  const [pivot, beforeLast, siphon] = bent.cells.slice(-3);
+  for (const cell of [beforeLast, siphon]) {
+    const offsetX = cell.x - pivot.x;
+    const offsetY = cell.y - pivot.y;
+    cell.x = pivot.x + offsetX * Math.cos(TAIL_SWING) - offsetY * Math.sin(TAIL_SWING);
+    cell.y = pivot.y + offsetX * Math.sin(TAIL_SWING) + offsetY * Math.cos(TAIL_SWING);
+  }
+  const followed = pushAngle(bent, siphon);
+  check('on a tail swung round, the Siphon at its end pushes the way the tail\'s end points',
+    Math.abs(followed - TAIL_SWING) < 1e-9 && Math.abs(bent.heading) < TAIL_SWING / 2,
+    `push ${followed.toFixed(3)} rad, heading ${bent.heading.toFixed(3)} rad`);
+  const cilia = sim.spawn(sim.newWorld(2000, 2000, { seed: 1 }), { cells: sim.blueprintFromList(
+    [...tailed.slice(0, -1), [-2, 4, 'cilia']]) }, 1000, 1000, 0, 0);
+  const [ciliaPivot, ciliaBefore, ciliaCell] = cilia.cells.slice(-3);
+  ciliaCell.x = ciliaBefore.x + (ciliaBefore.x - ciliaPivot.x);   // straight on from the two cells before it
+  ciliaCell.y = ciliaBefore.y + (ciliaBefore.y - ciliaPivot.y);
+  for (const cell of cilia.cells) [cell.forceX, cell.forceY] = [0, 0];
+  sim.applySteering(cilia);
+  const restAngle = angleOf([ciliaBefore.restX - ciliaCell.restX, ciliaBefore.restY - ciliaCell.restY]);
+  const nowAngle = angleOf([ciliaBefore.x - ciliaCell.x, ciliaBefore.y - ciliaCell.y]);
+  check('a Cilia follows its part of the body too',
+    Math.abs(angleOf([ciliaCell.forceX, ciliaCell.forceY]) - (nowAngle - restAngle)) < 1e-9 &&
+    Math.abs(nowAngle - restAngle) > 0.1, `${(nowAngle - restAngle).toFixed(3)} rad`);
+  sim.RULES.thrustFollowsBody = false;
+  const alongHeading = pushAngle(bent, siphon);
+  sim.RULES.thrustFollowsBody = true;
+  check('with RULES.thrustFollowsBody off it pushes along the creature\'s heading, as it did until 0.8.5',
+    Math.abs(alongHeading - bent.heading) < 1e-9 && sim.localForward(siphon) !== null,
+    `push ${alongHeading.toFixed(3)} rad, heading ${bent.heading.toFixed(3)} rad`);
+}
 
 // muscles move a creature only through the water: a shape that just pulses goes nowhere, a tail beating side to
 // side swims. The tail is a spine of joints with a column of muscles each side; the left column is on a Pacemaker,

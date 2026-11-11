@@ -66,7 +66,8 @@ function updatePhysics(world, dt) {
 
 // Measures the creature's centre and heading, then pushes its cells: swimming, turning and siphon thrust.
 // A launched Bud part (drone) doesn't steer and gets no free swimming: only its own cilia and siphons push it,
-// the way it was fired (launchAim, in its rest frame).
+// the way it was fired (launchAim, in its rest frame). Elsewhere each Cilia and Siphon pushes the way its own part
+// of the body points (localForward).
 function applySteering(creature) {
   let mass = 0;
   let centerX = 0;
@@ -115,18 +116,44 @@ function applySteering(creature) {
     const offsetX = cell.x - centerX;
     const offsetY = cell.y - centerY;
     const swimPower = isLaunchedPart ? 0 : cell.type.swimPower;
-    // cilia beat toward the creature's front, at their own place, so cilia on one side turn it
+    const swimForce = SWIM_FORCE * swimPower;
+    cell.forceX += cell.type.mass * turnTorque * -offsetY + swimForce * creature.swimX;
+    cell.forceY += cell.type.mass * turnTorque * offsetX + swimForce * creature.swimY;
+    // cilia beat at their own place, so cilia on one side turn the creature
     const isBeating = cell.type.beats && !creature.resting;
     const ciliaThrust = isBeating ? SWIM_FORCE * CILIA_SWIM_POWER * cell.efficiency : 0;
-    const swimForce = SWIM_FORCE * swimPower;
-    cell.forceX += cell.type.mass * turnTorque * -offsetY + swimForce * creature.swimX + ciliaThrust * forwardX;
-    cell.forceY += cell.type.mass * turnTorque * offsetX + swimForce * creature.swimY + ciliaThrust * forwardY;
-    if (cell.type.jets && cell.signal > 0) {
-      const thrust = SIPHON_FORCE * clamp01(cell.signal) * cell.efficiency;
-      cell.forceX += forwardX * thrust;
-      cell.forceY += forwardY * thrust;
-    }
+    const siphonThrust = cell.type.jets && cell.signal > 0 ? SIPHON_FORCE * clamp01(cell.signal) * cell.efficiency : 0;
+    const thrust = ciliaThrust + siphonThrust;
+    if (thrust <= 0) continue;
+    const ownForward = localForward(cell);
+    cell.forceX += thrust * (ownForward ? ownForward[0] : forwardX);
+    cell.forceY += thrust * (ownForward ? ownForward[1] : forwardY);
   }
+}
+
+// The way a Cilia or a Siphon pushes: the design's forward, turned as far as the cells bonded to it have turned
+// round it since the design (the best fit that gives the creature its heading, over its neighbours alone). So a jet
+// on a tail that a Muscle bends pushes where the tail points, and a stiff body pushes as one. Returns [x, y] of
+// length 1, or null where the creature's own forward counts: with RULES.thrustFollowsBody off, in a launched part
+// (it flies the way it was fired), and for a cell with no neighbour.
+function localForward(cell) {
+  const creature = cell.creature;
+  if (!RULES.thrustFollowsBody || creature.debris) return null;
+  let rotationSine = 0;
+  let rotationCosine = 0;
+  for (const [stepQ, stepR] of HEX_NEIGHBOURS) {
+    const neighbour = liveCellAt(creature, cell.q + stepQ, cell.r + stepR);
+    if (!neighbour) continue;
+    const restOffsetX = neighbour.restX - cell.restX;
+    const restOffsetY = neighbour.restY - cell.restY;
+    const offsetX = neighbour.x - cell.x;
+    const offsetY = neighbour.y - cell.y;
+    rotationSine += restOffsetX * offsetY - restOffsetY * offsetX;
+    rotationCosine += restOffsetX * offsetX + restOffsetY * offsetY;
+  }
+  const length = vectorLength(rotationSine, rotationCosine);
+  if (length < MIN_DISTANCE) return null;
+  return [rotationSine / length, -rotationCosine / length];
 }
 
 // Each bond is a damped spring holding two touching cells at their combined radius.

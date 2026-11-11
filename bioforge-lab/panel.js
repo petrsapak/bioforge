@@ -15,6 +15,8 @@ function refreshPanel(app) {
   showCard(app);
   wirePanelButtons(app);
   showNeeds(app);
+  fillSettingPopup(app);
+  placeSettingPopup(app);
 }
 
 // a line saying why an edit couldn't be made, or what was saved; '' hides it (every redraw of the panel does)
@@ -34,9 +36,6 @@ function wirePanelButtons(app) {
     };
   };
   onClick('reset-bud-aim', () => resetBudAim(app.edited, app.focusKey));
-  // each change is copied onto the mirrored cells too, across the axes on when the button is clicked
-  onClick('neuron-setting-down', () => changeNeuronSettingMirrored(app.edited, app.focusKey, -1, app.mirrorAxes));
-  onClick('neuron-setting-up', () => changeNeuronSettingMirrored(app.edited, app.focusKey, 1, app.mirrorAxes));
   app.cardFibres.forEach((fibre, i) => {
     onClick('remove-fibre-' + i, () => removeFibreMirrored(app.edited, fibre, app.mirrorAxes));
   });
@@ -66,6 +65,7 @@ function showSelectedButtons(app) {
   byId('layer-nerve').classList.toggle('selected', app.layer === 'nerve');
   showLibraryMarks(app);
   byId('unlimited-biomass').classList.toggle('selected', app.edited.biomassLimit === Infinity);
+  byId('mass-centre').classList.toggle('selected', app.isMassCentreShown);
 }
 
 // ---------- The limits line ----------
@@ -215,16 +215,15 @@ function cellLabel(cell) {
   return cell.neuron ? `${NEURONS[cell.neuron.kind].name} <span class="dim">${typeName}</span>` : typeName;
 }
 
-// the cell's neuron: what it does, its setting with − and + buttons, and a Command's key
+// the cell's neuron: what it does, its setting (set on the slider by the cell), and a Command's key
 function describeNeuron(cell) {
   const neuronType = NEURONS[cell.neuron.kind];
   let text = `<div class="line" title="${escapeHtml(neuronType.description)}"><b>${neuronType.name}</b> neuron: ` +
     `${firstSentence(neuronType.description)}</div>`;
   const setting = neuronType.setting;
   if (setting) {
-    text += '<div class="stepper"><button class="small" id="neuron-setting-down">−</button>' +
-      `<span>${setting.name} <b>${cell.neuron.setting}</b> ${setting.unit}</span>` +
-      '<button class="small" id="neuron-setting-up">+</button></div>';
+    text += `<div class="line">${setting.name} <b>${settingText(cell.neuron.setting, setting)}</b> ` +
+      '<span class="dim">· on the slider by the cell</span></div>';
   }
   if (cell.neuron.kind === 'command') {
     const key = cell.boundKey ? 'key ' + cell.boundKey.toUpperCase() : 'Space';
@@ -233,6 +232,75 @@ function describeNeuron(cell) {
   return text;
 }
 
+// a setting's value with its unit, such as "1.4 Hz"
+function settingText(value, setting) {
+  return setting.unit ? `${value} ${setting.unit}` : `${value}`;
+}
+
+// ---------- The setting slider ----------
+// A clicked neuron with a setting (a Pacemaker's rate, a Delay's delay, a Synapse's threshold) gets a slider in a box
+// next to its cell, in the hint's style (user, 2026-11-11: "I want a slider to appear when I select the pacemaker").
+// placeSettingPopup runs every frame, so the box stays by the cell while the grid pans and zooms.
+
+const SETTING_POPUP_GAP = 14;                             // screen px between the cell's edge and the box
+
+// the clicked neuron's setting, or null when it has none or the box shouldn't show now
+function focusedSetting(app) {
+  if (app.mode !== 'build' || app.stamp || !app.focusKey) return null;
+  if (isTitleShown(app) || isGuideOpen(app)) return null;
+  const cell = app.edited.cells.get(app.focusKey);
+  if (!cell || !cell.neuron) return null;
+  return NEURONS[cell.neuron.kind].setting;
+}
+
+// fills the box with the clicked neuron's name, value and limits, and wires its slider; each change is copied onto
+// the mirrored cells too, across the axes on at the time
+function fillSettingPopup(app) {
+  const setting = focusedSetting(app);
+  if (!setting) return;
+  const neuron = app.edited.cells.get(app.focusKey).neuron;
+  const neuronType = NEURONS[neuron.kind];
+  byId('setting-popup-name').textContent = `${neuronType.name} · ${setting.name}`;
+  byId('setting-popup-value').textContent = settingText(neuron.setting, setting);
+  byId('setting-popup-value').style.color = neuronType.color;
+  byId('setting-popup-min').textContent = settingText(setting.min, setting);
+  byId('setting-popup-max').textContent = settingText(setting.max, setting);
+  const slider = byId('setting-popup-slider');
+  slider.min = setting.min;
+  slider.max = setting.max;
+  slider.step = setting.step;
+  slider.value = neuron.setting;
+  slider.style.accentColor = neuronType.color;
+  slider.oninput = () => {
+    const steps = Math.round((Number(slider.value) - neuron.setting) / setting.step);
+    changeNeuronSettingMirrored(app.edited, app.focusKey, steps, app.mirrorAxes);
+    rebuildTank(app);
+  };
+  // let go of the keyboard, or the arrow keys would move the slider as well as step between cells
+  slider.onchange = () => slider.blur();
+}
+
+// shows the box next to the clicked cell, on the side towards the middle of the screen as the hint is, or hides it
+function placeSettingPopup(app) {
+  const box = byId('setting-popup');
+  if (!focusedSetting(app)) {
+    box.style.display = 'none';
+    return;
+  }
+  box.style.display = 'block';
+  const [x, y] = keyToPixel(app.focusKey);
+  const origin = gridOrigin(app);
+  const cellX = origin.x + x * app.gridView.zoom;
+  const cellY = origin.y + y * app.gridView.zoom;
+  const reach = CELL_RADIUS * app.gridView.zoom + SETTING_POPUP_GAP;
+  const width = box.offsetWidth || 0;
+  const height = box.offsetHeight || 0;
+  const left = cellX > innerWidth / 2 ? cellX - reach - width : cellX + reach;
+  const maxLeft = innerWidth - width - TOOLTIP_EDGE_MARGIN;
+  const maxTop = innerHeight - height - TOOLTIP_EDGE_MARGIN;
+  box.style.left = Math.max(TOOLTIP_EDGE_MARGIN, Math.min(left, maxLeft)) + 'px';
+  box.style.top = Math.max(TOOLTIP_EDGE_MARGIN, Math.min(cellY - height / 2, maxTop)) + 'px';
+}
 
 // the Bud's part in its card: what it grows, how long it takes and where it is aimed
 function describeBud(bud, cellType) {

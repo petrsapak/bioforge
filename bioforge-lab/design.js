@@ -348,6 +348,22 @@ function fuelBalance(body, waterOxygen = 1) {
   };
 }
 
+// The mass centre of a body's cells ({ q, r, typeName }) in grid px, as { x, y }; null with no cells. The creature
+// turns about this point: a push whose line passes beside it turns the body, one through it only moves it.
+function massCentre(cells) {
+  let mass = 0;
+  let weightedX = 0;
+  let weightedY = 0;
+  for (const cell of cells) {
+    const [x, y] = hexToPixel(cell.q, cell.r);
+    const cellMass = typeOfCell(cell).mass;
+    mass += cellMass;
+    weightedX += x * cellMass;
+    weightedY += y * cellMass;
+  }
+  return mass > 0 ? { x: weightedX / mass, y: weightedY / mass } : null;
+}
+
 // ---------- Saved design format ----------
 // A design cell: { q, r, typeName }, plus on a Bud: budPart ({ name, cells }), partRotation (60° steps), partOffset
 // ([q, r] of the part's anchor from the Bud) and partAim (radians clockwise from the front); on a Command: boundKey.
