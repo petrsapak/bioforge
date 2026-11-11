@@ -4,7 +4,8 @@
 // sugar lasts, a row per need and the next thing to fix); plus which toolbar, dock and library buttons show as
 // selected (browser only).
 
-const RESET_AIM_BUTTON = '<button class="small" id="reset-bud-aim">Reset aim</button>';
+const BALANCE_BAR_SCALE = 0.25;                           // fluid per s a full balance bar stands for, at least
+const RESET_AIM_BUTTON ='<button class="small" id="reset-bud-aim">Reset aim</button>';
 
 // redraws every part of the panel from the app state
 function refreshPanel(app) {
@@ -263,7 +264,9 @@ function showNeeds(app) {
   const ready = fitsLevel ? 'Ready: run the level (bottom right), or try it in the Sandbox (bottom left).'
     : 'Ready: try it in the Sandbox (bottom left).';
   const needs = byId('needs');
-  const sugar = systems.includes('fluid') ? sugarHtml(sugarSupply(body)) : '';
+  const waterOxygen = app.level ? app.level.waterOxygen : 1;
+  const sugar = systems.includes('fluid') ? sugarHtml(sugarSupply(body)) + balanceHtml(fuelBalance(body, waterOxygen))
+    : '';
   needs.innerHTML = '<div class="needs-title">Creature</div>' + sugar +
     '<div class="need-rows">' + app.needRows.map(row => needRowHtml(row, isNeedViewShown(app, row))).join('') +
     '</div>' +
@@ -310,7 +313,37 @@ function sugarHtml(supply) {
     '</div>';
 }
 
-const NEED_STATE_MARKS = { ok: '✓', missing: '✗', weak: '~', none: '–' };
+// The body's O₂, sugar and waste per second with every cell working, a bar each that grows with every working cell
+// added (user, 2026-11-11: "add bars"). The O₂ and waste bars carry a mark: what the Gills make and the Pores dump.
+// A bar past its mark is short, and its words turn orange. The numbers are in each row's tooltip. '' for a body that
+// burns nothing.
+function balanceHtml(balance) {
+  if (balance.burn <= 0) return '';
+  const burnText = balance.burn.toFixed(2);
+  // one scale for the three bars, so the same burn is the same length; a mark beyond it stands at the end
+  const scale = Math.max(balance.burn, balance.oxygenMade, BALANCE_BAR_SCALE);
+  const rowHtml = (fluid, verb, organs, rate, organVerb) => {
+    const hasMark = organs !== '';
+    const isShort = hasMark && rate < balance.burn;
+    const percent = value => Math.round(Math.min(1, value / scale) * 100);
+    const organText = !hasMark ? '' : `; its ${organs} ${organVerb} ${rate.toFixed(2)} per second (the mark)` +
+      (isShort ? ', which is less' : '');
+    const title = `With every cell working the body ${verb} ${burnText} ${fluid.short} per second${organText}.`;
+    const mark = hasMark && rate > 0 ? `<u style="left: ${percent(rate)}%"></u>` : '';
+    const words = !hasMark ? '' : rate > 0 ? organs : `no ${organs}`;
+    return `<div class="need-flow${isShort ? ' short' : ''}" title="${title}">` +
+      `<span style="color: ${fluid.color}">${fluid.short}</span><span class="flow-bar">` +
+      `<i style="width: ${percent(balance.burn)}%; background: ${fluid.color}"></i>${mark}</span>` +
+      `<span>${words}</span></div>`;
+  };
+  return '<div class="need-flows">' +
+    rowHtml(FLUIDS[FLUID_OXYGEN], 'burns', 'Gills', balance.oxygenMade, 'make') +
+    rowHtml(FLUIDS[FLUID_SUGAR], 'burns', '', 0, '') +
+    rowHtml(FLUIDS[FLUID_WASTE], 'makes', 'Pores', balance.wasteDumped, 'dump') +
+    '<div class="need-lasts-note">burnt per second, every cell working</div></div>';
+}
+
+const NEED_STATE_MARKS ={ ok: '✓', missing: '✗', weak: '~', none: '–' };
 
 // One need: icon, name, its mark and, when it isn't met, the fix in a few words; the whole warning is its tooltip.
 // isShown: whether its view is on screen (aria-pressed), or null for a row with no view to show.

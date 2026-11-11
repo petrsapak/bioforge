@@ -784,13 +784,16 @@ function selectAllCells(app) {
   showMessage(`${count} cell${count === 1 ? '' : 's'} selected. Delete removes them, Esc lets go of them.`);
 }
 
-// Delete: removes the selected cells with their neurons and fibres. The Nucleus stays. A selection that would leave
-// only the Nucleus is a Delete all, and asks first as that does.
+// Delete: removes the selected cells with their neurons and fibres, or with nothing selected the clicked cell (user,
+// 2026-11-11: "this should delete the cell as well"). The Nucleus stays. A selection that would leave only the
+// Nucleus is a Delete all, and asks first as that does.
 function deleteSelection(app) {
-  const keys = [...app.selection].filter(key => !isNucleusHex(app, key));
+  const isSelection = app.selection.size > 0;
+  const chosen = isSelection ? [...app.selection] : [app.focusKey];
+  const keys = chosen.filter(key => app.edited.cells.has(key) && !isNucleusHex(app, key));
   if (!keys.length) return;
   closeSaveMenu();
-  if (keys.length === app.edited.cells.size - 1) {
+  if (isSelection && keys.length === app.edited.cells.size - 1) {
     clearDesign(app);
     return;
   }

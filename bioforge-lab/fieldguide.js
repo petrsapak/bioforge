@@ -8,7 +8,7 @@ const WORK_WHEN = {                                       // when a cell burns i
   graded: 'as hard as its signal',
   onSignal: 'while signalled',
   snare: 'while signalled or holding a line',
-  swimming: 'while the creature swims',
+  beating: 'all the time',
   always: 'all the time',
   refillRepair: 'until its repair fluid is nearly full',
   growPart: 'while its part is unfinished',
@@ -92,8 +92,45 @@ function cellStats(typeName) {
       .filter(([, amount]) => amount > 0)
       .map(([materialId, amount]) => ({ ...MATERIALS_BY_ID[materialId], amount })),
     health: { value: type.health, share: type.health / mostHealth },
-    burn: { value: guideNumber(burn * FUEL_BURN_SCALE), share: burn / mostBurn, when: WORK_WHEN[type.work] || '' },
+    burn: { value: flowNumber(burn * FUEL_BURN_SCALE), share: burn / mostBurn, when: WORK_WHEN[type.work] || '' },
   };
+}
+
+// a rate per second as the tooltip prints it: no trailing zeros, at most three decimals (a Cilia burns 0.0125)
+function flowNumber(value) {
+  return String(Math.round(value * 1000) / 1000);
+}
+
+// What a cell type takes and gives each second at full work, read from its behaviours and the fluid system's
+// constants: { rows, when, storeSeconds }. rows are [{ label, flows }] ('Burns', 'Makes' or 'Dumps'), flows
+// [{ fluid, perSecond, share }] with fluid an entry of FLUIDS and share the bar's length: what is burnt, and the
+// waste from it, against the most any cell type burns, and 1 for what only this kind of cell makes or dumps; when
+// says when it happens; storeSeconds is how long the O₂ and sugar a full cell of this type holds last it at full
+// work (0 for a cell that burns nothing). No rows for a cell that changes no fluid.
+function cellFlows(typeName) {
+  const type = CELLS[typeName];
+  const result = { rows: [], when: '', storeSeconds: 0 };
+  const flow = (channel, perSecond, share = 1) => ({ fluid: FLUIDS[channel], perSecond, share });
+  if (type.fuelBurn) {
+    const burn = type.fuelBurn * FUEL_BURN_SCALE;
+    const share = type.fuelBurn / Math.max(...Object.values(CELLS).map(other => other.fuelBurn));
+    const made = [flow(FLUID_WASTE, burn, share)];
+    // a Mender's repair fluid is its burned fuel over the scale (PRODUCTS in fluid.js)
+    if (type.product === 'repair') made.push(flow(FLUID_REPAIR, type.fuelBurn));
+    result.rows.push({ label: 'Burns', flows: [flow(FLUID_OXYGEN, burn, share), flow(FLUID_SUGAR, burn, share)] });
+    result.rows.push({ label: 'Makes', flows: made });
+    result.when = WORK_WHEN[type.work] || 'while working';
+    result.storeSeconds = Math.min(type.oxygenCapacity, type.sugarCapacity) / burn;
+  }
+  if (type.breathes) {
+    result.rows.push({ label: 'Makes', flows: [flow(FLUID_OXYGEN, GILL_OXYGEN_RATE)] });
+    result.when = 'all the time, more while swimming fast';
+  }
+  if (type.dumpsWaste) {
+    result.rows.push({ label: 'Dumps', flows: [flow(FLUID_WASTE, PORE_RATE)] });
+    result.when = 'while it touches the water';
+  }
+  return result;
 }
 
 // A cell type's facts as [label, value] rows: what it costs, how tough it is, what it burns and stores, and the
@@ -105,7 +142,7 @@ function cellFacts(typeName) {
   if (type.damageFactor !== 1) facts.push(['Damage taken', `${guideNumber(type.damageFactor * 100)}%`]);
   if (type.mass !== 1) facts.push(['Weight', `${guideNumber(type.mass)}× a plain cell`]);
   if (type.fuelBurn) {
-    const perSecond = guideNumber(type.fuelBurn * FUEL_BURN_SCALE);
+    const perSecond = flowNumber(type.fuelBurn * FUEL_BURN_SCALE);
     facts.push(['Burns', `${perSecond} O₂ and ${perSecond} sugar per s, ${WORK_WHEN[type.work] || 'while working'}`]);
   } else {
     facts.push(['Burns', 'nothing: it only passes O₂ and sugar on']);

@@ -7,6 +7,17 @@ Numbering until the first release: `0.<milestone>.<patch>`. The minor number is 
 `PLAN.md`, and the patch number counts the changes released since. The versions before 0.4.1 were numbered
 afterwards, from the git history.
 
+## 0.8.4 (2026-11-11)
+- A cell's hint in the Lab now shows in its own block what the cell burns and makes each second, as bars in the
+  fluids' colours: a Muscle's O₂, sugar and waste bars are a quarter of a Bud's, the thirstiest cell. Under them it
+  says when the cell burns (a Muscle: as hard as its signal) and how long its own full store lasts (40 s). A Gill
+  shows the O₂ it makes and a Pore the waste it dumps.
+- The Creature card has a bar each for the O₂, sugar and waste the whole body burns or makes each second. They
+  grow with every working cell you add. A mark on the O₂ bar shows what the Gills make, and one on the waste bar
+  what the Pores dump; a bar past its mark is short, and says so in orange.
+- Delete (or Backspace) with nothing selected deletes the clicked cell.
+- The field guide gave a cell's burn rounded to two decimals (a Cilia's 0.0125 read 0.01). It now gives three.
+
 ## 0.8.3 (2026-11-11)
 - Ctrl+A in the Lab selects every cell, and Delete (or Backspace) deletes the selected cells with their neurons
   and fibres. The Nucleus always stays. Deleting every cell asks first, as Delete all does.

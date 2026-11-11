@@ -158,14 +158,17 @@ it got here is in `sessions/`; the long form of this plan up to version 0.8.0 is
 - **Two views, tabs at the top:** 1 Body, 2 Nerves. The Body view is drawn still; the Nerve view and the Preview
   show the creature live in a test tank, where Space fires every signal source.
 - **The dock** at the bottom: a tab per category, two rows of hexagons, no labels; the hover hint (after 200 ms)
-  gives the name, cost, description, how to use it and a live example.
+  gives the name, cost, description, how to use it and a live example. Where fluids run, a block in it gives what
+  the cell burns, makes and dumps per second as a bar per fluid (against the most any cell burns), when, and how
+  long its own full store lasts (user, 2026-11-11: "more visible", "add bars"; until then one dim "burns
+  0.025/s").
 - **Nothing is chosen at first** (user, 2026-10-30); Esc lets go of what the mouse holds, then opens the menu.
 - **Building fast:** drag to paint cells, right-drag to remove, and Symmetry mirrors cells, neurons and fibres
   across up to six axes through the Nucleus. Ctrl+A selects every cell; Delete (or Backspace, or the save menu's
-  Delete) removes the selected cells, never the Nucleus, and asks first if only the Nucleus would be left (user,
-  2026-11-11).
+  Delete) removes the selected cells, or with nothing selected the clicked cell, never the Nucleus, and asks first
+  if a selection would leave only the Nucleus (user, 2026-11-11).
 - **The panels:** the limits line under the tabs (only the current view's limits, in large numbers), a card for
-  the clicked cell when it has something to set, the Needs card (Sugar lasts N s, then a row per need with a ✓, ✗
+  the clicked cell when it has something to set, the Needs card (Sugar lasts N s, a bar each for the O₂, sugar and waste per second with marks for the Gills and Pores, then a row per need with a ✓, ✗
   or ~ and one "Next:" line), and the Traces window in the Nerve view.
 - **Saving:** Shift+right-drag a box round cells and name them (with the Nucleus a creature, without it a part);
   Ctrl+S saves the creature; F5 and F8 quick save and load. The **Templates screen** (T) has My creatures, My

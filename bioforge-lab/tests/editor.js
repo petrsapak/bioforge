@@ -138,6 +138,34 @@ check('after 0.25 s the hint shows the cell\'s name and biomass cost', byId('too
   check('in a level with a kit, a cell\'s hint names its materials instead of the biomass total',
     />1 Protein</.test(kitHint) && />1 Fat</.test(kitHint) && !/◆/.test(kitHint) && /◆ 2/.test(fatHint({})), kitHint);
 }
+{ // what a cell burns each second stands in its own block (user, 2026-11-11: "more visible")
+  const hint = (typeName, hasFluids) =>
+    readGlobal('tooltipHtml')(typeName, readGlobal('CELLS')[typeName], {}, hasFluids);
+  check('a Muscle\'s hint says what it burns and makes per second, when, and how long its own store lasts',
+    /Burns<\/span><b style="color: #ff5560">O₂<\/b><span class="flow-bar"><i style="width: 25%; background: #ff5560">/
+      .test(hint('muscle', true)) && /0.025 \/s/.test(hint('muscle', true)) &&
+    /Makes<\/span><b[^>]*>Waste<\/b><span class="flow-bar"><i style="width: 25%/.test(hint('muscle', true)) &&
+    /As hard as its signal\.<div>Its own full store lasts 40 s\./.test(hint('muscle', true)), hint('muscle', true));
+  check('a Gill\'s says what it makes, a Tissue\'s nothing, and no hint does where fluids don\'t run',
+    /Makes<\/span><b[^>]*>O₂<\/b><span class="flow-bar"><i style="width: 100%/.test(hint('gill', true)) &&
+    !/tooltip-flows/.test(hint('tissue', true)) && !/tooltip-flows/.test(hint('muscle', false)));
+  const bars = balance => (readGlobal('balanceHtml')(balance).match(/width: \d+%|left: \d+%|short|no \w+/g) || [])
+    .join(' ');
+  check('the card\'s bars grow with what the body burns, with marks for its Gills and Pores',
+    bars({ burn: 0.05, oxygenMade: 0.25, wasteDumped: 0.8 }) ===
+      'width: 20% left: 100% width: 20% width: 20% left: 100%' &&
+    bars({ burn: 0.125, oxygenMade: 0.25, wasteDumped: 0.8 }).startsWith('width: 50% left: 100%'),
+    bars({ burn: 0.05, oxygenMade: 0.25, wasteDumped: 0.8 }));
+  check('a body that burns more than its Gills make is short of O2, and one with no Pore of a way out',
+    bars({ burn: 0.5, oxygenMade: 0.25, wasteDumped: 0 }) ===
+      'short width: 100% left: 50% width: 100% short width: 100% no Pores' &&
+    readGlobal('balanceHtml')({ burn: 0, oxygenMade: 0.25, wasteDumped: 0 }) === '',
+    bars({ burn: 0.5, oxygenMade: 0.25, wasteDumped: 0 }));
+  const jetApp = readGlobal('globalThis.testApp');
+  check('the Creature card sets what the body burns against what its Gills make and its Pores dump',
+    /need-flow/.test(byId('needs').innerHTML) === jetApp.needRows.some(row => row.need === 'oxygen'),
+    byId('needs').innerHTML);
+}
 runFrames(55);
 check('resting on a cell shows its tooltip with a live example',
   byId('tooltip').style.display === 'block' && /How to use/.test(byId('tooltip').innerHTML));
@@ -442,7 +470,16 @@ check("Bioforge Moba's old library carries over", byId('library-tab-creatures').
     byId('save-menu').style.display === 'none' && /Deleted 2 cells/.test(message()),
     `${app.edited.cells.size} cells, ${message()}`);
   pressKey('Delete');
-  check('with nothing selected Delete does nothing', app.edited.cells.size === 4);
+  check('with nothing selected or clicked Delete does nothing', app.edited.cells.size === 4);
+  clickHex(1, 0);
+  pressKey('Delete');
+  check('with nothing selected Delete deletes the clicked cell', app.edited.cells.size === 3 &&
+    !app.edited.cells.has('1,0') && app.focusKey === null && /Deleted 1 cell\./.test(message()),
+    `${app.edited.cells.size} cells, ${message()}`);
+  clickHex(0, 0);
+  pressKey('Delete');
+  check('a clicked Nucleus stays', app.edited.cells.size === 3 && byId('dialog-sheet').style.display !== 'flex');
+  pressKey('Escape');
 
   loadTestBody();
   let isPrevented = false;

@@ -3,7 +3,7 @@
 const { load } = require('./load');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['pixelToHex', 'isInGrid', 'hexesReachableFromNucleus', 'designWarnings', 'buildCheck',
-  'designNeeds', 'nextNeed', 'sugarSupply',
+  'designNeeds', 'nextNeed', 'sugarSupply', 'fuelBalance', 'GILL_OXYGEN_RATE', 'PORE_RATE',
   'hexToPixel', 'hexKey', 'blueprintFromList', 'createNeuron', 'GRID_RADIUS', 'RULES', 'TEMPLATES']);
 
 // a design from [q, r, typeName] cells and [fromQ, fromR, toQ, toR] fibres
@@ -75,6 +75,14 @@ check('planned cells reported with their keys',
   const supply = sim.sugarSupply(jet);
   check('the Jet\'s sugar lasts a while even with every cell working',
     supply.burn > 0 && supply.stock / supply.burn > 5, JSON.stringify(supply));
+  const body = designOf([[0, 0, 'nucleus'], [1, 0, 'muscle'], [0, 1, 'siphon'], [-1, 0, 'gill'], [0, -1, 'gill'],
+    [1, -1, 'pore']]);
+  const balance = sim.fuelBalance(body);
+  check('the fuel balance sums what the cells burn, the Gills make and the Pores dump, per second',
+    Math.abs(balance.burn - 0.0625) < 1e-9 && balance.oxygenMade === 2 * sim.GILL_OXYGEN_RATE &&
+    balance.wasteDumped === sim.PORE_RATE, JSON.stringify(balance));
+  check('in stale water the Gills make that share of it',
+    sim.fuelBalance(body, 0.5).oxygenMade === sim.GILL_OXYGEN_RATE && sim.fuelBalance(body, 0).oxygenMade === 0);
 }
 
 { // the nerve limits in RULES

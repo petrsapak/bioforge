@@ -335,6 +335,19 @@ function sugarSupply(body) {
   };
 }
 
+// The body's fluids per second with every cell working: the O₂ and sugar burnt (burn, which is also the waste made),
+// the O₂ its Gills make at rest (waterOxygen: the level's share of the usual O₂ in the water) and the waste its Pores
+// can dump.
+function fuelBalance(body, waterOxygen = 1) {
+  const types = body.cells.map(typeOfCell);
+  const countWith = behaviour => types.filter(cellType => cellType[behaviour]).length;
+  return {
+    burn: sugarSupply(body).burn,
+    oxygenMade: countWith('breathes') * GILL_OXYGEN_RATE * waterOxygen,
+    wasteDumped: countWith('dumpsWaste') * PORE_RATE,
+  };
+}
+
 // ---------- Saved design format ----------
 // A design cell: { q, r, typeName }, plus on a Bud: budPart ({ name, cells }), partRotation (60° steps), partOffset
 // ([q, r] of the part's anchor from the Bud) and partAim (radians clockwise from the front); on a Command: boundKey.

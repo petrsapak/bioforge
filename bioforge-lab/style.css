@@ -173,6 +173,17 @@ button.big:hover { background: #4a8044; }
 .need-lasts { margin-top: 4px; font-size: 16px; color: #dfe4ea; }
 .need-lasts b { color: #f2e35b; }
 .need-lasts-note { color: #6f7b88; font-size: 11px; }
+.need-flows { margin-top: 6px; }
+.need-flow {
+  display: grid; grid-template-columns: 42px 1fr 56px; align-items: center; gap: 6px; font-size: 12px;
+  color: #8a96a3;
+}
+.need-flow.short span:last-child { color: #e8875a; }
+.need-flow.short .flow-bar u { background: #e8875a; }
+/* a bar of fluid per second, in the Creature card and the cell's hint; u is the mark of what the body supplies */
+.flow-bar { position: relative; display: block; height: 8px; background: #1c2a31; border-radius: 4px; }
+.flow-bar i { position: absolute; inset: 0 auto 0 0; min-width: 3px; border-radius: 4px; transition: width 0.25s; }
+.flow-bar u { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: #dfe4ea; }
 .need-rows { display: flex; flex-direction: column; gap: 1px; margin-top: 8px; }
 .need-row {
   display: grid; grid-template-columns: 24px 62px 16px 1fr; align-items: center; padding: 2px 4px;
@@ -697,6 +708,15 @@ button.small.primary:hover { background: #3d6b38; }
 #tooltip .dim { color: #6f7b88; font-size: 12px; }
 #tooltip .tooltip-title { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; font-size: 15px; }
 #tooltip .tooltip-cost { color: #e8c547; font-weight: 600; }
+#tooltip .tooltip-flows {
+  margin: 5px 0; padding: 5px 8px; background: #16232a; border-left: 3px solid #ffd23f; border-radius: 4px;
+}
+#tooltip .tooltip-flow {
+  display: grid; grid-template-columns: 46px 44px 1fr 62px; align-items: center; gap: 6px; font-size: 13px;
+}
+#tooltip .tooltip-flow-label { color: #8a96a3; font-size: 12px; }
+#tooltip .tooltip-flow .dim { text-align: right; }
+#tooltip .tooltip-flow-when { margin-top: 2px; color: #8a96a3; font-size: 12px; }
 #tooltip .tooltip-locked { color: #e8a547; margin-bottom: 4px; }
 
 /* ---------- Levels: the levels sheet, the level card, the level bar and the result box ---------- */

@@ -7,7 +7,8 @@ const { startApp } = require('./dom');
 const { check, done } = require('./check');
 const { X: sim } = load({}, ['CELLS', 'NEURONS', 'GUIDE_CELLS', 'GUIDE_NEURONS', 'GUIDE_TOPICS', 'GUIDE_TERMS',
   'guideSections', 'guideEntries', 'findGuideEntry', 'relatedGuideEntry', 'cellFacts', 'neuronFacts', 'TIPS',
-  'NEURON_TIPS', 'EYESPOT_RANGE', 'NETTLE_DAMAGE', 'CHAPTER_NAMES', 'LEVELS', 'cellStats', 'exampleWiring']);
+  'NEURON_TIPS', 'EYESPOT_RANGE', 'NETTLE_DAMAGE', 'CHAPTER_NAMES', 'LEVELS', 'cellStats', 'exampleWiring',
+  'cellFlows', 'flowNumber', 'WORK_WHEN', 'FUEL_BURN_SCALE', 'GILL_OXYGEN_RATE', 'PORE_RATE']);
 
 // ---------- The entries ----------
 const entries = sim.guideEntries();
@@ -52,6 +53,28 @@ check('a Nettle\'s sting is the sim\'s', factOf(sim.cellFacts('nettle'), 'Sting'
 check('every cell has facts with no blanks or undefined',
   Object.keys(sim.CELLS).every(typeName => sim.cellFacts(typeName).every(([label, value]) =>
     label && value && !value.includes('undefined') && !value.includes('NaN'))));
+{ // what a cell burns and makes each second, for the tooltip
+  const rowText = typeName => sim.cellFlows(typeName).rows.map(row => row.label + ' ' +
+    row.flows.map(flow => `${sim.flowNumber(flow.perSecond)} ${flow.fluid.id}`).join(' ')).join(', ');
+  const muscleBurn = sim.CELLS.muscle.fuelBurn * sim.FUEL_BURN_SCALE;
+  check('a Muscle burns the sim\'s O2 and sugar and makes as much waste, as hard as its signal',
+    rowText('muscle') === `Burns ${muscleBurn} oxygen ${muscleBurn} sugar, Makes ${muscleBurn} waste` &&
+    sim.cellFlows('muscle').when === 'as hard as its signal' &&
+    sim.cellFlows('muscle').storeSeconds === 1 / muscleBurn, rowText('muscle'));
+  const shares = Object.keys(sim.CELLS).flatMap(typeName =>
+    sim.cellFlows(typeName).rows.flatMap(row => row.flows.map(flow => flow.share)));
+  check('every flow\'s bar is between nothing and full, a Muscle\'s a quarter of the Bud\'s',
+    shares.every(share => share > 0 && share <= 1) && sim.cellFlows('bud').rows[0].flows[0].share === 1 &&
+    sim.cellFlows('muscle').rows[0].flows[0].share === sim.CELLS.muscle.fuelBurn / sim.CELLS.bud.fuelBurn);
+  check('a Cilia burns all the time, a Mender makes repair fluid too',
+    sim.cellFlows('cilia').when === 'all the time' && rowText('cilia').startsWith('Burns 0.013 oxygen') &&
+    rowText('mender').endsWith(`${sim.CELLS.mender.fuelBurn} repair`), rowText('cilia') + ' | ' + rowText('mender'));
+  check('a Gill makes O2, a Pore dumps waste, a Tissue changes nothing',
+    rowText('gill') === `Makes ${sim.GILL_OXYGEN_RATE} oxygen` && rowText('pore') === `Dumps ${sim.PORE_RATE} waste` &&
+    sim.cellFlows('tissue').rows.length === 0, rowText('gill') + ' | ' + rowText('pore'));
+  check('every working cell says when it burns', Object.keys(sim.CELLS).every(typeName =>
+    !sim.CELLS[typeName].fuelBurn || sim.WORK_WHEN[sim.CELLS[typeName].work]));
+}
 check('a neuron\'s setting gives its range', factOf(sim.neuronFacts('delay'), 'Delay').includes('0.05–3 s'));
 
 // ---------- The pictures' data ----------

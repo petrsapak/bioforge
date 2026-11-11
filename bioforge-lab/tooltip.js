@@ -60,7 +60,7 @@ function updateTooltip(app, now) {
   if (!cellType && !neuronType) return;
   const limits = chosenLimits(app);
   box.innerHTML = lockedLineHtml(app, tooltip.typeName, tooltip.neuronKind) + (cellType
-    ? tooltipHtml(tooltip.typeName, cellType, limits)
+    ? tooltipHtml(tooltip.typeName, cellType, limits, chosenSystems(app).includes('fluid'))
     : neuronTooltipHtml(tooltip.neuronKind, neuronType, limits));
   box.style.display = 'block';
   const { left, top } = tooltipPlace(tooltip, box.offsetWidth, box.offsetHeight);
@@ -106,14 +106,33 @@ function costHtml(recipe, limits) {
   return `<span class="tooltip-cost" title="Built from">${parts.length ? parts.join(' · ') : 'free'}</span>`;
 }
 
-// a cell type's tooltip: name, cost (limits: the level's, for how cost is counted), health, needs and fuel
-function tooltipHtml(typeName, cellType, limits) {
+// What the cell burns, makes and dumps each second: a bar per fluid in the fluid's colour with the amount small
+// beside it (user, 2026-11-11: "add bars"; the numbers are small and matter less), then when it does so and how
+// long its own store lasts; '' for a cell that changes no fluid.
+function flowsHtml(typeName) {
+  const { rows, when, storeSeconds } = cellFlows(typeName);
+  if (!rows.length) return '';
+  const flowHtml = (label, { fluid, perSecond, share }) =>
+    `<div class="tooltip-flow"><span class="tooltip-flow-label">${label}</span>` +
+    `<b style="color: ${fluid.color}">${fluid.short}</b>` +
+    `<span class="flow-bar"><i style="width: ${Math.round(share * 100)}%; background: ${fluid.color}"></i></span>` +
+    `<span class="dim">${flowNumber(perSecond)} /s</span></div>`;
+  // the row's label stands only beside its first fluid
+  const rowsHtml = rows.map(row => row.flows.map((flow, i) => flowHtml(i ? '' : row.label, flow)).join('')).join('');
+  const store = storeSeconds ? `<div>Its own full store lasts ${Math.round(storeSeconds)} s.</div>` : '';
+  const whenText = when[0].toUpperCase() + when.slice(1);
+  return `<div class="tooltip-flows">${rowsHtml}<div class="tooltip-flow-when">${whenText}.${store}</div></div>`;
+}
+
+// A cell type's tooltip: name, cost (limits: the level's, for how cost is counted), health, needs, and what it burns
+// and makes where fluids run (hasFluids).
+function tooltipHtml(typeName, cellType, limits, hasFluids = true) {
   const facts = [`${cellType.health} HP`];
   if (cellType.needsSignal) facts.push('needs a nerve signal');
-  if (cellType.fuelBurn) facts.push(`burns ${+(cellType.fuelBurn * FUEL_BURN_SCALE).toFixed(3)}/s`);
   return `<div class="tooltip-title"><b>${cellType.name}</b>` +
     costHtml(cellType.recipe, limits) + '</div>' +
-    `<span class="dim">${facts.join(' · ')}</span><br>${cellType.description}` +
+    `<span class="dim">${facts.join(' · ')}</span>${hasFluids ? flowsHtml(typeName) : ''}` +
+    `<div>${cellType.description}</div>` +
     `<div class="tooltip-heading">How to use</div>${TIPS[typeName].howToUse}` +
     `<div class="tooltip-heading">Example</div>` +
     `<canvas id="tooltip-demo" width="${DEMO_WIDTH}" height="${DEMO_HEIGHT}"></canvas>`;
